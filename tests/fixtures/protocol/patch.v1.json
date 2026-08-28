@@ -1,0 +1,10 @@
+{
+  "version": "1",
+  "operations": [
+    { "op": "set", "path": "/state/date", "value": "2026-09-02" },
+    { "op": "merge", "path": "/state/passengers", "value": { "adult": 2, "child": 0 } },
+    { "op": "append", "path": "/state/selected", "value": "flight-42" },
+    { "op": "replace", "path": "/state/status", "value": "ready" },
+    { "op": "remove", "path": "/state/draft" }
+  ]
+}
