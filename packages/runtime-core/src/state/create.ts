@@ -1,5 +1,5 @@
 import { parseExperiencePlan } from "@vira-enterprise-genui/protocol";
-import { deepFreezeData } from "./freeze.js";
+import { deepFreezeData } from "../internal/deep-freeze.js";
 import {
   RUNTIME_EXPERIENCE_ID_MAX_LENGTH,
   RUNTIME_INITIAL_REVISION,
