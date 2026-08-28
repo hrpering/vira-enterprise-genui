@@ -15,6 +15,8 @@ import type {
   ViraGenUIEventName,
   ViraGenUIMountResult,
   ViraGenUIMountValidationCode,
+  ViraGenUIPatchFailure,
+  ViraGenUIPatchResult,
   ViraGenUISubscriptionResult,
 } from "./types.js";
 
@@ -39,6 +41,13 @@ function sdkDispatchFailure(
   code: "SDK_DISPOSED" | "NOT_MOUNTED" | "REENTRANT_DISPATCH",
   message: string,
 ): ViraGenUIDispatchFailure {
+  return { ok: false, stage: "sdk", issue: { code, path: "$", message } };
+}
+
+function sdkPatchFailure(
+  code: "SDK_DISPOSED" | "NOT_MOUNTED" | "REENTRANT_PATCH",
+  message: string,
+): ViraGenUIPatchFailure {
   return { ok: false, stage: "sdk", issue: { code, path: "$", message } };
 }
 
@@ -121,6 +130,14 @@ export function createViraGenUI(configurationInput: unknown): CreateViraGenUIRes
     };
   }
 
+  function publishSuccess(result: { readonly action: ViraGenUIEventMap["action"]; readonly effects: readonly ViraGenUIEventMap["effect"][]; readonly state: ViraGenUIEventMap["statechange"]; readonly stateChanged: boolean }): void {
+    publish(() => {
+      notify("action", result.action);
+      for (const effect of result.effects) notify("effect", effect);
+      if (result.stateChanged) notify("statechange", result.state);
+    });
+  }
+
   const sdk: ViraGenUI = {
     mount(input: unknown): ViraGenUIMountResult {
       if (disposed) return mountFailure("SDK_DISPOSED", "$", "Vira GenUI instance is disposed");
@@ -186,11 +203,26 @@ export function createViraGenUI(configurationInput: unknown): CreateViraGenUIRes
         return result;
       }
 
-      publish(() => {
-        notify("action", result.value.action);
-        for (const effect of result.value.effects) notify("effect", effect);
-        if (result.value.stateChanged) notify("statechange", result.value.state);
-      });
+      publishSuccess(result.value);
+      return result;
+    },
+    patch(patchInput: unknown): ViraGenUIPatchResult {
+      if (disposed) return sdkPatchFailure("SDK_DISPOSED", "Vira GenUI instance is disposed");
+      if (notifying) return sdkPatchFailure("REENTRANT_PATCH", "patch is not allowed during SDK listener notification");
+      const current = active;
+      if (!current) {
+        const failure = sdkPatchFailure("NOT_MOUNTED", "Vira GenUI instance has no active experience");
+        publish(() => notify("error", failure));
+        return failure;
+      }
+
+      const result = current.session.processHostPatch(patchInput);
+      if (!result.ok) {
+        publish(() => notify("error", result));
+        return result;
+      }
+
+      publishSuccess(result.value);
       return result;
     },
     on: subscribe,

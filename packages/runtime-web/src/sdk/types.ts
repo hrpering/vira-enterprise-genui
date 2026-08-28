@@ -12,7 +12,10 @@ import type { AccessibilityPolicy } from "../accessibility/index.js";
 import type { RuntimeWebDomPort } from "../dom-lifecycle/index.js";
 import type { RuntimeWebActionIdFactory } from "../events/index.js";
 import type { ResponsivePolicy } from "../responsive/index.js";
-import type { StateBindingProcessResult } from "../state-bindings/index.js";
+import type {
+  StateBindingHostPatchResult,
+  StateBindingProcessResult,
+} from "../state-bindings/index.js";
 
 export interface WebSdkConfiguration {
   readonly componentAdapter: ComponentAdapterContract;
@@ -83,11 +86,26 @@ export type ViraGenUIDispatchResult =
 
 export type ViraGenUIDispatchFailure = Exclude<ViraGenUIDispatchResult, { readonly ok: true }>;
 
+export type ViraGenUIPatchValidationCode = "SDK_DISPOSED" | "NOT_MOUNTED" | "REENTRANT_PATCH";
+
+export interface ViraGenUIPatchValidationIssue {
+  readonly code: ViraGenUIPatchValidationCode;
+  readonly path: string;
+  readonly message: string;
+}
+
+export type ViraGenUIPatchResult =
+  | StateBindingHostPatchResult
+  | { readonly ok: false; readonly stage: "sdk"; readonly issue: ViraGenUIPatchValidationIssue };
+
+export type ViraGenUIPatchFailure = Exclude<ViraGenUIPatchResult, { readonly ok: true }>;
+export type ViraGenUIOperationFailure = ViraGenUIDispatchFailure | ViraGenUIPatchFailure;
+
 export interface ViraGenUIEventMap {
   readonly action: RuntimeAction;
   readonly effect: RuntimeEffect;
   readonly statechange: RuntimeState;
-  readonly error: ViraGenUIDispatchFailure;
+  readonly error: ViraGenUIOperationFailure;
 }
 
 export type ViraGenUIEventName = keyof ViraGenUIEventMap;
@@ -112,6 +130,7 @@ export type ViraGenUISubscriptionResult =
 export interface ViraGenUI {
   mount(input: unknown): ViraGenUIMountResult;
   dispatch(event: unknown): ViraGenUIDispatchResult;
+  patch(patch: unknown): ViraGenUIPatchResult;
   on<K extends ViraGenUIEventName>(event: K, listener: ViraGenUIEventListener<K>): ViraGenUISubscriptionResult;
   currentState(): RuntimeState | undefined;
   isMounted(): boolean;
