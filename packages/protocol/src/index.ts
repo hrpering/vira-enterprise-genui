@@ -7,3 +7,4 @@ export {
   isSemanticSegment,
 } from "./semantic-id.js";
 export * from "./intent/index.js";
+export * from "./domain-data/index.js";

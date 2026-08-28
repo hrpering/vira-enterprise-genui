@@ -1,0 +1,26 @@
+{
+  "version": "1",
+  "domain": "travel.flight",
+  "type": "search-results",
+  "data": {
+    "options": [
+      {
+        "id": "flight-1",
+        "origin": "IST",
+        "destination": "BER",
+        "price": {
+          "amount": 4200,
+          "currency": "TRY"
+        }
+      }
+    ]
+  },
+  "source": {
+    "kind": "tool",
+    "name": "flight-search"
+  },
+  "freshness": {
+    "observedAtUnixMs": 1787922000000,
+    "expiresAtUnixMs": 1787922060000
+  }
+}
