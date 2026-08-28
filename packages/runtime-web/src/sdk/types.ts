@@ -2,7 +2,7 @@ import type {
   ActionAdapterContract,
   ComponentAdapterContract,
 } from "@vira-enterprise-genui/adapter-sdk";
-import type { RuntimePermissionPolicy } from "@vira-enterprise-genui/runtime-core";
+import type { RuntimePermissionPolicy, RuntimeState } from "@vira-enterprise-genui/runtime-core";
 import type { AccessibilityPolicy } from "../accessibility/index.js";
 import type { RuntimeWebDomPort } from "../dom-lifecycle/index.js";
 import type { RuntimeWebActionIdFactory } from "../events/index.js";
@@ -37,4 +37,41 @@ export interface WebSdkConfigurationValidationIssue {
 
 export type WebSdkConfigurationResult =
   | { readonly ok: true; readonly value: WebSdkConfiguration }
+  | { readonly ok: false; readonly issue: WebSdkConfigurationValidationIssue };
+
+export type ViraGenUIMountValidationCode =
+  | "INVALID_MOUNT_INPUT"
+  | "SDK_DISPOSED"
+  | "ALREADY_MOUNTED"
+  | "INVALID_RUNTIME_STATE"
+  | "STATE_BINDING_FAILED"
+  | "INVALID_RENDER_INPUT"
+  | "DOM_MOUNT_FAILED";
+
+export interface ViraGenUIMountValidationIssue {
+  readonly code: ViraGenUIMountValidationCode;
+  readonly path: string;
+  readonly message: string;
+}
+
+export interface ViraGenUIMountedExperience {
+  readonly experienceId: string;
+  readonly planId: string;
+}
+
+export type ViraGenUIMountResult =
+  | { readonly ok: true; readonly value: ViraGenUIMountedExperience }
+  | { readonly ok: false; readonly issue: ViraGenUIMountValidationIssue };
+
+export interface ViraGenUI {
+  mount(input: unknown): ViraGenUIMountResult;
+  currentState(): RuntimeState | undefined;
+  isMounted(): boolean;
+  unmount(): void;
+  isDisposed(): boolean;
+  dispose(): void;
+}
+
+export type CreateViraGenUIResult =
+  | { readonly ok: true; readonly value: ViraGenUI }
   | { readonly ok: false; readonly issue: WebSdkConfigurationValidationIssue };
