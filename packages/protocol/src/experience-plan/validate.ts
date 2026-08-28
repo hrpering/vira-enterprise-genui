@@ -4,6 +4,7 @@ import { parseIntent } from "../intent/index.js";
 import { parseJsonValue } from "../json-value.js";
 import type { JsonObject, JsonValue } from "../json-value.js";
 import { readDataObjectInput } from "../object-input.js";
+import { isExperiencePlanId } from "./id.js";
 import {
   EXPERIENCE_PLAN_ID_MAX_LENGTH,
   EXPERIENCE_PLAN_MAX_CAPABILITIES,
@@ -19,7 +20,6 @@ import type {
 const allowedFields = new Set(["version", "id", "intent", "state", "capabilities"]);
 const capabilityBucketFields = new Set(["required", "available", "future"]);
 const capabilityBuckets = ["required", "available", "future"] as const;
-const planIdPattern = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/;
 
 type CapabilityBucket = (typeof capabilityBuckets)[number];
 
@@ -81,12 +81,7 @@ export function parseExperiencePlan(value: unknown): ExperiencePlanParseResult {
     return failure("INVALID_VERSION", "$.version", `experience plan version must be ${EXPERIENCE_PLAN_PROTOCOL_VERSION}`);
   }
 
-  if (
-    typeof fields.id !== "string"
-    || fields.id.length < 1
-    || fields.id.length > EXPERIENCE_PLAN_ID_MAX_LENGTH
-    || !planIdPattern.test(fields.id)
-  ) {
+  if (!isExperiencePlanId(fields.id)) {
     return failure(
       "INVALID_ID",
       "$.id",

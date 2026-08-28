@@ -11,4 +11,5 @@ export type {
   ExperiencePlanValidationIssue,
   PlannedCapabilities,
 } from "./types.js";
+export { isExperiencePlanId } from "./id.js";
 export { isExperiencePlan, parseExperiencePlan } from "./validate.js";

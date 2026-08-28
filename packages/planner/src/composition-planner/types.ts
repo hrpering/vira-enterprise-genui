@@ -1,6 +1,7 @@
 import type { Capability } from "@vira-enterprise-genui/protocol";
 
-export type CompositionPriorityMode = "resolve" | "interact" | "settled";
+export const COMPOSITION_PRIORITY_MODES = Object.freeze(["resolve", "interact", "settled"] as const);
+export type CompositionPriorityMode = (typeof COMPOSITION_PRIORITY_MODES)[number];
 
 export interface CompositionDirective {
   readonly planId: string;
