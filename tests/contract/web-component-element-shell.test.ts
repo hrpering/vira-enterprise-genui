@@ -78,6 +78,8 @@ function configuration(log: string[], ids: { value: number }) {
 
 class FakeHTMLElement {}
 
+const eventFactory = (type: string, detail: unknown): Event => ({ type, detail } as unknown as Event);
+
 function registry() {
   const definitions = new Map<string, CustomElementConstructor>();
   return {
@@ -100,6 +102,7 @@ describe("vira-experience Web Component shell", () => {
     const defined = defineViraExperienceElement({
       HTMLElementBase: FakeHTMLElement as unknown as typeof HTMLElement,
       registry: fakeRegistry.api,
+      customEventFactory: eventFactory,
     });
     expect(defined).toMatchObject({ ok: true, value: { tagName: "vira-experience" } });
     expect(VIRA_EXPERIENCE_TAG_NAME).toBe("vira-experience");
@@ -108,6 +111,7 @@ describe("vira-experience Web Component shell", () => {
     expect(defineViraExperienceElement({
       HTMLElementBase: FakeHTMLElement as unknown as typeof HTMLElement,
       registry: fakeRegistry.api,
+      customEventFactory: eventFactory,
     })).toMatchObject({ ok: false, issue: { code: "TAG_ALREADY_DEFINED" } });
   });
 

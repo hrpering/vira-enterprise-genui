@@ -1,16 +1,25 @@
 import { createViraGenUI } from "@vira-enterprise-genui/runtime-web";
-import type { ViraGenUI } from "@vira-enterprise-genui/runtime-web";
+import type { ViraGenUI, ViraGenUIEventMap, ViraGenUIEventName } from "@vira-enterprise-genui/runtime-web";
 import type {
   ViraExperienceConfigureResult,
+  ViraExperienceCustomEventFactory,
+  ViraExperienceDispatchResult,
   ViraExperienceElementApi,
   ViraExperienceElementConstructor,
   ViraExperienceElementPlatform,
   ViraExperienceDefineResult,
   ViraExperienceElementValidationCode,
   ViraExperienceMountResult,
+  ViraExperiencePatchResult,
 } from "./types.js";
 
 export const VIRA_EXPERIENCE_TAG_NAME = "vira-experience" as const;
+export const VIRA_EXPERIENCE_DOM_EVENTS = Object.freeze({
+  action: "vira-action",
+  effect: "vira-effect",
+  statechange: "vira-statechange",
+  error: "vira-error",
+} as const);
 
 function elementFailure(
   code: ViraExperienceElementValidationCode,
@@ -19,12 +28,28 @@ function elementFailure(
   return { ok: false, stage: "element", issue: { code, path: "$", message } };
 }
 
+function browserCustomEventFactory(type: string, detail: unknown): Event {
+  const browser = globalThis as typeof globalThis & { CustomEvent?: typeof CustomEvent };
+  if (typeof browser.CustomEvent !== "function") throw new Error("CustomEvent unavailable");
+  return new browser.CustomEvent(type, {
+    detail,
+    bubbles: true,
+    composed: true,
+    cancelable: false,
+  });
+}
+
 export function createViraExperienceElementClass(
   HTMLElementBase: typeof HTMLElement,
+  customEventFactory: ViraExperienceCustomEventFactory = browserCustomEventFactory,
 ): ViraExperienceElementConstructor {
   class ViraExperienceElement extends HTMLElementBase implements ViraExperienceElementApi {
     #sdk: ViraGenUI | undefined;
     #disposed = false;
+
+    #emit<K extends ViraGenUIEventName>(event: K, detail: ViraGenUIEventMap[K]): void {
+      this.dispatchEvent(customEventFactory(VIRA_EXPERIENCE_DOM_EVENTS[event], detail));
+    }
 
     configure(configuration: unknown): ViraExperienceConfigureResult {
       if (this.#disposed) return elementFailure("ELEMENT_DISPOSED", "vira-experience element is disposed");
@@ -32,7 +57,20 @@ export function createViraExperienceElementClass(
 
       const created = createViraGenUI(configuration);
       if (!created.ok) return { ok: false, stage: "configuration", issue: created.issue };
-      this.#sdk = created.value;
+
+      const sdk = created.value;
+      const bridges = [
+        sdk.on("action", (payload) => this.#emit("action", payload)),
+        sdk.on("effect", (payload) => this.#emit("effect", payload)),
+        sdk.on("statechange", (payload) => this.#emit("statechange", payload)),
+        sdk.on("error", (payload) => this.#emit("error", payload)),
+      ];
+      if (bridges.some((bridge) => !bridge.ok)) {
+        sdk.dispose();
+        return elementFailure("EVENT_BRIDGE_FAILED", "vira-experience event bridge could not be created");
+      }
+
+      this.#sdk = sdk;
       return { ok: true };
     }
 
@@ -40,6 +78,18 @@ export function createViraExperienceElementClass(
       if (this.#disposed) return elementFailure("ELEMENT_DISPOSED", "vira-experience element is disposed");
       if (!this.#sdk) return elementFailure("NOT_CONFIGURED", "vira-experience element must be configured before mount");
       return this.#sdk.mount(experience);
+    }
+
+    dispatch(event: unknown): ViraExperienceDispatchResult {
+      if (this.#disposed) return elementFailure("ELEMENT_DISPOSED", "vira-experience element is disposed");
+      if (!this.#sdk) return elementFailure("NOT_CONFIGURED", "vira-experience element must be configured before dispatch");
+      return this.#sdk.dispatch(event);
+    }
+
+    patch(patchInput: unknown): ViraExperiencePatchResult {
+      if (this.#disposed) return elementFailure("ELEMENT_DISPOSED", "vira-experience element is disposed");
+      if (!this.#sdk) return elementFailure("NOT_CONFIGURED", "vira-experience element must be configured before patch");
+      return this.#sdk.patch(patchInput);
     }
 
     unmount(): void {
@@ -83,7 +133,11 @@ function browserPlatform(): ViraExperienceElementPlatform | undefined {
     customElements?: CustomElementRegistry;
   };
   if (typeof browser.HTMLElement !== "function" || !browser.customElements) return undefined;
-  return { HTMLElementBase: browser.HTMLElement, registry: browser.customElements };
+  return {
+    HTMLElementBase: browser.HTMLElement,
+    registry: browser.customElements,
+    customEventFactory: browserCustomEventFactory,
+  };
 }
 
 export function defineViraExperienceElement(
@@ -104,7 +158,10 @@ export function defineViraExperienceElement(
     };
   }
 
-  const elementClass = createViraExperienceElementClass(resolved.HTMLElementBase);
+  const elementClass = createViraExperienceElementClass(
+    resolved.HTMLElementBase,
+    resolved.customEventFactory,
+  );
   try {
     resolved.registry.define(VIRA_EXPERIENCE_TAG_NAME, elementClass);
   } catch {
