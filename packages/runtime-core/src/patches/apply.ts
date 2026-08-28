@@ -8,6 +8,7 @@ import type {
   PatchOperation,
 } from "@vira-enterprise-genui/protocol";
 import { deepFreezeData } from "../internal/deep-freeze.js";
+import { isRuntimeLifecycle } from "../lifecycle/transition.js";
 import type { RuntimeState } from "../state/index.js";
 import type {
   RuntimePatchApplyCode,
@@ -199,6 +200,9 @@ export function applyRuntimePatch(state: RuntimeState, patchInput: unknown): Run
   if (!Number.isSafeInteger(state.revision) || state.revision < 0) {
     return failure("INVALID_RUNTIME_STATE", "$.revision", "runtime revision must be a non-negative safe integer");
   }
+  if (!isRuntimeLifecycle(state.lifecycle)) {
+    return failure("INVALID_RUNTIME_STATE", "$.lifecycle", "runtime state has an invalid lifecycle");
+  }
 
   const currentPlan = parseExperiencePlan(state.plan);
   if (!currentPlan.ok) {
@@ -234,6 +238,7 @@ export function applyRuntimePatch(state: RuntimeState, patchInput: unknown): Run
   const nextState: RuntimeState = {
     experienceId: state.experienceId,
     revision: state.revision + 1,
+    lifecycle: state.lifecycle,
     plan: deepFreezeData(finalPlan.value),
   };
   return { ok: true, value: Object.freeze(nextState) };

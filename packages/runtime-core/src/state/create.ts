@@ -2,6 +2,7 @@ import { parseExperiencePlan } from "@vira-enterprise-genui/protocol";
 import { deepFreezeData } from "../internal/deep-freeze.js";
 import {
   RUNTIME_EXPERIENCE_ID_MAX_LENGTH,
+  RUNTIME_INITIAL_LIFECYCLE,
   RUNTIME_INITIAL_REVISION,
 } from "./types.js";
 import type { RuntimeState, RuntimeStateCreateResult } from "./types.js";
@@ -41,6 +42,7 @@ export function createRuntimeState(experienceId: unknown, planInput: unknown): R
   const state: RuntimeState = {
     experienceId,
     revision: RUNTIME_INITIAL_REVISION,
+    lifecycle: RUNTIME_INITIAL_LIFECYCLE,
     plan: frozenPlan,
   };
 
