@@ -3,6 +3,9 @@ export { createViraGenUI } from "./instance.js";
 export type {
   CreateViraGenUIResult,
   ViraGenUI,
+  ViraGenUIDispatchResult,
+  ViraGenUIDispatchValidationCode,
+  ViraGenUIDispatchValidationIssue,
   ViraGenUIMountedExperience,
   ViraGenUIMountResult,
   ViraGenUIMountValidationCode,

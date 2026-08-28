@@ -8,6 +8,7 @@ import { createWebSdkConfiguration } from "./configuration.js";
 import type {
   CreateViraGenUIResult,
   ViraGenUI,
+  ViraGenUIDispatchResult,
   ViraGenUIMountResult,
   ViraGenUIMountValidationCode,
 } from "./types.js";
@@ -25,6 +26,10 @@ function mountFailure(
   message: string,
 ): ViraGenUIMountResult {
   return { ok: false, issue: { code, path, message } };
+}
+
+function sdkDispatchFailure(code: "SDK_DISPOSED" | "NOT_MOUNTED", message: string): ViraGenUIDispatchResult {
+  return { ok: false, stage: "sdk", issue: { code, path: "$", message } };
 }
 
 interface ActiveExperience {
@@ -96,6 +101,12 @@ export function createViraGenUI(configurationInput: unknown): CreateViraGenUIRes
           planId: initialState.value.plan.id,
         }),
       };
+    },
+    dispatch(event: unknown): ViraGenUIDispatchResult {
+      if (disposed) return sdkDispatchFailure("SDK_DISPOSED", "Vira GenUI instance is disposed");
+      const current = active;
+      if (!current) return sdkDispatchFailure("NOT_MOUNTED", "Vira GenUI instance has no active experience");
+      return current.session.process(event);
     },
     currentState() {
       return active?.session.currentState();

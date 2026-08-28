@@ -7,6 +7,7 @@ import type { AccessibilityPolicy } from "../accessibility/index.js";
 import type { RuntimeWebDomPort } from "../dom-lifecycle/index.js";
 import type { RuntimeWebActionIdFactory } from "../events/index.js";
 import type { ResponsivePolicy } from "../responsive/index.js";
+import type { StateBindingProcessResult } from "../state-bindings/index.js";
 
 export interface WebSdkConfiguration {
   readonly componentAdapter: ComponentAdapterContract;
@@ -63,8 +64,21 @@ export type ViraGenUIMountResult =
   | { readonly ok: true; readonly value: ViraGenUIMountedExperience }
   | { readonly ok: false; readonly issue: ViraGenUIMountValidationIssue };
 
+export type ViraGenUIDispatchValidationCode = "SDK_DISPOSED" | "NOT_MOUNTED";
+
+export interface ViraGenUIDispatchValidationIssue {
+  readonly code: ViraGenUIDispatchValidationCode;
+  readonly path: string;
+  readonly message: string;
+}
+
+export type ViraGenUIDispatchResult =
+  | StateBindingProcessResult
+  | { readonly ok: false; readonly stage: "sdk"; readonly issue: ViraGenUIDispatchValidationIssue };
+
 export interface ViraGenUI {
   mount(input: unknown): ViraGenUIMountResult;
+  dispatch(event: unknown): ViraGenUIDispatchResult;
   currentState(): RuntimeState | undefined;
   isMounted(): boolean;
   unmount(): void;
