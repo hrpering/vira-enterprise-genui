@@ -1,0 +1,31 @@
+{
+  "version": "1",
+  "id": "plan-travel-001",
+  "intent": {
+    "version": "1",
+    "namespace": "travel.flight",
+    "name": "search",
+    "confidence": 0.98,
+    "parameters": {
+      "origin": "IST",
+      "destination": "BER"
+    }
+  },
+  "state": {
+    "origin": "IST",
+    "destination": "BER",
+    "passengers": 1
+  },
+  "capabilities": {
+    "required": [
+      { "version": "1", "id": "select-date" }
+    ],
+    "available": [
+      { "version": "1", "id": "edit-location" },
+      { "version": "1", "id": "edit-passengers" }
+    ],
+    "future": [
+      { "version": "1", "id": "display.flight-results" }
+    ]
+  }
+}

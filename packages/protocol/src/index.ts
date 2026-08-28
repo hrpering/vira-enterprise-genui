@@ -9,3 +9,4 @@ export {
 export * from "./intent/index.js";
 export * from "./domain-data/index.js";
 export * from "./capability/index.js";
+export * from "./experience-plan/index.js";
