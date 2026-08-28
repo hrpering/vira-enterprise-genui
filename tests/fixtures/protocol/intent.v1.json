@@ -1,0 +1,11 @@
+{
+  "version": "1",
+  "namespace": "travel.flight",
+  "name": "search",
+  "confidence": 0.98,
+  "parameters": {
+    "origin": "IST",
+    "destination": "BER",
+    "passengers": 1
+  }
+}
