@@ -1,5 +1,6 @@
 import { parseExperiencePlan } from "@vira-enterprise-genui/protocol";
 import { deepFreezeData } from "../internal/deep-freeze.js";
+import { isRuntimeExperienceId } from "./experience-id.js";
 import {
   RUNTIME_EXPERIENCE_ID_MAX_LENGTH,
   RUNTIME_INITIAL_LIFECYCLE,
@@ -7,15 +8,8 @@ import {
 } from "./types.js";
 import type { RuntimeState, RuntimeStateCreateResult } from "./types.js";
 
-const experienceIdPattern = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/;
-
 export function createRuntimeState(experienceId: unknown, planInput: unknown): RuntimeStateCreateResult {
-  if (
-    typeof experienceId !== "string"
-    || experienceId.length < 1
-    || experienceId.length > RUNTIME_EXPERIENCE_ID_MAX_LENGTH
-    || !experienceIdPattern.test(experienceId)
-  ) {
+  if (!isRuntimeExperienceId(experienceId)) {
     return {
       ok: false,
       issue: {

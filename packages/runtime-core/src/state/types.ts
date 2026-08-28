@@ -23,3 +23,21 @@ export interface RuntimeStateValidationIssue {
 export type RuntimeStateCreateResult =
   | { readonly ok: true; readonly value: RuntimeState }
   | { readonly ok: false; readonly issue: RuntimeStateValidationIssue };
+
+export type RuntimeStateParseCode =
+  | "INVALID_TYPE"
+  | "UNKNOWN_FIELD"
+  | "INVALID_EXPERIENCE_ID"
+  | "INVALID_REVISION"
+  | "INVALID_LIFECYCLE"
+  | "INVALID_PLAN";
+
+export interface RuntimeStateParseIssue {
+  readonly code: RuntimeStateParseCode;
+  readonly path: string;
+  readonly message: string;
+}
+
+export type RuntimeStateParseResult =
+  | { readonly ok: true; readonly value: RuntimeState }
+  | { readonly ok: false; readonly issue: RuntimeStateParseIssue };
