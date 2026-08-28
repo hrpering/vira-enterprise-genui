@@ -1,1 +1,12 @@
-{"name":"@vira-enterprise-genui/adapter-sdk","version":"0.0.0","private":true,"type":"module"}
+{
+  "name": "@vira-enterprise-genui/adapter-sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/protocol": "workspace:*"
+  }
+}
