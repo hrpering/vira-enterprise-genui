@@ -1,1 +1,14 @@
-{"name":"@vira-enterprise-genui/runtime-web","version":"0.0.0","private":true,"type":"module"}
+{
+  "name": "@vira-enterprise-genui/runtime-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/protocol": "workspace:*",
+    "@vira-enterprise-genui/composer": "workspace:*",
+    "@vira-enterprise-genui/adapter-sdk": "workspace:*"
+  }
+}
