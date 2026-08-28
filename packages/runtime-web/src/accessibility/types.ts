@@ -41,6 +41,10 @@ export interface AccessibilityValidationIssue {
   readonly message: string;
 }
 
+export type AccessibilityPolicyResult =
+  | { readonly ok: true; readonly value: AccessibilityPolicy }
+  | { readonly ok: false; readonly issue: AccessibilityValidationIssue };
+
 export type AccessibleRenderModelResult =
   | { readonly ok: true; readonly value: AccessibleRenderModel }
   | { readonly ok: false; readonly issue: AccessibilityValidationIssue };

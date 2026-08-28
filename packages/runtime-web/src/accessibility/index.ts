@@ -1,4 +1,4 @@
-export { prepareAccessibleRenderModel } from "./prepare.js";
+export { createAccessibilityPolicy, prepareAccessibleRenderModel } from "./prepare.js";
 export {
   ACCESSIBILITY_ERROR_ANNOUNCEMENTS,
   ACCESSIBILITY_FOCUS_ON_MOUNT,
@@ -11,6 +11,7 @@ export type {
   AccessibilityFocusOnMount,
   AccessibilityFocusOnUpdate,
   AccessibilityPolicy,
+  AccessibilityPolicyResult,
   AccessibilityStatusAnnouncement,
   AccessibilityValidationCode,
   AccessibilityValidationIssue,

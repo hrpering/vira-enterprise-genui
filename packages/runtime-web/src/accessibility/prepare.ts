@@ -9,11 +9,7 @@ import {
   ACCESSIBILITY_STATUS_ANNOUNCEMENTS,
 } from "./types.js";
 import type {
-  AccessibilityErrorAnnouncement,
-  AccessibilityFocusOnMount,
-  AccessibilityFocusOnUpdate,
-  AccessibilityPolicy,
-  AccessibilityStatusAnnouncement,
+  AccessibilityPolicyResult,
   AccessibilityValidationCode,
   AccessibleRenderModelResult,
 } from "./types.js";
@@ -25,6 +21,10 @@ function failure(code: AccessibilityValidationCode, path: string, message: strin
   return { ok: false, issue: { code, path, message } };
 }
 
+function policyFailure(code: AccessibilityValidationCode, path: string, message: string): AccessibilityPolicyResult {
+  return { ok: false, issue: { code, path, message } };
+}
+
 function nestedPath(base: string, path: string): string {
   return path === "$" ? base : `${base}${path.slice(1)}`;
 }
@@ -33,40 +33,38 @@ function oneOf<T extends string>(value: unknown, values: readonly T[]): value is
   return typeof value === "string" && values.includes(value as T);
 }
 
-function parseAccessibilityPolicy(input: unknown):
-  | { readonly ok: true; readonly value: AccessibilityPolicy }
-  | { readonly ok: false; readonly code: AccessibilityValidationCode; readonly path: string; readonly message: string } {
-  const raw = readRuntimeWebDataObject(input, "$.accessibility");
-  if (!raw.ok) return { ok: false, code: "INVALID_POLICY", path: raw.issue.path, message: "accessibility policy is invalid" };
+export function createAccessibilityPolicy(input: unknown): AccessibilityPolicyResult {
+  const raw = readRuntimeWebDataObject(input);
+  if (!raw.ok) return policyFailure("INVALID_POLICY", raw.issue.path, "accessibility policy is invalid");
   const fields = raw.value;
   const unknownField = Object.keys(fields).sort().find((field) => !policyFields.has(field));
   if (unknownField) {
-    return { ok: false, code: "UNKNOWN_POLICY_FIELD", path: `$.accessibility.${unknownField}`, message: "accessibility policy contains an unknown field" };
+    return policyFailure("UNKNOWN_POLICY_FIELD", `$.${unknownField}`, "accessibility policy contains an unknown field");
   }
   if (fields.version !== ACCESSIBILITY_POLICY_VERSION) {
-    return { ok: false, code: "INVALID_POLICY_VERSION", path: "$.accessibility.version", message: "accessibility policy version is invalid" };
+    return policyFailure("INVALID_POLICY_VERSION", "$.version", "accessibility policy version is invalid");
   }
   if (!oneOf(fields.focusOnMount, ACCESSIBILITY_FOCUS_ON_MOUNT)) {
-    return { ok: false, code: "INVALID_FOCUS_ON_MOUNT", path: "$.accessibility.focusOnMount", message: "focusOnMount is invalid" };
+    return policyFailure("INVALID_FOCUS_ON_MOUNT", "$.focusOnMount", "focusOnMount is invalid");
   }
   if (!oneOf(fields.focusOnUpdate, ACCESSIBILITY_FOCUS_ON_UPDATE)) {
-    return { ok: false, code: "INVALID_FOCUS_ON_UPDATE", path: "$.accessibility.focusOnUpdate", message: "focusOnUpdate is invalid" };
+    return policyFailure("INVALID_FOCUS_ON_UPDATE", "$.focusOnUpdate", "focusOnUpdate is invalid");
   }
   if (!oneOf(fields.statusAnnouncements, ACCESSIBILITY_STATUS_ANNOUNCEMENTS)) {
-    return { ok: false, code: "INVALID_STATUS_ANNOUNCEMENTS", path: "$.accessibility.statusAnnouncements", message: "statusAnnouncements is invalid" };
+    return policyFailure("INVALID_STATUS_ANNOUNCEMENTS", "$.statusAnnouncements", "statusAnnouncements is invalid");
   }
   if (!oneOf(fields.errorAnnouncements, ACCESSIBILITY_ERROR_ANNOUNCEMENTS)) {
-    return { ok: false, code: "INVALID_ERROR_ANNOUNCEMENTS", path: "$.accessibility.errorAnnouncements", message: "errorAnnouncements must remain polite or assertive" };
+    return policyFailure("INVALID_ERROR_ANNOUNCEMENTS", "$.errorAnnouncements", "errorAnnouncements must remain polite or assertive");
   }
 
   return {
     ok: true,
     value: freezeRuntimeWebData({
       version: ACCESSIBILITY_POLICY_VERSION,
-      focusOnMount: fields.focusOnMount as AccessibilityFocusOnMount,
-      focusOnUpdate: fields.focusOnUpdate as AccessibilityFocusOnUpdate,
-      statusAnnouncements: fields.statusAnnouncements as AccessibilityStatusAnnouncement,
-      errorAnnouncements: fields.errorAnnouncements as AccessibilityErrorAnnouncement,
+      focusOnMount: fields.focusOnMount,
+      focusOnUpdate: fields.focusOnUpdate,
+      statusAnnouncements: fields.statusAnnouncements,
+      errorAnnouncements: fields.errorAnnouncements,
     }),
   };
 }
@@ -87,8 +85,14 @@ export function prepareAccessibleRenderModel(input: unknown): AccessibleRenderMo
     return failure("INVALID_RENDER_MODEL", nestedPath("$", render.issue.path), "render model preparation failed");
   }
 
-  const accessibility = parseAccessibilityPolicy(fields.accessibility);
-  if (!accessibility.ok) return failure(accessibility.code, accessibility.path, accessibility.message);
+  const accessibility = createAccessibilityPolicy(fields.accessibility);
+  if (!accessibility.ok) {
+    return failure(
+      accessibility.issue.code,
+      nestedPath("$.accessibility", accessibility.issue.path),
+      accessibility.issue.message,
+    );
+  }
 
   return {
     ok: true,
