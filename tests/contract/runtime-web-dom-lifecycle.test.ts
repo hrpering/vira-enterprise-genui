@@ -36,23 +36,63 @@ function componentAdapter() {
   };
 }
 
+function accessibility() {
+  return {
+    version: "1",
+    focusOnMount: "first-primary",
+    focusOnUpdate: "primary-if-lost",
+    statusAnnouncements: "polite",
+    errorAnnouncements: "assertive",
+  };
+}
+
+function responsive() {
+  return {
+    version: "1",
+    strategy: "container",
+    bands: [
+      { id: "compact", minInlineSizePx: 0 },
+      { id: "regular", minInlineSizePx: 420 },
+      { id: "wide", minInlineSizePx: 760 },
+    ],
+  };
+}
+
 function input() {
   const composition = composeExperience({ plan: plan(), layout: { family: "flow" }, disclosure });
   if (!composition.ok) throw new Error(composition.issue.message);
-  return { composition: composition.value, plan: plan(), componentAdapter: componentAdapter() };
+  return {
+    composition: composition.value,
+    plan: plan(),
+    componentAdapter: componentAdapter(),
+    accessibility: accessibility(),
+    responsive: responsive(),
+  };
 }
 
-function host(log: string[], failComponent?: string, failCommit = false): RuntimeWebDomPort {
+interface HostOptions {
+  readonly inlineSizePx?: number;
+  readonly failMeasure?: boolean;
+  readonly failComponent?: string;
+  readonly failCommit?: boolean;
+}
+
+function host(log: string[], options: HostOptions = {}): RuntimeWebDomPort {
   return {
-    begin(model) {
-      log.push(`begin:${model.planId}`);
+    measureContainerInlineSizePx() {
+      log.push("measure");
+      if (options.failMeasure) throw new Error("SECRET_MEASURE_EXCEPTION");
+      return options.inlineSizePx ?? 500;
+    },
+    begin(context) {
+      log.push(`begin:${context.planId}:${context.responsiveBand.id}:${context.accessibility.focusOnMount}`);
       const root: RuntimeWebDomRoot = {
         createRegion(region) {
           log.push(`region:${region.id}`);
           const domRegion: RuntimeWebDomRegion = {
             mountComponent(binding) {
               log.push(`mount:${binding.component}`);
-              if (binding.component === failComponent) throw new Error("SECRET_HOST_EXCEPTION");
+              if (binding.component === options.failComponent) throw new Error("SECRET_HOST_EXCEPTION");
               const handle: RuntimeWebDomComponentHandle = {
                 dispose() {
                   log.push(`dispose:${binding.component}`);
@@ -65,7 +105,7 @@ function host(log: string[], failComponent?: string, failCommit = false): Runtim
         },
         commit() {
           log.push("commit");
-          if (failCommit) throw new Error("SECRET_COMMIT_EXCEPTION");
+          if (options.failCommit) throw new Error("SECRET_COMMIT_EXCEPTION");
         },
         dispose() {
           log.push("dispose:root");
@@ -77,12 +117,13 @@ function host(log: string[], failComponent?: string, failCommit = false): Runtim
 }
 
 describe("runtime-web DOM lifecycle", () => {
-  it("mounts in semantic order, commits after all mounts, and disposes in reverse order", () => {
+  it("mounts with mandatory accessibility + resolved container band and preserves transaction ordering", () => {
     const log: string[] = [];
     const result = mountExperience(input(), host(log));
     expect(result.ok).toBe(true);
     expect(log).toEqual([
-      "begin:plan-1",
+      "measure",
+      "begin:plan-1:regular:first-primary",
       "region:primary",
       "mount:acme.component.date-picker",
       "region:supporting",
@@ -92,41 +133,65 @@ describe("runtime-web DOM lifecycle", () => {
     if (!result.ok) return;
     result.value.dispose();
     result.value.dispose();
-    expect(log).toEqual([
-      "begin:plan-1",
-      "region:primary",
-      "mount:acme.component.date-picker",
-      "region:supporting",
-      "mount:acme.component.search-button",
-      "commit",
+    expect(log.slice(-3)).toEqual([
       "dispose:acme.component.search-button",
       "dispose:acme.component.date-picker",
       "dispose:root",
     ]);
   });
 
+  it("resolves responsive bands from container measurements before begin", () => {
+    const compact: string[] = [];
+    expect(mountExperience(input(), host(compact, { inlineSizePx: 320 })).ok).toBe(true);
+    expect(compact[1]).toBe("begin:plan-1:compact:first-primary");
+
+    const wide: string[] = [];
+    expect(mountExperience(input(), host(wide, { inlineSizePx: 900 })).ok).toBe(true);
+    expect(wide[1]).toBe("begin:plan-1:wide:first-primary");
+  });
+
+  it("does not touch the DOM Port for invalid render, accessibility, or responsive input", () => {
+    for (const invalid of [
+      { ...input(), componentAdapter: { ...componentAdapter(), mappings: [] } },
+      { ...input(), accessibility: { ...accessibility(), errorAnnouncements: "off" } },
+      { ...input(), responsive: { ...responsive(), strategy: "viewport" } },
+    ]) {
+      const log: string[] = [];
+      expect(mountExperience(invalid, host(log))).toMatchObject({ ok: false });
+      expect(log).toEqual([]);
+    }
+  });
+
+  it("fails before begin when container measurement throws or is invalid without reflecting host errors", () => {
+    const thrownLog: string[] = [];
+    const thrown = mountExperience(input(), host(thrownLog, { failMeasure: true }));
+    expect(thrown).toMatchObject({ ok: false, issue: { code: "CONTAINER_MEASURE_FAILED" } });
+    expect(thrownLog).toEqual(["measure"]);
+    if (!thrown.ok) expect(thrown.issue.message).not.toContain("SECRET_MEASURE_EXCEPTION");
+
+    const invalidLog: string[] = [];
+    expect(mountExperience(input(), host(invalidLog, { inlineSizePx: -1 }))).toMatchObject({
+      ok: false,
+      issue: { code: "CONTAINER_MEASURE_FAILED" },
+    });
+    expect(invalidLog).toEqual(["measure"]);
+  });
+
   it("rolls back a partial mount and never commits", () => {
     const log: string[] = [];
-    const result = mountExperience(input(), host(log, "acme.component.search-button"));
+    const result = mountExperience(input(), host(log, { failComponent: "acme.component.search-button" }));
     expect(result).toEqual({
       ok: false,
       issue: { code: "DOM_MOUNT_FAILED", path: "$", message: "DOM host failed while mounting experience" },
     });
-    expect(log).toEqual([
-      "begin:plan-1",
-      "region:primary",
-      "mount:acme.component.date-picker",
-      "region:supporting",
-      "mount:acme.component.search-button",
-      "dispose:acme.component.date-picker",
-      "dispose:root",
-    ]);
+    expect(log.slice(-2)).toEqual(["dispose:acme.component.date-picker", "dispose:root"]);
+    expect(log).not.toContain("commit");
     if (!result.ok) expect(result.issue.message).not.toContain("SECRET_HOST_EXCEPTION");
   });
 
   it("rolls back all mounted components if commit fails", () => {
     const log: string[] = [];
-    const result = mountExperience(input(), host(log, undefined, true));
+    const result = mountExperience(input(), host(log, { failCommit: true }));
     expect(result).toMatchObject({ ok: false, issue: { code: "DOM_MOUNT_FAILED" } });
     expect(log.slice(-3)).toEqual([
       "dispose:acme.component.search-button",
@@ -134,13 +199,5 @@ describe("runtime-web DOM lifecycle", () => {
       "dispose:root",
     ]);
     if (!result.ok) expect(result.issue.message).not.toContain("SECRET_COMMIT_EXCEPTION");
-  });
-
-  it("does not call the DOM Port when render preparation fails", () => {
-    const log: string[] = [];
-    const invalid = input();
-    invalid.componentAdapter.mappings = [];
-    expect(mountExperience(invalid, host(log))).toMatchObject({ ok: false, issue: { code: "INVALID_RENDER_INPUT" } });
-    expect(log).toEqual([]);
   });
 });

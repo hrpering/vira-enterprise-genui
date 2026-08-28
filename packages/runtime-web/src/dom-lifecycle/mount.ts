@@ -1,8 +1,22 @@
-import { prepareRenderModel } from "../renderer/index.js";
-import type { RuntimeWebDomComponentHandle, RuntimeWebDomPort, RuntimeWebDomRoot, RuntimeWebMountResult } from "./types.js";
+import { prepareAccessibleRenderModel } from "../accessibility/index.js";
+import { readRuntimeWebDataObject } from "../internal/data-object-input.js";
+import { createResponsivePolicy, resolveResponsiveBand } from "../responsive/index.js";
+import type {
+  RuntimeWebDomComponentHandle,
+  RuntimeWebDomPort,
+  RuntimeWebDomRoot,
+  RuntimeWebMountResult,
+  RuntimeWebMountValidationCode,
+} from "./types.js";
 
-function failure(code: "INVALID_RENDER_INPUT" | "DOM_BEGIN_FAILED" | "DOM_MOUNT_FAILED", path: string, message: string): RuntimeWebMountResult {
+const inputFields = new Set(["composition", "plan", "componentAdapter", "accessibility", "responsive"]);
+
+function failure(code: RuntimeWebMountValidationCode, path: string, message: string): RuntimeWebMountResult {
   return { ok: false, issue: { code, path, message } };
+}
+
+function nestedPath(base: string, path: string): string {
+  return path === "$" ? base : `${base}${path.slice(1)}`;
 }
 
 function safeDispose(handle: { dispose(): void }): void {
@@ -22,25 +36,56 @@ function rollback(root: RuntimeWebDomRoot | undefined, components: readonly Runt
 }
 
 export function mountExperience(input: unknown, domPort: RuntimeWebDomPort): RuntimeWebMountResult {
-  const prepared = prepareRenderModel(input);
-  if (!prepared.ok) return failure("INVALID_RENDER_INPUT", prepared.issue.path, prepared.issue.message);
+  const raw = readRuntimeWebDataObject(input);
+  if (!raw.ok) return failure("INVALID_MOUNT_INPUT", raw.issue.path, "DOM mount input is invalid");
+  const fields = raw.value;
+  const unknownField = Object.keys(fields).sort().find((field) => !inputFields.has(field));
+  if (unknownField) return failure("INVALID_MOUNT_INPUT", `$.${unknownField}`, "DOM mount input contains an unknown field");
 
+  const prepared = prepareAccessibleRenderModel({
+    composition: fields.composition,
+    plan: fields.plan,
+    componentAdapter: fields.componentAdapter,
+    accessibility: fields.accessibility,
+  });
+  if (!prepared.ok) return failure("INVALID_RENDER_INPUT", prepared.issue.path, "render/accessibility preparation failed");
+
+  const responsive = createResponsivePolicy(fields.responsive);
+  if (!responsive.ok) {
+    return failure("INVALID_RESPONSIVE_POLICY", nestedPath("$.responsive", responsive.issue.path), "responsive policy is invalid");
+  }
+
+  let inlineSizePx: number;
+  try {
+    inlineSizePx = domPort.measureContainerInlineSizePx();
+  } catch {
+    return failure("CONTAINER_MEASURE_FAILED", "$.container.inlineSizePx", "DOM host failed to measure container inline size");
+  }
+
+  const responsiveBand = resolveResponsiveBand(responsive.value, inlineSizePx);
+  if (!responsiveBand.ok) {
+    return failure("CONTAINER_MEASURE_FAILED", "$.container.inlineSizePx", "DOM host returned an invalid container inline size");
+  }
+
+  const render = prepared.value.render;
   const components: RuntimeWebDomComponentHandle[] = [];
   let root: RuntimeWebDomRoot | undefined;
 
   try {
     root = domPort.begin({
-      planId: prepared.value.planId,
-      mode: prepared.value.mode,
-      layout: prepared.value.layout,
-      disclosure: prepared.value.disclosure,
+      planId: render.planId,
+      mode: render.mode,
+      layout: render.layout,
+      disclosure: render.disclosure,
+      accessibility: prepared.value.accessibility,
+      responsiveBand: responsiveBand.value,
     });
   } catch {
     return failure("DOM_BEGIN_FAILED", "$", "DOM host failed to begin experience mount");
   }
 
   try {
-    for (const region of prepared.value.regions) {
+    for (const region of render.regions) {
       const domRegion = root.createRegion(region);
       for (const binding of region.bindings) components.push(domRegion.mountComponent(binding));
     }
@@ -54,7 +99,7 @@ export function mountExperience(input: unknown, domPort: RuntimeWebDomPort): Run
   return {
     ok: true,
     value: Object.freeze({
-      planId: prepared.value.planId,
+      planId: render.planId,
       dispose(): void {
         if (disposed) return;
         disposed = true;

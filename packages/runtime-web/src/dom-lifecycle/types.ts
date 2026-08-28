@@ -1,4 +1,6 @@
+import type { AccessibilityPolicy } from "../accessibility/index.js";
 import type { RenderCapabilityBinding, RenderModel } from "../renderer/index.js";
+import type { ResponsiveBand } from "../responsive/index.js";
 
 export interface RuntimeWebDomComponentHandle {
   dispose(): void;
@@ -14,8 +16,18 @@ export interface RuntimeWebDomRoot {
   dispose(): void;
 }
 
+export interface RuntimeWebDomBeginContext {
+  readonly planId: RenderModel["planId"];
+  readonly mode: RenderModel["mode"];
+  readonly layout: RenderModel["layout"];
+  readonly disclosure: RenderModel["disclosure"];
+  readonly accessibility: AccessibilityPolicy;
+  readonly responsiveBand: ResponsiveBand;
+}
+
 export interface RuntimeWebDomPort {
-  begin(model: Readonly<Pick<RenderModel, "planId" | "mode" | "layout" | "disclosure">>): RuntimeWebDomRoot;
+  measureContainerInlineSizePx(): number;
+  begin(context: RuntimeWebDomBeginContext): RuntimeWebDomRoot;
 }
 
 export interface MountedExperience {
@@ -24,7 +36,10 @@ export interface MountedExperience {
 }
 
 export type RuntimeWebMountValidationCode =
+  | "INVALID_MOUNT_INPUT"
   | "INVALID_RENDER_INPUT"
+  | "INVALID_RESPONSIVE_POLICY"
+  | "CONTAINER_MEASURE_FAILED"
   | "DOM_BEGIN_FAILED"
   | "DOM_MOUNT_FAILED";
 
