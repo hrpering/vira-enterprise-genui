@@ -1,7 +1,4 @@
-import {
-  createComponentAdapterContract,
-  resolveComponentForCapability,
-} from "@vira-enterprise-genui/adapter-sdk";
+import { createComponentAdapterContract } from "@vira-enterprise-genui/adapter-sdk";
 import { validateComposedExperienceAgainstPlan } from "@vira-enterprise-genui/composer";
 import { freezeRuntimeWebData } from "../internal/freeze.js";
 import { readRuntimeWebDataObject } from "../internal/data-object-input.js";
@@ -38,6 +35,11 @@ export function prepareRenderModel(input: unknown): RenderModelResult {
     return failure("INVALID_COMPONENT_ADAPTER", nestedPath("$.componentAdapter", componentAdapter.issue.path), componentAdapter.issue.message);
   }
 
+  const componentByCapability = new Map<string, string>();
+  for (const mapping of componentAdapter.value.mappings) {
+    componentByCapability.set(mapping.capability.id, mapping.component);
+  }
+
   const regions: RenderModelRegion[] = [];
   for (let regionIndex = 0; regionIndex < composition.value.regions.length; regionIndex += 1) {
     const region = composition.value.regions[regionIndex];
@@ -46,15 +48,15 @@ export function prepareRenderModel(input: unknown): RenderModelResult {
     for (let capabilityIndex = 0; capabilityIndex < region.capabilities.length; capabilityIndex += 1) {
       const capability = region.capabilities[capabilityIndex];
       if (!capability) continue;
-      const resolved = resolveComponentForCapability(componentAdapter.value, capability);
-      if (!resolved.ok) {
+      const component = componentByCapability.get(capability.id);
+      if (component === undefined) {
         return failure(
           "UNMAPPED_COMPONENT",
           `$.composition.regions[${regionIndex}].capabilities[${capabilityIndex}]`,
           "no exact semantic component mapping exists for composed capability",
         );
       }
-      bindings.push({ capability, component: resolved.value });
+      bindings.push({ capability, component });
     }
     regions.push({ id: region.id, role: region.role, bindings });
   }
