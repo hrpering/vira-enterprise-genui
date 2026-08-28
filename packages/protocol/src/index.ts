@@ -8,3 +8,4 @@ export {
 } from "./semantic-id.js";
 export * from "./intent/index.js";
 export * from "./domain-data/index.js";
+export * from "./capability/index.js";
