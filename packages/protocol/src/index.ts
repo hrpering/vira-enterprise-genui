@@ -11,3 +11,5 @@ export * from "./domain-data/index.js";
 export * from "./capability/index.js";
 export * from "./experience-plan/index.js";
 export * from "./patch/index.js";
+export { PROTOCOL_KINDS, isSupportedProtocolVersion, supportedProtocolVersions } from "./versioning.js";
+export type { ProtocolKind } from "./versioning.js";
