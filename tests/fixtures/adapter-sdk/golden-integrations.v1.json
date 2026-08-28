@@ -1,0 +1,161 @@
+{
+  "version": "1",
+  "scenarios": [
+    {
+      "name": "travel-flight-search",
+      "brand": {
+        "version": "1",
+        "id": "acme.enterprise",
+        "displayName": "Acme Enterprise",
+        "tokenRefs": { "accent": "acme.color.accent", "surface": "acme.color.surface" }
+      },
+      "intentAdapter": {
+        "version": "1",
+        "id": "acme.chat.intent-adapter",
+        "mappings": [{ "source": "BOOK_FLIGHT", "target": { "namespace": "travel.flight", "name": "search" } }]
+      },
+      "intentInput": { "source": "BOOK_FLIGHT", "parameters": { "origin": "IST" } },
+      "expectedIntent": { "version": "1", "namespace": "travel.flight", "name": "search", "parameters": { "origin": "IST" } },
+      "recipe": {
+        "version": "1",
+        "id": "travel.flight.search-recipe",
+        "intent": { "namespace": "travel.flight", "name": "search" },
+        "requiredState": ["origin", "destination"],
+        "capabilityRequirements": [
+          { "field": "origin", "capability": { "version": "1", "id": "resolve-origin" } },
+          { "field": "destination", "capability": { "version": "1", "id": "resolve-destination" } }
+        ],
+        "availableCapabilities": [{ "version": "1", "id": "submit-search" }],
+        "futureCapabilities": [{ "version": "1", "id": "display.flight-results" }]
+      },
+      "domainAdapter": {
+        "version": "1",
+        "id": "acme.travel.domain-adapter",
+        "domain": "travel.flight",
+        "types": ["search-context"]
+      },
+      "domainData": {
+        "version": "1",
+        "domain": "travel.flight",
+        "type": "search-context",
+        "data": { "departure": "IST", "arrival": "BER" },
+        "source": { "kind": "api", "name": "acme.travel-api" }
+      },
+      "dataAdapter": {
+        "version": "1",
+        "id": "acme.travel.search-input",
+        "domain": "travel.flight",
+        "type": "search-context",
+        "bindings": [
+          { "from": "departure", "to": "origin" },
+          { "from": "arrival", "to": "destination" }
+        ]
+      },
+      "expectedProjection": { "origin": "IST", "destination": "BER" },
+      "componentAdapter": {
+        "version": "1",
+        "id": "acme.web.components",
+        "mappings": [{ "capability": { "version": "1", "id": "submit-search" }, "component": "acme.component.search-button" }]
+      },
+      "componentCapability": { "version": "1", "id": "submit-search" },
+      "expectedComponent": "acme.component.search-button",
+      "actionAdapter": {
+        "version": "1",
+        "id": "acme.web.actions",
+        "mappings": [{ "event": "search.submit", "actionType": "travel.flight.search.submit" }]
+      },
+      "actionInput": { "event": "search.submit", "payload": { "origin": "IST", "destination": "BER" } },
+      "expectedAction": { "type": "travel.flight.search.submit", "payload": { "origin": "IST", "destination": "BER" } },
+      "policyAdapter": {
+        "version": "1",
+        "id": "acme.composition.policy-map",
+        "mappings": [{
+          "recipe": "travel.flight.search-recipe",
+          "layoutPolicy": "acme.policy.layout.travel-search",
+          "disclosurePolicy": "acme.policy.disclosure.standard"
+        }]
+      },
+      "expectedPolicyRefs": {
+        "layoutPolicy": "acme.policy.layout.travel-search",
+        "disclosurePolicy": "acme.policy.disclosure.standard"
+      }
+    },
+    {
+      "name": "support-ticket-create",
+      "brand": {
+        "version": "1",
+        "id": "contoso.support",
+        "displayName": "Contoso Support",
+        "tokenRefs": { "accent": "contoso.color.accent", "text": "contoso.color.text" }
+      },
+      "intentAdapter": {
+        "version": "1",
+        "id": "contoso.chat.intent-adapter",
+        "mappings": [{ "source": "OPEN_TICKET", "target": { "namespace": "support.ticket", "name": "create" } }]
+      },
+      "intentInput": { "source": "OPEN_TICKET", "parameters": { "category": "billing" } },
+      "expectedIntent": { "version": "1", "namespace": "support.ticket", "name": "create", "parameters": { "category": "billing" } },
+      "recipe": {
+        "version": "1",
+        "id": "support.ticket.create-recipe",
+        "intent": { "namespace": "support.ticket", "name": "create" },
+        "requiredState": ["category", "description"],
+        "capabilityRequirements": [
+          { "field": "category", "capability": { "version": "1", "id": "select-category" } },
+          { "field": "description", "capability": { "version": "1", "id": "enter-description" } }
+        ],
+        "availableCapabilities": [{ "version": "1", "id": "submit-ticket" }]
+      },
+      "domainAdapter": {
+        "version": "1",
+        "id": "contoso.support.domain-adapter",
+        "domain": "support.ticket",
+        "types": ["draft-context"]
+      },
+      "domainData": {
+        "version": "1",
+        "domain": "support.ticket",
+        "type": "draft-context",
+        "data": { "ticket-category": "billing", "ticket-description": "duplicate charge" }
+      },
+      "dataAdapter": {
+        "version": "1",
+        "id": "contoso.support.draft-input",
+        "domain": "support.ticket",
+        "type": "draft-context",
+        "bindings": [
+          { "from": "ticket-category", "to": "category" },
+          { "from": "ticket-description", "to": "description" }
+        ]
+      },
+      "expectedProjection": { "category": "billing", "description": "duplicate charge" },
+      "componentAdapter": {
+        "version": "1",
+        "id": "contoso.web.components",
+        "mappings": [{ "capability": { "version": "1", "id": "submit-ticket" }, "component": "contoso.component.ticket-submit" }]
+      },
+      "componentCapability": { "version": "1", "id": "submit-ticket" },
+      "expectedComponent": "contoso.component.ticket-submit",
+      "actionAdapter": {
+        "version": "1",
+        "id": "contoso.web.actions",
+        "mappings": [{ "event": "ticket.submit", "actionType": "support.ticket.submit" }]
+      },
+      "actionInput": { "event": "ticket.submit", "payload": { "category": "billing" } },
+      "expectedAction": { "type": "support.ticket.submit", "payload": { "category": "billing" } },
+      "policyAdapter": {
+        "version": "1",
+        "id": "contoso.composition.policy-map",
+        "mappings": [{
+          "recipe": "support.ticket.create-recipe",
+          "layoutPolicy": "contoso.policy.layout.ticket-create",
+          "disclosurePolicy": "contoso.policy.disclosure.standard"
+        }]
+      },
+      "expectedPolicyRefs": {
+        "layoutPolicy": "contoso.policy.layout.ticket-create",
+        "disclosurePolicy": "contoso.policy.disclosure.standard"
+      }
+    }
+  ]
+}
