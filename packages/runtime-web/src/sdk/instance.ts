@@ -8,9 +8,14 @@ import { createWebSdkConfiguration } from "./configuration.js";
 import type {
   CreateViraGenUIResult,
   ViraGenUI,
+  ViraGenUIDispatchFailure,
   ViraGenUIDispatchResult,
+  ViraGenUIEventListener,
+  ViraGenUIEventMap,
+  ViraGenUIEventName,
   ViraGenUIMountResult,
   ViraGenUIMountValidationCode,
+  ViraGenUISubscriptionResult,
 } from "./types.js";
 
 const mountInputFields = new Set(["experienceId", "plan", "composition"]);
@@ -19,6 +24,8 @@ const declarativeMountFailures = new Set<RuntimeWebMountValidationCode>([
   "INVALID_RENDER_INPUT",
   "INVALID_RESPONSIVE_POLICY",
 ]);
+const sdkEventNames = Object.freeze(["action", "effect", "statechange", "error"] as const);
+type StoredListener = (payload: unknown) => void;
 
 function mountFailure(
   code: ViraGenUIMountValidationCode,
@@ -28,7 +35,10 @@ function mountFailure(
   return { ok: false, issue: { code, path, message } };
 }
 
-function sdkDispatchFailure(code: "SDK_DISPOSED" | "NOT_MOUNTED", message: string): ViraGenUIDispatchResult {
+function sdkDispatchFailure(
+  code: "SDK_DISPOSED" | "NOT_MOUNTED" | "REENTRANT_DISPATCH",
+  message: string,
+): ViraGenUIDispatchFailure {
   return { ok: false, stage: "sdk", issue: { code, path: "$", message } };
 }
 
@@ -44,6 +54,29 @@ export function createViraGenUI(configurationInput: unknown): CreateViraGenUIRes
 
   let active: ActiveExperience | undefined;
   let disposed = false;
+  let notifying = false;
+  const listeners = new Map<ViraGenUIEventName, Set<StoredListener>>();
+
+  function notify<K extends ViraGenUIEventName>(event: K, payload: ViraGenUIEventMap[K]): void {
+    const registered = listeners.get(event);
+    if (!registered) return;
+    for (const listener of [...registered]) {
+      try {
+        listener(payload);
+      } catch {
+        // Host notification exceptions cannot alter dispatch/state semantics.
+      }
+    }
+  }
+
+  function publish(run: () => void): void {
+    notifying = true;
+    try {
+      run();
+    } finally {
+      notifying = false;
+    }
+  }
 
   function releaseActive(): void {
     const current = active;
@@ -51,6 +84,41 @@ export function createViraGenUI(configurationInput: unknown): CreateViraGenUIRes
     if (!current) return;
     current.session.dispose();
     current.mounted.dispose();
+  }
+
+  function subscribe<K extends ViraGenUIEventName>(
+    event: K,
+    listener: ViraGenUIEventListener<K>,
+  ): ViraGenUISubscriptionResult {
+    if (disposed) {
+      return { ok: false, issue: { code: "SDK_DISPOSED", path: "$", message: "Vira GenUI instance is disposed" } };
+    }
+    if (!sdkEventNames.includes(event)) {
+      return { ok: false, issue: { code: "INVALID_EVENT", path: "$.event", message: "unsupported SDK event name" } };
+    }
+    if (typeof listener !== "function") {
+      return { ok: false, issue: { code: "INVALID_LISTENER", path: "$.listener", message: "SDK event listener must be a function" } };
+    }
+
+    const stored = listener as unknown as StoredListener;
+    let registered = listeners.get(event);
+    if (!registered) {
+      registered = new Set<StoredListener>();
+      listeners.set(event, registered);
+    }
+    registered.add(stored);
+    let activeSubscription = true;
+
+    return {
+      ok: true,
+      value: Object.freeze({
+        unsubscribe(): void {
+          if (!activeSubscription) return;
+          activeSubscription = false;
+          registered?.delete(stored);
+        },
+      }),
+    };
   }
 
   const sdk: ViraGenUI = {
@@ -104,10 +172,28 @@ export function createViraGenUI(configurationInput: unknown): CreateViraGenUIRes
     },
     dispatch(event: unknown): ViraGenUIDispatchResult {
       if (disposed) return sdkDispatchFailure("SDK_DISPOSED", "Vira GenUI instance is disposed");
+      if (notifying) return sdkDispatchFailure("REENTRANT_DISPATCH", "dispatch is not allowed during SDK listener notification");
       const current = active;
-      if (!current) return sdkDispatchFailure("NOT_MOUNTED", "Vira GenUI instance has no active experience");
-      return current.session.process(event);
+      if (!current) {
+        const failure = sdkDispatchFailure("NOT_MOUNTED", "Vira GenUI instance has no active experience");
+        publish(() => notify("error", failure));
+        return failure;
+      }
+
+      const result = current.session.process(event);
+      if (!result.ok) {
+        publish(() => notify("error", result));
+        return result;
+      }
+
+      publish(() => {
+        notify("action", result.value.action);
+        for (const effect of result.value.effects) notify("effect", effect);
+        if (result.value.stateChanged) notify("statechange", result.value.state);
+      });
+      return result;
     },
+    on: subscribe,
     currentState() {
       return active?.session.currentState();
     },
@@ -124,6 +210,7 @@ export function createViraGenUI(configurationInput: unknown): CreateViraGenUIRes
       if (disposed) return;
       disposed = true;
       releaseActive();
+      listeners.clear();
     },
   };
 

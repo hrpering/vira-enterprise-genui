@@ -2,7 +2,12 @@ import type {
   ActionAdapterContract,
   ComponentAdapterContract,
 } from "@vira-enterprise-genui/adapter-sdk";
-import type { RuntimePermissionPolicy, RuntimeState } from "@vira-enterprise-genui/runtime-core";
+import type {
+  RuntimeAction,
+  RuntimeEffect,
+  RuntimePermissionPolicy,
+  RuntimeState,
+} from "@vira-enterprise-genui/runtime-core";
 import type { AccessibilityPolicy } from "../accessibility/index.js";
 import type { RuntimeWebDomPort } from "../dom-lifecycle/index.js";
 import type { RuntimeWebActionIdFactory } from "../events/index.js";
@@ -64,7 +69,7 @@ export type ViraGenUIMountResult =
   | { readonly ok: true; readonly value: ViraGenUIMountedExperience }
   | { readonly ok: false; readonly issue: ViraGenUIMountValidationIssue };
 
-export type ViraGenUIDispatchValidationCode = "SDK_DISPOSED" | "NOT_MOUNTED";
+export type ViraGenUIDispatchValidationCode = "SDK_DISPOSED" | "NOT_MOUNTED" | "REENTRANT_DISPATCH";
 
 export interface ViraGenUIDispatchValidationIssue {
   readonly code: ViraGenUIDispatchValidationCode;
@@ -76,9 +81,38 @@ export type ViraGenUIDispatchResult =
   | StateBindingProcessResult
   | { readonly ok: false; readonly stage: "sdk"; readonly issue: ViraGenUIDispatchValidationIssue };
 
+export type ViraGenUIDispatchFailure = Exclude<ViraGenUIDispatchResult, { readonly ok: true }>;
+
+export interface ViraGenUIEventMap {
+  readonly action: RuntimeAction;
+  readonly effect: RuntimeEffect;
+  readonly statechange: RuntimeState;
+  readonly error: ViraGenUIDispatchFailure;
+}
+
+export type ViraGenUIEventName = keyof ViraGenUIEventMap;
+export type ViraGenUIEventListener<K extends ViraGenUIEventName> = (payload: ViraGenUIEventMap[K]) => void;
+
+export type ViraGenUISubscriptionValidationCode = "SDK_DISPOSED" | "INVALID_EVENT" | "INVALID_LISTENER";
+
+export interface ViraGenUISubscriptionValidationIssue {
+  readonly code: ViraGenUISubscriptionValidationCode;
+  readonly path: string;
+  readonly message: string;
+}
+
+export interface ViraGenUISubscription {
+  unsubscribe(): void;
+}
+
+export type ViraGenUISubscriptionResult =
+  | { readonly ok: true; readonly value: ViraGenUISubscription }
+  | { readonly ok: false; readonly issue: ViraGenUISubscriptionValidationIssue };
+
 export interface ViraGenUI {
   mount(input: unknown): ViraGenUIMountResult;
   dispatch(event: unknown): ViraGenUIDispatchResult;
+  on<K extends ViraGenUIEventName>(event: K, listener: ViraGenUIEventListener<K>): ViraGenUISubscriptionResult;
   currentState(): RuntimeState | undefined;
   isMounted(): boolean;
   unmount(): void;
