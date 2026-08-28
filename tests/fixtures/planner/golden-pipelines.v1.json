@@ -1,0 +1,348 @@
+{
+  "version": "1",
+  "cases": [
+    {
+      "name": "travel-missing-date-resolves-first",
+      "input": {
+        "id": "travel-plan-1",
+        "intent": { "version": "1", "namespace": "travel.flight", "name": "search" },
+        "state": { "origin": "IST", "destination": "BER" },
+        "requiredState": ["origin", "destination", "departure-date"],
+        "capabilityRequirements": [
+          { "field": "departure-date", "capability": { "version": "1", "id": "select-date" } }
+        ],
+        "availableCapabilities": [
+          { "version": "1", "id": "edit-passengers" }
+        ],
+        "futureCapabilities": [
+          { "version": "1", "id": "display.flight-results" }
+        ]
+      },
+      "expectedPlan": {
+        "version": "1",
+        "id": "travel-plan-1",
+        "intent": { "version": "1", "namespace": "travel.flight", "name": "search" },
+        "state": { "origin": "IST", "destination": "BER" },
+        "capabilities": {
+          "required": [{ "version": "1", "id": "select-date" }],
+          "available": [{ "version": "1", "id": "edit-passengers" }],
+          "future": [{ "version": "1", "id": "display.flight-results" }]
+        }
+      },
+      "expectedComposition": {
+        "planId": "travel-plan-1",
+        "mode": "resolve",
+        "primary": [{ "version": "1", "id": "select-date" }],
+        "supporting": [{ "version": "1", "id": "edit-passengers" }],
+        "deferred": [{ "version": "1", "id": "display.flight-results" }]
+      }
+    },
+    {
+      "name": "travel-ready-interaction-order",
+      "input": {
+        "id": "travel-plan-2",
+        "intent": { "version": "1", "namespace": "travel.flight", "name": "search" },
+        "state": { "origin": "IST", "destination": "BER", "departure-date": "2026-09-03" },
+        "requiredState": ["origin", "destination", "departure-date"],
+        "capabilityRequirements": [
+          { "field": "departure-date", "capability": { "version": "1", "id": "select-date" } }
+        ],
+        "availableCapabilities": [
+          { "version": "1", "id": "search-flights" },
+          { "version": "1", "id": "edit-passengers" }
+        ],
+        "futureCapabilities": [
+          { "version": "1", "id": "display.flight-results" }
+        ]
+      },
+      "expectedPlan": {
+        "version": "1",
+        "id": "travel-plan-2",
+        "intent": { "version": "1", "namespace": "travel.flight", "name": "search" },
+        "state": { "origin": "IST", "destination": "BER", "departure-date": "2026-09-03" },
+        "capabilities": {
+          "required": [],
+          "available": [
+            { "version": "1", "id": "search-flights" },
+            { "version": "1", "id": "edit-passengers" }
+          ],
+          "future": [{ "version": "1", "id": "display.flight-results" }]
+        }
+      },
+      "expectedComposition": {
+        "planId": "travel-plan-2",
+        "mode": "interact",
+        "primary": [{ "version": "1", "id": "search-flights" }],
+        "supporting": [{ "version": "1", "id": "edit-passengers" }],
+        "deferred": [{ "version": "1", "id": "display.flight-results" }]
+      }
+    },
+    {
+      "name": "commerce-missing-comparison-target",
+      "input": {
+        "id": "commerce-plan-1",
+        "intent": { "version": "1", "namespace": "commerce.product", "name": "compare" },
+        "state": { "products": ["sku-1"] },
+        "requiredState": ["products", "comparison-target"],
+        "capabilityRequirements": [
+          { "field": "comparison-target", "capability": { "version": "1", "id": "select-product" } }
+        ],
+        "availableCapabilities": [
+          { "version": "1", "id": "adjust-filters" }
+        ],
+        "futureCapabilities": [
+          { "version": "1", "id": "display.comparison" }
+        ]
+      },
+      "expectedPlan": {
+        "version": "1",
+        "id": "commerce-plan-1",
+        "intent": { "version": "1", "namespace": "commerce.product", "name": "compare" },
+        "state": { "products": ["sku-1"] },
+        "capabilities": {
+          "required": [{ "version": "1", "id": "select-product" }],
+          "available": [{ "version": "1", "id": "adjust-filters" }],
+          "future": [{ "version": "1", "id": "display.comparison" }]
+        }
+      },
+      "expectedComposition": {
+        "planId": "commerce-plan-1",
+        "mode": "resolve",
+        "primary": [{ "version": "1", "id": "select-product" }],
+        "supporting": [{ "version": "1", "id": "adjust-filters" }],
+        "deferred": [{ "version": "1", "id": "display.comparison" }]
+      }
+    },
+    {
+      "name": "support-ready-to-submit",
+      "input": {
+        "id": "support-plan-1",
+        "intent": { "version": "1", "namespace": "support.ticket", "name": "create" },
+        "state": { "category": "billing", "description": "duplicate charge" },
+        "requiredState": ["category", "description"],
+        "capabilityRequirements": [],
+        "availableCapabilities": [
+          { "version": "1", "id": "submit-ticket" },
+          { "version": "1", "id": "edit-description" }
+        ],
+        "futureCapabilities": [
+          { "version": "1", "id": "display.ticket-status" }
+        ]
+      },
+      "expectedPlan": {
+        "version": "1",
+        "id": "support-plan-1",
+        "intent": { "version": "1", "namespace": "support.ticket", "name": "create" },
+        "state": { "category": "billing", "description": "duplicate charge" },
+        "capabilities": {
+          "required": [],
+          "available": [
+            { "version": "1", "id": "submit-ticket" },
+            { "version": "1", "id": "edit-description" }
+          ],
+          "future": [{ "version": "1", "id": "display.ticket-status" }]
+        }
+      },
+      "expectedComposition": {
+        "planId": "support-plan-1",
+        "mode": "interact",
+        "primary": [{ "version": "1", "id": "submit-ticket" }],
+        "supporting": [{ "version": "1", "id": "edit-description" }],
+        "deferred": [{ "version": "1", "id": "display.ticket-status" }]
+      }
+    },
+    {
+      "name": "banking-conflict-requires-resolution",
+      "input": {
+        "id": "banking-plan-1",
+        "intent": { "version": "1", "namespace": "banking.transfer", "name": "review" },
+        "state": { "beneficiary": "account-a", "amount": 2500 },
+        "requiredState": ["beneficiary", "amount"],
+        "candidateState": { "beneficiary": "account-b" },
+        "capabilityRequirements": [
+          { "field": "beneficiary", "capability": { "version": "1", "id": "resolve-beneficiary" } }
+        ],
+        "availableCapabilities": [
+          { "version": "1", "id": "edit-amount" }
+        ],
+        "futureCapabilities": [
+          { "version": "1", "id": "display.transfer-summary" }
+        ]
+      },
+      "expectedPlan": {
+        "version": "1",
+        "id": "banking-plan-1",
+        "intent": { "version": "1", "namespace": "banking.transfer", "name": "review" },
+        "state": { "beneficiary": "account-a", "amount": 2500 },
+        "capabilities": {
+          "required": [{ "version": "1", "id": "resolve-beneficiary" }],
+          "available": [{ "version": "1", "id": "edit-amount" }],
+          "future": [{ "version": "1", "id": "display.transfer-summary" }]
+        }
+      },
+      "expectedComposition": {
+        "planId": "banking-plan-1",
+        "mode": "resolve",
+        "primary": [{ "version": "1", "id": "resolve-beneficiary" }],
+        "supporting": [{ "version": "1", "id": "edit-amount" }],
+        "deferred": [{ "version": "1", "id": "display.transfer-summary" }]
+      }
+    },
+    {
+      "name": "commerce-settled-with-deferred-receipt",
+      "input": {
+        "id": "commerce-plan-2",
+        "intent": { "version": "1", "namespace": "commerce.order", "name": "receipt" },
+        "state": { "order-id": "order-42" },
+        "requiredState": ["order-id"],
+        "capabilityRequirements": [],
+        "futureCapabilities": [
+          { "version": "1", "id": "display.receipt" }
+        ]
+      },
+      "expectedPlan": {
+        "version": "1",
+        "id": "commerce-plan-2",
+        "intent": { "version": "1", "namespace": "commerce.order", "name": "receipt" },
+        "state": { "order-id": "order-42" },
+        "capabilities": {
+          "required": [],
+          "available": [],
+          "future": [{ "version": "1", "id": "display.receipt" }]
+        }
+      },
+      "expectedComposition": {
+        "planId": "commerce-plan-2",
+        "mode": "settled",
+        "primary": [],
+        "supporting": [],
+        "deferred": [{ "version": "1", "id": "display.receipt" }]
+      }
+    },
+    {
+      "name": "learning-candidate-completes-state",
+      "input": {
+        "id": "learning-plan-1",
+        "intent": { "version": "1", "namespace": "learning.roadmap", "name": "create" },
+        "state": { "level": "beginner" },
+        "requiredState": ["topic", "level"],
+        "candidateState": { "topic": "typescript" },
+        "capabilityRequirements": [],
+        "availableCapabilities": [
+          { "version": "1", "id": "generate-roadmap" }
+        ],
+        "futureCapabilities": [
+          { "version": "1", "id": "display.roadmap" }
+        ]
+      },
+      "expectedPlan": {
+        "version": "1",
+        "id": "learning-plan-1",
+        "intent": { "version": "1", "namespace": "learning.roadmap", "name": "create" },
+        "state": { "level": "beginner", "topic": "typescript" },
+        "capabilities": {
+          "required": [],
+          "available": [{ "version": "1", "id": "generate-roadmap" }],
+          "future": [{ "version": "1", "id": "display.roadmap" }]
+        }
+      },
+      "expectedComposition": {
+        "planId": "learning-plan-1",
+        "mode": "interact",
+        "primary": [{ "version": "1", "id": "generate-roadmap" }],
+        "supporting": [],
+        "deferred": [{ "version": "1", "id": "display.roadmap" }]
+      }
+    },
+    {
+      "name": "travel-multiple-blockers-preserve-config-order",
+      "input": {
+        "id": "travel-plan-3",
+        "intent": { "version": "1", "namespace": "travel.flight", "name": "search" },
+        "state": { "origin": "IST", "destination": "AMS" },
+        "requiredState": ["origin", "destination", "departure-date", "passengers"],
+        "capabilityRequirements": [
+          { "field": "passengers", "capability": { "version": "1", "id": "select-passengers" } },
+          { "field": "departure-date", "capability": { "version": "1", "id": "select-date" } }
+        ],
+        "availableCapabilities": [
+          { "version": "1", "id": "edit-route" }
+        ],
+        "futureCapabilities": [
+          { "version": "1", "id": "display.flight-results" }
+        ]
+      },
+      "expectedPlan": {
+        "version": "1",
+        "id": "travel-plan-3",
+        "intent": { "version": "1", "namespace": "travel.flight", "name": "search" },
+        "state": { "origin": "IST", "destination": "AMS" },
+        "capabilities": {
+          "required": [
+            { "version": "1", "id": "select-passengers" },
+            { "version": "1", "id": "select-date" }
+          ],
+          "available": [{ "version": "1", "id": "edit-route" }],
+          "future": [{ "version": "1", "id": "display.flight-results" }]
+        }
+      },
+      "expectedComposition": {
+        "planId": "travel-plan-3",
+        "mode": "resolve",
+        "primary": [
+          { "version": "1", "id": "select-passengers" },
+          { "version": "1", "id": "select-date" }
+        ],
+        "supporting": [{ "version": "1", "id": "edit-route" }],
+        "deferred": [{ "version": "1", "id": "display.flight-results" }]
+      }
+    }
+  ],
+  "failures": [
+    {
+      "name": "unmapped-blocker-fails-closed",
+      "input": {
+        "id": "failure-plan-1",
+        "intent": { "version": "1", "namespace": "travel.flight", "name": "search" },
+        "state": { "origin": "IST" },
+        "requiredState": ["origin", "destination"],
+        "capabilityRequirements": []
+      },
+      "expectedIssue": { "code": "CAPABILITY_RESOLUTION_FAILED", "path": "$.capabilityRequirements" }
+    },
+    {
+      "name": "unsupported-intent-version-fails",
+      "input": {
+        "id": "failure-plan-2",
+        "intent": { "version": "2", "namespace": "travel.flight", "name": "search" },
+        "state": {},
+        "requiredState": [],
+        "capabilityRequirements": []
+      },
+      "expectedIssue": { "code": "INVALID_INTENT", "path": "$.intent.version" }
+    },
+    {
+      "name": "invalid-plan-id-fails-final-protocol-validation",
+      "input": {
+        "id": "bad id",
+        "intent": { "version": "1", "namespace": "support.ticket", "name": "create" },
+        "state": {},
+        "requiredState": [],
+        "capabilityRequirements": []
+      },
+      "expectedIssue": { "code": "INVALID_PLAN", "path": "$.id" }
+    },
+    {
+      "name": "candidate-outside-required-state-fails",
+      "input": {
+        "id": "failure-plan-4",
+        "intent": { "version": "1", "namespace": "travel.flight", "name": "search" },
+        "state": { "origin": "IST" },
+        "requiredState": ["origin"],
+        "candidateState": { "destination": "BER" },
+        "capabilityRequirements": []
+      },
+      "expectedIssue": { "code": "STATE_RESOLUTION_FAILED", "path": "$.candidateState.destination" }
+    }
+  ]
+}
