@@ -1,4 +1,9 @@
-import type { RuntimeAction } from "@vira-enterprise-genui/runtime-core";
+import type {
+  RuntimeAction,
+  RuntimeEffect,
+  RuntimeError,
+  RuntimeState,
+} from "@vira-enterprise-genui/runtime-core";
 
 export interface RuntimeWebActionIdFactory {
   nextId(): string;
@@ -19,3 +24,14 @@ export interface RuntimeWebUserActionValidationIssue {
 export type CreateUserActionResult =
   | { readonly ok: true; readonly value: RuntimeAction }
   | { readonly ok: false; readonly issue: RuntimeWebUserActionValidationIssue };
+
+export interface ProcessedUserEvent {
+  readonly action: RuntimeAction;
+  readonly state: RuntimeState;
+  readonly effects: readonly RuntimeEffect[];
+}
+
+export type ProcessUserEventResult =
+  | { readonly ok: true; readonly value: ProcessedUserEvent }
+  | { readonly ok: false; readonly stage: "event"; readonly issue: RuntimeWebUserActionValidationIssue }
+  | { readonly ok: false; readonly stage: "runtime"; readonly error: RuntimeError };
