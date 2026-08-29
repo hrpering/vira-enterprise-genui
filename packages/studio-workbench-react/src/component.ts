@@ -1,4 +1,4 @@
-import { Puck, blocksPlugin, fieldsPlugin } from "@puckeditor/core";
+import { Puck, blocksPlugin, fieldsPlugin, outlinePlugin } from "@puckeditor/core";
 import type { Config, Data, Plugin } from "@puckeditor/core";
 import { createStudioPuckShellSession } from "@vira-enterprise-genui/studio-react";
 import { createElement, useState } from "react";
@@ -15,6 +15,11 @@ type PuckRuntimeProps = {
   readonly headerTitle?: string;
   readonly height?: string | number;
   readonly iframe?: { readonly enabled?: boolean };
+  readonly dnd?: {
+    readonly behavior?: "auto" | "fluid" | "static";
+    readonly disableAutoScroll?: boolean;
+    readonly disableOutlineDrag?: boolean;
+  };
 };
 
 const PuckRuntime = Puck as unknown as ComponentType<PuckRuntimeProps>;
@@ -47,6 +52,7 @@ export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactEleme
   const customPlugins = createStudioWorkbenchPlugins({ session: props.session, mutate: notifyMutation, reportError });
   const plugins: Plugin[] = [
     blocksPlugin({ label: "Components" }),
+    outlinePlugin({ label: "Layers" }),
     ...customPlugins,
     fieldsPlugin({ label: "Properties" }),
   ];
@@ -89,6 +95,7 @@ export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactEleme
       onChange,
       onPublish,
       iframe: { enabled: false },
+      dnd: { behavior: "auto", disableOutlineDrag: true },
       ...(props.title === undefined ? {} : { headerTitle: props.title }),
       ...(props.height === undefined ? {} : { height: props.height }),
     }),
