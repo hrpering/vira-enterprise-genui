@@ -16,3 +16,4 @@ export type {
   TelemetryOutcome,
   TelemetrySource,
 } from "./events/types.js";
+export * from "./exporter/index.js";
