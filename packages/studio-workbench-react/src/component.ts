@@ -1,4 +1,4 @@
-import { Puck, blocksPlugin, fieldsPlugin, outlinePlugin } from "@puckeditor/core";
+import { Puck, blocksPlugin, fieldsPlugin } from "@puckeditor/core";
 import type { Config, Data, Plugin } from "@puckeditor/core";
 import { createStudioPuckShellSession } from "@vira-enterprise-genui/studio-react";
 import { createElement, useState } from "react";
@@ -47,7 +47,6 @@ export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactEleme
   const customPlugins = createStudioWorkbenchPlugins({ session: props.session, mutate: notifyMutation, reportError });
   const plugins: Plugin[] = [
     blocksPlugin({ label: "Components" }),
-    outlinePlugin({ label: "Layers" }),
     ...customPlugins,
     fieldsPlugin({ label: "Properties" }),
   ];
