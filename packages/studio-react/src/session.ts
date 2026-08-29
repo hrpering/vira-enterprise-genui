@@ -1,6 +1,7 @@
 import type { Config } from "@puckeditor/core";
 import {
   createStudioPuckEditorMetadata,
+  puckIdToStudioReservedNodeId,
   studioViewToPuckData,
 } from "@vira-enterprise-genui/studio-puck-adapter";
 import type {
@@ -89,7 +90,8 @@ function createRender(
   renderer: StudioTrustedRenderer,
 ): (props: Record<string, unknown>) => ReactNode {
   return (renderProps) => {
-    const nodeId = typeof renderProps.id === "string" ? renderProps.id : "";
+    const puckNodeId = typeof renderProps.id === "string" ? renderProps.id : "";
+    const nodeId = puckIdToStudioReservedNodeId(puckNodeId) ?? puckNodeId;
     const design = createStudioReactDesignState(renderProps);
     const context: StudioTrustedRenderContext = Object.freeze({
       component: definition.type,
