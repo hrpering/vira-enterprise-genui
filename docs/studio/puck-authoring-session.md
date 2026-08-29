@@ -61,6 +61,8 @@ When the active view changes, the workbench creates a new Puck authoring session
 
 It first validates the bounded Puck identity surface, prepares only the currently required id mappings, then delegates to the Studio Puck adapter. The adapter replaces one view and revalidates the complete StudioDocument and active brand catalog.
 
+Puck editor data is treated as an untrusted reflection boundary even though it originates from the embedded editor. Accessor-backed data fields are inspected through property descriptors instead of being invoked, and unexpected reflection failures such as revoked Proxies are contained as structured `INVALID_PUCK_DATA` results rather than escaping as JavaScript exceptions. The public adapter import boundary applies the same fail-closed rule before canonical Studio state can be replaced.
+
 The session updates `currentDocument()` only after that import succeeds. A visual edit that removes a node still referenced by a canonical binding or interaction therefore fails and leaves the previous document active.
 
 This is intentionally strict. Dedicated binding/action authoring phases will remove or rewrite those references explicitly rather than letting visual drag/drop silently delete business behavior.
