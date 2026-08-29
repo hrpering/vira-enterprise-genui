@@ -3,7 +3,7 @@ import {
   isSemanticSegment,
   parseJsonValue,
 } from "@vira-enterprise-genui/protocol";
-import type { JsonValue } from "@vira-enterprise-genui/protocol";
+import type { JsonObject, JsonValue } from "@vira-enterprise-genui/protocol";
 import { freezeToolBridgeData } from "./internal/freeze.js";
 import {
   EXTERNAL_TOOL_RESULT_OUTCOMES,
@@ -45,15 +45,15 @@ function nestedFailure(path: string, message: string): { readonly ok: false; rea
   return { ok: false, issue: { path, message } };
 }
 
-function objectValue(value: JsonValue, path: string): NestedResult<Readonly<Record<string, JsonValue>>> {
+function objectValue(value: JsonValue, path: string): NestedResult<JsonObject> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     return nestedFailure(path, "value must be a plain object");
   }
-  return { ok: true, value };
+  return { ok: true, value: value as JsonObject };
 }
 
 function unknownField(
-  value: Readonly<Record<string, JsonValue>>,
+  value: JsonObject,
   allowed: ReadonlySet<string>,
 ): string | undefined {
   return Object.keys(value).sort().find((field) => !allowed.has(field));
