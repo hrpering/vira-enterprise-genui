@@ -20,4 +20,5 @@ export const allowedDependencies = Object.freeze({
   "studio-puck-authoring": ["protocol", "studio-schema", "studio-catalog", "studio-puck-adapter"],
   "studio-binding": ["protocol", "studio-schema", "studio-catalog"],
   "studio-flow": ["adapter-sdk", "studio-schema", "studio-catalog"],
+  "studio-publish": ["studio-schema", "studio-compiler", "studio-binding", "studio-flow"],
 });
