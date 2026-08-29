@@ -1,4 +1,12 @@
-export { JSON_VALUE_MAX_DEPTH, parseJsonValue } from "./json-value.js";
+export {
+  JSON_VALUE_MAX_ARRAY_LENGTH,
+  JSON_VALUE_MAX_DEPTH,
+  JSON_VALUE_MAX_NODES,
+  JSON_VALUE_MAX_OBJECT_KEYS,
+  JSON_VALUE_MAX_STRING_LENGTH,
+  JSON_VALUE_MAX_TOTAL_STRING_LENGTH,
+  parseJsonValue,
+} from "./json-value.js";
 export type { JsonArray, JsonObject, JsonPrimitive, JsonValue, JsonValueIssue, JsonValueParseResult } from "./json-value.js";
 export {
   SEMANTIC_NAMESPACE_MAX_LENGTH,
