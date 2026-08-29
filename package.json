@@ -20,6 +20,16 @@
     "demo:pegasus-chat": "pnpm --filter @vira-enterprise-genui/pegasus-chat-demo dev",
     "demo:pegasus-chat:check": "pnpm --filter @vira-enterprise-genui/pegasus-chat-demo typecheck && pnpm --filter @vira-enterprise-genui/pegasus-chat-demo build"
   },
+  "pnpm": {
+    "overrides": {
+      "@ai-sdk/gateway": "4.0.62",
+      "@ai-sdk/mcp": "2.0.36",
+      "@ai-sdk/openai": "4.0.46",
+      "@ai-sdk/provider-utils": "5.0.29",
+      "@ai-sdk/react": "4.0.80",
+      "ai": "7.0.77"
+    }
+  },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/node": "24.13.3",
