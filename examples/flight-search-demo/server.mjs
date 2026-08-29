@@ -1,6 +1,7 @@
+/* global process, URL */
 import { createReadStream, statSync } from "node:fs";
 import { createServer } from "node:http";
-import { extname, resolve } from "node:path";
+import { extname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
@@ -24,10 +25,18 @@ function safeFile(pathname) {
     return undefined;
   }
   const candidate = resolve(repoRoot, `.${decoded}`);
-  return candidate.startsWith(repoRoot) ? candidate : undefined;
+  const relativePath = relative(repoRoot, candidate);
+  if (relativePath === ".." || relativePath.startsWith(`..${sep}`) || isAbsolute(relativePath)) return undefined;
+  return candidate;
 }
 
 const server = createServer((request, response) => {
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    response.writeHead(405, { allow: "GET, HEAD" });
+    response.end();
+    return;
+  }
+
   const url = new URL(request.url ?? "/", `http://${request.headers.host ?? `${host}:${port}`}`);
   if (url.pathname === "/") {
     response.writeHead(302, { location: "/examples/flight-search-demo/" });
@@ -50,6 +59,10 @@ const server = createServer((request, response) => {
       "cache-control": "no-store",
       "x-content-type-options": "nosniff",
     });
+    if (request.method === "HEAD") {
+      response.end();
+      return;
+    }
     createReadStream(file).pipe(response);
   } catch {
     response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
@@ -58,5 +71,5 @@ const server = createServer((request, response) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`Vira Flight Search demo: http://${host}:${port}/examples/flight-search-demo/`);
+  process.stdout.write(`Vira Flight Search demo: http://${host}:${port}/examples/flight-search-demo/\n`);
 });
