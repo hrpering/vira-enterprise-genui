@@ -33,8 +33,8 @@ function adaptFailure(code: IntentAdapterValidationCode, path: string, message: 
   return { ok: false, issue: { code, path, message } };
 }
 
-function isJsonObject(value: JsonValue): value is JsonObject {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+function isJsonObject(value: JsonValue | undefined): value is JsonObject {
+  return value !== null && value !== undefined && typeof value === "object" && !Array.isArray(value);
 }
 
 function validSource(value: unknown): value is string {

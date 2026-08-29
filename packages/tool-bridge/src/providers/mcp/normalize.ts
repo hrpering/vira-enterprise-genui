@@ -19,7 +19,7 @@ function failure(
 
 function jsonObject(value: JsonValue): JsonObject | undefined {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
-  return value;
+  return value as JsonObject;
 }
 
 function canonical(

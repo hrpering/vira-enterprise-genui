@@ -19,7 +19,7 @@ function plan() {
   };
 }
 
-function componentAdapter(mappingCount = EXPERIENCE_PLAN_MAX_CAPABILITIES) {
+function componentAdapter(mappingCount: number = EXPERIENCE_PLAN_MAX_CAPABILITIES) {
   return {
     version: "1",
     id: "scale.web.components",

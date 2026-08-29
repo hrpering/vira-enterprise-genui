@@ -66,7 +66,7 @@ function resolveParent(
       if (childIndex === undefined) {
         return { ok: false, code: "INVALID_ARRAY_INDEX", path: operationPath, message: `invalid or out-of-bounds array index: ${token}` };
       }
-      const child = current[childIndex];
+      const child: JsonValue | undefined = current[childIndex];
       if (child === undefined) return { ok: false, code: "PATH_NOT_FOUND", path: operationPath, message: "patch path does not exist" };
       current = child;
       continue;
@@ -106,7 +106,7 @@ function resolveTarget(
       if (index === undefined) {
         return { ok: false, code: "INVALID_ARRAY_INDEX", path: operationPath, message: `invalid or out-of-bounds array index: ${token}` };
       }
-      const child = current[index];
+      const child: JsonValue | undefined = current[index];
       if (child === undefined) return { ok: false, code: "PATH_NOT_FOUND", path: operationPath, message: "patch target does not exist" };
       current = child;
       continue;

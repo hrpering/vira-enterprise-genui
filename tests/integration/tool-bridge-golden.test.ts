@@ -25,7 +25,7 @@ function mapping(kind: string) {
 
 class ToolMessageFixture {
   content = "2 flights found";
-  artifact = flightData;
+  artifact: unknown = flightData;
   status: "success" | "error" | undefined = "success";
   tool_call_id = "opaque-langchain-call-id";
   metadata = { trace: "provider-only" };

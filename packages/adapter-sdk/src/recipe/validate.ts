@@ -35,8 +35,8 @@ function failure(code: ExperienceRecipeValidationCode, path: string, message: st
   return { ok: false, issue: { code, path, message } };
 }
 
-function isJsonObject(value: JsonValue): value is JsonObject {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+function isJsonObject(value: JsonValue | undefined): value is JsonObject {
+  return value !== null && value !== undefined && typeof value === "object" && !Array.isArray(value);
 }
 
 function preflight(input: unknown): ExperienceRecipeResult | undefined {

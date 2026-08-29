@@ -2,6 +2,7 @@ import { resolveComponentForCapability } from "@vira-enterprise-genui/adapter-sd
 import { composeExperience } from "@vira-enterprise-genui/composer";
 import { planExperience } from "@vira-enterprise-genui/planner";
 import { parseDomainData } from "@vira-enterprise-genui/protocol";
+import type { JsonObject } from "@vira-enterprise-genui/protocol";
 import { createViraGenUI } from "@vira-enterprise-genui/runtime-web";
 import type {
   RenderCapabilityBinding,
@@ -345,7 +346,7 @@ function createDemoDomController(container: HTMLElement): DemoDomController {
     if (!parsed.ok || !resultHost) return;
     const data = parsed.value.data;
     if (data === null || typeof data !== "object" || Array.isArray(data)) return;
-    const flights = data.flights;
+    const flights = (data as JsonObject).flights;
     if (!Array.isArray(flights)) return;
 
     resultHost.replaceChildren();
