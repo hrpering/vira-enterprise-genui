@@ -83,11 +83,12 @@ const responsive = {
   ],
 } as const;
 
-const flightNetworkPolicy = createNetworkPolicy({
+const networkPolicyResult = createNetworkPolicy({
   version: "1",
   rules: [{ origin: "https://api.example.com", methods: ["POST"] }],
 });
-if (!flightNetworkPolicy.ok) throw new Error("Demo network policy is invalid");
+if (!networkPolicyResult.ok) throw new Error("Demo network policy is invalid");
+const flightNetworkPolicy = networkPolicyResult.value;
 
 function requiredElement<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -382,14 +383,15 @@ function mockFlightResult(input: SearchInput): Record<string, unknown> {
   };
 }
 
-const telemetry = createTelemetryChannel({
+const telemetryResult = createTelemetryChannel({
   exportBatch(events: readonly TelemetryEvent[]) {
     trace("Telemetry exporter received canonical batch", events.map((event) => event.name));
   },
   flush() { trace("Telemetry exporter flush"); },
   shutdown() { trace("Telemetry exporter shutdown"); },
 });
-if (!telemetry.ok) throw new Error("Demo telemetry exporter is invalid");
+if (!telemetryResult.ok) throw new Error("Demo telemetry exporter is invalid");
+const telemetry = telemetryResult.value;
 
 async function emitTelemetry(
   name: string,
@@ -397,7 +399,7 @@ async function emitTelemetry(
   kind: TelemetryEvent["kind"],
   outcome: TelemetryEvent["outcome"],
 ): Promise<void> {
-  const result = await telemetry.value.emit({ version: "1", name, source, kind, outcome, occurredAt: new Date().toISOString() });
+  const result = await telemetry.emit({ version: "1", name, source, kind, outcome, occurredAt: new Date().toISOString() });
   if (!result.ok) trace("Telemetry event rejected", result);
 }
 
@@ -419,7 +421,7 @@ async function executeHostSearch(action: ViraGenUIEventMap["action"]): Promise<v
 
   trace("Host received canonical action", { id: action.id, type: action.type, payload: action.payload });
   await emitTelemetry("runtime.action.dispatched", "runtime-web", "action", "success");
-  const network = evaluateNetworkRequest(flightNetworkPolicy.value, { url: "https://api.example.com/flights/search", method: "POST" });
+  const network = evaluateNetworkRequest(flightNetworkPolicy, { url: "https://api.example.com/flights/search", method: "POST" });
   trace("Security evaluated host network target", network);
   if (!network.ok || network.value.decision !== "allow") {
     dom.setSearching(false);
@@ -557,7 +559,7 @@ deniedButton.addEventListener("click", () => {
 clearTraceButton.addEventListener("click", () => traceLog.replaceChildren());
 window.addEventListener("pagehide", () => {
   sdk?.dispose();
-  void telemetry.value.shutdown();
+  void telemetry.shutdown();
 });
 
 void boot().catch((error: unknown) => {
