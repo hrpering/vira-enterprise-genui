@@ -1,30 +1,12 @@
 import { Puck, createUsePuck } from "@puckeditor/core";
-import type { Config, Data } from "@puckeditor/core";
+import type { Data } from "@puckeditor/core";
 import { createStudioPuckShellSession } from "@vira-enterprise-genui/studio-react";
 import { createElement, useState } from "react";
-import type { ComponentType, ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { createStudioWorkbenchPlugins } from "./panels.js";
 import type { StudioWorkbenchReactIssue, ViraStudioWorkbenchProps } from "./types.js";
 
 const usePuck = createUsePuck();
-const PuckComponents = Puck.Components as unknown as ComponentType;
-const PuckPreview = Puck.Preview as unknown as ComponentType;
-const PuckFields = Puck.Fields as unknown as ComponentType;
-
-type PuckRuntimeProps = {
-  readonly config: Config;
-  readonly data: Data;
-  readonly onChange: (data: Data) => void;
-  readonly iframe?: { readonly enabled?: boolean };
-  readonly dnd?: {
-    readonly behavior?: "auto" | "fluid" | "static";
-    readonly disableAutoScroll?: boolean;
-    readonly disableOutlineDrag?: boolean;
-  };
-  readonly children?: ReactNode;
-};
-
-const PuckRuntime = Puck as unknown as ComponentType<PuckRuntimeProps>;
 
 type WorkbenchPanel = "components" | "layers" | "views" | "data" | "actions";
 
@@ -97,6 +79,7 @@ function panelButton(label: string, value: WorkbenchPanel, active: WorkbenchPane
   return createElement("button", {
     key: value,
     type: "button",
+    "data-testid": `vira-studio-panel-${value}`,
     onClick: () => select(value),
     style: {
       border: 0,
@@ -135,7 +118,7 @@ export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactEleme
     viewId: props.session.currentViewId(),
     renderers: props.renderers,
   });
-  if (!shell.ok) return createElement("div", { role: "alert", style: { padding: 16 } }, shell.issue.message);
+  if (!shell.ok) return createElement("div", { role: "alert", "data-testid": "vira-studio-error", style: { padding: 16 } }, shell.issue.message);
 
   const customPlugins = createStudioWorkbenchPlugins({ session: props.session, mutate: notifyMutation, reportError });
   const customPlugin = (name: string) => customPlugins.find((candidate) => candidate.name === name);
@@ -162,7 +145,7 @@ export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactEleme
   };
 
   const renderPanel = (): ReactNode => {
-    if (panel === "components") return createElement(PuckComponents);
+    if (panel === "components") return createElement(Puck.Components);
     if (panel === "layers") return createElement(ViraLayersPanel, { session: props.session });
     const pluginName = panel === "views" ? "vira-views" : panel === "data" ? "vira-data" : "vira-actions";
     const plugin = customPlugin(pluginName);
@@ -171,6 +154,7 @@ export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactEleme
 
   const height = props.height ?? "100dvh";
   const workspace = createElement("div", {
+    "data-testid": "vira-studio-workbench",
     style: {
       height,
       minHeight: 520,
@@ -196,6 +180,7 @@ export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactEleme
   createElement("strong", { style: { fontSize: 13 } }, props.title ?? "Vira Experience Studio"),
   createElement("button", {
     type: "button",
+    "data-testid": "vira-studio-publish",
     onClick: () => { void publish(); },
     style: { border: 0, borderRadius: 8, padding: "8px 12px", background: "#111827", color: "#fff", cursor: "pointer", fontWeight: 700 },
   }, "Publish")),
@@ -217,21 +202,20 @@ export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactEleme
     ),
     renderPanel(),
   ),
-  createElement("main", { style: { minWidth: 0, minHeight: 0, overflow: "auto", padding: 18, background: "#eef0f3" } }, createElement(PuckPreview)),
+  createElement("main", { "data-testid": "vira-studio-preview", style: { minWidth: 0, minHeight: 0, overflow: "auto", padding: 18, background: "#eef0f3" } }, createElement(Puck.Preview)),
   createElement("aside", { style: { minHeight: 0, overflow: "auto", background: "#fff", borderLeft: "1px solid #e5e7eb" } },
     createElement("div", { style: { padding: "12px 14px", borderBottom: "1px solid #e5e7eb", fontSize: 12, fontWeight: 750 } }, "Properties"),
-    createElement(PuckFields),
+    createElement(Puck.Fields),
   )));
 
   return createElement("div", { style: { display: "grid", gap: 8 } },
-    lastError === undefined ? null : createElement("div", { role: "alert", style: { padding: "10px 12px", borderRadius: 10, border: "1px solid currentColor" } }, lastError.message),
-    createElement(PuckRuntime, {
+    lastError === undefined ? null : createElement("div", { role: "alert", "data-testid": "vira-studio-error", style: { padding: "10px 12px", borderRadius: 10, border: "1px solid currentColor" } }, lastError.message),
+    createElement(Puck, {
       key: `${props.session.currentViewId()}:${revision}`,
       config: shell.value.config,
       data: shell.value.data,
       onChange,
       iframe: { enabled: false },
-      dnd: { behavior: "auto", disableOutlineDrag: true },
     }, workspace),
   );
 }
