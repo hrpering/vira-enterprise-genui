@@ -85,14 +85,14 @@ export function createStudioWorkbenchSession(input: CreateStudioWorkbenchSession
     if (!flow.ok) return failure("MUTATION_FAILED", flow.issue.path, flow.issue.message);
     if (!flow.value.views.some((view) => view.id === nextViewId)) return failure("INVALID_VIEW", "$.viewId", "next Studio view does not exist");
     const nextPuck = createPuck(flow.value, nextViewId);
-    if (!nextPuck.ok) return { ok: false, issue: nextPuck.issue };
+    if (!nextPuck.ok) return failure("INVALID_PUCK_SESSION", nextPuck.issue.path, nextPuck.issue.message);
     current = flow.value;
     activeViewId = nextViewId;
     puckSession = nextPuck.value;
     return success(current);
   }
 
-  const session: StudioWorkbenchSession = Object.freeze({
+  const session: StudioWorkbenchSession = {
     currentDocument: () => current,
     currentViewId: () => activeViewId,
     componentCatalog: () => componentCatalog,
@@ -102,7 +102,7 @@ export function createStudioWorkbenchSession(input: CreateStudioWorkbenchSession
     selectView: (viewId: string) => {
       if (!isStudioSemanticSegment(viewId) || !current.views.some((view) => view.id === viewId)) return failure("INVALID_VIEW", "$.viewId", "Studio view does not exist");
       const nextPuck = createPuck(current, viewId);
-      if (!nextPuck.ok) return { ok: false, issue: nextPuck.issue };
+      if (!nextPuck.ok) return failure("INVALID_PUCK_SESSION", nextPuck.issue.path, nextPuck.issue.message);
       activeViewId = viewId;
       puckSession = nextPuck.value;
       return success(current);
@@ -171,7 +171,7 @@ export function createStudioWorkbenchSession(input: CreateStudioWorkbenchSession
     },
     preview: () => prepareStudioPreview({ document: current, componentCatalog, bindingSourceCatalog, actionAdapter, viewId: activeViewId }),
     publish: () => prepareStudioPublication({ document: current, componentCatalog, bindingSourceCatalog, actionAdapter }),
-  });
+  };
 
-  return { ok: true, value: session };
+  return { ok: true, value: Object.freeze(session) };
 }
