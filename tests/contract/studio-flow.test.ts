@@ -16,7 +16,7 @@ function components() {
       {
         ref: "pegasus.component.button",
         label: "Button",
-        category: "Actions",
+        category: "action",
         kind: "action",
         props: [],
         slots: [],
@@ -25,7 +25,7 @@ function components() {
       {
         ref: "pegasus.component.text",
         label: "Text",
-        category: "Content",
+        category: "content",
         kind: "content",
         props: [{ key: "text", type: "string", required: true, bindable: false }],
         slots: [],
