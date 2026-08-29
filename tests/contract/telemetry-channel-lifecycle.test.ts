@@ -131,11 +131,15 @@ describe("telemetry channel lifecycle", () => {
         throw new Error("SECRET_EVENT_TRAP");
       },
     });
-    expect(await created.value.emit(trappedEvent)).toEqual({
+    const trappedEventResult = await created.value.emit(trappedEvent);
+    expect(trappedEventResult).toMatchObject({
       ok: false,
-      code: "INVALID_BATCH",
+      code: "INVALID_EVENT",
       operation: "emit",
+      index: 0,
+      issue: { code: "INVALID_INPUT", path: "$" },
     });
+    expect(JSON.stringify(trappedEventResult)).not.toContain("SECRET_EVENT_TRAP");
     expect(exportCalls).toBe(0);
   });
 
@@ -260,9 +264,11 @@ describe("telemetry channel lifecycle", () => {
       },
     });
 
-    expect(createTelemetryChannel(trappedExporter)).toMatchObject({
+    const result = createTelemetryChannel(trappedExporter);
+    expect(result).toMatchObject({
       ok: false,
-      issue: { code: "INVALID_EXPORTER", path: "$" },
+      issue: { code: "INVALID_EXPORT_METHOD", path: "$.exportBatch" },
     });
+    expect(JSON.stringify(result)).not.toContain("SECRET_EXPORTER_TRAP");
   });
 });
