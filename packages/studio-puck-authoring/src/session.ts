@@ -6,6 +6,7 @@ import {
 import type { StudioCatalogComponentDefinition } from "@vira-enterprise-genui/studio-catalog";
 import {
   createStudioPuckEditorMetadata,
+  createStudioPuckReservedIdMappings,
   importPuckDataIntoStudioDocument,
   STUDIO_PUCK_ID_MAX_LENGTH,
   studioViewToPuckData,
@@ -155,14 +156,20 @@ export function createStudioPuckAuthoringSession(input: {
   }
   const allocateNodeId = input.allocateNodeId as StudioNodeIdAllocator;
   const components = new Map(catalogValue.components.map((component) => [component.ref, component] as const));
-  const mappingCache = new Map<string, string>();
-  const reservedNodeIds = new Set(
-    document.value.views.find((view) => view.id === input.viewId)?.nodes.map((node) => node.id) ?? [],
-  );
+  const activeInitialView = document.value.views.find((view) => view.id === input.viewId);
+  const initialMappings = createStudioPuckReservedIdMappings(activeInitialView?.nodes.map((node) => node.id) ?? []);
+  const mappingCache = new Map<string, string>(initialMappings.map((mapping) => [mapping.puckId, mapping.nodeId] as const));
+  const reverseMappingCache = new Map<string, string>(initialMappings.map((mapping) => [mapping.nodeId, mapping.puckId] as const));
+  const reservedNodeIds = new Set(activeInitialView?.nodes.map((node) => node.id) ?? []);
   let current: StudioExperienceDocument = document.value;
 
   function currentDocument(): StudioExperienceDocument {
     return current;
+  }
+
+  function activeViewHasNode(nodeId: string): boolean {
+    const view = current.views.find((candidate) => candidate.id === input.viewId);
+    return Boolean(view?.nodes.some((node) => node.id === nodeId));
   }
 
   function toPuckData() {
@@ -171,11 +178,14 @@ export function createStudioPuckAuthoringSession(input: {
 
   function resolveNodeId(puckId: string): string | undefined {
     if (!validPuckId(puckId)) return undefined;
-    if (isSemanticSegment(puckId)) {
-      const view = current.views.find((candidate) => candidate.id === input.viewId);
-      if (view?.nodes.some((node) => node.id === puckId)) return puckId;
-    }
-    return mappingCache.get(puckId);
+    const mapped = mappingCache.get(puckId);
+    if (mapped !== undefined) return activeViewHasNode(mapped) ? mapped : undefined;
+    return isSemanticSegment(puckId) && activeViewHasNode(puckId) ? puckId : undefined;
+  }
+
+  function resolvePuckId(nodeId: string): string | undefined {
+    if (!isSemanticSegment(nodeId) || !activeViewHasNode(nodeId)) return undefined;
+    return reverseMappingCache.get(nodeId) ?? nodeId;
   }
 
   function reconcile(data: unknown): StudioPuckReconcileResult {
@@ -204,6 +214,7 @@ export function createStudioPuckAuthoringSession(input: {
           return reconcileFailure("ALLOCATED_ID_COLLISION", candidate.path, "host node-id allocator returned an already reserved id");
         }
         mappingCache.set(candidate.puckId, nodeId);
+        reverseMappingCache.set(nodeId, candidate.puckId);
         reservedNodeIds.add(nodeId);
       }
       activeMappings.push({ puckId: candidate.puckId, nodeId });
@@ -229,6 +240,7 @@ export function createStudioPuckAuthoringSession(input: {
       toPuckData,
       reconcile,
       resolveNodeId,
+      resolvePuckId,
     }),
   };
 }
