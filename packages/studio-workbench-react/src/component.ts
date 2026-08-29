@@ -16,7 +16,7 @@ type PuckRuntimeProps = {
   readonly onPublish?: (data: Data) => void;
   readonly plugins?: Plugin[];
   readonly iframe?: { readonly enabled?: boolean };
-  readonly height?: string;
+  readonly height?: string | number;
   readonly headerTitle?: string;
 };
 
