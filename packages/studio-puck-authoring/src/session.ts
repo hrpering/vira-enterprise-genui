@@ -9,6 +9,7 @@ import {
   createStudioPuckReservedIdMappings,
   importPuckDataIntoStudioDocument,
   STUDIO_PUCK_ID_MAX_LENGTH,
+  studioNodeIdRequiresPuckAlias,
   studioViewToPuckData,
 } from "@vira-enterprise-genui/studio-puck-adapter";
 import { STUDIO_MAX_NODES_PER_VIEW } from "@vira-enterprise-genui/studio-schema";
@@ -209,6 +210,9 @@ export function createStudioPuckAuthoringSession(input: {
         }
         if (typeof nodeId !== "string" || !isSemanticSegment(nodeId)) {
           return reconcileFailure("INVALID_ALLOCATED_ID", candidate.path, "host node-id allocator must return one semantic Studio node id");
+        }
+        if (studioNodeIdRequiresPuckAlias(nodeId)) {
+          return reconcileFailure("ALLOCATED_ID_COLLISION", candidate.path, "host node-id allocator must not assign a Puck-reserved canonical id to a newly generated Puck node");
         }
         if (reservedNodeIds.has(nodeId)) {
           return reconcileFailure("ALLOCATED_ID_COLLISION", candidate.path, "host node-id allocator returned an already reserved id");
