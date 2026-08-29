@@ -3,6 +3,7 @@ import type {
   StudioCatalogComponentDefinition,
   StudioCatalogPropDefinition,
 } from "@vira-enterprise-genui/studio-catalog";
+import { getStudioDesignControl } from "@vira-enterprise-genui/studio-design";
 import { findPuckCatalogCompatibilityIssue } from "./compat.js";
 import { STUDIO_PUCK_ADAPTER_VERSION } from "./types.js";
 import type {
@@ -30,15 +31,25 @@ function freezeMetadata<T>(value: T): T {
 }
 
 function fieldForProp(prop: StudioCatalogPropDefinition): StudioPuckField {
+  const design = getStudioDesignControl(prop.key);
+  const label = design?.label ?? prop.key;
+  if (design?.control === "color") return { type: "color", label };
+
   switch (prop.type) {
     case "string":
-      return { type: "text", label: prop.key };
+      return { type: "text", label };
     case "number":
-      return { type: "number", label: prop.key };
+      return {
+        type: "number",
+        label,
+        ...(design?.min === undefined ? {} : { min: design.min }),
+        ...(design?.max === undefined ? {} : { max: design.max }),
+        ...(design?.step === undefined ? {} : { step: design.step }),
+      };
     case "boolean":
       return {
         type: "radio",
-        label: prop.key,
+        label,
         options: [
           { label: "True", value: true },
           { label: "False", value: false },
@@ -47,7 +58,7 @@ function fieldForProp(prop: StudioCatalogPropDefinition): StudioPuckField {
     case "enum":
       return {
         type: "select",
-        label: prop.key,
+        label,
         options: (prop.options ?? []).map((option) => ({ label: option, value: option })),
       };
   }

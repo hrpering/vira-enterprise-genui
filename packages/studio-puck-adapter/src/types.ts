@@ -6,7 +6,8 @@ export const STUDIO_PUCK_ID_MAX_LENGTH = 256 as const;
 
 export type StudioPuckField =
   | { readonly type: "text"; readonly label: string }
-  | { readonly type: "number"; readonly label: string }
+  | { readonly type: "color"; readonly label: string }
+  | { readonly type: "number"; readonly label: string; readonly min?: number; readonly max?: number; readonly step?: number }
   | {
       readonly type: "radio";
       readonly label: string;

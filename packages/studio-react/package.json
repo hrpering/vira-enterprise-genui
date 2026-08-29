@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@puckeditor/core": "0.23.0",
+    "@vira-enterprise-genui/studio-design": "workspace:*",
     "@vira-enterprise-genui/studio-puck-adapter": "workspace:*"
   },
   "peerDependencies": {

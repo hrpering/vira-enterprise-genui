@@ -10,6 +10,7 @@
     "@vira-enterprise-genui/studio-schema": "workspace:*",
     "@vira-enterprise-genui/studio-compiler": "workspace:*",
     "@vira-enterprise-genui/studio-binding": "workspace:*",
+    "@vira-enterprise-genui/studio-design": "workspace:*",
     "@vira-enterprise-genui/studio-flow": "workspace:*"
   }
 }

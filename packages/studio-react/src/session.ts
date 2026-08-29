@@ -7,7 +7,10 @@ import type {
   StudioPuckComponentEditorDefinition,
   StudioPuckField,
 } from "@vira-enterprise-genui/studio-puck-adapter";
+import { createElement } from "react";
 import type { ReactNode } from "react";
+import { createStudioColorPuckField } from "./color-field.js";
+import { createStudioDesignRenderState } from "./design-style.js";
 import type {
   StudioPuckShellSessionResult,
   StudioPuckShellValidationCode,
@@ -65,6 +68,9 @@ function clonePuckFields(fields: Readonly<Record<string, StudioPuckField>>): Rec
   const output: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
   for (const [key, field] of Object.entries(fields)) {
     switch (field.type) {
+      case "color":
+        output[key] = createStudioColorPuckField(field.label);
+        break;
       case "select":
         output[key] = { ...field, options: field.options.map((option) => ({ ...option })) };
         break;
@@ -84,17 +90,14 @@ function createRender(
 ): (props: Record<string, unknown>) => ReactNode {
   return (renderProps) => {
     const nodeId = typeof renderProps.id === "string" ? renderProps.id : "";
-    const props: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
-    for (const [key, value] of Object.entries(renderProps)) {
-      if (key === "id" || key === "puck") continue;
-      props[key] = value;
-    }
+    const design = createStudioDesignRenderState(renderProps);
     const context: StudioTrustedRenderContext = Object.freeze({
       component: definition.type,
       nodeId,
-      props: Object.freeze(props),
+      props: design.props,
     });
-    return renderer(context);
+    const rendered = renderer(context);
+    return design.style === undefined ? rendered : createElement("div", { style: design.style }, rendered);
   };
 }
 

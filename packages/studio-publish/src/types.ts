@@ -5,6 +5,7 @@ export const STUDIO_PREVIEW_VERSION = "1" as const;
 
 export type StudioPublishValidationCode =
   | "INVALID_BINDINGS"
+  | "INVALID_DESIGN"
   | "INVALID_FLOW"
   | "COMPILATION_FAILED"
   | "VIEW_NOT_FOUND";

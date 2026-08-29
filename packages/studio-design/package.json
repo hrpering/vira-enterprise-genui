@@ -1,0 +1,13 @@
+{
+  "name": "@vira-enterprise-genui/studio-design",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/studio-catalog": "workspace:*",
+    "@vira-enterprise-genui/studio-schema": "workspace:*"
+  }
+}
