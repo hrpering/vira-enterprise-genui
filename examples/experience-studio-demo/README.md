@@ -1,18 +1,61 @@
-# Experience Studio demo
+# Vira Experience Studio lifecycle demo
 
-Runnable browser proof for the human Studio workbench.
+This browser demo proves the complete local Studio lifecycle instead of only showing an in-memory Puck authoring shell.
 
-```bash
-pnpm --filter @vira-enterprise-genui/experience-studio-demo dev
+```text
+Create persisted draft
+      ↓
+Edit in Vira Experience Studio / Puck
+      ↓
+Studio publish validation + StudioPublication
+      ↓
+Persist publication on the demo server
+      ↓
+/live/<experience-id>
+      ↓
+Studio Runtime + Studio Runtime React
+      ↓
+trusted airline renderer registry
 ```
 
-The demo intentionally uses only in-memory catalogs and a Pegasus-style flight-discovery document. It proves the editor surface, not a production backend integration.
+The same experience can then be **unpublished** (the draft remains, the live URL immediately stops resolving) or **deleted** (both the draft and any publication are removed).
 
-Try:
-- drag components from **Components**;
-- reorder/nest through canvas or **Layers**;
-- change colors, typography, spacing and layout in **Properties**;
-- create/switch screens in **Views**;
-- bind approved sources in **Data**;
-- bind actions and success/empty/error routes in **Actions**;
-- use Puck **Publish** to produce a validated `StudioPublication`.
+## Run
+
+From the repository root:
+
+```bash
+pnpm install
+pnpm demo:experience-studio
+```
+
+Open:
+
+```text
+http://127.0.0.1:4173
+```
+
+The home screen lists persisted experiences and approved starter GenUI surfaces for flight search, special assistance, missed-flight policy, visa checks, and a blank layout.
+
+## Persistence
+
+This demo uses a real file-backed server store under `examples/experience-studio-demo/.data/`. Drafts and publications survive browser refreshes and server restarts. `.data/` is ignored by git.
+
+This is intentionally a **demo persistence adapter**, not a claim of production cloud persistence, tenancy, authentication, or deployment infrastructure. Replacing the file store with a database/object store does not change the Studio `StudioDocument → StudioPublication → Studio Runtime` path proven here.
+
+## Browser acceptance gate
+
+```bash
+pnpm verify:browser
+```
+
+The Chromium test performs the full user lifecycle:
+
+1. create a new persisted flight-search experience;
+2. open the real Puck workbench;
+3. publish it through the Studio publish gate;
+4. open `/live/<id>` and verify the published runtime actually renders;
+5. unpublish it and verify the live URL becomes unavailable;
+6. delete the draft and verify it disappears from the Studio library.
+
+The test does not accept a status label such as “Published” as proof of publication; it verifies the separate live runtime route.

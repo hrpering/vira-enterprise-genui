@@ -4,13 +4,19 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
+    "dev": "node ./server.mjs",
     "build": "vite build",
     "test:e2e": "playwright test"
   },
   "dependencies": {
     "@puckeditor/core": "0.22.4",
+    "@vira-enterprise-genui/planner": "workspace:*",
+    "@vira-enterprise-genui/runtime-core": "workspace:*",
+    "@vira-enterprise-genui/studio-compiler": "workspace:*",
     "@vira-enterprise-genui/studio-design": "workspace:*",
+    "@vira-enterprise-genui/studio-runtime": "workspace:*",
+    "@vira-enterprise-genui/studio-runtime-react": "workspace:*",
+    "@vira-enterprise-genui/studio-schema": "workspace:*",
     "@vira-enterprise-genui/studio-workbench": "workspace:*",
     "@vira-enterprise-genui/studio-workbench-react": "workspace:*",
     "react": "19.2.8",
