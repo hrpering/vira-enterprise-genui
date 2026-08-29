@@ -1,7 +1,10 @@
 import { defineConfig } from "vite";
 
-const unsafeDraggedItemRead = "draggedItem?.data.componentType";
-const safeDraggedItemRead = "draggedItem?.data?.componentType";
+const unsafeDraggedItemRead = /draggedItem\?\.\s*data\.componentType/g;
+
+function isPuckCoreModule(id: string): boolean {
+  return id.includes("@puckeditor/core") || id.includes("@puckeditor+core");
+}
 
 export default defineConfig({
   optimizeDeps: {
@@ -14,11 +17,14 @@ export default defineConfig({
       name: "vira-puck-dragged-item-guard",
       enforce: "pre",
       transform(code, id) {
-        if (!id.includes("@puckeditor/core")) return null;
-        if (!code.includes(unsafeDraggedItemRead)) return null;
+        if (!isPuckCoreModule(id)) return null;
+
+        unsafeDraggedItemRead.lastIndex = 0;
+        if (!unsafeDraggedItemRead.test(code)) return null;
+        unsafeDraggedItemRead.lastIndex = 0;
 
         return {
-          code: code.replaceAll(unsafeDraggedItemRead, safeDraggedItemRead),
+          code: code.replace(unsafeDraggedItemRead, "draggedItem?.data?.componentType"),
           map: null,
         };
       },
