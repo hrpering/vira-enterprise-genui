@@ -384,7 +384,7 @@ describe("Vira Enterprise GenUI MVP completion gate", () => {
       stage: "runtime",
       error: { code: "runtime.permission.denied" },
     });
-    expect(session.value.currentState()).toBe(before);
+    expect(session.value.currentState()).toStrictEqual(before);
 
     const networkPolicy = createNetworkPolicy({
       version: "1",
