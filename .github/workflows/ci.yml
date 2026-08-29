@@ -18,10 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           package-manager-cache: false
@@ -30,7 +30,11 @@ jobs:
         run: npm install --global pnpm@11.24.0
 
       - name: Install dependencies
+        # A frozen install becomes mandatory once the real workspace lockfile is generated and committed.
         run: pnpm install --no-frozen-lockfile
 
-      - name: Verify
-        run: pnpm verify
+      - name: Install Studio browser
+        run: pnpm --filter @vira-enterprise-genui/experience-studio-demo exec playwright install --with-deps chromium
+
+      - name: Verify repository and browser gates
+        run: pnpm verify:all
