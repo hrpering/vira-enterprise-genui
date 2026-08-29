@@ -126,6 +126,28 @@ describe("security deny-by-default network policy", () => {
     });
   });
 
+  it("contains hostile reflection traps for policy and request inputs", () => {
+    const policySecret = "SECRET_POLICY_PROXY";
+    const requestSecret = "SECRET_REQUEST_PROXY";
+    const hostilePolicy = new Proxy({}, {
+      getPrototypeOf() {
+        throw new Error(policySecret);
+      },
+    });
+    const policyResult = createNetworkPolicy(hostilePolicy);
+    expect(policyResult).toMatchObject({ ok: false, issue: { code: "INVALID_INPUT", path: "$" } });
+    if (!policyResult.ok) expect(policyResult.issue.message).not.toContain(policySecret);
+
+    const hostileRequest = new Proxy({}, {
+      ownKeys() {
+        throw new Error(requestSecret);
+      },
+    });
+    const requestResult = evaluateNetworkRequest(policy([]), hostileRequest);
+    expect(requestResult).toMatchObject({ ok: false, issue: { code: "INVALID_REQUEST", path: "$.request" } });
+    if (!requestResult.ok) expect(requestResult.issue.message).not.toContain(requestSecret);
+  });
+
   it("never performs I/O and rejects unsupported/lowercase methods", () => {
     const input = policy([{ origin: "https://api.example.com", methods: ["POST"] }]);
     expect(evaluateNetworkRequest(input, { url: "https://api.example.com", method: "post" })).toMatchObject({

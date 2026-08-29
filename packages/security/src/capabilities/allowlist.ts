@@ -43,71 +43,77 @@ function unexpectedArrayProperty(array: readonly unknown[]): string | symbol | u
 }
 
 export function createCapabilityAllowlistPolicy(input: unknown): CapabilityAllowlistPolicyResult {
-  if (input === null || typeof input !== "object" || Array.isArray(input)) {
-    return policyFailure("INVALID_INPUT", "$", "capability allowlist policy must be an object");
-  }
-  if (Object.getPrototypeOf(input) !== Object.prototype && Object.getPrototypeOf(input) !== null) {
-    return policyFailure("INVALID_INPUT", "$", "capability allowlist policy must be a plain object");
-  }
-  if (Object.getOwnPropertySymbols(input).length > 0) {
-    return policyFailure("INVALID_INPUT", "$", "capability allowlist policy must not contain symbol properties");
-  }
-
-  const ownNames = Object.getOwnPropertyNames(input);
-  const unknown = ownNames.sort().find((field) => !policyFields.has(field));
-  if (unknown) return policyFailure("UNKNOWN_FIELD", `$.${unknown}`, "capability allowlist policy contains an unknown field");
-
-  const version = ownDataProperty(input, "version");
-  if (!version || version.value !== CAPABILITY_ALLOWLIST_POLICY_VERSION) {
-    return policyFailure("INVALID_VERSION", "$.version", `capability allowlist policy version must be ${CAPABILITY_ALLOWLIST_POLICY_VERSION}`);
-  }
-
-  const allowed = ownDataProperty(input, "allowed");
-  if (!allowed || !Array.isArray(allowed.value)) {
-    return policyFailure("INVALID_ALLOWED", "$.allowed", "allowed must be a dense array of exact capability keys");
-  }
-  if (allowed.value.length > CAPABILITY_ALLOWLIST_MAX_ENTRIES) {
-    return policyFailure(
-      "ENTRY_LIMIT_EXCEEDED",
-      "$.allowed",
-      `capability allowlist may contain at most ${CAPABILITY_ALLOWLIST_MAX_ENTRIES} entries`,
-    );
-  }
-  const unexpected = unexpectedArrayProperty(allowed.value);
-  if (unexpected !== undefined) {
-    const path = typeof unexpected === "string" ? `$.allowed.${unexpected}` : "$.allowed";
-    return policyFailure("INVALID_ALLOWED", path, "allowed must not contain custom or symbol properties");
-  }
-
-  const normalized: string[] = [];
-  const seen = new Set<string>();
-  for (let index = 0; index < allowed.value.length; index += 1) {
-    const descriptor = ownDataProperty(allowed.value, String(index));
-    if (!descriptor) {
-      return policyFailure("INVALID_ALLOWED", `$.allowed[${index}]`, "allowed entries must be dense own data properties");
+  try {
+    if (input === null || typeof input !== "object" || Array.isArray(input)) {
+      return policyFailure("INVALID_INPUT", "$", "capability allowlist policy must be an object");
     }
-    const key = descriptor.value;
-    if (!validCapabilityKey(key)) {
+
+    const prototype = Object.getPrototypeOf(input);
+    if (prototype !== Object.prototype && prototype !== null) {
+      return policyFailure("INVALID_INPUT", "$", "capability allowlist policy must be a plain object");
+    }
+    if (Object.getOwnPropertySymbols(input).length > 0) {
+      return policyFailure("INVALID_INPUT", "$", "capability allowlist policy must not contain symbol properties");
+    }
+
+    const ownNames = Object.getOwnPropertyNames(input);
+    const unknown = ownNames.sort().find((field) => !policyFields.has(field));
+    if (unknown) return policyFailure("UNKNOWN_FIELD", `$.${unknown}`, "capability allowlist policy contains an unknown field");
+
+    const version = ownDataProperty(input, "version");
+    if (!version || version.value !== CAPABILITY_ALLOWLIST_POLICY_VERSION) {
+      return policyFailure("INVALID_VERSION", "$.version", `capability allowlist policy version must be ${CAPABILITY_ALLOWLIST_POLICY_VERSION}`);
+    }
+
+    const allowed = ownDataProperty(input, "allowed");
+    if (!allowed || !Array.isArray(allowed.value)) {
+      return policyFailure("INVALID_ALLOWED", "$.allowed", "allowed must be a dense array of exact capability keys");
+    }
+    if (allowed.value.length > CAPABILITY_ALLOWLIST_MAX_ENTRIES) {
       return policyFailure(
-        "INVALID_KEY",
-        `$.allowed[${index}]`,
-        `capability key must be a non-empty string of at most ${CAPABILITY_ALLOWLIST_KEY_MAX_LENGTH} characters`,
+        "ENTRY_LIMIT_EXCEEDED",
+        "$.allowed",
+        `capability allowlist may contain at most ${CAPABILITY_ALLOWLIST_MAX_ENTRIES} entries`,
       );
     }
-    if (seen.has(key)) {
-      return policyFailure("DUPLICATE_KEY", `$.allowed[${index}]`, "capability allowlist contains a duplicate exact key");
+    const unexpected = unexpectedArrayProperty(allowed.value);
+    if (unexpected !== undefined) {
+      const path = typeof unexpected === "string" ? `$.allowed.${unexpected}` : "$.allowed";
+      return policyFailure("INVALID_ALLOWED", path, "allowed must not contain custom or symbol properties");
     }
-    seen.add(key);
-    normalized.push(key);
-  }
 
-  return {
-    ok: true,
-    value: Object.freeze({
-      version: CAPABILITY_ALLOWLIST_POLICY_VERSION,
-      allowed: Object.freeze(normalized),
-    }),
-  };
+    const normalized: string[] = [];
+    const seen = new Set<string>();
+    for (let index = 0; index < allowed.value.length; index += 1) {
+      const descriptor = ownDataProperty(allowed.value, String(index));
+      if (!descriptor) {
+        return policyFailure("INVALID_ALLOWED", `$.allowed[${index}]`, "allowed entries must be dense own data properties");
+      }
+      const key = descriptor.value;
+      if (!validCapabilityKey(key)) {
+        return policyFailure(
+          "INVALID_KEY",
+          `$.allowed[${index}]`,
+          `capability key must be a non-empty string of at most ${CAPABILITY_ALLOWLIST_KEY_MAX_LENGTH} characters`,
+        );
+      }
+      if (seen.has(key)) {
+        return policyFailure("DUPLICATE_KEY", `$.allowed[${index}]`, "capability allowlist contains a duplicate exact key");
+      }
+      seen.add(key);
+      normalized.push(key);
+    }
+
+    return {
+      ok: true,
+      value: Object.freeze({
+        version: CAPABILITY_ALLOWLIST_POLICY_VERSION,
+        allowed: Object.freeze(normalized),
+      }),
+    };
+  } catch {
+    return policyFailure("INVALID_INPUT", "$", "capability allowlist policy could not be inspected safely");
+  }
 }
 
 export function evaluateCapabilityAllowlist(

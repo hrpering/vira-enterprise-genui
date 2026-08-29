@@ -67,80 +67,84 @@ function isCanonicalOccurredAt(value: unknown): value is string {
 }
 
 export function createTelemetryEvent(input: unknown): TelemetryEventResult {
-  if (!plainObject(input)) return failure("INVALID_INPUT", "$", "telemetry event must be a plain object");
-  if (Object.getOwnPropertySymbols(input).length > 0) {
-    return failure("INVALID_INPUT", "$", "telemetry event must not contain symbol properties");
-  }
-
-  const unknownField = Object.getOwnPropertyNames(input)
-    .sort()
-    .find((field) => !inputFields.has(field));
-  if (unknownField) return failure("UNKNOWN_FIELD", `$.${unknownField}`, "telemetry event contains an unsupported field");
-
-  const version = ownData(input, "version");
-  if (!version || version.value !== TELEMETRY_EVENT_VERSION) {
-    return failure("INVALID_VERSION", "$.version", `telemetry event version must be ${TELEMETRY_EVENT_VERSION}`);
-  }
-
-  const name = ownData(input, "name");
-  if (
-    !name
-    || typeof name.value !== "string"
-    || name.value.length === 0
-    || name.value.length > TELEMETRY_EVENT_NAME_MAX_LENGTH
-    || !eventNamePattern.test(name.value)
-  ) {
-    return failure("INVALID_NAME", "$.name", "telemetry event name must be a bounded lowercase machine identifier");
-  }
-
-  const source = ownData(input, "source");
-  if (!source || !isSource(source.value)) {
-    return failure("INVALID_SOURCE", "$.source", "telemetry event source is unsupported");
-  }
-
-  const kind = ownData(input, "kind");
-  if (!kind || !isKind(kind.value)) {
-    return failure("INVALID_KIND", "$.kind", "telemetry event kind is unsupported");
-  }
-
-  const outcome = ownData(input, "outcome");
-  if (!outcome || !isOutcome(outcome.value)) {
-    return failure("INVALID_OUTCOME", "$.outcome", "telemetry event outcome is unsupported");
-  }
-
-  const occurredAt = ownData(input, "occurredAt");
-  if (!occurredAt || !isCanonicalOccurredAt(occurredAt.value)) {
-    return failure("INVALID_OCCURRED_AT", "$.occurredAt", "occurredAt must be a canonical UTC ISO timestamp with millisecond precision");
-  }
-
-  const rawDuration = Object.getOwnPropertyDescriptor(input, "durationMs");
-  if (rawDuration && !("value" in rawDuration)) {
-    return failure("INVALID_DURATION", "$.durationMs", "durationMs must be an own data property when provided");
-  }
-  const duration = ownData(input, "durationMs");
-  if (duration) {
-    if (
-      typeof duration.value !== "number"
-      || !Number.isFinite(duration.value)
-      || duration.value < 0
-      || duration.value > TELEMETRY_DURATION_MAX_MS
-    ) {
-      return failure("INVALID_DURATION", "$.durationMs", `durationMs must be finite and between 0 and ${TELEMETRY_DURATION_MAX_MS}`);
+  try {
+    if (!plainObject(input)) return failure("INVALID_INPUT", "$", "telemetry event must be a plain object");
+    if (Object.getOwnPropertySymbols(input).length > 0) {
+      return failure("INVALID_INPUT", "$", "telemetry event must not contain symbol properties");
     }
+
+    const unknownField = Object.getOwnPropertyNames(input)
+      .sort()
+      .find((field) => !inputFields.has(field));
+    if (unknownField) return failure("UNKNOWN_FIELD", `$.${unknownField}`, "telemetry event contains an unsupported field");
+
+    const version = ownData(input, "version");
+    if (!version || version.value !== TELEMETRY_EVENT_VERSION) {
+      return failure("INVALID_VERSION", "$.version", `telemetry event version must be ${TELEMETRY_EVENT_VERSION}`);
+    }
+
+    const name = ownData(input, "name");
+    if (
+      !name
+      || typeof name.value !== "string"
+      || name.value.length === 0
+      || name.value.length > TELEMETRY_EVENT_NAME_MAX_LENGTH
+      || !eventNamePattern.test(name.value)
+    ) {
+      return failure("INVALID_NAME", "$.name", "telemetry event name must be a bounded lowercase machine identifier");
+    }
+
+    const source = ownData(input, "source");
+    if (!source || !isSource(source.value)) {
+      return failure("INVALID_SOURCE", "$.source", "telemetry event source is unsupported");
+    }
+
+    const kind = ownData(input, "kind");
+    if (!kind || !isKind(kind.value)) {
+      return failure("INVALID_KIND", "$.kind", "telemetry event kind is unsupported");
+    }
+
+    const outcome = ownData(input, "outcome");
+    if (!outcome || !isOutcome(outcome.value)) {
+      return failure("INVALID_OUTCOME", "$.outcome", "telemetry event outcome is unsupported");
+    }
+
+    const occurredAt = ownData(input, "occurredAt");
+    if (!occurredAt || !isCanonicalOccurredAt(occurredAt.value)) {
+      return failure("INVALID_OCCURRED_AT", "$.occurredAt", "occurredAt must be a canonical UTC ISO timestamp with millisecond precision");
+    }
+
+    const rawDuration = Object.getOwnPropertyDescriptor(input, "durationMs");
+    if (rawDuration && !("value" in rawDuration)) {
+      return failure("INVALID_DURATION", "$.durationMs", "durationMs must be an own data property when provided");
+    }
+    const duration = ownData(input, "durationMs");
+    if (duration) {
+      if (
+        typeof duration.value !== "number"
+        || !Number.isFinite(duration.value)
+        || duration.value < 0
+        || duration.value > TELEMETRY_DURATION_MAX_MS
+      ) {
+        return failure("INVALID_DURATION", "$.durationMs", `durationMs must be finite and between 0 and ${TELEMETRY_DURATION_MAX_MS}`);
+      }
+    }
+
+    const base = {
+      version: TELEMETRY_EVENT_VERSION,
+      name: name.value,
+      source: source.value,
+      kind: kind.value,
+      outcome: outcome.value,
+      occurredAt: occurredAt.value,
+    } as const;
+
+    const event: TelemetryEvent = duration
+      ? { ...base, durationMs: duration.value as number }
+      : base;
+
+    return { ok: true, value: Object.freeze(event) };
+  } catch {
+    return failure("INVALID_INPUT", "$", "telemetry event could not be inspected safely");
   }
-
-  const base = {
-    version: TELEMETRY_EVENT_VERSION,
-    name: name.value,
-    source: source.value,
-    kind: kind.value,
-    outcome: outcome.value,
-    occurredAt: occurredAt.value,
-  } as const;
-
-  const event: TelemetryEvent = duration
-    ? { ...base, durationMs: duration.value as number }
-    : base;
-
-  return { ok: true, value: Object.freeze(event) };
 }

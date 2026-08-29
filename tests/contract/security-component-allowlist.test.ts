@@ -103,6 +103,18 @@ describe("security component allowlist", () => {
     expect(calls).toBe(0);
   });
 
+  it("contains hostile reflection traps as invalid policy data", () => {
+    const secret = "SECRET_COMPONENT_PROXY";
+    const hostile = new Proxy({}, {
+      ownKeys() {
+        throw new Error(secret);
+      },
+    });
+    const result = createComponentAllowlistPolicy(hostile);
+    expect(result).toMatchObject({ ok: false, issue: { code: "INVALID_INPUT", path: "$" } });
+    if (!result.ok) expect(result.issue.message).not.toContain(secret);
+  });
+
   it("keeps semantic component validation with the upstream owner", () => {
     const policy = { version: "1", allowed: ["not namespaced but bounded"] };
     expect(createComponentAllowlistPolicy(policy).ok).toBe(true);

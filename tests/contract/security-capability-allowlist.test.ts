@@ -90,6 +90,18 @@ describe("security exact capability allowlist", () => {
     ))).toMatchObject({ ok: false, issue: { code: "ENTRY_LIMIT_EXCEEDED" } });
   });
 
+  it("contains hostile reflection traps as invalid policy data", () => {
+    const secret = "SECRET_CAPABILITY_PROXY";
+    const hostile = new Proxy({}, {
+      getPrototypeOf() {
+        throw new Error(secret);
+      },
+    });
+    const result = createCapabilityAllowlistPolicy(hostile);
+    expect(result).toMatchObject({ ok: false, issue: { code: "INVALID_INPUT", path: "$" } });
+    if (!result.ok) expect(result.issue.message).not.toContain(secret);
+  });
+
   it("rejects malformed/custom root policy and invalid candidate inputs without semantic-grammar ownership", () => {
     expect(createCapabilityAllowlistPolicy({ version: "1", allowed: [], wildcard: "*" })).toMatchObject({
       ok: false,

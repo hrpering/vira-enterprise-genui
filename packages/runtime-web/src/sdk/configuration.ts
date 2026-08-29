@@ -32,6 +32,7 @@ const inputFields = new Set([
   "domPort",
   "idFactory",
 ]);
+const TRUSTED_METHOD_PROTOTYPE_DEPTH_LIMIT = 64;
 
 function failure(
   code: WebSdkConfigurationValidationCode,
@@ -47,15 +48,27 @@ function nestedPath(base: string, path: string): string {
 
 function findDataMethod(value: unknown, name: string): Function | undefined {
   if (value === null || (typeof value !== "object" && typeof value !== "function")) return undefined;
+  const visited = new Set<object>();
   let current: object | null = value as object;
-  while (current !== null) {
-    const descriptor = Object.getOwnPropertyDescriptor(current, name);
-    if (descriptor) {
-      if (!("value" in descriptor) || typeof descriptor.value !== "function") return undefined;
-      return descriptor.value as Function;
+  let depth = 0;
+
+  try {
+    while (current !== null) {
+      if (visited.has(current) || depth >= TRUSTED_METHOD_PROTOTYPE_DEPTH_LIMIT) return undefined;
+      visited.add(current);
+      depth += 1;
+
+      const descriptor = Object.getOwnPropertyDescriptor(current, name);
+      if (descriptor) {
+        if (!("value" in descriptor) || typeof descriptor.value !== "function") return undefined;
+        return descriptor.value as Function;
+      }
+      current = Object.getPrototypeOf(current) as object | null;
     }
-    current = Object.getPrototypeOf(current) as object | null;
+  } catch {
+    return undefined;
   }
+
   return undefined;
 }
 

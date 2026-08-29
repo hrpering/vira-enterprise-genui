@@ -199,6 +199,21 @@ describe("runtime-web public Web SDK configuration", () => {
     expect(calls).toBe(0);
   });
 
+  it("contains hostile trusted-port reflection traps without leaking provider text", () => {
+    const secret = "SECRET_PROXY_TRAP";
+    const domPort = new Proxy({}, {
+      getOwnPropertyDescriptor() {
+        throw new Error(secret);
+      },
+    });
+    const result = createWebSdkConfiguration(config({ domPort }));
+    expect(result).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_DOM_PORT", path: "$.domPort" },
+    });
+    if (!result.ok) expect(result.issue.message).not.toContain(secret);
+  });
+
   it("rejects unknown root fields", () => {
     expect(createWebSdkConfiguration({ ...config(), network: "forbidden" })).toMatchObject({
       ok: false,

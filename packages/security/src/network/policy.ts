@@ -136,67 +136,75 @@ function parseRule(value: unknown, index: number):
 }
 
 export function createNetworkPolicy(input: unknown): NetworkPolicyResult {
-  if (!plainObject(input)) return policyFailure("INVALID_INPUT", "$", "network policy must be a plain object");
-  const extra = exactFields(input, policyFields);
-  if (extra !== undefined) {
-    return policyFailure("UNKNOWN_FIELD", typeof extra === "string" ? `$.${extra}` : "$", "network policy contains an unsupported field");
-  }
-
-  const version = ownData(input, "version");
-  if (!version || version.value !== NETWORK_POLICY_VERSION) {
-    return policyFailure("INVALID_VERSION", "$.version", `network policy version must be ${NETWORK_POLICY_VERSION}`);
-  }
-  const rulesDescriptor = ownData(input, "rules");
-  if (!rulesDescriptor || !Array.isArray(rulesDescriptor.value)) {
-    return policyFailure("INVALID_RULES", "$.rules", "rules must be a dense array");
-  }
-  if (rulesDescriptor.value.length > NETWORK_POLICY_MAX_RULES) {
-    return policyFailure("RULE_LIMIT_EXCEEDED", "$.rules", `network policy may contain at most ${NETWORK_POLICY_MAX_RULES} rules`);
-  }
-  const unexpected = unexpectedArrayProperty(rulesDescriptor.value);
-  if (unexpected !== undefined) {
-    return policyFailure("INVALID_RULES", typeof unexpected === "string" ? `$.rules.${unexpected}` : "$.rules", "rules must not contain custom or symbol properties");
-  }
-
-  const rules: NetworkPolicyRule[] = [];
-  const origins = new Set<string>();
-  for (let index = 0; index < rulesDescriptor.value.length; index += 1) {
-    const descriptor = ownData(rulesDescriptor.value, String(index));
-    if (!descriptor) return policyFailure("INVALID_RULES", `$.rules[${index}]`, "rules must be dense own data properties");
-    const parsed = parseRule(descriptor.value, index);
-    if (!parsed.ok) return policyFailure(parsed.code, parsed.path, parsed.message);
-    if (origins.has(parsed.value.origin)) {
-      return policyFailure("DUPLICATE_ORIGIN", `$.rules[${index}].origin`, "network policy contains a duplicate normalized origin");
+  try {
+    if (!plainObject(input)) return policyFailure("INVALID_INPUT", "$", "network policy must be a plain object");
+    const extra = exactFields(input, policyFields);
+    if (extra !== undefined) {
+      return policyFailure("UNKNOWN_FIELD", typeof extra === "string" ? `$.${extra}` : "$", "network policy contains an unsupported field");
     }
-    origins.add(parsed.value.origin);
-    rules.push(parsed.value);
-  }
 
-  return {
-    ok: true,
-    value: Object.freeze({ version: NETWORK_POLICY_VERSION, rules: Object.freeze(rules) }),
-  };
+    const version = ownData(input, "version");
+    if (!version || version.value !== NETWORK_POLICY_VERSION) {
+      return policyFailure("INVALID_VERSION", "$.version", `network policy version must be ${NETWORK_POLICY_VERSION}`);
+    }
+    const rulesDescriptor = ownData(input, "rules");
+    if (!rulesDescriptor || !Array.isArray(rulesDescriptor.value)) {
+      return policyFailure("INVALID_RULES", "$.rules", "rules must be a dense array");
+    }
+    if (rulesDescriptor.value.length > NETWORK_POLICY_MAX_RULES) {
+      return policyFailure("RULE_LIMIT_EXCEEDED", "$.rules", `network policy may contain at most ${NETWORK_POLICY_MAX_RULES} rules`);
+    }
+    const unexpected = unexpectedArrayProperty(rulesDescriptor.value);
+    if (unexpected !== undefined) {
+      return policyFailure("INVALID_RULES", typeof unexpected === "string" ? `$.rules.${unexpected}` : "$.rules", "rules must not contain custom or symbol properties");
+    }
+
+    const rules: NetworkPolicyRule[] = [];
+    const origins = new Set<string>();
+    for (let index = 0; index < rulesDescriptor.value.length; index += 1) {
+      const descriptor = ownData(rulesDescriptor.value, String(index));
+      if (!descriptor) return policyFailure("INVALID_RULES", `$.rules[${index}]`, "rules must be dense own data properties");
+      const parsed = parseRule(descriptor.value, index);
+      if (!parsed.ok) return policyFailure(parsed.code, parsed.path, parsed.message);
+      if (origins.has(parsed.value.origin)) {
+        return policyFailure("DUPLICATE_ORIGIN", `$.rules[${index}].origin`, "network policy contains a duplicate normalized origin");
+      }
+      origins.add(parsed.value.origin);
+      rules.push(parsed.value);
+    }
+
+    return {
+      ok: true,
+      value: Object.freeze({ version: NETWORK_POLICY_VERSION, rules: Object.freeze(rules) }),
+    };
+  } catch {
+    return policyFailure("INVALID_INPUT", "$", "network policy could not be inspected safely");
+  }
 }
 
 function parseRequest(input: unknown):
   | { readonly ok: true; readonly value: NetworkRequest }
   | { readonly ok: false; readonly code: "INVALID_REQUEST" | "INVALID_URL" | "INVALID_METHOD"; readonly path: string; readonly message: string } {
-  if (!plainObject(input)) return { ok: false, code: "INVALID_REQUEST", path: "$.request", message: "network request must be a plain object" };
-  const extra = exactFields(input, requestFields);
-  if (extra !== undefined) return { ok: false, code: "INVALID_REQUEST", path: typeof extra === "string" ? `$.request.${extra}` : "$.request", message: "network request contains an unsupported field" };
+  try {
+    if (!plainObject(input)) return { ok: false, code: "INVALID_REQUEST", path: "$.request", message: "network request must be a plain object" };
+    const extra = exactFields(input, requestFields);
+    if (extra !== undefined) return { ok: false, code: "INVALID_REQUEST", path: typeof extra === "string" ? `$.request.${extra}` : "$.request", message: "network request contains an unsupported field" };
 
-  const urlDescriptor = ownData(input, "url");
-  const parsedUrl = urlDescriptor ? parseNetworkUrl(urlDescriptor.value) : undefined;
-  if (!parsedUrl) return { ok: false, code: "INVALID_URL", path: "$.request.url", message: "request URL must be credential-free HTTPS without wildcard hostname or fragment" };
-  const methodDescriptor = ownData(input, "method");
-  if (!methodDescriptor || !isNetworkMethod(methodDescriptor.value)) {
-    return { ok: false, code: "INVALID_METHOD", path: "$.request.method", message: "request method must be one explicitly supported canonical HTTP method" };
+    const urlDescriptor = ownData(input, "url");
+    const parsedUrl = urlDescriptor ? parseNetworkUrl(urlDescriptor.value) : undefined;
+    if (!parsedUrl) return { ok: false, code: "INVALID_URL", path: "$.request.url", message: "request URL must be credential-free HTTPS without wildcard hostname or fragment" };
+    const methodDescriptor = ownData(input, "method");
+    if (!methodDescriptor || !isNetworkMethod(methodDescriptor.value)) {
+      return { ok: false, code: "INVALID_METHOD", path: "$.request.method", message: "request method must be one explicitly supported canonical HTTP method" };
+    }
+
+    return {
+      ok: true,
+      value: Object.freeze({ url: parsedUrl.url, origin: parsedUrl.origin, method: methodDescriptor.value }),
+    };
+  } catch {
+    return { ok: false, code: "INVALID_REQUEST", path: "$.request", message: "network request could not be inspected safely" };
   }
-
-  return {
-    ok: true,
-    value: Object.freeze({ url: parsedUrl.url, origin: parsedUrl.origin, method: methodDescriptor.value }),
-  };
 }
 
 export function evaluateNetworkRequest(

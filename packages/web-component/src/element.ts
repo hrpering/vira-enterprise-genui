@@ -143,7 +143,16 @@ function browserPlatform(): ViraExperienceElementPlatform | undefined {
 export function defineViraExperienceElement(
   platform?: ViraExperienceElementPlatform,
 ): ViraExperienceDefineResult {
-  const resolved = platform ?? browserPlatform();
+  let resolved: ViraExperienceElementPlatform | undefined;
+  try {
+    resolved = platform ?? browserPlatform();
+  } catch {
+    return {
+      ok: false,
+      issue: { code: "PLATFORM_UNAVAILABLE", path: "$", message: "custom elements platform could not be inspected safely" },
+    };
+  }
+
   if (!resolved) {
     return {
       ok: false,
@@ -151,28 +160,28 @@ export function defineViraExperienceElement(
     };
   }
 
-  if (resolved.registry.get(VIRA_EXPERIENCE_TAG_NAME) !== undefined) {
-    return {
-      ok: false,
-      issue: { code: "TAG_ALREADY_DEFINED", path: "$.tagName", message: "vira-experience is already defined" },
-    };
-  }
-
-  const elementClass = createViraExperienceElementClass(
-    resolved.HTMLElementBase,
-    resolved.customEventFactory,
-  );
   try {
+    if (resolved.registry.get(VIRA_EXPERIENCE_TAG_NAME) !== undefined) {
+      return {
+        ok: false,
+        issue: { code: "TAG_ALREADY_DEFINED", path: "$.tagName", message: "vira-experience is already defined" },
+      };
+    }
+
+    const elementClass = createViraExperienceElementClass(
+      resolved.HTMLElementBase,
+      resolved.customEventFactory,
+    );
     resolved.registry.define(VIRA_EXPERIENCE_TAG_NAME, elementClass);
+
+    return {
+      ok: true,
+      value: Object.freeze({ tagName: VIRA_EXPERIENCE_TAG_NAME, elementClass }),
+    };
   } catch {
     return {
       ok: false,
       issue: { code: "REGISTRATION_FAILED", path: "$.tagName", message: "vira-experience registration failed" },
     };
   }
-
-  return {
-    ok: true,
-    value: Object.freeze({ tagName: VIRA_EXPERIENCE_TAG_NAME, elementClass }),
-  };
 }

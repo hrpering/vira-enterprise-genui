@@ -10,6 +10,7 @@ import type {
 type DataMethod = (...args: unknown[]) => unknown;
 
 const success = Object.freeze({ ok: true as const });
+const TRUSTED_METHOD_PROTOTYPE_DEPTH_LIMIT = 64;
 
 function failure(
   code: TelemetryExporterPortValidationCode,
@@ -24,19 +25,31 @@ function operationFailure(operation: TelemetryExporterOperation): TelemetryExpor
 }
 
 function findDataMethod(value: object, name: string): DataMethod | undefined {
+  const visited = new Set<object>();
   let current: object | null = value;
-  while (
-    current !== null
-    && current !== Object.prototype
-    && current !== Function.prototype
-  ) {
-    const descriptor = Object.getOwnPropertyDescriptor(current, name);
-    if (descriptor) {
-      if (!("value" in descriptor) || typeof descriptor.value !== "function") return undefined;
-      return descriptor.value as DataMethod;
+  let depth = 0;
+
+  try {
+    while (
+      current !== null
+      && current !== Object.prototype
+      && current !== Function.prototype
+    ) {
+      if (visited.has(current) || depth >= TRUSTED_METHOD_PROTOTYPE_DEPTH_LIMIT) return undefined;
+      visited.add(current);
+      depth += 1;
+
+      const descriptor = Object.getOwnPropertyDescriptor(current, name);
+      if (descriptor) {
+        if (!("value" in descriptor) || typeof descriptor.value !== "function") return undefined;
+        return descriptor.value as DataMethod;
+      }
+      current = Object.getPrototypeOf(current) as object | null;
     }
-    current = Object.getPrototypeOf(current) as object | null;
+  } catch {
+    return undefined;
   }
+
   return undefined;
 }
 

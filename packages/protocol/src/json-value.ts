@@ -87,6 +87,8 @@ function parseInternal(
       entries.push([key, parsed.value]);
     }
     return { ok: true, value: Object.fromEntries(entries) as JsonObject };
+  } catch {
+    return issue(valuePath, "value could not be inspected safely");
   } finally {
     ancestors.delete(value);
   }
