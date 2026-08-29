@@ -7,4 +7,16 @@ export default tseslint.config(
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    files: [
+      "packages/adapter-sdk/src/action/validate.ts",
+      "packages/adapter-sdk/src/brand/validate.ts",
+      "packages/adapter-sdk/src/intent/validate.ts",
+      "packages/protocol/src/patch/validate.ts",
+      "packages/runtime-core/src/errors/create.ts",
+    ],
+    rules: {
+      "no-control-regex": "off",
+    },
+  },
 );
