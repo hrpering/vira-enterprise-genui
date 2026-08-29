@@ -12,4 +12,6 @@ export const allowedDependencies = Object.freeze({
   security: [],
   telemetry: [],
   "tool-bridge": ["protocol"],
+  "studio-schema": ["protocol"],
+  "studio-compiler": ["studio-schema"],
 });
