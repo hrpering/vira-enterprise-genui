@@ -3,11 +3,11 @@ import type { Config, Data } from "@puckeditor/core";
 import { createStudioPuckShellSession } from "@vira-enterprise-genui/studio-react";
 import { createElement, useState } from "react";
 import type { ComponentType, ReactElement, ReactNode } from "react";
+import { resolveStudioPaletteInsertionTarget } from "./palette.js";
 import { createStudioWorkbenchPlugins } from "./panels.js";
 import type { StudioWorkbenchReactIssue, ViraStudioWorkbenchProps } from "./types.js";
 
 const usePuck = createUsePuck();
-const PuckComponents = Puck.Components as unknown as ComponentType;
 const PuckPreview = Puck.Preview as unknown as ComponentType;
 const PuckFields = Puck.Fields as unknown as ComponentType;
 
@@ -17,9 +17,7 @@ type PuckRuntimeProps = {
   readonly onChange: (data: Data) => void;
   readonly iframe?: { readonly enabled?: boolean };
   readonly dnd?: {
-    readonly behavior?: "auto" | "fluid" | "static";
     readonly disableAutoScroll?: boolean;
-    readonly disableOutlineDrag?: boolean;
   };
   readonly children?: ReactNode;
 };
@@ -27,6 +25,80 @@ type PuckRuntimeProps = {
 const PuckRuntime = Puck as unknown as ComponentType<PuckRuntimeProps>;
 
 type WorkbenchPanel = "components" | "layers" | "views" | "data" | "actions";
+
+function ViraComponentsPanel(props: { readonly session: ViraStudioWorkbenchProps["session"] }): ReactElement {
+  const selectedPuckId = usePuck((state) => {
+    const id = state.selectedItem?.props?.id;
+    return typeof id === "string" ? id : undefined;
+  });
+  const dispatch = usePuck((state) => state.dispatch);
+  const document = props.session.currentDocument();
+  const view = document.views.find((candidate) => candidate.id === props.session.currentViewId());
+  if (!view) return createElement("div", { style: { padding: 16 } }, "Active Studio view not found.");
+
+  const catalog = props.session.componentCatalog();
+  const target = resolveStudioPaletteInsertionTarget({
+    nodes: view.nodes,
+    components: catalog.components,
+    ...(selectedPuckId === undefined ? {} : { selectedId: selectedPuckId }),
+  });
+  const categories = new Map<string, typeof catalog.components[number][]>();
+  for (const component of catalog.components) {
+    const list = categories.get(component.category) ?? [];
+    list.push(component);
+    categories.set(component.category, list);
+  }
+
+  const destination = target.parentId === undefined
+    ? "page root"
+    : `${target.parentId} · ${target.slot ?? "slot"}`;
+  const insert = (componentType: string) => {
+    dispatch({
+      type: "insert",
+      componentType,
+      destinationZone: target.zone,
+      destinationIndex: target.index,
+    });
+  };
+
+  return createElement("div", { style: { padding: 12, display: "grid", gap: 14 } },
+    createElement("div", { style: { padding: "4px 6px", fontSize: 11, lineHeight: 1.4, color: "#6b7280" } },
+      "Add components safely to ",
+      createElement("strong", { style: { color: "#374151" } }, destination),
+      ". Existing canvas components remain draggable for reorder and nesting.",
+    ),
+    ...[...categories.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([category, components]) => createElement("section", { key: category, style: { display: "grid", gap: 6 } },
+        createElement("div", { style: { padding: "0 6px", fontSize: 11, fontWeight: 750, textTransform: "uppercase", letterSpacing: ".04em", color: "#6b7280" } }, category),
+        ...components
+          .toSorted((left, right) => left.label.localeCompare(right.label))
+          .map((component) => createElement("button", {
+            key: component.ref,
+            type: "button",
+            onClick: () => insert(component.ref),
+            style: {
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              width: "100%",
+              border: "1px solid #e5e7eb",
+              borderRadius: 9,
+              padding: "9px 10px",
+              background: "#fff",
+              color: "#111827",
+              textAlign: "left",
+              cursor: "pointer",
+              fontSize: 12,
+              fontWeight: 650,
+            },
+          },
+          createElement("span", null, component.label),
+          createElement("span", { style: { color: "#6b7280", fontSize: 11, fontWeight: 600 } }, "Add"))),
+      )),
+  );
+}
 
 function ViraLayersPanel(props: { readonly session: ViraStudioWorkbenchProps["session"] }): ReactElement {
   const selectedPuckId = usePuck((state) => {
@@ -162,7 +234,7 @@ export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactEleme
   };
 
   const renderPanel = (): ReactNode => {
-    if (panel === "components") return createElement(PuckComponents);
+    if (panel === "components") return createElement(ViraComponentsPanel, { session: props.session });
     if (panel === "layers") return createElement(ViraLayersPanel, { session: props.session });
     const pluginName = panel === "views" ? "vira-views" : panel === "data" ? "vira-data" : "vira-actions";
     const plugin = customPlugin(pluginName);
@@ -231,7 +303,6 @@ export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactEleme
       data: shell.value.data,
       onChange,
       iframe: { enabled: false },
-      dnd: { behavior: "auto", disableOutlineDrag: true },
     }, workspace),
   );
 }
