@@ -64,6 +64,7 @@ function configuration(log: string[], ids: { value: number }) {
       rules: [{ subject: "action", id: "travel.flight.search.submit", effect: "allow" }],
     },
     capabilityAllowlist: { version: "1", allowed: ["submit-search"] },
+    componentAllowlist: { version: "1", allowed: ["acme.component.search-button"] },
     accessibility: {
       version: "1",
       focusOnMount: "first-primary",

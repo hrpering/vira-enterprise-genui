@@ -3,7 +3,10 @@ import {
   createComponentAdapterContract,
 } from "@vira-enterprise-genui/adapter-sdk";
 import { createRuntimePermissionPolicy } from "@vira-enterprise-genui/runtime-core";
-import { createCapabilityAllowlistPolicy } from "@vira-enterprise-genui/security";
+import {
+  createCapabilityAllowlistPolicy,
+  createComponentAllowlistPolicy,
+} from "@vira-enterprise-genui/security";
 import { createAccessibilityPolicy } from "../accessibility/index.js";
 import type {
   RuntimeWebDomBeginContext,
@@ -23,6 +26,7 @@ const inputFields = new Set([
   "actionAdapter",
   "permissionPolicy",
   "capabilityAllowlist",
+  "componentAllowlist",
   "accessibility",
   "responsive",
   "domPort",
@@ -110,6 +114,15 @@ export function createWebSdkConfiguration(input: unknown): WebSdkConfigurationRe
     );
   }
 
+  const componentAllowlist = createComponentAllowlistPolicy(fields.componentAllowlist);
+  if (!componentAllowlist.ok) {
+    return failure(
+      "INVALID_COMPONENT_ALLOWLIST",
+      nestedPath("$.componentAllowlist", componentAllowlist.issue.path),
+      "component allowlist policy is invalid",
+    );
+  }
+
   const accessibility = createAccessibilityPolicy(fields.accessibility);
   if (!accessibility.ok) {
     return failure("INVALID_ACCESSIBILITY_POLICY", nestedPath("$.accessibility", accessibility.issue.path), accessibility.issue.message);
@@ -133,6 +146,7 @@ export function createWebSdkConfiguration(input: unknown): WebSdkConfigurationRe
       actionAdapter: actionAdapter.value,
       permissionPolicy: permissionPolicy.value,
       capabilityAllowlist: capabilityAllowlist.value,
+      componentAllowlist: componentAllowlist.value,
       accessibility: accessibility.value,
       responsive: responsive.value,
       domPort,
