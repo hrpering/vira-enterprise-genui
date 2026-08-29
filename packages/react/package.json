@@ -1,1 +1,19 @@
-{"name":"@vira-enterprise-genui/react","version":"0.0.0","private":true,"type":"module"}
+{
+  "name": "@vira-enterprise-genui/react",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/runtime-web": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18.2.0 <20"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "react": "19.2.8"
+  }
+}
