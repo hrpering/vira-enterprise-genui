@@ -14,6 +14,7 @@ type PuckRuntimeProps = {
   readonly onPublish: (data: Data) => void | Promise<void>;
   readonly headerTitle?: string;
   readonly height?: string | number;
+  readonly iframe?: { readonly enabled?: boolean };
 };
 
 const PuckRuntime = Puck as unknown as ComponentType<PuckRuntimeProps>;
@@ -88,6 +89,7 @@ export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactEleme
       plugins,
       onChange,
       onPublish,
+      iframe: { enabled: false },
       ...(props.title === undefined ? {} : { headerTitle: props.title }),
       ...(props.height === undefined ? {} : { height: props.height }),
     }),
