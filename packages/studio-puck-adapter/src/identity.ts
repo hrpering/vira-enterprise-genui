@@ -20,6 +20,13 @@ export function studioNodeIdToPuckId(nodeId: string): string {
     : nodeId;
 }
 
+export function puckIdToStudioReservedNodeId(puckId: string): string | undefined {
+  for (const nodeId of STUDIO_PUCK_RESERVED_NODE_IDS) {
+    if (studioNodeIdToPuckId(nodeId) === puckId) return nodeId;
+  }
+  return undefined;
+}
+
 export function createStudioPuckReservedIdMappings(
   nodeIds: readonly string[],
 ): readonly StudioPuckIdMapping[] {
