@@ -37,11 +37,19 @@ function ViraComponentsPanel(props: { readonly session: ViraStudioWorkbenchProps
   if (!view) return createElement("div", { style: { padding: 16 } }, "Active Studio view not found.");
 
   const catalog = props.session.componentCatalog();
-  const target = resolveStudioPaletteInsertionTarget({
-    nodes: view.nodes,
-    components: catalog.components,
-    ...(selectedPuckId === undefined ? {} : { selectedId: selectedPuckId }),
-  });
+  const resolveTarget = () => {
+    const currentDocument = props.session.currentDocument();
+    const currentView = currentDocument.views.find((candidate) => candidate.id === props.session.currentViewId());
+    if (!currentView) return undefined;
+    return resolveStudioPaletteInsertionTarget({
+      nodes: currentView.nodes,
+      components: catalog.components,
+      ...(selectedPuckId === undefined ? {} : { selectedId: selectedPuckId }),
+    });
+  };
+  const target = resolveTarget();
+  if (!target) return createElement("div", { style: { padding: 16 } }, "Active Studio view not found.");
+
   const categories = new Map<string, typeof catalog.components[number][]>();
   for (const component of catalog.components) {
     const list = categories.get(component.category) ?? [];
@@ -53,11 +61,13 @@ function ViraComponentsPanel(props: { readonly session: ViraStudioWorkbenchProps
     ? "page root"
     : `${target.parentId} · ${target.slot ?? "slot"}`;
   const insert = (componentType: string) => {
+    const freshTarget = resolveTarget();
+    if (!freshTarget) return;
     dispatch({
       type: "insert",
       componentType,
-      destinationZone: target.zone,
-      destinationIndex: target.index,
+      destinationZone: freshTarget.zone,
+      destinationIndex: freshTarget.index,
     });
   };
 
