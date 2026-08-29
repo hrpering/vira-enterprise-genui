@@ -5,6 +5,7 @@ export {
 } from "./boundary.js";
 export {
   createStudioPuckReservedIdMappings,
+  puckIdToStudioReservedNodeId,
   studioNodeIdRequiresPuckAlias,
   studioNodeIdToPuckId,
   STUDIO_PUCK_ALIAS_PREFIX,
