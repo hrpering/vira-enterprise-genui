@@ -190,7 +190,12 @@ export function createStudioPuckAuthoringSession(input: {
   }
 
   function reconcile(data: unknown): StudioPuckReconcileResult {
-    const candidates = collectPuckIdentityCandidates(data, components);
+    let candidates: CandidateResult;
+    try {
+      candidates = collectPuckIdentityCandidates(data, components);
+    } catch {
+      return reconcileFailure("INVALID_PUCK_DATA", "$.data", "Puck data could not be safely inspected");
+    }
     if (!candidates.ok) return { ok: false, issue: candidates.issue };
 
     const activeMappings: Array<{ puckId: string; nodeId: string }> = [];
