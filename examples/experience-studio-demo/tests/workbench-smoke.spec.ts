@@ -22,6 +22,7 @@ test("renders and operates the real Experience Studio workbench without page err
   await expect(page.getByText("Vira Experience Studio", { exact: true })).toBeVisible();
   await expect(page.getByText("Properties", { exact: true })).toBeVisible();
   await expect(page.getByTestId("vira-studio-preview")).toBeVisible();
+  await expect(page.getByText("Where do you want to fly?", { exact: true })).toBeVisible();
   await expect(page.getByText("Not published yet", { exact: true })).toBeVisible();
 
   for (const panel of panels) {
@@ -32,7 +33,18 @@ test("renders and operates the real Experience Studio workbench without page err
   }
 
   await page.getByTestId("vira-studio-panel-layers").click();
-  const canonicalRootLayer = page.getByTestId("vira-studio-layer-root");
+  let canonicalRootLayer = page.getByTestId("vira-studio-layer-root");
+  await expect(canonicalRootLayer).toBeVisible();
+  await canonicalRootLayer.click();
+  await expect(canonicalRootLayer).toHaveCSS("font-weight", "700");
+
+  await page.getByTestId("vira-studio-panel-views").click();
+  await page.getByRole("button", { name: "results", exact: true }).click();
+  await expect(page.getByText("Best flights", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("vira-studio-error")).toHaveCount(0);
+
+  await page.getByTestId("vira-studio-panel-layers").click();
+  canonicalRootLayer = page.getByTestId("vira-studio-layer-root");
   await expect(canonicalRootLayer).toBeVisible();
   await canonicalRootLayer.click();
   await expect(canonicalRootLayer).toHaveCSS("font-weight", "700");
