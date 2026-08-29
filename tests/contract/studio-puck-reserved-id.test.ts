@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { isSemanticSegment } from "../../packages/protocol/src/index.js";
 import {
   createStudioPuckReservedIdMappings,
   importPuckDataIntoStudioDocument,
@@ -93,6 +94,7 @@ function mutableData(value: unknown): MutablePuckData {
 describe("Studio/Puck reserved identity boundary", () => {
   it("aliases canonical root only at the Puck boundary and restores it on import", () => {
     expect(studioNodeIdToPuckId("root")).toBe("vira~root");
+    expect(isSemanticSegment(studioNodeIdToPuckId("root"))).toBe(false);
     expect(studioNodeIdToPuckId("copy")).toBe("copy");
     expect(createStudioPuckReservedIdMappings(["root", "copy"])).toEqual([
       { puckId: "vira~root", nodeId: "root" },
