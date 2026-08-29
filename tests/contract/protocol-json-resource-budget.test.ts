@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   JSON_VALUE_MAX_ARRAY_LENGTH,
   JSON_VALUE_MAX_NODES,
+  JSON_VALUE_MAX_OBJECT_KEY_LENGTH,
   JSON_VALUE_MAX_OBJECT_KEYS,
   JSON_VALUE_MAX_STRING_LENGTH,
   JSON_VALUE_MAX_TOTAL_STRING_LENGTH,
@@ -28,6 +29,17 @@ describe("Protocol canonical JSON resource budgets", () => {
       issue: {
         path: "$",
         reason: `maximum object key count ${JSON_VALUE_MAX_OBJECT_KEYS} exceeded`,
+      },
+    });
+  });
+
+  it("rejects an oversized object key before constructing a child path", () => {
+    const value = { ["k".repeat(JSON_VALUE_MAX_OBJECT_KEY_LENGTH + 1)]: null };
+    expect(parseJsonValue(value)).toMatchObject({
+      ok: false,
+      issue: {
+        path: "$",
+        reason: `maximum object key length ${JSON_VALUE_MAX_OBJECT_KEY_LENGTH} exceeded`,
       },
     });
   });
