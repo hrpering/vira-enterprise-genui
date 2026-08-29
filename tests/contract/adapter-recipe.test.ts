@@ -32,7 +32,11 @@ describe("adapter-sdk experience recipe", () => {
       value: {
         intent: { namespace: "travel.flight", name: "search" },
         requiredState: ["origin", "destination", "departure-date"],
-        capabilityRequirements: [{ field: "origin", capability: { id: "resolve-origin" } }],
+        capabilityRequirements: [
+          { field: "origin", capability: { id: "resolve-origin" } },
+          { field: "destination", capability: { id: "resolve-destination" } },
+          { field: "departure-date", capability: { id: "select-date" } },
+        ],
       },
     });
     if (!result.ok) return;
