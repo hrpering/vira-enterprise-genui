@@ -83,8 +83,8 @@ function nestedPath(base: string, path: string): string {
   return path === "$" ? base : `${base}${path.slice(1)}`;
 }
 
-function isJsonObject(value: JsonValue): value is JsonObject {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+function isJsonObject(value: JsonValue | undefined): value is JsonObject {
+  return value !== undefined && value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function validLabel(value: unknown): value is string {
@@ -150,7 +150,7 @@ function preflightCatalog(input: unknown): CatalogFailure | undefined {
   return undefined;
 }
 
-function parseProps(value: JsonValue, path: string): CatalogListResult<StudioCatalogPropDefinition> {
+function parseProps(value: JsonValue | undefined, path: string): CatalogListResult<StudioCatalogPropDefinition> {
   if (!Array.isArray(value)) return failure("INVALID_PROPS", path, "props must be an array");
   if (value.length > STUDIO_CATALOG_MAX_PROPS_PER_COMPONENT) return failure("PROP_LIMIT_EXCEEDED", path, "component prop limit exceeded");
 
@@ -200,7 +200,7 @@ function parseProps(value: JsonValue, path: string): CatalogListResult<StudioCat
   return { ok: true, value: output };
 }
 
-function parseSlots(value: JsonValue, path: string): CatalogListResult<StudioCatalogSlotDefinition> {
+function parseSlots(value: JsonValue | undefined, path: string): CatalogListResult<StudioCatalogSlotDefinition> {
   if (!Array.isArray(value)) return failure("INVALID_SLOTS", path, "slots must be an array");
   if (value.length > STUDIO_CATALOG_MAX_SLOTS_PER_COMPONENT) return failure("SLOT_LIMIT_EXCEEDED", path, "component slot limit exceeded");
   const output: StudioCatalogSlotDefinition[] = [];
@@ -220,7 +220,7 @@ function parseSlots(value: JsonValue, path: string): CatalogListResult<StudioCat
   return { ok: true, value: output };
 }
 
-function parseEvents(value: JsonValue, path: string): CatalogListResult<StudioCatalogEventDefinition> {
+function parseEvents(value: JsonValue | undefined, path: string): CatalogListResult<StudioCatalogEventDefinition> {
   if (!Array.isArray(value)) return failure("INVALID_EVENTS", path, "events must be an array");
   if (value.length > STUDIO_CATALOG_MAX_EVENTS_PER_COMPONENT) return failure("EVENT_LIMIT_EXCEEDED", path, "component event limit exceeded");
   const output: StudioCatalogEventDefinition[] = [];
