@@ -104,6 +104,7 @@ function createRender(
 type DynamicComponentConfig = {
   readonly label: string;
   readonly fields: Readonly<Record<string, unknown>>;
+  readonly defaultProps: Readonly<Record<string, string | number | boolean>>;
   readonly render: (props: Record<string, unknown>) => ReactNode;
 };
 
@@ -123,6 +124,7 @@ function createConfig(
     components[definition.type] = {
       label: definition.label,
       fields: clonePuckFields(definition.fields),
+      defaultProps: { ...definition.defaultProps },
       render: createRender(definition, renderer),
     };
   }

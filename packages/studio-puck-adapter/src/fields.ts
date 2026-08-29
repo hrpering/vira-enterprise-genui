@@ -64,15 +64,31 @@ function fieldForProp(prop: StudioCatalogPropDefinition): StudioPuckField {
   }
 }
 
+function bootstrapValue(prop: StudioCatalogPropDefinition): string | number | boolean | undefined {
+  if (!prop.required) return undefined;
+  switch (prop.type) {
+    case "string": return "";
+    case "number": return 0;
+    case "boolean": return false;
+    case "enum": return prop.options?.[0];
+  }
+}
+
 function componentDefinition(component: StudioCatalogComponentDefinition): StudioPuckComponentEditorDefinition {
   const fields: Record<string, StudioPuckField> = Object.create(null) as Record<string, StudioPuckField>;
-  for (const prop of component.props) fields[prop.key] = fieldForProp(prop);
+  const defaultProps: Record<string, string | number | boolean> = Object.create(null) as Record<string, string | number | boolean>;
+  for (const prop of component.props) {
+    fields[prop.key] = fieldForProp(prop);
+    const value = bootstrapValue(prop);
+    if (value !== undefined) defaultProps[prop.key] = value;
+  }
   for (const slot of component.slots) fields[slot.name] = { type: "slot", label: slot.label };
   return {
     type: component.ref,
     label: component.label,
     category: component.category,
     fields,
+    defaultProps,
   };
 }
 

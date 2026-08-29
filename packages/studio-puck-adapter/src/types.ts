@@ -28,6 +28,8 @@ export interface StudioPuckComponentEditorDefinition {
   readonly label: string;
   readonly category: string;
   readonly fields: Readonly<Record<string, StudioPuckField>>;
+  /** Deterministic safe bootstrap values for required props when Puck inserts a new block. */
+  readonly defaultProps: Readonly<Record<string, string | number | boolean>>;
 }
 
 export interface StudioPuckCategoryDefinition {

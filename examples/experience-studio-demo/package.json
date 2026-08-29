@@ -1,0 +1,23 @@
+{
+  "name": "@vira-enterprise-genui/experience-studio-demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@puckeditor/core": "0.23.0",
+    "@vira-enterprise-genui/studio-design": "workspace:*",
+    "@vira-enterprise-genui/studio-workbench": "workspace:*",
+    "@vira-enterprise-genui/studio-workbench-react": "workspace:*",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.3",
+    "vite": "8.2.2"
+  }
+}
