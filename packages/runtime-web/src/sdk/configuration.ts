@@ -33,6 +33,7 @@ const inputFields = new Set([
   "idFactory",
 ]);
 const TRUSTED_METHOD_PROTOTYPE_DEPTH_LIMIT = 64;
+type TrustedMethod = (...args: unknown[]) => unknown;
 
 function failure(
   code: WebSdkConfigurationValidationCode,
@@ -46,7 +47,7 @@ function nestedPath(base: string, path: string): string {
   return path === "$" ? base : `${base}${path.slice(1)}`;
 }
 
-function findDataMethod(value: unknown, name: string): Function | undefined {
+function findDataMethod(value: unknown, name: string): TrustedMethod | undefined {
   if (value === null || (typeof value !== "object" && typeof value !== "function")) return undefined;
   const visited = new Set<object>();
   let current: object | null = value as object;
@@ -61,7 +62,7 @@ function findDataMethod(value: unknown, name: string): Function | undefined {
       const descriptor = Object.getOwnPropertyDescriptor(current, name);
       if (descriptor) {
         if (!("value" in descriptor) || typeof descriptor.value !== "function") return undefined;
-        return descriptor.value as Function;
+        return descriptor.value as TrustedMethod;
       }
       current = Object.getPrototypeOf(current) as object | null;
     }
