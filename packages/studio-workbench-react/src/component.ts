@@ -49,6 +49,7 @@ function ViraLayersPanel(props: { readonly session: ViraStudioWorkbenchProps["se
     return createElement("li", { key: node.id, style: { listStyle: "none" } },
       createElement("button", {
         type: "button",
+        "data-testid": `vira-studio-layer-${node.id}`,
         onClick: () => selectNode(node.id),
         style: {
           width: "100%",
