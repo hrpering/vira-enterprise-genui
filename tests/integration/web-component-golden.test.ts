@@ -143,6 +143,7 @@ function configuration(log: string[], ids: { value: number }) {
         { subject: "action", id: "runtime.patch.apply", effect: "allow" },
       ],
     },
+    capabilityAllowlist: { version: "1", allowed: ["submit-search"] },
     accessibility: {
       version: "1",
       focusOnMount: "first-primary",

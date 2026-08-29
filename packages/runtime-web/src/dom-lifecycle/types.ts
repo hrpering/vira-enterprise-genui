@@ -30,6 +30,15 @@ export interface RuntimeWebDomPort {
   begin(context: RuntimeWebDomBeginContext): RuntimeWebDomRoot;
 }
 
+export interface RuntimeWebMountInput {
+  readonly composition: unknown;
+  readonly plan: unknown;
+  readonly componentAdapter: unknown;
+  readonly capabilityAllowlist: unknown;
+  readonly accessibility: unknown;
+  readonly responsive: unknown;
+}
+
 export interface MountedExperience {
   readonly planId: string;
   dispose(): void;
@@ -38,6 +47,8 @@ export interface MountedExperience {
 export type RuntimeWebMountValidationCode =
   | "INVALID_MOUNT_INPUT"
   | "INVALID_RENDER_INPUT"
+  | "INVALID_CAPABILITY_ALLOWLIST"
+  | "CAPABILITY_DENIED"
   | "INVALID_RESPONSIVE_POLICY"
   | "CONTAINER_MEASURE_FAILED"
   | "DOM_BEGIN_FAILED"

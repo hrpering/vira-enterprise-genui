@@ -66,6 +66,7 @@ function config(idCalls: { value: number }) {
         { subject: "action", id: "travel.restricted.try", effect: "deny" },
       ],
     },
+    capabilityAllowlist: { version: "1", allowed: ["submit-search"] },
     accessibility: {
       version: "1",
       focusOnMount: "first-primary",

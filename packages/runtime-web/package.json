@@ -10,6 +10,7 @@
     "@vira-enterprise-genui/protocol": "workspace:*",
     "@vira-enterprise-genui/runtime-core": "workspace:*",
     "@vira-enterprise-genui/composer": "workspace:*",
-    "@vira-enterprise-genui/adapter-sdk": "workspace:*"
+    "@vira-enterprise-genui/adapter-sdk": "workspace:*",
+    "@vira-enterprise-genui/security": "workspace:*"
   }
 }

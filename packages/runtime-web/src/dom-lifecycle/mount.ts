@@ -1,3 +1,7 @@
+import {
+  createCapabilityAllowlistPolicy,
+  evaluateCapabilityAllowlist,
+} from "@vira-enterprise-genui/security";
 import { prepareAccessibleRenderModel } from "../accessibility/index.js";
 import { readRuntimeWebDataObject } from "../internal/data-object-input.js";
 import { createResponsivePolicy, resolveResponsiveBand } from "../responsive/index.js";
@@ -9,7 +13,7 @@ import type {
   RuntimeWebMountValidationCode,
 } from "./types.js";
 
-const inputFields = new Set(["composition", "plan", "componentAdapter", "accessibility", "responsive"]);
+const inputFields = new Set(["composition", "plan", "componentAdapter", "capabilityAllowlist", "accessibility", "responsive"]);
 
 function failure(code: RuntimeWebMountValidationCode, path: string, message: string): RuntimeWebMountResult {
   return { ok: false, issue: { code, path, message } };
@@ -50,6 +54,40 @@ export function mountExperience(input: unknown, domPort: RuntimeWebDomPort): Run
   });
   if (!prepared.ok) return failure("INVALID_RENDER_INPUT", prepared.issue.path, "render/accessibility preparation failed");
 
+  const capabilityAllowlist = createCapabilityAllowlistPolicy(fields.capabilityAllowlist);
+  if (!capabilityAllowlist.ok) {
+    return failure(
+      "INVALID_CAPABILITY_ALLOWLIST",
+      nestedPath("$.capabilityAllowlist", capabilityAllowlist.issue.path),
+      "capability allowlist policy is invalid",
+    );
+  }
+
+  const render = prepared.value.render;
+  for (let regionIndex = 0; regionIndex < render.regions.length; regionIndex += 1) {
+    const region = render.regions[regionIndex];
+    if (!region) continue;
+    for (let bindingIndex = 0; bindingIndex < region.bindings.length; bindingIndex += 1) {
+      const binding = region.bindings[bindingIndex];
+      if (!binding) continue;
+      const decision = evaluateCapabilityAllowlist(capabilityAllowlist.value, binding.capability.id);
+      if (!decision.ok) {
+        return failure(
+          "INVALID_CAPABILITY_ALLOWLIST",
+          nestedPath("$.capabilityAllowlist", decision.issue.path),
+          "capability allowlist evaluation failed",
+        );
+      }
+      if (decision.value.decision === "deny") {
+        return failure(
+          "CAPABILITY_DENIED",
+          `$.render.regions[${regionIndex}].bindings[${bindingIndex}].capability.id`,
+          "render capability is not authorized by the configured allowlist",
+        );
+      }
+    }
+  }
+
   const responsive = createResponsivePolicy(fields.responsive);
   if (!responsive.ok) {
     return failure("INVALID_RESPONSIVE_POLICY", nestedPath("$.responsive", responsive.issue.path), "responsive policy is invalid");
@@ -67,7 +105,6 @@ export function mountExperience(input: unknown, domPort: RuntimeWebDomPort): Run
     return failure("CONTAINER_MEASURE_FAILED", "$.container.inlineSizePx", "DOM host returned an invalid container inline size");
   }
 
-  const render = prepared.value.render;
   const components: RuntimeWebDomComponentHandle[] = [];
   let root: RuntimeWebDomRoot | undefined;
 

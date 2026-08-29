@@ -26,6 +26,10 @@ function permissionPolicy() {
   };
 }
 
+function capabilityAllowlist() {
+  return { version: "1", allowed: ["submit-search"] };
+}
+
 function accessibility() {
   return {
     version: "1",
@@ -49,6 +53,7 @@ function config(overrides: Record<string, unknown> = {}) {
     componentAdapter: componentAdapter(),
     actionAdapter: actionAdapter(),
     permissionPolicy: permissionPolicy(),
+    capabilityAllowlist: capabilityAllowlist(),
     accessibility: accessibility(),
     responsive: responsive(),
     domPort: {
@@ -84,6 +89,8 @@ describe("runtime-web public Web SDK configuration", () => {
     expect(Object.isFrozen(result.value.componentAdapter)).toBe(true);
     expect(Object.isFrozen(result.value.actionAdapter)).toBe(true);
     expect(Object.isFrozen(result.value.permissionPolicy)).toBe(true);
+    expect(Object.isFrozen(result.value.capabilityAllowlist)).toBe(true);
+    expect(Object.isFrozen(result.value.capabilityAllowlist.allowed)).toBe(true);
     expect(Object.isFrozen(result.value.accessibility)).toBe(true);
     expect(Object.isFrozen(result.value.responsive)).toBe(true);
     expect(Object.isFrozen(result.value.domPort)).toBe(true);
@@ -110,12 +117,14 @@ describe("runtime-web public Web SDK configuration", () => {
     const components = componentAdapter();
     const actions = actionAdapter();
     const policy = permissionPolicy();
+    const allowlist = capabilityAllowlist();
     const a11y = accessibility();
     const responsivePolicy = responsive();
     const result = createWebSdkConfiguration(config({
       componentAdapter: components,
       actionAdapter: actions,
       permissionPolicy: policy,
+      capabilityAllowlist: allowlist,
       accessibility: a11y,
       responsive: responsivePolicy,
     }));
@@ -125,12 +134,14 @@ describe("runtime-web public Web SDK configuration", () => {
     components.mappings[0]!.component = "mutated.component.ref";
     actions.mappings[0]!.actionType = "admin.delete";
     policy.rules[0]!.effect = "deny";
+    allowlist.allowed[0] = "admin.delete";
     a11y.errorAnnouncements = "polite";
     responsivePolicy.bands[0]!.id = "mutated";
 
     expect(result.value.componentAdapter.mappings[0]?.component).toBe("acme.component.search-button");
     expect(result.value.actionAdapter.mappings[0]?.actionType).toBe("travel.flight.search.submit");
     expect(result.value.permissionPolicy.rules[0]?.effect).toBe("allow");
+    expect(result.value.capabilityAllowlist.allowed).toEqual(["submit-search"]);
     expect(result.value.accessibility.errorAnnouncements).toBe("assertive");
     expect(result.value.responsive.bands[0]?.id).toBe("compact");
   });
@@ -139,6 +150,10 @@ describe("runtime-web public Web SDK configuration", () => {
     expect(createWebSdkConfiguration(config({ componentAdapter: { ...componentAdapter(), mappings: [] } }))).toMatchObject({
       ok: false,
       issue: { code: "INVALID_COMPONENT_ADAPTER", path: "$.componentAdapter.mappings" },
+    });
+    expect(createWebSdkConfiguration(config({ capabilityAllowlist: { version: "1", allowed: ["submit-search", "submit-search"] } }))).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_CAPABILITY_ALLOWLIST", path: "$.capabilityAllowlist.allowed[1]" },
     });
     expect(createWebSdkConfiguration(config({ accessibility: { ...accessibility(), errorAnnouncements: "off" } }))).toMatchObject({
       ok: false,

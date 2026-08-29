@@ -51,6 +51,10 @@ function componentAdapter() {
   };
 }
 
+function capabilityAllowlist() {
+  return { version: "1", allowed: ["select-date", "submit-search", "display.flight-results"] };
+}
+
 function accessibility() {
   return {
     version: "1",
@@ -152,6 +156,7 @@ describe("runtime-web deterministic golden integration", () => {
       composition: composed,
       plan,
       componentAdapter: componentAdapter(),
+      capabilityAllowlist: capabilityAllowlist(),
       accessibility: accessibility(),
       responsive: responsive(),
     }, domPort(mountLog));
@@ -252,6 +257,7 @@ describe("runtime-web deterministic golden integration", () => {
       composition: forged,
       plan,
       componentAdapter: componentAdapter(),
+      capabilityAllowlist: capabilityAllowlist(),
       accessibility: accessibility(),
       responsive: responsive(),
     }, domPort(log))).toMatchObject({ ok: false, issue: { code: "INVALID_RENDER_INPUT" } });
