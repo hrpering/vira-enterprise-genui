@@ -5,8 +5,10 @@ import { extname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
-const port = Number.parseInt(process.env.PORT ?? "4173", 10);
+const requestedPort = Number.parseInt(process.env.PORT ?? "4173", 10);
 const host = process.env.HOST ?? "127.0.0.1";
+const explicitPort = process.env.PORT !== undefined;
+const MAX_PORT_FALLBACKS = 10;
 
 const contentTypes = new Map([
   [".css", "text/css; charset=utf-8"],
@@ -37,7 +39,9 @@ const server = createServer((request, response) => {
     return;
   }
 
-  const url = new URL(request.url ?? "/", `http://${request.headers.host ?? `${host}:${port}`}`);
+  const activeAddress = server.address();
+  const activePort = typeof activeAddress === "object" && activeAddress !== null ? activeAddress.port : requestedPort;
+  const url = new URL(request.url ?? "/", `http://${request.headers.host ?? `${host}:${activePort}`}`);
   if (url.pathname === "/") {
     response.writeHead(302, { location: "/examples/flight-search-demo/" });
     response.end();
@@ -70,6 +74,36 @@ const server = createServer((request, response) => {
   }
 });
 
-server.listen(port, host, () => {
-  process.stdout.write(`Vira Flight Search demo: http://${host}:${port}/examples/flight-search-demo/\n`);
-});
+function listen(port, fallbackCount = 0) {
+  const onError = (error) => {
+    server.off("error", onError);
+    if (
+      error?.code === "EADDRINUSE"
+      && !explicitPort
+      && fallbackCount < MAX_PORT_FALLBACKS
+    ) {
+      const nextPort = port + 1;
+      process.stderr.write(`Port ${port} is in use; trying ${nextPort}.\n`);
+      listen(nextPort, fallbackCount + 1);
+      return;
+    }
+
+    const code = typeof error?.code === "string" ? error.code : "UNKNOWN";
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`Vira Flight Search demo server failed (${code}): ${message}\n`);
+    process.exitCode = 1;
+  };
+
+  server.once("error", onError);
+  server.listen(port, host, () => {
+    server.off("error", onError);
+    process.stdout.write(`Vira Flight Search demo: http://${host}:${port}/examples/flight-search-demo/\n`);
+  });
+}
+
+if (!Number.isSafeInteger(requestedPort) || requestedPort < 1 || requestedPort > 65535) {
+  process.stderr.write(`Invalid demo server PORT: ${process.env.PORT ?? ""}\n`);
+  process.exitCode = 1;
+} else {
+  listen(requestedPort);
+}
