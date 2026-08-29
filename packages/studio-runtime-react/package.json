@@ -1,15 +1,13 @@
 {
-  "name": "@vira-enterprise-genui/studio-react",
+  "name": "@vira-enterprise-genui/studio-runtime-react",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
+  "exports": { ".": "./src/index.ts" },
   "dependencies": {
-    "@puckeditor/core": "0.23.0",
+    "@vira-enterprise-genui/studio-catalog": "workspace:*",
     "@vira-enterprise-genui/studio-design-react": "workspace:*",
-    "@vira-enterprise-genui/studio-puck-adapter": "workspace:*"
+    "@vira-enterprise-genui/studio-runtime": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18.2.0 <20"

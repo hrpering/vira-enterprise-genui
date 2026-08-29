@@ -12,7 +12,7 @@ const shadows: Readonly<Record<string, string>> = Object.freeze({
   xl: "0 24px 64px rgba(0,0,0,0.20)",
 });
 
-export interface StudioDesignRenderState {
+export interface StudioReactDesignState {
   readonly props: Readonly<Record<string, unknown>>;
   readonly style?: CSSProperties;
 }
@@ -56,7 +56,7 @@ function styleFromResolved(input: ReturnType<typeof resolveStudioDesignProps> & 
   return style;
 }
 
-export function createStudioDesignRenderState(renderProps: Readonly<Record<string, unknown>>): StudioDesignRenderState {
+export function createStudioReactDesignState(renderProps: Readonly<Record<string, unknown>>): StudioReactDesignState {
   const props: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
   let hasDesign = false;
   for (const [key, value] of Object.entries(renderProps)) {

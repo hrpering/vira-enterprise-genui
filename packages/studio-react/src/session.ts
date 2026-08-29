@@ -10,7 +10,7 @@ import type {
 import { createElement } from "react";
 import type { ReactNode } from "react";
 import { createStudioColorPuckField } from "./color-field.js";
-import { createStudioDesignRenderState } from "./design-style.js";
+import { createStudioReactDesignState } from "@vira-enterprise-genui/studio-design-react";
 import type {
   StudioPuckShellSessionResult,
   StudioPuckShellValidationCode,
@@ -90,7 +90,7 @@ function createRender(
 ): (props: Record<string, unknown>) => ReactNode {
   return (renderProps) => {
     const nodeId = typeof renderProps.id === "string" ? renderProps.id : "";
-    const design = createStudioDesignRenderState(renderProps);
+    const design = createStudioReactDesignState(renderProps);
     const context: StudioTrustedRenderContext = Object.freeze({
       component: definition.type,
       nodeId,
