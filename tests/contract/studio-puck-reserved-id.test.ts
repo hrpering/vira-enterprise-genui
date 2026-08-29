@@ -234,4 +234,69 @@ describe("Studio/Puck reserved identity boundary", () => {
     expect(allocationCalls).toBe(0);
     expect(session.value.currentDocument().views[0]?.nodes.map((node) => node.id)).toEqual(["root", "copy"]);
   });
+
+  it("contains revoked Proxy reflection at public import and authoring boundaries", () => {
+    const first = Proxy.revocable({ content: [], root: { props: {} } }, {});
+    first.revoke();
+    expect(importPuckDataIntoStudioDocument({
+      document: document(),
+      catalog: catalog(),
+      viewId: "search",
+      data: first.proxy,
+    })).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_PUCK_DATA", path: "$.data" },
+    });
+
+    const session = createStudioPuckAuthoringSession({
+      document: document(),
+      catalog: catalog(),
+      viewId: "search",
+      allocateNodeId: () => "allocated",
+    });
+    expect(session.ok).toBe(true);
+    if (!session.ok) return;
+
+    const second = Proxy.revocable({ content: [], root: { props: {} } }, {});
+    second.revoke();
+    expect(session.value.reconcile(second.proxy as never)).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_PUCK_DATA", path: "$.data" },
+    });
+  });
+
+  it("never invokes accessor-backed Puck content while rejecting it", () => {
+    let reads = 0;
+    const data = {
+      root: { props: {} },
+      get content(): never {
+        reads += 1;
+        throw new Error("accessor must not run");
+      },
+    };
+
+    expect(importPuckDataIntoStudioDocument({
+      document: document(),
+      catalog: catalog(),
+      viewId: "search",
+      data,
+    })).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_PUCK_DATA" },
+    });
+
+    const session = createStudioPuckAuthoringSession({
+      document: document(),
+      catalog: catalog(),
+      viewId: "search",
+      allocateNodeId: () => "allocated",
+    });
+    expect(session.ok).toBe(true);
+    if (!session.ok) return;
+    expect(session.value.reconcile(data as never)).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_PUCK_DATA" },
+    });
+    expect(reads).toBe(0);
+  });
 });
