@@ -5,7 +5,7 @@
   "type": "module",
   "exports": { ".": "./src/index.ts" },
   "dependencies": {
-    "@puckeditor/core": "0.23.0",
+    "@puckeditor/core": "0.22.4",
     "@vira-enterprise-genui/adapter-sdk": "workspace:*",
     "@vira-enterprise-genui/studio-binding": "workspace:*",
     "@vira-enterprise-genui/studio-catalog": "workspace:*",
