@@ -1,0 +1,16 @@
+{
+  "name": "@vira-enterprise-genui/studio-publish",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/studio-schema": "workspace:*",
+    "@vira-enterprise-genui/studio-compiler": "workspace:*",
+    "@vira-enterprise-genui/studio-binding": "workspace:*",
+    "@vira-enterprise-genui/studio-design": "workspace:*",
+    "@vira-enterprise-genui/studio-flow": "workspace:*"
+  }
+}
