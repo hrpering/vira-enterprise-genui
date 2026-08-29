@@ -51,6 +51,17 @@ web-component  react
 - `telemetry` — provider-neutral telemetry interface.
 - `tool-bridge` — normalization of external tool results.
 
+## Browser demo
+
+The Flight Search example exercises the public MVP path in a real browser while keeping business execution in the host application:
+
+```bash
+pnpm install
+pnpm demo:flight-search
+```
+
+Then open `http://127.0.0.1:4173/examples/flight-search-demo/`. See `examples/flight-search-demo/README.md` for the exact Planner → Composer → Security → Runtime Web → Tool Bridge → Runtime patch → Telemetry flow.
+
 ## Non-goals for v0.1
 
 Vira Enterprise GenUI is not a chatbot, model host, RAG stack, workflow engine, message queue, authentication product, billing system, visual builder, or replacement application backend.
