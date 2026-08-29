@@ -142,9 +142,10 @@ export function createStudioPuckAuthoringSession(input: {
 }): StudioPuckAuthoringSessionResult {
   const catalog = createStudioComponentCatalog(input.catalog);
   if (!catalog.ok) return sessionFailure("INVALID_INITIAL_STATE", "$.catalog", catalog.issue.message);
-  const metadata = createStudioPuckEditorMetadata(catalog.value);
+  const catalogValue = catalog.value;
+  const metadata = createStudioPuckEditorMetadata(catalogValue);
   if (!metadata.ok) return sessionFailure("INVALID_INITIAL_STATE", metadata.issue.path, metadata.issue.message);
-  const document = validateStudioDocumentAgainstCatalog(input.document, catalog.value);
+  const document = validateStudioDocumentAgainstCatalog(input.document, catalogValue);
   if (!document.ok) return sessionFailure("INVALID_INITIAL_STATE", "$.document", document.issue.message);
   if (!isSemanticSegment(input.viewId) || !document.value.views.some((view) => view.id === input.viewId)) {
     return sessionFailure("INVALID_INITIAL_STATE", "$.viewId", "requested Studio view does not exist");
@@ -153,7 +154,7 @@ export function createStudioPuckAuthoringSession(input: {
     return sessionFailure("INVALID_ALLOCATOR", "$.allocateNodeId", "allocateNodeId must be an explicit host function");
   }
   const allocateNodeId = input.allocateNodeId as StudioNodeIdAllocator;
-  const components = new Map(catalog.value.components.map((component) => [component.ref, component] as const));
+  const components = new Map(catalogValue.components.map((component) => [component.ref, component] as const));
   const mappingCache = new Map<string, string>();
   const reservedNodeIds = new Set(
     document.value.views.find((view) => view.id === input.viewId)?.nodes.map((node) => node.id) ?? [],
@@ -165,7 +166,7 @@ export function createStudioPuckAuthoringSession(input: {
   }
 
   function toPuckData() {
-    return studioViewToPuckData(current, catalog.value, input.viewId);
+    return studioViewToPuckData(current, catalogValue, input.viewId);
   }
 
   function resolveNodeId(puckId: string): string | undefined {
@@ -210,7 +211,7 @@ export function createStudioPuckAuthoringSession(input: {
 
     const imported = importPuckDataIntoStudioDocument({
       document: current,
-      catalog: catalog.value,
+      catalog: catalogValue,
       viewId: input.viewId,
       data,
       idMappings: activeMappings,

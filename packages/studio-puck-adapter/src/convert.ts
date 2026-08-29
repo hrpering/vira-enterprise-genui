@@ -304,13 +304,15 @@ export function importPuckDataIntoStudioDocument(input: {
   }
   const mappings = parseMappings(input.idMappings);
   if (!mappings.ok) return { ok: false, issue: mappings.issue };
+  const mappingMap = mappings.map;
+  const declaredMappings = mappings.declared;
 
   const usedMappings = new Set<string>();
   const seenNodeIds = new Set<string>();
   const nodes: StudioNode[] = [];
 
   function resolveId(puckId: string, path: string): string | StudioPuckAdapterValidationIssue {
-    const mapped = mappings.map.get(puckId);
+    const mapped = mappingMap.get(puckId);
     if (mapped !== undefined) {
       usedMappings.add(puckId);
       return mapped;
@@ -359,7 +361,7 @@ export function importPuckDataIntoStudioDocument(input: {
 
   const walkIssue = walk(parsed.value.content);
   if (walkIssue) return { ok: false, issue: walkIssue };
-  for (const puckId of mappings.declared) {
+  for (const puckId of declaredMappings) {
     if (!usedMappings.has(puckId)) return importFailure("UNUSED_ID_MAPPING", "$.idMappings", "idMappings contains a puckId not present in this Puck view");
   }
 

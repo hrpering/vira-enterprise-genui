@@ -3,7 +3,13 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: [".build/**", "coverage/**", "node_modules/**", "examples/experience-studio-demo/dist/**"],
+    ignores: [
+      ".build/**",
+      "**/.next/**",
+      "coverage/**",
+      "node_modules/**",
+      "examples/experience-studio-demo/dist/**",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

@@ -16,12 +16,17 @@
     "check:boundaries": "node tooling/check-package-boundaries.mjs",
     "verify": "pnpm check:boundaries && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm build:experience-studio",
     "demo:flight-search": "pnpm build && pnpm --filter @vira-enterprise-genui/flight-search-demo start",
-    "demo:experience-studio": "pnpm --filter @vira-enterprise-genui/experience-studio-demo dev"
+    "demo:experience-studio": "pnpm --filter @vira-enterprise-genui/experience-studio-demo dev",
+    "demo:pegasus-chat": "pnpm --filter @vira-enterprise-genui/pegasus-chat-demo dev",
+    "demo:pegasus-chat:check": "pnpm --filter @vira-enterprise-genui/pegasus-chat-demo typecheck && pnpm --filter @vira-enterprise-genui/pegasus-chat-demo build"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/node": "24.13.3",
+    "@types/react": "19.2.18",
+    "@vira-enterprise-genui/studio-runtime": "workspace:*",
     "eslint": "10.9.1",
+    "react": "19.2.8",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-eslint": "8.68.0",
     "vitest": "4.1.11"
