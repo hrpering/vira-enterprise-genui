@@ -85,13 +85,39 @@ function clonePuckFields(fields: Readonly<Record<string, StudioPuckField>>): Rec
   return output;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function collectActiveReservedNodeIds(data: unknown): ReadonlyMap<string, string> {
+  const mappings = new Map<string, string>();
+
+  const visitComponent = (value: unknown): void => {
+    if (!isRecord(value) || typeof value.type !== "string" || !isRecord(value.props)) return;
+    const puckNodeId = value.props.id;
+    if (typeof puckNodeId === "string") {
+      const studioNodeId = puckIdToStudioReservedNodeId(puckNodeId);
+      if (studioNodeId !== undefined) mappings.set(puckNodeId, studioNodeId);
+    }
+    for (const propValue of Object.values(value.props)) {
+      if (!Array.isArray(propValue)) continue;
+      for (const child of propValue) visitComponent(child);
+    }
+  };
+
+  if (!isRecord(data) || !Array.isArray(data.content)) return mappings;
+  for (const component of data.content) visitComponent(component);
+  return mappings;
+}
+
 function createRender(
   definition: StudioPuckComponentEditorDefinition,
   renderer: StudioTrustedRenderer,
+  reservedNodeIds: ReadonlyMap<string, string>,
 ): (props: Record<string, unknown>) => ReactNode {
   return (renderProps) => {
     const puckNodeId = typeof renderProps.id === "string" ? renderProps.id : "";
-    const nodeId = puckIdToStudioReservedNodeId(puckNodeId) ?? puckNodeId;
+    const nodeId = reservedNodeIds.get(puckNodeId) ?? puckNodeId;
     const design = createStudioReactDesignState(renderProps);
     const context: StudioTrustedRenderContext = Object.freeze({
       component: definition.type,
@@ -118,6 +144,7 @@ type DynamicCategoryConfig = {
 function createConfig(
   metadata: ReturnType<typeof createStudioPuckEditorMetadata> & { readonly ok: true },
   renderers: ReadonlyMap<string, StudioTrustedRenderer>,
+  reservedNodeIds: ReadonlyMap<string, string>,
 ): Config {
   const components: Record<string, DynamicComponentConfig> = Object.create(null) as Record<string, DynamicComponentConfig>;
   for (const definition of metadata.value.components) {
@@ -127,7 +154,7 @@ function createConfig(
       label: definition.label,
       fields: clonePuckFields(definition.fields),
       defaultProps: { ...definition.defaultProps },
-      render: createRender(definition, renderer),
+      render: createRender(definition, renderer, reservedNodeIds),
     };
   }
 
@@ -153,11 +180,12 @@ export function createStudioPuckShellSession(input: {
   if (!data.ok) return failure("INVALID_STUDIO_INPUT", data.issue.path, data.issue.message);
   const registry = readRendererRegistry(input.renderers, metadata.value.components.map((component) => component.type));
   if (!registry.ok) return registry.result;
+  const reservedNodeIds = collectActiveReservedNodeIds(data.value);
 
   return {
     ok: true,
     value: Object.freeze({
-      config: createConfig(metadata, registry.value),
+      config: createConfig(metadata, registry.value, reservedNodeIds),
       data: data.value,
     }),
   };
