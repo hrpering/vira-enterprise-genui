@@ -34,7 +34,7 @@ The allocator receives a frozen request containing only:
 - exact semantic component reference;
 - Puck-generated id.
 
-The returned value must be one canonical Studio node id and must not collide with any id already reserved in the active view. Allocator exceptions are contained and their raw messages are not reflected.
+The returned value must be one canonical Studio node id, must not collide with any id already reserved in the active view, and must not be one of Puck's editor-reserved canonical identities. Reserved identities such as Studio `root` may exist in a canonical document, but they must be present before the Puck session starts so the adapter can seed their editor aliases deterministically. A newly generated Puck node cannot be renamed into such an identity during reconciliation.
 
 Mappings are cached by Puck id for the lifetime of the authoring session, so repeated `onChange` events do not allocate a new canonical identity for the same inserted node.
 
