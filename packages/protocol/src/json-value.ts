@@ -1,4 +1,9 @@
 export const JSON_VALUE_MAX_DEPTH = 64 as const;
+export const JSON_VALUE_MAX_NODES = 100_000 as const;
+export const JSON_VALUE_MAX_ARRAY_LENGTH = 50_000 as const;
+export const JSON_VALUE_MAX_OBJECT_KEYS = 50_000 as const;
+export const JSON_VALUE_MAX_STRING_LENGTH = 1_048_576 as const;
+export const JSON_VALUE_MAX_TOTAL_STRING_LENGTH = 4_194_304 as const;
 
 export type JsonPrimitive = null | boolean | number | string;
 export type JsonArray = readonly JsonValue[];
@@ -13,6 +18,11 @@ export interface JsonValueIssue {
 export type JsonValueParseResult =
   | { readonly ok: true; readonly value: JsonValue }
   | { readonly ok: false; readonly issue: JsonValueIssue };
+
+interface JsonValueBudget {
+  nodes: number;
+  totalStringLength: number;
+}
 
 function issue(path: string, reason: string): JsonValueParseResult {
   return { ok: false, issue: { path, reason } };
@@ -29,12 +39,29 @@ function parseInternal(
   valuePath: string,
   ancestors: Set<object>,
   depth: number,
+  budget: JsonValueBudget,
 ): JsonValueParseResult {
   if (depth > JSON_VALUE_MAX_DEPTH) {
     return issue(valuePath, `maximum nesting depth ${JSON_VALUE_MAX_DEPTH} exceeded`);
   }
 
-  if (value === null || typeof value === "string" || typeof value === "boolean") {
+  budget.nodes += 1;
+  if (budget.nodes > JSON_VALUE_MAX_NODES) {
+    return issue(valuePath, `maximum JSON node count ${JSON_VALUE_MAX_NODES} exceeded`);
+  }
+
+  if (value === null || typeof value === "boolean") {
+    return { ok: true, value };
+  }
+
+  if (typeof value === "string") {
+    if (value.length > JSON_VALUE_MAX_STRING_LENGTH) {
+      return issue(valuePath, `maximum string length ${JSON_VALUE_MAX_STRING_LENGTH} exceeded`);
+    }
+    budget.totalStringLength += value.length;
+    if (budget.totalStringLength > JSON_VALUE_MAX_TOTAL_STRING_LENGTH) {
+      return issue(valuePath, `maximum aggregate string length ${JSON_VALUE_MAX_TOTAL_STRING_LENGTH} exceeded`);
+    }
     return { ok: true, value };
   }
 
@@ -50,6 +77,9 @@ function parseInternal(
 
   try {
     if (Array.isArray(value)) {
+      if (value.length > JSON_VALUE_MAX_ARRAY_LENGTH) {
+        return issue(valuePath, `maximum array length ${JSON_VALUE_MAX_ARRAY_LENGTH} exceeded`);
+      }
       if (Object.getOwnPropertySymbols(value).length > 0) return issue(valuePath, "symbol properties are not supported");
       const keys = Object.keys(value);
       if (keys.some((key) => !/^(0|[1-9]\d*)$/.test(key) || Number(key) >= value.length)) {
@@ -62,7 +92,7 @@ function parseInternal(
         if (!descriptor) {
           return issue(`${valuePath}[${index}]`, "sparse slots and accessor properties are not supported");
         }
-        const parsed = parseInternal(descriptor.value, `${valuePath}[${index}]`, ancestors, depth + 1);
+        const parsed = parseInternal(descriptor.value, `${valuePath}[${index}]`, ancestors, depth + 1, budget);
         if (!parsed.ok) return parsed;
         output.push(parsed.value);
       }
@@ -74,6 +104,9 @@ function parseInternal(
     if (Object.getOwnPropertySymbols(value).length > 0) return issue(valuePath, "symbol properties are not supported");
 
     const keys = Object.keys(value);
+    if (keys.length > JSON_VALUE_MAX_OBJECT_KEYS) {
+      return issue(valuePath, `maximum object key count ${JSON_VALUE_MAX_OBJECT_KEYS} exceeded`);
+    }
     if (Object.getOwnPropertyNames(value).length !== keys.length) {
       return issue(valuePath, "non-enumerable properties are not supported");
     }
@@ -82,7 +115,7 @@ function parseInternal(
     for (const key of keys) {
       const descriptor = dataDescriptor(value, key);
       if (!descriptor) return issue(`${valuePath}.${key}`, "accessor properties are not supported");
-      const parsed = parseInternal(descriptor.value, `${valuePath}.${key}`, ancestors, depth + 1);
+      const parsed = parseInternal(descriptor.value, `${valuePath}.${key}`, ancestors, depth + 1, budget);
       if (!parsed.ok) return parsed;
       entries.push([key, parsed.value]);
     }
@@ -95,5 +128,5 @@ function parseInternal(
 }
 
 export function parseJsonValue(value: unknown, valuePath = "$" ): JsonValueParseResult {
-  return parseInternal(value, valuePath, new Set(), 0);
+  return parseInternal(value, valuePath, new Set(), 0, { nodes: 0, totalStringLength: 0 });
 }
