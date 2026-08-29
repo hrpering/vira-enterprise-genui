@@ -34,6 +34,8 @@ export interface StudioPuckAuthoringSession {
   readonly currentDocument: () => StudioExperienceDocument;
   readonly toPuckData: () => StudioPuckDataExportResult;
   readonly reconcile: (data: Data) => StudioPuckReconcileResult;
+  /** Resolve an editor/Puck id to the canonical Studio node id owned by this authoring session. */
+  readonly resolveNodeId: (puckId: string) => string | undefined;
 }
 
 export type StudioPuckAuthoringSessionResult =

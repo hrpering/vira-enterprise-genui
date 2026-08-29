@@ -168,6 +168,15 @@ export function createStudioPuckAuthoringSession(input: {
     return studioViewToPuckData(current, catalog.value, input.viewId);
   }
 
+  function resolveNodeId(puckId: string): string | undefined {
+    if (!validPuckId(puckId)) return undefined;
+    if (isSemanticSegment(puckId)) {
+      const view = current.views.find((candidate) => candidate.id === input.viewId);
+      if (view?.nodes.some((node) => node.id === puckId)) return puckId;
+    }
+    return mappingCache.get(puckId);
+  }
+
   function reconcile(data: unknown): StudioPuckReconcileResult {
     const candidates = collectPuckIdentityCandidates(data, components);
     if (!candidates.ok) return { ok: false, issue: candidates.issue };
@@ -218,6 +227,7 @@ export function createStudioPuckAuthoringSession(input: {
       currentDocument,
       toPuckData,
       reconcile,
+      resolveNodeId,
     }),
   };
 }
