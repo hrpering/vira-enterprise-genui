@@ -12,7 +12,52 @@ import type {
 } from "./types.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+  if (value === null || typeof value !== "object") return false;
+  try {
+    return !Array.isArray(value);
+  } catch {
+    return false;
+  }
+}
+
+function ownDataValue(value: object, key: string): unknown {
+  try {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    return descriptor && "value" in descriptor ? descriptor.value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function ownDenseArrayValues(value: unknown): readonly unknown[] | undefined {
+  try {
+    if (!Array.isArray(value)) return undefined;
+    const lengthDescriptor = Object.getOwnPropertyDescriptor(value, "length");
+    if (!lengthDescriptor || !("value" in lengthDescriptor) || typeof lengthDescriptor.value !== "number") return undefined;
+    const output: unknown[] = [];
+    for (let index = 0; index < lengthDescriptor.value; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (!descriptor || !("value" in descriptor)) return undefined;
+      output.push(descriptor.value);
+    }
+    return output;
+  } catch {
+    return undefined;
+  }
+}
+
+function ownEnumerableDataValues(value: object): readonly unknown[] | undefined {
+  try {
+    const output: unknown[] = [];
+    for (const key of Object.keys(value)) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor || !("value" in descriptor)) return undefined;
+      output.push(descriptor.value);
+    }
+    return output;
+  } catch {
+    return undefined;
+  }
 }
 
 function rewriteComponentIds(value: unknown, nodeToPuck: ReadonlyMap<string, string>): unknown {
@@ -41,27 +86,36 @@ function rewriteExportedData(data: Data, mappings: readonly StudioPuckIdMapping[
   return { ...source, content } as Data;
 }
 
-function collectComponentIds(data: unknown): ReadonlySet<string> {
-  const ids = new Set<string>();
-  if (!isRecord(data) || !Array.isArray(data.content)) return ids;
+function collectComponentIds(data: unknown): ReadonlySet<string> | undefined {
+  if (!isRecord(data)) return new Set<string>();
+  const content = ownDenseArrayValues(ownDataValue(data, "content"));
+  if (content === undefined) return new Set<string>();
 
+  const ids = new Set<string>();
   const seen = new Set<object>();
-  function walk(items: unknown[]): void {
-    if (seen.has(items)) return;
-    seen.add(items);
+
+  function walk(items: readonly unknown[]): boolean {
     for (const item of items) {
-      if (!isRecord(item) || seen.has(item)) continue;
+      if (!isRecord(item)) continue;
+      if (seen.has(item)) continue;
       seen.add(item);
-      const props = item.props;
+
+      const props = ownDataValue(item, "props");
       if (!isRecord(props)) continue;
-      if (typeof props.id === "string") ids.add(props.id);
-      for (const value of Object.values(props)) {
-        if (Array.isArray(value)) walk(value);
+      const id = ownDataValue(props, "id");
+      if (typeof id === "string") ids.add(id);
+
+      const values = ownEnumerableDataValues(props);
+      if (values === undefined) return false;
+      for (const propValue of values) {
+        const children = ownDenseArrayValues(propValue);
+        if (children !== undefined && !walk(children)) return false;
       }
     }
+    return true;
   }
-  walk(data.content);
-  return ids;
+
+  return walk(content) ? ids : undefined;
 }
 
 function reservedMappingsForView(documentInput: unknown, viewId: string): readonly StudioPuckIdMapping[] {
@@ -72,6 +126,16 @@ function reservedMappingsForView(documentInput: unknown, viewId: string): readon
   return createStudioPuckReservedIdMappings(view.nodes.map((node) => node.id));
 }
 
+function containsExactMapping(input: readonly unknown[], mapping: StudioPuckIdMapping): boolean {
+  for (const candidate of input) {
+    if (!isRecord(candidate)) continue;
+    if (ownDataValue(candidate, "puckId") === mapping.puckId && ownDataValue(candidate, "nodeId") === mapping.nodeId) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function mergeReservedMappings(input: {
   readonly document: unknown;
   readonly viewId: string;
@@ -79,18 +143,15 @@ function mergeReservedMappings(input: {
   readonly idMappings?: unknown;
 }): unknown {
   const ids = collectComponentIds(input.data);
+  if (ids === undefined) return input.idMappings;
   const reserved = reservedMappingsForView(input.document, input.viewId)
     .filter((mapping) => ids.has(mapping.puckId));
   if (reserved.length === 0) return input.idMappings;
   if (input.idMappings === undefined) return reserved;
-  if (!Array.isArray(input.idMappings)) return input.idMappings;
 
-  const provided = input.idMappings;
-  const missing = reserved.filter((mapping) => !provided.some((candidate) => {
-    return isRecord(candidate)
-      && candidate.puckId === mapping.puckId
-      && candidate.nodeId === mapping.nodeId;
-  }));
+  const provided = ownDenseArrayValues(input.idMappings);
+  if (provided === undefined) return input.idMappings;
+  const missing = reserved.filter((mapping) => !containsExactMapping(provided, mapping));
   return [...missing, ...provided];
 }
 
@@ -112,11 +173,22 @@ export function importPuckDataIntoStudioDocument(input: {
   readonly data: unknown;
   readonly idMappings?: unknown;
 }): StudioPuckDataImportResult {
-  return importRawPuckDataIntoStudioDocument({
-    document: input.document,
-    catalog: input.catalog,
-    viewId: input.viewId,
-    data: input.data,
-    idMappings: mergeReservedMappings(input),
-  });
+  try {
+    return importRawPuckDataIntoStudioDocument({
+      document: input.document,
+      catalog: input.catalog,
+      viewId: input.viewId,
+      data: input.data,
+      idMappings: mergeReservedMappings(input),
+    });
+  } catch {
+    return {
+      ok: false,
+      issue: {
+        code: "INVALID_PUCK_DATA",
+        path: "$.data",
+        message: "Puck data could not be safely inspected",
+      },
+    };
+  }
 }
