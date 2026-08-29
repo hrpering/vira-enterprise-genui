@@ -16,7 +16,7 @@ function components() {
       {
         ref: "pegasus.component.flight-list",
         label: "Flight List",
-        category: "Flight",
+        category: "flight",
         kind: "content",
         props: [
           { key: "items", type: "string", required: true, bindable: true },
@@ -28,7 +28,7 @@ function components() {
       {
         ref: "pegasus.component.button",
         label: "Button",
-        category: "Actions",
+        category: "action",
         kind: "action",
         props: [{ key: "disabled", type: "boolean", required: false, bindable: true }],
         slots: [],
