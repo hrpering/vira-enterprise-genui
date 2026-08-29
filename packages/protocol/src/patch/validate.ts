@@ -56,9 +56,10 @@ function unsafeValueKeyPath(value: JsonValue, valuePath: string): string | undef
     return undefined;
   }
 
-  for (const key of Object.keys(value)) {
+  const object = value as JsonObject;
+  for (const key of Object.keys(object)) {
     if (unsafeObjectKeys.has(key)) return `${valuePath}.${key}`;
-    const child = value[key];
+    const child = object[key];
     if (child === undefined) continue;
     const unsafe = unsafeValueKeyPath(child, `${valuePath}.${key}`);
     if (unsafe) return unsafe;
