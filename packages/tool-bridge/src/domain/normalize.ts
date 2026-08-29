@@ -4,7 +4,7 @@ import {
   parseDomainData,
   parseJsonValue,
 } from "@vira-enterprise-genui/protocol";
-import type { JsonValue } from "@vira-enterprise-genui/protocol";
+import type { JsonObject, JsonValue } from "@vira-enterprise-genui/protocol";
 import { freezeToolBridgeData } from "../internal/freeze.js";
 import { parseExternalToolResult } from "../validate.js";
 import type { ExternalToolIdentity } from "../types.js";
@@ -53,9 +53,9 @@ function nestedPath(base: string, path: string): string {
   return path === "$" ? base : `${base}${path.slice(1)}`;
 }
 
-function jsonObject(value: JsonValue): Readonly<Record<string, JsonValue>> | undefined {
+function jsonObject(value: JsonValue): JsonObject | undefined {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
-  return value;
+  return value as JsonObject;
 }
 
 function parseMappingTool(value: JsonValue | undefined): NestedResult<ExternalToolIdentity> {
