@@ -62,6 +62,7 @@ function createSdk(effect: "allow" | "deny" | "confirm" = "allow") {
         { subject: "action", id: "travel.flight.search.submit", effect: "allow" },
       ],
     },
+    capabilityAllowlist: { version: "1", allowed: ["submit-search"] },
     accessibility: {
       version: "1",
       focusOnMount: "first-primary",

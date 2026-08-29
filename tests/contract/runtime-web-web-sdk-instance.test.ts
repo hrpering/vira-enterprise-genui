@@ -60,6 +60,10 @@ function permissionPolicy() {
   };
 }
 
+function capabilityAllowlist() {
+  return { version: "1", allowed: ["select-date", "submit-search"] };
+}
+
 function accessibility() {
   return {
     version: "1",
@@ -118,6 +122,7 @@ function configuration(log: string[], control: HostControl, idCalls: { value: nu
     componentAdapter: componentAdapter(),
     actionAdapter: actionAdapter(),
     permissionPolicy: permissionPolicy(),
+    capabilityAllowlist: capabilityAllowlist(),
     accessibility: accessibility(),
     responsive: responsive(),
     domPort: domPort(log, control),

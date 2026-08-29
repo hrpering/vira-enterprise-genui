@@ -8,6 +8,7 @@ import type {
   RuntimePermissionPolicy,
   RuntimeState,
 } from "@vira-enterprise-genui/runtime-core";
+import type { CapabilityAllowlistPolicy } from "@vira-enterprise-genui/security";
 import type { AccessibilityPolicy } from "../accessibility/index.js";
 import type { RuntimeWebDomPort } from "../dom-lifecycle/index.js";
 import type { RuntimeWebActionIdFactory } from "../events/index.js";
@@ -21,6 +22,7 @@ export interface WebSdkConfiguration {
   readonly componentAdapter: ComponentAdapterContract;
   readonly actionAdapter: ActionAdapterContract;
   readonly permissionPolicy: RuntimePermissionPolicy;
+  readonly capabilityAllowlist: CapabilityAllowlistPolicy;
   readonly accessibility: AccessibilityPolicy;
   readonly responsive: ResponsivePolicy;
   readonly domPort: RuntimeWebDomPort;
@@ -33,6 +35,7 @@ export type WebSdkConfigurationValidationCode =
   | "INVALID_COMPONENT_ADAPTER"
   | "INVALID_ACTION_ADAPTER"
   | "INVALID_PERMISSION_POLICY"
+  | "INVALID_CAPABILITY_ALLOWLIST"
   | "INVALID_ACCESSIBILITY_POLICY"
   | "INVALID_RESPONSIVE_POLICY"
   | "INVALID_DOM_PORT"
@@ -55,6 +58,7 @@ export type ViraGenUIMountValidationCode =
   | "INVALID_RUNTIME_STATE"
   | "STATE_BINDING_FAILED"
   | "INVALID_RENDER_INPUT"
+  | "CAPABILITY_DENIED"
   | "DOM_MOUNT_FAILED";
 
 export interface ViraGenUIMountValidationIssue {

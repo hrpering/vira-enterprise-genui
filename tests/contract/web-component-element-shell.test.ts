@@ -63,6 +63,7 @@ function configuration(log: string[], ids: { value: number }) {
       version: "1",
       rules: [{ subject: "action", id: "travel.flight.search.submit", effect: "allow" }],
     },
+    capabilityAllowlist: { version: "1", allowed: ["submit-search"] },
     accessibility: {
       version: "1",
       focusOnMount: "first-primary",

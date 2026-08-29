@@ -36,6 +36,10 @@ function componentAdapter() {
   };
 }
 
+function capabilityAllowlist() {
+  return { version: "1", allowed: ["select-date", "submit-search"] };
+}
+
 function accessibility() {
   return {
     version: "1",
@@ -65,6 +69,7 @@ function input() {
     composition: composition.value,
     plan: plan(),
     componentAdapter: componentAdapter(),
+    capabilityAllowlist: capabilityAllowlist(),
     accessibility: accessibility(),
     responsive: responsive(),
   };
