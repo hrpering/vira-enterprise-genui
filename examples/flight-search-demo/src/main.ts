@@ -2,10 +2,7 @@ import { resolveComponentForCapability } from "@vira-enterprise-genui/adapter-sd
 import { composeExperience } from "@vira-enterprise-genui/composer";
 import { planExperience } from "@vira-enterprise-genui/planner";
 import { parseDomainData } from "@vira-enterprise-genui/protocol";
-import type { RuntimeState } from "@vira-enterprise-genui/runtime-core";
-import {
-  createViraGenUI,
-} from "@vira-enterprise-genui/runtime-web";
+import { createViraGenUI } from "@vira-enterprise-genui/runtime-web";
 import type {
   RenderCapabilityBinding,
   RuntimeWebDomBeginContext,
@@ -90,8 +87,13 @@ const flightNetworkPolicy = createNetworkPolicy({
   version: "1",
   rules: [{ origin: "https://api.example.com", methods: ["POST"] }],
 });
-
 if (!flightNetworkPolicy.ok) throw new Error("Demo network policy is invalid");
+
+function requiredElement<T extends Element>(selector: string): T {
+  const element = document.querySelector<T>(selector);
+  if (!element) throw new Error(`Missing demo element: ${selector}`);
+  return element;
+}
 
 const root = requiredElement<HTMLDivElement>("#experience-root");
 const traceLog = requiredElement<HTMLDivElement>("#trace-log");
@@ -100,30 +102,20 @@ const modeBadge = requiredElement<HTMLSpanElement>("#mode-badge");
 const deniedButton = requiredElement<HTMLButtonElement>("#deny-demo");
 const clearTraceButton = requiredElement<HTMLButtonElement>("#clear-trace");
 
-function requiredElement<T extends Element>(selector: string): T {
-  const element = document.querySelector<T>(selector);
-  if (!element) throw new Error(`Missing demo element: ${selector}`);
-  return element;
-}
-
 function trace(label: string, payload?: unknown): void {
   const row = document.createElement("div");
   row.className = "trace-row";
-
   const time = document.createElement("time");
   time.textContent = new Date().toLocaleTimeString([], { hour12: false });
-
   const body = document.createElement("div");
   const title = document.createElement("strong");
   title.textContent = label;
   body.append(title);
-
   if (payload !== undefined) {
     const detail = document.createElement("pre");
     detail.textContent = JSON.stringify(payload, null, 2);
     body.append(detail);
   }
-
   row.append(time, body);
   traceLog.prepend(row);
 }
@@ -149,10 +141,7 @@ function plannerInput() {
     capabilityRequirements: [
       { field: "departure-date", capability: capability("select-date") },
     ],
-    availableCapabilities: [
-      capability("search-flights"),
-      capability("edit-passengers"),
-    ],
+    availableCapabilities: [capability("search-flights"), capability("edit-passengers")],
     futureCapabilities: [capability("display.flight-results")],
   };
 }
@@ -168,7 +157,7 @@ interface DemoDomController {
   readonly port: RuntimeWebDomPort;
   bindDispatch(dispatch: (event: unknown) => void): void;
   setSearching(searching: boolean): void;
-  renderRuntimeState(state: RuntimeState): void;
+  renderRuntimeState(state: ViraGenUIEventMap["statechange"]): void;
 }
 
 function createDemoDomController(container: HTMLElement): DemoDomController {
@@ -258,6 +247,50 @@ function createDemoDomController(container: HTMLElement): DemoDomController {
     return card;
   }
 
+  function appendFlightRow(parent: HTMLElement, flight: Record<string, unknown>): void {
+    const carrier = typeof flight.carrier === "string" ? flight.carrier : "Carrier";
+    const flightNumber = typeof flight.flightNumber === "string" ? flight.flightNumber : "—";
+    const departure = typeof flight.departure === "string" ? flight.departure : "—";
+    const arrival = typeof flight.arrival === "string" ? flight.arrival : "—";
+    const duration = typeof flight.duration === "string" ? flight.duration : "—";
+    const price = typeof flight.price === "number" ? flight.price : 0;
+    const currency = typeof flight.currency === "string" ? flight.currency : "EUR";
+
+    const row = document.createElement("article");
+    row.className = "flight-row";
+    const carrierBlock = document.createElement("div");
+    carrierBlock.className = "carrier";
+    const carrierMark = document.createElement("span");
+    carrierMark.textContent = carrier.slice(0, 2).toUpperCase();
+    const carrierText = document.createElement("div");
+    const carrierName = document.createElement("strong");
+    carrierName.textContent = carrier;
+    const number = document.createElement("small");
+    number.textContent = flightNumber;
+    carrierText.append(carrierName, number);
+    carrierBlock.append(carrierMark, carrierText);
+
+    const times = document.createElement("div");
+    times.className = "flight-time";
+    const depart = document.createElement("strong");
+    depart.textContent = departure;
+    const durationText = document.createElement("span");
+    durationText.textContent = duration;
+    const arrive = document.createElement("strong");
+    arrive.textContent = arrival;
+    times.append(depart, durationText, arrive);
+
+    const priceBlock = document.createElement("div");
+    priceBlock.className = "price";
+    const amount = document.createElement("strong");
+    amount.textContent = `${price.toLocaleString("en-US")} ${currency}`;
+    const priceNote = document.createElement("small");
+    priceNote.textContent = "trip total";
+    priceBlock.append(amount, priceNote);
+    row.append(carrierBlock, times, priceBlock);
+    parent.append(row);
+  }
+
   function mountBinding(parent: HTMLElement, binding: RenderCapabilityBinding): HTMLElement {
     if (binding.component === "demo.component.flight-search") return mountSearchComponent(parent);
     if (binding.component === "demo.component.passenger-editor") return mountPassengerComponent(parent);
@@ -274,7 +307,6 @@ function createDemoDomController(container: HTMLElement): DemoDomController {
       const fragment = document.createDocumentFragment();
       let committed = false;
       const mountedNodes: HTMLElement[] = [];
-
       return {
         createRegion(region) {
           const regionElement = document.createElement("section");
@@ -285,11 +317,7 @@ function createDemoDomController(container: HTMLElement): DemoDomController {
             mountComponent(binding) {
               const node = mountBinding(regionElement, binding);
               mountedNodes.push(node);
-              return {
-                dispose() {
-                  node.remove();
-                },
-              };
+              return { dispose() { node.remove(); } };
             },
           };
         },
@@ -309,46 +337,28 @@ function createDemoDomController(container: HTMLElement): DemoDomController {
     },
   };
 
-  function renderRuntimeState(state: RuntimeState): void {
+  function renderRuntimeState(state: ViraGenUIEventMap["statechange"]): void {
     const raw = state.plan.state["flight-results"];
     if (raw === undefined) return;
     const parsed = parseDomainData(raw);
     if (!parsed.ok || !resultHost) return;
-
     const data = parsed.value.data;
+    if (data === null || typeof data !== "object" || Array.isArray(data)) return;
     const flights = data.flights;
     if (!Array.isArray(flights)) return;
 
     resultHost.replaceChildren();
     resultHost.classList.remove("empty-results");
     if (statusHost) statusHost.textContent = `${flights.length} normalized options · revision ${state.revision}`;
-
     for (const rawFlight of flights) {
       if (rawFlight === null || typeof rawFlight !== "object" || Array.isArray(rawFlight)) continue;
-      const flight = rawFlight as Record<string, unknown>;
-      const row = document.createElement("article");
-      row.className = "flight-row";
-      const carrier = typeof flight.carrier === "string" ? flight.carrier : "Carrier";
-      const flightNumber = typeof flight.flightNumber === "string" ? flight.flightNumber : "—";
-      const departure = typeof flight.departure === "string" ? flight.departure : "—";
-      const arrival = typeof flight.arrival === "string" ? flight.arrival : "—";
-      const duration = typeof flight.duration === "string" ? flight.duration : "—";
-      const price = typeof flight.price === "number" ? flight.price : 0;
-      const currency = typeof flight.currency === "string" ? flight.currency : "EUR";
-      row.innerHTML = `
-        <div class="carrier"><span>${escapeText(carrier.slice(0, 2).toUpperCase())}</span><div><strong>${escapeText(carrier)}</strong><small>${escapeText(flightNumber)}</small></div></div>
-        <div class="flight-time"><strong>${escapeText(departure)}</strong><span>${escapeText(duration)}</span><strong>${escapeText(arrival)}</strong></div>
-        <div class="price"><strong>${price.toLocaleString("en-US")} ${escapeText(currency)}</strong><small>per passenger</small></div>
-      `;
-      resultHost.append(row);
+      appendFlightRow(resultHost, rawFlight as Record<string, unknown>);
     }
   }
 
   return {
     port,
-    bindDispatch(dispatch) {
-      dispatchUserEvent = dispatch;
-    },
+    bindDispatch(dispatch) { dispatchUserEvent = dispatch; },
     setSearching(searching) {
       if (searchButton) {
         searchButton.disabled = searching;
@@ -361,78 +371,24 @@ function createDemoDomController(container: HTMLElement): DemoDomController {
   };
 }
 
-function escapeText(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 function mockFlightResult(input: SearchInput): Record<string, unknown> {
   return {
     flights: [
-      {
-        id: "VF-101",
-        carrier: "Vira Air",
-        flightNumber: "VA 214",
-        departure: "08:25",
-        arrival: "10:05",
-        duration: "2h 40m",
-        price: 142 * input.passengers,
-        currency: "EUR",
-        origin: input.origin,
-        destination: input.destination,
-      },
-      {
-        id: "VF-205",
-        carrier: "Anatolia",
-        flightNumber: "AN 772",
-        departure: "12:10",
-        arrival: "13:55",
-        duration: "2h 45m",
-        price: 167 * input.passengers,
-        currency: "EUR",
-        origin: input.origin,
-        destination: input.destination,
-      },
-      {
-        id: "VF-318",
-        carrier: "Northstar",
-        flightNumber: "NS 318",
-        departure: "18:40",
-        arrival: "20:15",
-        duration: "2h 35m",
-        price: 193 * input.passengers,
-        currency: "EUR",
-        origin: input.origin,
-        destination: input.destination,
-      },
+      { id: "VF-101", carrier: "Vira Air", flightNumber: "VA 214", departure: "08:25", arrival: "10:05", duration: "2h 40m", price: 142 * input.passengers, currency: "EUR", origin: input.origin, destination: input.destination },
+      { id: "VF-205", carrier: "Anatolia", flightNumber: "AN 772", departure: "12:10", arrival: "13:55", duration: "2h 45m", price: 167 * input.passengers, currency: "EUR", origin: input.origin, destination: input.destination },
+      { id: "VF-318", carrier: "Northstar", flightNumber: "NS 318", departure: "18:40", arrival: "20:15", duration: "2h 35m", price: 193 * input.passengers, currency: "EUR", origin: input.origin, destination: input.destination },
     ],
-    query: {
-      origin: input.origin,
-      destination: input.destination,
-      departureDate: input.departureDate,
-      passengers: input.passengers,
-    },
+    query: { origin: input.origin, destination: input.destination, departureDate: input.departureDate, passengers: input.passengers },
   };
 }
 
-const telemetryBatches: (readonly TelemetryEvent[])[] = [];
 const telemetry = createTelemetryChannel({
   exportBatch(events: readonly TelemetryEvent[]) {
-    telemetryBatches.push(events);
     trace("Telemetry exporter received canonical batch", events.map((event) => event.name));
   },
-  flush() {
-    trace("Telemetry exporter flush");
-  },
-  shutdown() {
-    trace("Telemetry exporter shutdown");
-  },
+  flush() { trace("Telemetry exporter flush"); },
+  shutdown() { trace("Telemetry exporter shutdown"); },
 });
-
 if (!telemetry.ok) throw new Error("Demo telemetry exporter is invalid");
 
 async function emitTelemetry(
@@ -441,14 +397,7 @@ async function emitTelemetry(
   kind: TelemetryEvent["kind"],
   outcome: TelemetryEvent["outcome"],
 ): Promise<void> {
-  const result = await telemetry.value.emit({
-    version: "1",
-    name,
-    source,
-    kind,
-    outcome,
-    occurredAt: new Date().toISOString(),
-  });
+  const result = await telemetry.value.emit({ version: "1", name, source, kind, outcome, occurredAt: new Date().toISOString() });
   if (!result.ok) trace("Telemetry event rejected", result);
 }
 
@@ -461,7 +410,6 @@ async function executeHostSearch(action: ViraGenUIEventMap["action"]): Promise<v
   requestSequence += 1;
   const sequence = requestSequence;
   dom.setSearching(true);
-
   const input: SearchInput = {
     origin: typeof action.payload.origin === "string" ? action.payload.origin : "IST",
     destination: typeof action.payload.destination === "string" ? action.payload.destination : "BER",
@@ -469,17 +417,9 @@ async function executeHostSearch(action: ViraGenUIEventMap["action"]): Promise<v
     passengers: typeof action.payload.passengers === "number" ? action.payload.passengers : 1,
   };
 
-  trace("Host received canonical action", {
-    id: action.id,
-    type: action.type,
-    payload: action.payload,
-  });
+  trace("Host received canonical action", { id: action.id, type: action.type, payload: action.payload });
   await emitTelemetry("runtime.action.dispatched", "runtime-web", "action", "success");
-
-  const network = evaluateNetworkRequest(flightNetworkPolicy.value, {
-    url: "https://api.example.com/flights/search",
-    method: "POST",
-  });
+  const network = evaluateNetworkRequest(flightNetworkPolicy.value, { url: "https://api.example.com/flights/search", method: "POST" });
   trace("Security evaluated host network target", network);
   if (!network.ok || network.value.decision !== "allow") {
     dom.setSearching(false);
@@ -499,10 +439,7 @@ async function executeHostSearch(action: ViraGenUIEventMap["action"]): Promise<v
     tool: { kind: "function", name: "travel.flight.search" },
     outcome: "success",
     data: mockFlightResult(input),
-    freshness: {
-      observedAtUnixMs: hostNow,
-      expiresAtUnixMs: hostNow + 300_000,
-    },
+    freshness: { observedAtUnixMs: hostNow, expiresAtUnixMs: hostNow + 300_000 },
   });
   trace("Tool Bridge parsed provider-neutral result", external);
   if (!external.ok) {
@@ -546,12 +483,7 @@ async function executeHostSearch(action: ViraGenUIEventMap["action"]): Promise<v
   });
   trace("Host applied canonical Runtime patch", patch);
   dom.setSearching(false);
-
-  if (!patch?.ok) {
-    statusLine.textContent = "Runtime rejected the host patch.";
-    return;
-  }
-  statusLine.textContent = "Canonical DomainData committed to Runtime state.";
+  statusLine.textContent = patch?.ok ? "Canonical DomainData committed to Runtime state." : "Runtime rejected the host patch.";
 }
 
 function bindSdkEvents(instance: ViraGenUI): void {
@@ -577,11 +509,7 @@ async function boot(): Promise<void> {
   const composed = composeExperience({
     plan: planned.value,
     layout: { family: "flow" },
-    disclosure: {
-      primary: "immediate",
-      supporting: "progressive",
-      deferred: "on-demand",
-    },
+    disclosure: { primary: "immediate", supporting: "progressive", deferred: "on-demand" },
   });
   if (!composed.ok) throw new Error("Composer rejected the demo plan");
   setStage("composer", "ready");
@@ -602,12 +530,7 @@ async function boot(): Promise<void> {
     accessibility,
     responsive,
     domPort: dom.port,
-    idFactory: {
-      nextId() {
-        id += 1;
-        return `demo-action-${id}`;
-      },
-    },
+    idFactory: { nextId() { id += 1; return `demo-action-${id}`; } },
   });
   if (!created.ok) throw new Error("Web SDK configuration failed");
   sdk = created.value;
@@ -617,11 +540,7 @@ async function boot(): Promise<void> {
     if (result && !result.ok) trace("Dispatch rejected", result);
   });
 
-  const mounted = sdk.mount({
-    experienceId: "demo-flight-search-experience",
-    plan: planned.value,
-    composition: composed.value,
-  });
+  const mounted = sdk.mount({ experienceId: "demo-flight-search-experience", plan: planned.value, composition: composed.value });
   if (!mounted.ok) throw new Error("Runtime Web mount failed");
   setStage("runtime", "mounted");
   modeBadge.textContent = `${composed.value.mode} · mounted`;
@@ -635,11 +554,7 @@ deniedButton.addEventListener("click", () => {
   trace("Denied-action test", result);
   statusLine.textContent = result?.ok ? "Unexpected allow." : "Restricted action denied before host execution.";
 });
-
-clearTraceButton.addEventListener("click", () => {
-  traceLog.replaceChildren();
-});
-
+clearTraceButton.addEventListener("click", () => traceLog.replaceChildren());
 window.addEventListener("pagehide", () => {
   sdk?.dispose();
   void telemetry.value.shutdown();
