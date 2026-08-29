@@ -12,7 +12,7 @@
     "build:experience-studio": "pnpm --filter @vira-enterprise-genui/experience-studio-demo build",
     "typecheck": "tsc6 -p tsconfig.json --noEmit",
     "lint": "eslint .",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run --passWithNoTests --exclude examples/experience-studio-demo/tests/**",
     "check:boundaries": "node tooling/check-package-boundaries.mjs",
     "verify": "pnpm check:boundaries && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm build:experience-studio && pnpm demo:pegasus-chat:check",
     "verify:browser": "pnpm --filter @vira-enterprise-genui/experience-studio-demo test:e2e",
