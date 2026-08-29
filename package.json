@@ -13,7 +13,8 @@
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
     "check:boundaries": "node tooling/check-package-boundaries.mjs",
-    "verify": "pnpm check:boundaries && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "verify": "pnpm check:boundaries && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "demo:flight-search": "pnpm build && pnpm --filter @vira-enterprise-genui/flight-search-demo start"
   },
   "devDependencies": {
     "@eslint/js": "10.9.1",
