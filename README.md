@@ -4,7 +4,7 @@ Vira Enterprise GenUI is an embeddable, framework-agnostic generative UI runtime
 
 It turns **intent + task state + domain data** from an existing AI, chatbot, agent, rules engine, or application backend into safe, brand-native interactive experiences without replacing the host AI or application stack.
 
-## MVP architecture
+## Runtime architecture
 
 ```text
 Existing AI / Agent / Chatbot
@@ -13,37 +13,56 @@ Existing AI / Agent / Chatbot
             v
          protocol
             |
-            v
          planner
             |
-            v
          composer
             |
-            v
        runtime-core
             |
        adapter-sdk
             |
-            v
        runtime-web
         /       \
 web-component  react
             |
-            v
-    Host application
+      Host application
             |
       canonical action
             v
  Existing host/backend
 ```
 
+## Experience Studio
+
+Experience Studio is an optional visual authoring layer. Enterprise developers register approved brand components, data sources and action aliases; product/design teams then compose screens and flows without receiving arbitrary code or endpoint execution.
+
+```text
+Brand catalog + approved data/actions
+               |
+               v
+       Human Studio Workbench
+       Puck canvas + Vira panels
+               |
+       canonical StudioDocument
+               |
+        validate / publish
+               |
+        StudioPublication
+               |
+     Studio runtime bridge / React
+               |
+       existing Vira runtime
+```
+
+Puck is an editor implementation detail. `StudioDocument` and `StudioPublication` are the canonical Vira artifacts.
+
 ## Core packages
 
 - `protocol` — framework-neutral contracts.
-- `runtime-core` — state, actions, patches, lifecycle, permissions, errors.
+- `runtime-core` — state, actions, patches, lifecycle, permissions and errors.
 - `planner` — state/capability/experience/composition planning.
 - `composer` — semantic regions and composition policies.
-- `adapter-sdk` — brand, domain, intent, recipe, component, data, action, and policy adapters.
+- `adapter-sdk` — brand, domain, intent, recipe, component, data, action and policy adapters.
 - `runtime-web` — DOM renderer and browser lifecycle.
 - `web-component` — thin `<vira-experience>` wrapper.
 - `react` — thin React wrapper over the same runtime.
@@ -51,23 +70,33 @@ web-component  react
 - `telemetry` — provider-neutral telemetry interface.
 - `tool-bridge` — normalization of external tool results.
 
-## Browser demo
+Studio packages are isolated under `packages/studio-*`; production Studio React rendering does not depend on Puck.
 
-The Flight Search example exercises the public MVP path in a real browser while keeping business execution in the host application:
+## Browser demos
+
+Runtime MVP path:
 
 ```bash
 pnpm install
 pnpm demo:flight-search
 ```
 
-Then open `http://127.0.0.1:4173/examples/flight-search-demo/`. See `examples/flight-search-demo/README.md` for the exact Planner → Composer → Security → Runtime Web → Tool Bridge → Runtime patch → Telemetry flow.
+Human Experience Studio:
 
-## Non-goals for v0.1
+```bash
+pnpm demo:experience-studio
+```
 
-Vira Enterprise GenUI is not a chatbot, model host, RAG stack, workflow engine, message queue, authentication product, billing system, visual builder, or replacement application backend.
+See `examples/flight-search-demo/README.md` and `examples/experience-studio-demo/README.md`.
+
+## Security boundary
+
+Neither the runtime nor Experience Studio provides arbitrary HTML, JavaScript, JSX, raw CSS, unrestricted API calls, a general workflow engine, a message queue, authentication, billing, model hosting or a replacement application backend.
+
+Studio authors work only with components, properties, data sources and action aliases explicitly registered by the host integration.
 
 ## Development rule
 
-Architecture and contracts come before implementation. Every implementation PR must pass tests, architecture QC, security QC, and an independent reverse-engineering review before merge.
+Architecture and contracts come before implementation. Every implementation change must pass package boundaries, lint, type checking, tests, build, architecture/security review and reverse-engineering review before merge.
 
-See `docs/architecture/` and `docs/pr-plans/` before changing code.
+See `docs/architecture/` and `docs/studio/` before changing runtime or Studio contracts.

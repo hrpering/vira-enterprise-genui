@@ -1,0 +1,12 @@
+{
+  "name": "@vira-enterprise-genui/studio-compiler",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/studio-schema": "workspace:*"
+  }
+}

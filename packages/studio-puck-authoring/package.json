@@ -1,0 +1,16 @@
+{
+  "name": "@vira-enterprise-genui/studio-puck-authoring",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@puckeditor/core": "0.23.0",
+    "@vira-enterprise-genui/protocol": "workspace:*",
+    "@vira-enterprise-genui/studio-catalog": "workspace:*",
+    "@vira-enterprise-genui/studio-puck-adapter": "workspace:*",
+    "@vira-enterprise-genui/studio-schema": "workspace:*"
+  }
+}

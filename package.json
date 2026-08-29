@@ -9,12 +9,14 @@
   },
   "scripts": {
     "build": "tsc6 -p tsconfig.build.json",
+    "build:experience-studio": "pnpm --filter @vira-enterprise-genui/experience-studio-demo build",
     "typecheck": "tsc6 -p tsconfig.json --noEmit",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
     "check:boundaries": "node tooling/check-package-boundaries.mjs",
-    "verify": "pnpm check:boundaries && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
-    "demo:flight-search": "pnpm build && pnpm --filter @vira-enterprise-genui/flight-search-demo start"
+    "verify": "pnpm check:boundaries && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm build:experience-studio",
+    "demo:flight-search": "pnpm build && pnpm --filter @vira-enterprise-genui/flight-search-demo start",
+    "demo:experience-studio": "pnpm --filter @vira-enterprise-genui/experience-studio-demo dev"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
