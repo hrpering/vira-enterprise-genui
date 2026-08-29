@@ -2,6 +2,7 @@ export const JSON_VALUE_MAX_DEPTH = 64 as const;
 export const JSON_VALUE_MAX_NODES = 100_000 as const;
 export const JSON_VALUE_MAX_ARRAY_LENGTH = 50_000 as const;
 export const JSON_VALUE_MAX_OBJECT_KEYS = 50_000 as const;
+export const JSON_VALUE_MAX_OBJECT_KEY_LENGTH = 4_096 as const;
 export const JSON_VALUE_MAX_STRING_LENGTH = 1_048_576 as const;
 export const JSON_VALUE_MAX_TOTAL_STRING_LENGTH = 4_194_304 as const;
 
@@ -34,6 +35,14 @@ function dataDescriptor(object: object, key: PropertyKey): PropertyDescriptor | 
   return descriptor;
 }
 
+function consumeStringBudget(length: number, path: string, budget: JsonValueBudget): JsonValueParseResult | undefined {
+  budget.totalStringLength += length;
+  if (budget.totalStringLength > JSON_VALUE_MAX_TOTAL_STRING_LENGTH) {
+    return issue(path, `maximum aggregate string length ${JSON_VALUE_MAX_TOTAL_STRING_LENGTH} exceeded`);
+  }
+  return undefined;
+}
+
 function parseInternal(
   value: unknown,
   valuePath: string,
@@ -58,10 +67,8 @@ function parseInternal(
     if (value.length > JSON_VALUE_MAX_STRING_LENGTH) {
       return issue(valuePath, `maximum string length ${JSON_VALUE_MAX_STRING_LENGTH} exceeded`);
     }
-    budget.totalStringLength += value.length;
-    if (budget.totalStringLength > JSON_VALUE_MAX_TOTAL_STRING_LENGTH) {
-      return issue(valuePath, `maximum aggregate string length ${JSON_VALUE_MAX_TOTAL_STRING_LENGTH} exceeded`);
-    }
+    const budgetIssue = consumeStringBudget(value.length, valuePath, budget);
+    if (budgetIssue) return budgetIssue;
     return { ok: true, value };
   }
 
@@ -113,6 +120,11 @@ function parseInternal(
 
     const entries: Array<[string, JsonValue]> = [];
     for (const key of keys) {
+      if (key.length > JSON_VALUE_MAX_OBJECT_KEY_LENGTH) {
+        return issue(valuePath, `maximum object key length ${JSON_VALUE_MAX_OBJECT_KEY_LENGTH} exceeded`);
+      }
+      const budgetIssue = consumeStringBudget(key.length, valuePath, budget);
+      if (budgetIssue) return budgetIssue;
       const descriptor = dataDescriptor(value, key);
       if (!descriptor) return issue(`${valuePath}.${key}`, "accessor properties are not supported");
       const parsed = parseInternal(descriptor.value, `${valuePath}.${key}`, ancestors, depth + 1, budget);
