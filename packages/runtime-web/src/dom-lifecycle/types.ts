@@ -1,3 +1,7 @@
+import type {
+  CapabilityAllowlistPolicy,
+  ComponentAllowlistPolicy,
+} from "@vira-enterprise-genui/security";
 import type { AccessibilityPolicy } from "../accessibility/index.js";
 import type { RenderCapabilityBinding, RenderModel } from "../renderer/index.js";
 import type { ResponsiveBand } from "../responsive/index.js";
@@ -34,7 +38,8 @@ export interface RuntimeWebMountInput {
   readonly composition: unknown;
   readonly plan: unknown;
   readonly componentAdapter: unknown;
-  readonly capabilityAllowlist: unknown;
+  readonly capabilityAllowlist: CapabilityAllowlistPolicy | unknown;
+  readonly componentAllowlist: ComponentAllowlistPolicy | unknown;
   readonly accessibility: unknown;
   readonly responsive: unknown;
 }
@@ -49,6 +54,8 @@ export type RuntimeWebMountValidationCode =
   | "INVALID_RENDER_INPUT"
   | "INVALID_CAPABILITY_ALLOWLIST"
   | "CAPABILITY_DENIED"
+  | "INVALID_COMPONENT_ALLOWLIST"
+  | "COMPONENT_DENIED"
   | "INVALID_RESPONSIVE_POLICY"
   | "CONTAINER_MEASURE_FAILED"
   | "DOM_BEGIN_FAILED"

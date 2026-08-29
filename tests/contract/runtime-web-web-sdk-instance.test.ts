@@ -64,6 +64,10 @@ function capabilityAllowlist() {
   return { version: "1", allowed: ["select-date", "submit-search"] };
 }
 
+function componentAllowlist() {
+  return { version: "1", allowed: ["acme.component.date-picker", "acme.component.search-button"] };
+}
+
 function accessibility() {
   return {
     version: "1",
@@ -123,6 +127,7 @@ function configuration(log: string[], control: HostControl, idCalls: { value: nu
     actionAdapter: actionAdapter(),
     permissionPolicy: permissionPolicy(),
     capabilityAllowlist: capabilityAllowlist(),
+    componentAllowlist: componentAllowlist(),
     accessibility: accessibility(),
     responsive: responsive(),
     domPort: domPort(log, control),

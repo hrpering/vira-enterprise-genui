@@ -40,6 +40,10 @@ function capabilityAllowlist() {
   return { version: "1", allowed: ["select-date", "submit-search"] };
 }
 
+function componentAllowlist() {
+  return { version: "1", allowed: ["acme.component.date-picker", "acme.component.search-button"] };
+}
+
 function accessibility() {
   return {
     version: "1",
@@ -70,6 +74,7 @@ function input() {
     plan: plan(),
     componentAdapter: componentAdapter(),
     capabilityAllowlist: capabilityAllowlist(),
+    componentAllowlist: componentAllowlist(),
     accessibility: accessibility(),
     responsive: responsive(),
   };

@@ -1,6 +1,8 @@
 import {
   createCapabilityAllowlistPolicy,
+  createComponentAllowlistPolicy,
   evaluateCapabilityAllowlist,
+  evaluateComponentAllowlist,
 } from "@vira-enterprise-genui/security";
 import { prepareAccessibleRenderModel } from "../accessibility/index.js";
 import { readRuntimeWebDataObject } from "../internal/data-object-input.js";
@@ -13,7 +15,15 @@ import type {
   RuntimeWebMountValidationCode,
 } from "./types.js";
 
-const inputFields = new Set(["composition", "plan", "componentAdapter", "capabilityAllowlist", "accessibility", "responsive"]);
+const inputFields = new Set([
+  "composition",
+  "plan",
+  "componentAdapter",
+  "capabilityAllowlist",
+  "componentAllowlist",
+  "accessibility",
+  "responsive",
+]);
 
 function failure(code: RuntimeWebMountValidationCode, path: string, message: string): RuntimeWebMountResult {
   return { ok: false, issue: { code, path, message } };
@@ -83,6 +93,39 @@ export function mountExperience(input: unknown, domPort: RuntimeWebDomPort): Run
           "CAPABILITY_DENIED",
           `$.render.regions[${regionIndex}].bindings[${bindingIndex}].capability.id`,
           "render capability is not authorized by the configured allowlist",
+        );
+      }
+    }
+  }
+
+  const componentAllowlist = createComponentAllowlistPolicy(fields.componentAllowlist);
+  if (!componentAllowlist.ok) {
+    return failure(
+      "INVALID_COMPONENT_ALLOWLIST",
+      nestedPath("$.componentAllowlist", componentAllowlist.issue.path),
+      "component allowlist policy is invalid",
+    );
+  }
+
+  for (let regionIndex = 0; regionIndex < render.regions.length; regionIndex += 1) {
+    const region = render.regions[regionIndex];
+    if (!region) continue;
+    for (let bindingIndex = 0; bindingIndex < region.bindings.length; bindingIndex += 1) {
+      const binding = region.bindings[bindingIndex];
+      if (!binding) continue;
+      const decision = evaluateComponentAllowlist(componentAllowlist.value, binding.component);
+      if (!decision.ok) {
+        return failure(
+          "INVALID_COMPONENT_ALLOWLIST",
+          nestedPath("$.componentAllowlist", decision.issue.path),
+          "component allowlist evaluation failed",
+        );
+      }
+      if (decision.value.decision === "deny") {
+        return failure(
+          "COMPONENT_DENIED",
+          `$.render.regions[${regionIndex}].bindings[${bindingIndex}].component`,
+          "resolved render component is not authorized by the configured allowlist",
         );
       }
     }

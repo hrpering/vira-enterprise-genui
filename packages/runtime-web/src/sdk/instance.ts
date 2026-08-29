@@ -25,6 +25,7 @@ const declarativeMountFailures = new Set<RuntimeWebMountValidationCode>([
   "INVALID_MOUNT_INPUT",
   "INVALID_RENDER_INPUT",
   "INVALID_CAPABILITY_ALLOWLIST",
+  "INVALID_COMPONENT_ALLOWLIST",
   "INVALID_RESPONSIVE_POLICY",
 ]);
 const sdkEventNames = Object.freeze(["action", "effect", "statechange", "error"] as const);
@@ -169,6 +170,7 @@ export function createViraGenUI(configurationInput: unknown): CreateViraGenUIRes
         plan: initialState.value.plan,
         componentAdapter: config.componentAdapter,
         capabilityAllowlist: config.capabilityAllowlist,
+        componentAllowlist: config.componentAllowlist,
         accessibility: config.accessibility,
         responsive: config.responsive,
       }, config.domPort);
@@ -176,6 +178,9 @@ export function createViraGenUI(configurationInput: unknown): CreateViraGenUIRes
         session.value.dispose();
         if (mounted.issue.code === "CAPABILITY_DENIED") {
           return mountFailure("CAPABILITY_DENIED", mounted.issue.path, "SDK render capability is not authorized");
+        }
+        if (mounted.issue.code === "COMPONENT_DENIED") {
+          return mountFailure("COMPONENT_DENIED", mounted.issue.path, "SDK render component is not authorized");
         }
         if (declarativeMountFailures.has(mounted.issue.code)) {
           return mountFailure("INVALID_RENDER_INPUT", mounted.issue.path, "SDK render input is invalid");

@@ -144,6 +144,7 @@ function configuration(log: string[], ids: { value: number }) {
       ],
     },
     capabilityAllowlist: { version: "1", allowed: ["submit-search"] },
+    componentAllowlist: { version: "1", allowed: ["golden.component.search-button"] },
     accessibility: {
       version: "1",
       focusOnMount: "first-primary",

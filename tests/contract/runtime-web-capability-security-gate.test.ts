@@ -4,6 +4,7 @@ import { createViraGenUI, mountExperience } from "../../packages/runtime-web/src
 import type { RuntimeWebDomPort } from "../../packages/runtime-web/src/index.js";
 
 const capability = (id: string) => ({ version: "1", id });
+const allowedComponents = ["security.component.date-picker", "security.component.search-button"];
 
 function plan() {
   return {
@@ -82,6 +83,7 @@ function directInput(allowed: string[]) {
     plan: plan(),
     componentAdapter: componentAdapter(),
     capabilityAllowlist: { version: "1", allowed },
+    componentAllowlist: { version: "1", allowed: allowedComponents },
     accessibility: accessibility(),
     responsive: responsive(),
   };
@@ -93,6 +95,7 @@ function sdkConfiguration(log: string[], allowlist: { version: string; allowed: 
     actionAdapter: { version: "1", id: "security.web.actions", mappings: [{ event: "search.submit", actionType: "travel.flight.search.submit" }] },
     permissionPolicy: { version: "1", rules: [{ subject: "action", id: "travel.flight.search.submit", effect: "allow" }] },
     capabilityAllowlist: allowlist,
+    componentAllowlist: { version: "1", allowed: allowedComponents },
     accessibility: accessibility(),
     responsive: responsive(),
     domPort: domPort(log),
@@ -116,7 +119,7 @@ describe("runtime-web capability security gate", () => {
     }
   });
 
-  it("proves component mappings are implementation bindings, not authorization", () => {
+  it("proves component mappings are implementation bindings, not capability authorization", () => {
     const log: string[] = [];
     const result = mountExperience(directInput([]), domPort(log));
     expect(result).toMatchObject({
@@ -129,7 +132,7 @@ describe("runtime-web capability security gate", () => {
     expect(log).toEqual([]);
   });
 
-  it("revalidates malformed direct-mount policy before any DOM access", () => {
+  it("revalidates malformed direct-mount capability policy before any DOM access", () => {
     const log: string[] = [];
     const invalid = { ...directInput(["select-date", "submit-search"]), capabilityAllowlist: { version: "1", allowed: ["select-date", "select-date"] } };
     expect(mountExperience(invalid, domPort(log))).toMatchObject({
@@ -139,7 +142,7 @@ describe("runtime-web capability security gate", () => {
     expect(log).toEqual([]);
   });
 
-  it("requires and snapshots the SDK allowlist instead of retaining caller mutation", () => {
+  it("requires and snapshots the SDK capability allowlist instead of retaining caller mutation", () => {
     const missingLog: string[] = [];
     const missing = sdkConfiguration(missingLog, { version: "1", allowed: ["select-date", "submit-search"] }) as Record<string, unknown>;
     delete missing.capabilityAllowlist;
@@ -159,7 +162,7 @@ describe("runtime-web capability security gate", () => {
     expect(log[0]).toBe("measure");
   });
 
-  it("surfaces SDK denial distinctly and leaves no active session or DOM effects", () => {
+  it("surfaces SDK capability denial distinctly and leaves no active session or DOM effects", () => {
     const log: string[] = [];
     const created = createViraGenUI(sdkConfiguration(log, { version: "1", allowed: ["select-date"] }));
     expect(created.ok).toBe(true);
