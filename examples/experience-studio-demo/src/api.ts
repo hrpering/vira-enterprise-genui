@@ -10,9 +10,14 @@ export interface ExperienceSummary {
   readonly publishedAt: string | null;
 }
 
-export interface ExperienceRecord extends ExperienceSummary {
+export interface ExperienceRecord {
+  readonly id: string;
+  readonly name: string;
   readonly document: StudioExperienceDocument;
   readonly publication: StudioPublication | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly publishedAt: string | null;
 }
 
 export interface PublicExperience {

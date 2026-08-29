@@ -1,3 +1,4 @@
+/* global Buffer, console, process, URL */
 import { createServer as createHttpServer } from "node:http";
 import { mkdir, readFile, readdir, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
