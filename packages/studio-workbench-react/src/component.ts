@@ -1,5 +1,5 @@
-import { Puck, blocksPlugin, createUsePuck, fieldsPlugin, outlinePlugin } from "@puckeditor/core";
-import type { Config, Data, Plugin } from "@puckeditor/core";
+import { Puck, createUsePuck } from "@puckeditor/core";
+import type { Config, Data } from "@puckeditor/core";
 import { createStudioPuckShellSession } from "@vira-enterprise-genui/studio-react";
 import { createElement, useState } from "react";
 import type { ComponentType, ReactElement, ReactNode } from "react";
@@ -7,25 +7,26 @@ import { createStudioWorkbenchPlugins } from "./panels.js";
 import type { StudioWorkbenchReactIssue, ViraStudioWorkbenchProps } from "./types.js";
 
 const usePuck = createUsePuck();
+const PuckComponents = Puck.Components as unknown as ComponentType;
+const PuckPreview = Puck.Preview as unknown as ComponentType;
+const PuckFields = Puck.Fields as unknown as ComponentType;
 
 type PuckRuntimeProps = {
   readonly config: Config;
   readonly data: Data;
-  readonly plugins: Plugin[];
   readonly onChange: (data: Data) => void;
-  readonly onPublish: (data: Data) => void | Promise<void>;
-  readonly headerTitle?: string;
-  readonly height?: string | number;
   readonly iframe?: { readonly enabled?: boolean };
   readonly dnd?: {
     readonly behavior?: "auto" | "fluid" | "static";
     readonly disableAutoScroll?: boolean;
     readonly disableOutlineDrag?: boolean;
   };
-  readonly overrides?: Readonly<Record<string, unknown>>;
+  readonly children?: ReactNode;
 };
 
 const PuckRuntime = Puck as unknown as ComponentType<PuckRuntimeProps>;
+
+type WorkbenchPanel = "components" | "layers" | "views" | "data" | "actions";
 
 function ViraLayersPanel(props: { readonly session: ViraStudioWorkbenchProps["session"] }): ReactElement {
   const selectedPuckId = usePuck((state) => {
@@ -92,8 +93,27 @@ function ViraLayersPanel(props: { readonly session: ViraStudioWorkbenchProps["se
   );
 }
 
+function panelButton(label: string, value: WorkbenchPanel, active: WorkbenchPanel, select: (panel: WorkbenchPanel) => void): ReactElement {
+  return createElement("button", {
+    key: value,
+    type: "button",
+    onClick: () => select(value),
+    style: {
+      border: 0,
+      borderRadius: 8,
+      padding: "7px 9px",
+      background: active === value ? "#111827" : "transparent",
+      color: active === value ? "#fff" : "#374151",
+      cursor: "pointer",
+      fontSize: 12,
+      fontWeight: 650,
+    },
+  }, label);
+}
+
 export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactElement {
   const [revision, setRevision] = useState(0);
+  const [panel, setPanel] = useState<WorkbenchPanel>("components");
   const [lastError, setLastError] = useState<StudioWorkbenchReactIssue | undefined>(undefined);
   const reportError = (issue: StudioWorkbenchReactIssue) => {
     setLastError(issue);
@@ -118,12 +138,7 @@ export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactEleme
   if (!shell.ok) return createElement("div", { role: "alert", style: { padding: 16 } }, shell.issue.message);
 
   const customPlugins = createStudioWorkbenchPlugins({ session: props.session, mutate: notifyMutation, reportError });
-  const plugins: Plugin[] = [
-    blocksPlugin({ label: "Components" }),
-    outlinePlugin({ label: "Layers" }),
-    ...customPlugins,
-    fieldsPlugin({ label: "Properties" }),
-  ];
+  const customPlugin = (name: string) => customPlugins.find((candidate) => candidate.name === name);
 
   const onChange = (data: Data) => {
     const result = props.session.reconcilePuck(data);
@@ -136,26 +151,77 @@ export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactEleme
     props.onDocumentChange?.(result.value);
   };
 
-  const onPublish = async (data: Data) => {
-    const reconciled = props.session.reconcilePuck(data);
-    if (!reconciled.ok) {
-      reportError({ code: "AUTHORING_FAILED", path: reconciled.issue.path, message: reconciled.issue.message });
-      setRevision((value) => value + 1);
-      return;
-    }
+  const publish = async () => {
     const published = props.session.publish();
     if (!published.ok) {
       reportError({ code: "PUBLISH_FAILED", path: published.issue.path, message: published.issue.message });
       return;
     }
     setLastError(undefined);
-    props.onDocumentChange?.(reconciled.value);
     await props.onPublish?.(published.value);
   };
 
-  const overrides: Readonly<Record<string, unknown>> = {
-    outline: (_overrideProps: { readonly children?: ReactNode }) => createElement(ViraLayersPanel, { session: props.session }),
+  const renderPanel = (): ReactNode => {
+    if (panel === "components") return createElement(PuckComponents);
+    if (panel === "layers") return createElement(ViraLayersPanel, { session: props.session });
+    const pluginName = panel === "views" ? "vira-views" : panel === "data" ? "vira-data" : "vira-actions";
+    const plugin = customPlugin(pluginName);
+    return plugin?.render === undefined ? createElement("div", { style: { padding: 16 } }, "Panel unavailable.") : plugin.render();
   };
+
+  const height = props.height ?? "100dvh";
+  const workspace = createElement("div", {
+    style: {
+      height,
+      minHeight: 520,
+      display: "grid",
+      gridTemplateRows: "48px minmax(0, 1fr)",
+      background: "#f4f5f7",
+      color: "#111827",
+      overflow: "hidden",
+      borderTop: "1px solid #e5e7eb",
+    },
+  },
+  createElement("header", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      padding: "0 14px",
+      background: "#fff",
+      borderBottom: "1px solid #e5e7eb",
+    },
+  },
+  createElement("strong", { style: { fontSize: 13 } }, props.title ?? "Vira Experience Studio"),
+  createElement("button", {
+    type: "button",
+    onClick: () => { void publish(); },
+    style: { border: 0, borderRadius: 8, padding: "8px 12px", background: "#111827", color: "#fff", cursor: "pointer", fontWeight: 700 },
+  }, "Publish")),
+  createElement("div", {
+    style: {
+      minHeight: 0,
+      display: "grid",
+      gridTemplateColumns: "300px minmax(360px, 1fr) 320px",
+      overflow: "hidden",
+    },
+  },
+  createElement("aside", { style: { minHeight: 0, overflow: "auto", background: "#fff", borderRight: "1px solid #e5e7eb" } },
+    createElement("div", { style: { position: "sticky", top: 0, zIndex: 2, display: "flex", flexWrap: "wrap", gap: 4, padding: 8, background: "#fff", borderBottom: "1px solid #e5e7eb" } },
+      panelButton("Components", "components", panel, setPanel),
+      panelButton("Layers", "layers", panel, setPanel),
+      panelButton("Views", "views", panel, setPanel),
+      panelButton("Data", "data", panel, setPanel),
+      panelButton("Actions", "actions", panel, setPanel),
+    ),
+    renderPanel(),
+  ),
+  createElement("main", { style: { minWidth: 0, minHeight: 0, overflow: "auto", padding: 18, background: "#eef0f3" } }, createElement(PuckPreview)),
+  createElement("aside", { style: { minHeight: 0, overflow: "auto", background: "#fff", borderLeft: "1px solid #e5e7eb" } },
+    createElement("div", { style: { padding: "12px 14px", borderBottom: "1px solid #e5e7eb", fontSize: 12, fontWeight: 750 } }, "Properties"),
+    createElement(PuckFields),
+  )));
 
   return createElement("div", { style: { display: "grid", gap: 8 } },
     lastError === undefined ? null : createElement("div", { role: "alert", style: { padding: "10px 12px", borderRadius: 10, border: "1px solid currentColor" } }, lastError.message),
@@ -163,14 +229,9 @@ export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactEleme
       key: `${props.session.currentViewId()}:${revision}`,
       config: shell.value.config,
       data: shell.value.data,
-      plugins,
       onChange,
-      onPublish,
       iframe: { enabled: false },
       dnd: { behavior: "auto", disableOutlineDrag: true },
-      overrides,
-      ...(props.title === undefined ? {} : { headerTitle: props.title }),
-      ...(props.height === undefined ? {} : { height: props.height }),
-    }),
+    }, workspace),
   );
 }
