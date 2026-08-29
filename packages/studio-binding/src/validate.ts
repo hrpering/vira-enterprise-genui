@@ -238,8 +238,10 @@ function mutateBinding(input: {
 
   let nextBindings: StudioBinding[] = inputs.document.bindings.filter((binding) => !(binding.viewId === input.viewId && binding.nodeId === input.nodeId && binding.prop === input.prop));
   let nextViews = inputs.document.views.map((view) => ({ ...view, nodes: [...view.nodes] }));
-  if (input.source !== undefined) {
-    const source = inputs.sources.sources.find((candidate) => sourceKey(candidate) === sourceKey(input.source));
+  const requestedSource = input.source;
+  if (requestedSource !== undefined) {
+    const requestedKey = sourceKey(requestedSource);
+    const source = inputs.sources.sources.find((candidate) => sourceKey(candidate) === requestedKey);
     if (!source) return documentFailure("UNREGISTERED_SOURCE", "$.source", "selected binding source is not registered");
     if (!compatible(prop, source)) return documentFailure("INCOMPATIBLE_SOURCE", "$.source", "selected binding source is incompatible with the target prop");
     nextBindings = [...nextBindings, { viewId: input.viewId, nodeId: input.nodeId, prop: input.prop, source: { kind: source.kind, path: source.path } }];
