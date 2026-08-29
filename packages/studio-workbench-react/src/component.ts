@@ -35,17 +35,21 @@ function ViraLayersPanel(props: { readonly session: ViraStudioWorkbenchProps["se
   for (const siblings of byParent.values()) siblings.sort((left, right) => left.order - right.order);
 
   const selectNode = (nodeId: string) => {
-    const selector = getSelectorForId(nodeId);
+    const puckId = props.session.resolvePuckId(nodeId);
+    if (!puckId) return;
+    const selector = getSelectorForId(puckId);
     if (!selector) return;
     dispatch({ type: "setUi", ui: { itemSelector: selector } });
   };
 
   const renderNode = (node: LayerNode, depth: number): ReactElement => {
     const children = byParent.get(parentKey(node.id)) ?? [];
-    const selected = selectedPuckId === node.id;
+    const puckId = props.session.resolvePuckId(node.id);
+    const selected = puckId !== undefined && selectedPuckId === puckId;
     return createElement("li", { key: node.id, style: { listStyle: "none" } },
       createElement("button", {
         type: "button",
+        "data-testid": `vira-studio-layer-${node.id}`,
         onClick: () => selectNode(node.id),
         style: {
           width: "100%",

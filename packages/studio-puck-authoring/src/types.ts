@@ -36,6 +36,8 @@ export interface StudioPuckAuthoringSession {
   readonly reconcile: (data: Data) => StudioPuckReconcileResult;
   /** Resolve an editor/Puck id to the canonical Studio node id owned by this authoring session. */
   readonly resolveNodeId: (puckId: string) => string | undefined;
+  /** Resolve a canonical Studio node id to the editor/Puck id used by this authoring session. */
+  readonly resolvePuckId: (nodeId: string) => string | undefined;
 }
 
 export type StudioPuckAuthoringSessionResult =

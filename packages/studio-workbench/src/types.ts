@@ -59,6 +59,7 @@ export interface StudioWorkbenchSession {
   readonly toPuckData: () => ReturnType<import("@vira-enterprise-genui/studio-puck-authoring").StudioPuckAuthoringSession["toPuckData"]>;
   readonly reconcilePuck: (data: Data) => StudioWorkbenchDocumentResult;
   readonly resolveNodeId: (puckId: string) => string | undefined;
+  readonly resolvePuckId: (nodeId: string) => string | undefined;
   readonly bindingTargets: (nodeId: string) => StudioBindingTargetsResult;
   readonly setBinding: (input: { readonly nodeId: string; readonly prop: string; readonly source: StudioBindingSource }) => StudioWorkbenchDocumentResult;
   readonly clearBinding: (input: { readonly nodeId: string; readonly prop: string }) => StudioWorkbenchDocumentResult;

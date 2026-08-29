@@ -143,6 +143,7 @@ export function createStudioWorkbenchSession(input: CreateStudioWorkbenchSession
       return success(current);
     },
     resolveNodeId: (puckId: string) => puckSession.resolveNodeId(puckId),
+    resolvePuckId: (nodeId: string) => puckSession.resolvePuckId(nodeId),
     bindingTargets: (nodeId: string) => getStudioBindingTargets(current, componentCatalog, bindingSourceCatalog, activeViewId, nodeId),
     setBinding: (value) => {
       const result = setStudioBinding({ document: current, componentCatalog, sourceCatalog: bindingSourceCatalog, viewId: activeViewId, ...value });

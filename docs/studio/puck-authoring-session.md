@@ -34,15 +34,34 @@ The allocator receives a frozen request containing only:
 - exact semantic component reference;
 - Puck-generated id.
 
-The returned value must be one canonical Studio node id and must not collide with any id already reserved in the active view. Allocator exceptions are contained and their raw messages are not reflected.
+The returned value must be one canonical Studio node id, must not collide with any id already reserved in the active view, and must not be one of Puck's editor-reserved canonical identities. Reserved identities such as Studio `root` may exist in a canonical document, but they must be present before the Puck session starts so the adapter can seed their editor aliases deterministically. A newly generated Puck node cannot be renamed into such an identity during reconciliation.
 
 Mappings are cached by Puck id for the lifetime of the authoring session, so repeated `onChange` events do not allocate a new canonical identity for the same inserted node.
+
+## Reserved Puck identities
+
+Puck owns editor-internal identities that are not part of the Studio document contract. In particular, Puck reserves `root` for its synthetic editor root while `root` remains a valid canonical Studio node id.
+
+The authoring session therefore seeds the adapter's reserved-id mappings for the active view before any edit occurs. A canonical Studio `root` is represented as the non-semantic Puck alias `vira~root`, and the reverse mapping is retained for selection, reconciliation, and renderer context.
+
+The mapping is bidirectional for the active view only:
+
+```text
+Studio node id       Puck editor id
+root             <-> vira~root
+```
+
+Reserved aliases never become canonical Studio ids. Renderer aliases are decoded only when the alias is present in the Puck tree exported from the active canonical view; a reserved-looking arbitrary Puck id is not trusted by string pattern alone.
+
+When the active view changes, the workbench creates a new Puck authoring session and a fresh view-scoped identity mapping.
 
 ## Transactional reconciliation
 
 `reconcile(data)` does not mutate the current canonical document in place.
 
 It first validates the bounded Puck identity surface, prepares only the currently required id mappings, then delegates to the Studio Puck adapter. The adapter replaces one view and revalidates the complete StudioDocument and active brand catalog.
+
+Hostile editor data is fail-closed at the public boundary. Revoked proxies, accessor-backed fields, reflection failures, or otherwise unsafe Puck data must return a structured authoring/import issue rather than executing getters or escaping an exception into the React workbench.
 
 The session updates `currentDocument()` only after that import succeeds. A visual edit that removes a node still referenced by a canonical binding or interaction therefore fails and leaves the previous document active.
 
