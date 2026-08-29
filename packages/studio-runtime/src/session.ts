@@ -139,28 +139,31 @@ export function createStudioRuntimeSession(input: unknown, portsInput: StudioRun
   if (unknown) return { ok: false, issue: issue("INVALID_INPUT", `$.${unknown}`, "unknown Studio runtime session field") };
   const ports = validatePorts(portsInput);
   if (!ports.ok) return ports;
+  const portsValue = ports;
   const publication = canonicalPublication(fields);
   if (!publication.ok) return publication;
+  const publicationValue = publication.value;
   const catalog = createStudioComponentCatalog(fields.componentCatalog);
   if (!catalog.ok) return { ok: false, issue: issue("INVALID_PUBLICATION", "$.componentCatalog", catalog.issue.message) };
   const runtime = createStateBindingSession({
     state: fields.runtimeState,
     policy: fields.permissionPolicy,
     actionAdapter: fields.actionAdapter,
-  }, ports.idFactory);
+  }, portsValue.idFactory);
   if (!runtime.ok) return { ok: false, issue: issue("INVALID_RUNTIME_SESSION", runtime.issue.path, runtime.issue.message) };
+  const runtimeValue = runtime.value;
 
   const components = new Map(catalog.value.components.map((component) => [component.ref, component] as const));
-  let currentViewId = publication.value.entryView;
+  let currentViewId = publicationValue.entryView;
   let pending: { readonly actionId: string; readonly routes: readonly StudioInteractionRoute[] } | undefined;
   let disposed = false;
 
   function currentView(): StudioRuntimeViewResult {
     if (disposed) return { ok: false, issue: issue("SESSION_DISPOSED", "$", "Studio runtime session is disposed") };
-    const view = publication.value.document.views.find((candidate) => candidate.id === currentViewId);
+    const view = publicationValue.document.views.find((candidate) => candidate.id === currentViewId);
     if (!view) return { ok: false, issue: issue("VIEW_NOT_FOUND", "$.viewId", "current Studio view does not exist") };
-    const bindingsByNode = new Map<string, typeof publication.value.document.bindings>();
-    for (const binding of publication.value.document.bindings) {
+    const bindingsByNode = new Map<string, typeof publicationValue.document.bindings>();
+    for (const binding of publicationValue.document.bindings) {
       if (binding.viewId !== currentViewId) continue;
       const existing = bindingsByNode.get(binding.nodeId) ?? [];
       bindingsByNode.set(binding.nodeId, [...existing, binding]);
@@ -173,7 +176,7 @@ export function createStudioRuntimeSession(input: unknown, portsInput: StudioRun
       for (const binding of bindingsByNode.get(node.id) ?? []) {
         let raw: unknown;
         try {
-          raw = ports.read(binding.source);
+          raw = portsValue.read(binding.source);
         } catch {
           return { ok: false, issue: issue("DATA_READ_FAILED", `$.bindings.${binding.prop}`, "trusted Studio data port failed") };
         }
@@ -192,7 +195,7 @@ export function createStudioRuntimeSession(input: unknown, portsInput: StudioRun
         ...(node.parentId === undefined ? {} : { parentId: node.parentId, slot: node.slot as string }),
       });
     }
-    return { ok: true, value: freezeData({ experienceId: publication.value.id, viewId: currentViewId, nodes }) };
+    return { ok: true, value: freezeData({ experienceId: publicationValue.id, viewId: currentViewId, nodes }) };
   }
 
   const session: StudioRuntimeSession = {
@@ -201,19 +204,19 @@ export function createStudioRuntimeSession(input: unknown, portsInput: StudioRun
     },
     currentView,
     currentRuntimeState() {
-      return runtime.value.currentState();
+      return runtimeValue.currentState();
     },
     dispatch(eventInput): StudioRuntimeDispatchResult {
       if (disposed) return { ok: false, stage: "studio", issue: issue("SESSION_DISPOSED", "$", "Studio runtime session is disposed") };
       if (pending) return { ok: false, stage: "studio", issue: issue("ACTION_PENDING", "$.event", "one Studio action is already awaiting a host outcome") };
-      const interaction = publication.value.document.interactions.find((candidate) => candidate.viewId === currentViewId && candidate.nodeId === eventInput.nodeId && candidate.event === eventInput.event);
+      const interaction = publicationValue.document.interactions.find((candidate) => candidate.viewId === currentViewId && candidate.nodeId === eventInput.nodeId && candidate.event === eventInput.event);
       if (!interaction) return { ok: false, stage: "studio", issue: issue("INTERACTION_NOT_FOUND", "$.event", "no published Studio interaction matches this node event") };
-      const result = runtime.value.process({ event: interaction.actionEvent, payload: eventInput.payload ?? {} });
+      const result = runtimeValue.process({ event: interaction.actionEvent, payload: eventInput.payload ?? {} });
       if (result.ok) pending = { actionId: result.value.action.id, routes: interaction.routes };
       return result;
     },
     applyHostPatch(patch) {
-      return runtime.value.processHostPatch(patch);
+      return runtimeValue.processHostPatch(patch);
     },
     complete(completion): StudioRuntimeCompletionResult {
       if (disposed) return { ok: false, issue: issue("SESSION_DISPOSED", "$", "Studio runtime session is disposed") };
@@ -230,7 +233,7 @@ export function createStudioRuntimeSession(input: unknown, portsInput: StudioRun
       if (disposed) return;
       disposed = true;
       pending = undefined;
-      runtime.value.dispose();
+      runtimeValue.dispose();
     },
   };
   return { ok: true, value: Object.freeze(session) };
