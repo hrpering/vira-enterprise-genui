@@ -56,6 +56,18 @@ function document() {
   };
 }
 
+function documentWithoutReservedRoot() {
+  return {
+    version: "1",
+    id: "demo.no-root-collision",
+    recipeId: "demo.no-root-collision",
+    entryView: "search",
+    views: [{ id: "search", nodes: [{ id: "shell", component: "demo.layout.stack", order: 0, props: {} }] }],
+    bindings: [],
+    interactions: [],
+  };
+}
+
 function nestedRootDocument() {
   return {
     version: "1",
@@ -164,6 +176,33 @@ describe("Studio/Puck reserved identity boundary", () => {
       ok: false,
       issue: { code: "DUPLICATE_ID_MAPPING" },
     });
+  });
+
+  it("rejects allocating a Puck-reserved canonical id to a newly generated Puck node", () => {
+    const session = createStudioPuckAuthoringSession({
+      document: documentWithoutReservedRoot(),
+      catalog: catalog(),
+      viewId: "search",
+      allocateNodeId: () => "root",
+    });
+    expect(session.ok).toBe(true);
+    if (!session.ok) return;
+
+    const exported = session.value.toPuckData();
+    expect(exported.ok).toBe(true);
+    if (!exported.ok) return;
+    const data = mutableData(exported.value);
+    const shell = data.content[0];
+    expect(shell).toBeDefined();
+    if (!shell) return;
+    const children = shell.props.content as MutablePuckNode[];
+    children.push({ type: "demo.component.text", props: { id: "Text-123", text: "Inserted" } });
+
+    expect(session.value.reconcile(data)).toMatchObject({
+      ok: false,
+      issue: { code: "ALLOCATED_ID_COLLISION" },
+    });
+    expect(session.value.currentDocument().views[0]?.nodes.map((node) => node.id)).toEqual(["shell"]);
   });
 
   it("seeds bidirectional authoring identity without calling the host allocator", () => {
