@@ -1,0 +1,22 @@
+{
+  "name": "@vira-enterprise-genui/studio-puck-adapter",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@puckeditor/core": "0.23.0",
+    "@vira-enterprise-genui/protocol": "workspace:*",
+    "@vira-enterprise-genui/studio-catalog": "workspace:*",
+    "@vira-enterprise-genui/studio-schema": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18.2.0 <20"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "react": "19.2.8"
+  }
+}
