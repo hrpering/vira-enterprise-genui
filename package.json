@@ -17,7 +17,7 @@
     "demo:flight-search": "pnpm build && pnpm --filter @vira-enterprise-genui/flight-search-demo start"
   },
   "devDependencies": {
-    "@eslint/js": "10.9.1",
+    "@eslint/js": "10.0.1",
     "@types/node": "24.13.3",
     "eslint": "10.9.1",
     "typescript": "7.0.2",
