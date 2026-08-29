@@ -149,6 +149,23 @@ describe("Studio/Puck reserved identity boundary", () => {
     ]);
   });
 
+  it("rejects a host mapping that conflicts with the reserved root identity", () => {
+    const exported = studioViewToPuckData(document(), catalog(), "search");
+    expect(exported.ok).toBe(true);
+    if (!exported.ok) return;
+
+    expect(importPuckDataIntoStudioDocument({
+      document: document(),
+      catalog: catalog(),
+      viewId: "search",
+      data: exported.value,
+      idMappings: [{ puckId: "vira~root", nodeId: "different-root" }],
+    })).toMatchObject({
+      ok: false,
+      issue: { code: "DUPLICATE_ID_MAPPING" },
+    });
+  });
+
   it("seeds bidirectional authoring identity without calling the host allocator", () => {
     let allocationCalls = 0;
     const session = createStudioPuckAuthoringSession({
