@@ -17,3 +17,4 @@ export type {
   TelemetrySource,
 } from "./events/types.js";
 export * from "./exporter/index.js";
+export * from "./channel/index.js";
