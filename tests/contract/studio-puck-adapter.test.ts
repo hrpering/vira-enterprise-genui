@@ -146,7 +146,7 @@ function mutableData(value: unknown): MutablePuckData {
 }
 
 describe("studio Puck adapter", () => {
-  it("maps the Vira brand catalog to Puck 0.23 field and slot metadata", () => {
+  it("maps the Vira brand catalog to Puck 0.22.4 field and slot metadata", () => {
     const result = createStudioPuckEditorMetadata(catalog());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
