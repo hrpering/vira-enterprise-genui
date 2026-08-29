@@ -55,6 +55,27 @@ function document() {
   };
 }
 
+function nestedRootDocument() {
+  return {
+    version: "1",
+    id: "demo.nested-root-collision",
+    recipeId: "demo.nested-root-collision",
+    entryView: "search",
+    views: [
+      {
+        id: "search",
+        nodes: [
+          { id: "shell", component: "demo.layout.stack", order: 0, props: {} },
+          { id: "root", component: "demo.layout.stack", parentId: "shell", slot: "content", order: 0, props: {} },
+          { id: "copy", component: "demo.component.text", parentId: "root", slot: "content", order: 0, props: { text: "Nested" } },
+        ],
+      },
+    ],
+    bindings: [],
+    interactions: [],
+  };
+}
+
 type MutablePuckNode = {
   type: string;
   props: Record<string, unknown>;
@@ -95,6 +116,33 @@ describe("Studio/Puck reserved identity boundary", () => {
     if (!imported.ok) return;
     expect(imported.value.views[0]?.nodes.map((node) => [node.id, node.parentId])).toEqual([
       ["root", undefined],
+      ["copy", "root"],
+    ]);
+  });
+
+  it("recursively isolates a nested canonical root and restores its parent graph", () => {
+    const exported = studioViewToPuckData(nestedRootDocument(), catalog(), "search");
+    expect(exported.ok).toBe(true);
+    if (!exported.ok) return;
+    const data = mutableData(exported.value);
+
+    expect(data.content[0]?.props.id).toBe("shell");
+    const shellChildren = data.content[0]?.props.content as MutablePuckNode[];
+    expect(shellChildren[0]?.props.id).toBe("vira~root");
+    const rootChildren = shellChildren[0]?.props.content as MutablePuckNode[];
+    expect(rootChildren[0]?.props.id).toBe("copy");
+
+    const imported = importPuckDataIntoStudioDocument({
+      document: nestedRootDocument(),
+      catalog: catalog(),
+      viewId: "search",
+      data,
+    });
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.value.views[0]?.nodes.map((node) => [node.id, node.parentId])).toEqual([
+      ["shell", undefined],
+      ["root", "shell"],
       ["copy", "root"],
     ]);
   });
