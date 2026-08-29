@@ -18,12 +18,12 @@ function components() {
     id: "pegasus.studio.components",
     brandId: "pegasus",
     components: [
-      { ref: "pegasus.layout.stack", label: "Stack", category: "Layout", kind: "layout", props: [], slots: [{ name: "content", label: "Content" }], events: [] },
-      { ref: "pegasus.component.airport-picker", label: "Airport", category: "Flight", kind: "input", props: [{ key: "value", type: "string", required: true, bindable: false }], slots: [], events: [] },
-      { ref: "pegasus.component.date-picker", label: "Date", category: "Flight", kind: "input", props: [{ key: "value", type: "string", required: true, bindable: false }], slots: [], events: [] },
-      { ref: "pegasus.component.button", label: "Button", category: "Actions", kind: "action", props: [{ key: "label", type: "string", required: true, bindable: false }], slots: [], events: [{ name: "press", label: "Press" }] },
-      { ref: "pegasus.component.flight-list", label: "Flight List", category: "Flight", kind: "content", props: [{ key: "items", type: "string", required: true, bindable: true }], slots: [], events: [] },
-      { ref: "pegasus.component.text", label: "Text", category: "Content", kind: "content", props: [{ key: "text", type: "string", required: true, bindable: false }], slots: [], events: [] },
+      { ref: "pegasus.layout.stack", label: "Stack", category: "layout", kind: "layout", props: [], slots: [{ name: "content", label: "Content" }], events: [] },
+      { ref: "pegasus.component.airport-picker", label: "Airport", category: "flight", kind: "input", props: [{ key: "value", type: "string", required: true, bindable: false }], slots: [], events: [] },
+      { ref: "pegasus.component.date-picker", label: "Date", category: "flight", kind: "input", props: [{ key: "value", type: "string", required: true, bindable: false }], slots: [], events: [] },
+      { ref: "pegasus.component.button", label: "Button", category: "actions", kind: "action", props: [{ key: "label", type: "string", required: true, bindable: false }], slots: [], events: [{ name: "press", label: "Press" }] },
+      { ref: "pegasus.component.flight-list", label: "Flight List", category: "flight", kind: "content", props: [{ key: "items", type: "string", required: true, bindable: true }], slots: [], events: [] },
+      { ref: "pegasus.component.text", label: "Text", category: "content", kind: "content", props: [{ key: "text", type: "string", required: true, bindable: false }], slots: [], events: [] },
     ],
   };
 }
