@@ -21,8 +21,8 @@ function failure(code: StateResolverValidationCode, path: string, message: strin
   return { ok: false, issue: { code, path, message } };
 }
 
-function isJsonObject(value: JsonValue): value is JsonObject {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+function isJsonObject(value: JsonValue | undefined): value is JsonObject {
+  return value !== null && value !== undefined && typeof value === "object" && !Array.isArray(value);
 }
 
 function jsonEqual(left: JsonValue, right: JsonValue): boolean {
