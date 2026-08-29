@@ -8,8 +8,8 @@ function components() {
     id: "pegasus.studio.components",
     brandId: "pegasus",
     components: [
-      { ref: "pegasus.component.button", label: "Button", category: "Actions", kind: "action", props: [], slots: [], events: [{ name: "press", label: "Press" }] },
-      { ref: "pegasus.component.flight-list", label: "Flight List", category: "Flight", kind: "content", props: [{ key: "items", type: "string", required: true, bindable: true }], slots: [], events: [] },
+      { ref: "pegasus.component.button", label: "Button", category: "action", kind: "action", props: [], slots: [], events: [{ name: "press", label: "Press" }] },
+      { ref: "pegasus.component.flight-list", label: "Flight List", category: "flight", kind: "content", props: [{ key: "items", type: "string", required: true, bindable: true }], slots: [], events: [] },
     ],
   };
 }
