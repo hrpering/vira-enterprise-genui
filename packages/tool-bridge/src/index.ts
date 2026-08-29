@@ -13,3 +13,4 @@ export type {
   ExternalToolResultValidationCode,
   ExternalToolResultValidationIssue,
 } from "./types.js";
+export * from "./domain/index.js";

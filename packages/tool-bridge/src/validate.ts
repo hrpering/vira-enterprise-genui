@@ -4,6 +4,7 @@ import {
   parseJsonValue,
 } from "@vira-enterprise-genui/protocol";
 import type { JsonValue } from "@vira-enterprise-genui/protocol";
+import { freezeToolBridgeData } from "./internal/freeze.js";
 import {
   EXTERNAL_TOOL_RESULT_OUTCOMES,
   EXTERNAL_TOOL_RESULT_VERSION,
@@ -62,18 +63,6 @@ function validUnixMs(value: JsonValue | undefined): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
-function deepFreezeJson(value: JsonValue): JsonValue {
-  if (value !== null && typeof value === "object") {
-    if (Array.isArray(value)) {
-      for (const item of value) deepFreezeJson(item);
-    } else {
-      for (const item of Object.values(value)) deepFreezeJson(item);
-    }
-    Object.freeze(value);
-  }
-  return value;
-}
-
 function parseTool(value: JsonValue | undefined): NestedResult<ExternalToolIdentity> {
   if (value === undefined) return nestedFailure("$.tool", "tool is required");
   const raw = objectValue(value, "$.tool");
@@ -88,7 +77,7 @@ function parseTool(value: JsonValue | undefined): NestedResult<ExternalToolIdent
   if (typeof name !== "string" || !isSemanticNamespace(name)) {
     return nestedFailure("$.tool.name", "tool name must be a semantic namespace");
   }
-  return { ok: true, value: Object.freeze({ kind, name }) };
+  return { ok: true, value: freezeToolBridgeData({ kind, name }) };
 }
 
 function parseFailure(value: JsonValue | undefined): NestedResult<ExternalToolFailure> {
@@ -101,7 +90,7 @@ function parseFailure(value: JsonValue | undefined): NestedResult<ExternalToolFa
   if (typeof code !== "string" || !isSemanticNamespace(code)) {
     return nestedFailure("$.failure.code", "failure code must be a semantic namespace");
   }
-  return { ok: true, value: Object.freeze({ code }) };
+  return { ok: true, value: freezeToolBridgeData({ code }) };
 }
 
 function parseFreshness(value: JsonValue | undefined): NestedResult<ExternalToolFreshness> {
@@ -123,7 +112,7 @@ function parseFreshness(value: JsonValue | undefined): NestedResult<ExternalTool
   }
   return {
     ok: true,
-    value: Object.freeze({
+    value: freezeToolBridgeData({
       observedAtUnixMs,
       ...(expiresAtUnixMs === undefined ? {} : { expiresAtUnixMs }),
     }),
@@ -193,9 +182,9 @@ export function parseExternalToolResult(input: unknown): ExternalToolResultParse
     version: EXTERNAL_TOOL_RESULT_VERSION,
     tool: tool.value,
     outcome: typedOutcome,
-    ...(hasData ? { data: deepFreezeJson(fields.data as JsonValue) } : {}),
+    ...(hasData ? { data: freezeToolBridgeData(fields.data as JsonValue) } : {}),
     ...(parsedFailure === undefined ? {} : { failure: parsedFailure }),
     ...(freshness === undefined ? {} : { freshness }),
   };
-  return { ok: true, value: Object.freeze(normalized) };
+  return { ok: true, value: freezeToolBridgeData(normalized) };
 }
