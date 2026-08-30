@@ -42,6 +42,28 @@ function snapshot<T>(value: T): T {
   return deepFreeze(structuredClone(value));
 }
 
+function sameData(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+  if (left === null || right === null || typeof left !== "object" || typeof right !== "object") return false;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false;
+    for (let index = 0; index < left.length; index += 1) {
+      if (!sameData(left[index], right[index])) return false;
+    }
+    return true;
+  }
+  const leftObject = left as Record<string, unknown>;
+  const rightObject = right as Record<string, unknown>;
+  const leftKeys = Object.keys(leftObject).sort();
+  const rightKeys = Object.keys(rightObject).sort();
+  if (leftKeys.length !== rightKeys.length) return false;
+  for (let index = 0; index < leftKeys.length; index += 1) {
+    const key = leftKeys[index];
+    if (!key || key !== rightKeys[index] || !sameData(leftObject[key], rightObject[key])) return false;
+  }
+  return true;
+}
+
 function validWorkspaceId(value: unknown): value is string {
   return typeof value === "string" && workspacePattern.test(value);
 }
@@ -89,6 +111,13 @@ function validateExpectedVersion(value: unknown): StudioLifecycleResult<number> 
     return failure("INVALID_VERSION", "$.expectedRecordVersion", "expectedRecordVersion must be a positive safe integer");
   }
   return { ok: true, value };
+}
+
+function incrementVersion(value: number, path: "$.recordVersion" | "$.draftRevision"): StudioLifecycleResult<number> {
+  if (value >= Number.MAX_SAFE_INTEGER) {
+    return failure("VERSION_OVERFLOW", path, `${path.slice(2)} cannot be incremented beyond Number.MAX_SAFE_INTEGER`);
+  }
+  return { ok: true, value: value + 1 };
 }
 
 function timestamp(configuration: StudioLifecycleServiceConfiguration): StudioLifecycleResult<string> {
@@ -143,6 +172,7 @@ function validStoredRecordIdentity(record: StudioLifecycleRecord, workspaceId: s
     || !validName(record.name)
     || !validVersion(record.draftRevision)
     || !validVersion(record.recordVersion)
+    || record.recordVersion < record.draftRevision
     || !validTimestamp(record.createdAt)
     || !validTimestamp(record.updatedAt)
     || record.document.id !== record.id) return false;
@@ -159,12 +189,7 @@ function validStoredRecordIdentity(record: StudioLifecycleRecord, workspaceId: s
 
 function validMutationAcknowledgement(record: StudioLifecycleRecord, expected: StudioLifecycleRecord): boolean {
   return validStoredRecordIdentity(record, expected.workspaceId, expected.id)
-    && record.recordVersion === expected.recordVersion
-    && record.draftRevision === expected.draftRevision
-    && record.name === expected.name
-    && record.updatedAt === expected.updatedAt
-    && record.publishedDraftRevision === expected.publishedDraftRevision
-    && record.publishedAt === expected.publishedAt;
+    && sameData(record, expected);
 }
 
 function storeFailure<T>(): StudioLifecycleResult<T> {
@@ -287,13 +312,17 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
       if (current.value.recordVersion !== version.value) {
         return failure("CONFLICT", "$.expectedRecordVersion", "Studio experience changed since it was loaded");
       }
+      const nextRecordVersion = incrementVersion(current.value.recordVersion, "$.recordVersion");
+      if (!nextRecordVersion.ok) return nextRecordVersion;
+      const nextDraftRevision = incrementVersion(current.value.draftRevision, "$.draftRevision");
+      if (!nextDraftRevision.ok) return nextDraftRevision;
       const now = timestamp(configuration);
       if (!now.ok) return now;
       const next: StudioLifecycleRecord = snapshot({
         ...current.value,
         name: input.name,
-        draftRevision: current.value.draftRevision + 1,
-        recordVersion: current.value.recordVersion + 1,
+        draftRevision: nextDraftRevision.value,
+        recordVersion: nextRecordVersion.value,
         document: document.value,
         updatedAt: now.value,
       });
@@ -315,6 +344,8 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
       if (current.value.recordVersion !== version.value) {
         return failure("CONFLICT", "$.expectedRecordVersion", "Studio experience changed since it was loaded");
       }
+      const nextRecordVersion = incrementVersion(current.value.recordVersion, "$.recordVersion");
+      if (!nextRecordVersion.ok) return nextRecordVersion;
       const publication = prepareStudioPublication({
         document: current.value.document,
         componentCatalog: configuration.componentCatalog,
@@ -328,7 +359,7 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
       if (!now.ok) return now;
       const next: StudioLifecycleRecord = snapshot({
         ...current.value,
-        recordVersion: current.value.recordVersion + 1,
+        recordVersion: nextRecordVersion.value,
         publication: publication.value,
         publishedDraftRevision: current.value.draftRevision,
         updatedAt: now.value,
@@ -353,11 +384,13 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
         return failure("CONFLICT", "$.expectedRecordVersion", "Studio experience changed since it was loaded");
       }
       if (current.value.publication === null) return current;
+      const nextRecordVersion = incrementVersion(current.value.recordVersion, "$.recordVersion");
+      if (!nextRecordVersion.ok) return nextRecordVersion;
       const now = timestamp(configuration);
       if (!now.ok) return now;
       const next: StudioLifecycleRecord = snapshot({
         ...current.value,
-        recordVersion: current.value.recordVersion + 1,
+        recordVersion: nextRecordVersion.value,
         publication: null,
         publishedDraftRevision: null,
         updatedAt: now.value,
