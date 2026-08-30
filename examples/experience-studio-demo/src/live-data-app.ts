@@ -61,6 +61,11 @@ const inputStyle: CSSProperties = {
   color: "#121a2f",
 };
 
+interface LiveHostInteraction {
+  readonly actionType: string;
+  readonly payload: Readonly<Record<string, unknown>>;
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected Studio runtime error";
 }
@@ -84,7 +89,11 @@ function applyLiveSeatSelection(root: HTMLElement, payload: Readonly<Record<stri
       break;
     }
   }
-  if (!selectedButton || selectedButton.classList.contains("occupied")) return;
+  if (
+    !selectedButton
+    || selectedButton.classList.contains("occupied")
+    || selectedButton.classList.contains("selected")
+  ) return;
   selectedButton.classList.add("selected");
   selectedButton.disabled = true;
 
@@ -302,24 +311,29 @@ function DomainControls({
 }
 
 function PublishedExperience({ value }: { readonly value: PublicExperience }): ReactElement {
-  const hostCompletions = useRef(0);
   const liveExperienceRef = useRef<HTMLElement | null>(null);
+  const [hostInteractions, setHostInteractions] = useState<readonly LiveHostInteraction[]>([]);
   const [input, setInput] = useState<MockAirlineRuntimeInput>({ ...DEFAULT_MOCK_RUNTIME_INPUT });
 
   const runtime = useMemo(
     () => buildRuntime(value, input, (actionType, payload) => {
-      hostCompletions.current += 1;
-      const root = liveExperienceRef.current;
-      if (!root) return;
-      root.setAttribute("data-demo-host-completions", String(hostCompletions.current));
-      root.setAttribute("data-demo-last-action", actionType);
-      window.setTimeout(() => {
-        if (liveExperienceRef.current === root) applyLiveHostInteraction(root, actionType, payload);
-      }, 0);
+      setHostInteractions((current) => [...current, { actionType, payload }]);
     }),
     [value.id, value.publishedAt, input.origin, input.destination, input.departureDate, input.passengers, input.fare],
   );
   useEffect(() => () => runtime.dispose(), [runtime]);
+  useEffect(() => {
+    const root = liveExperienceRef.current;
+    if (!root) return;
+    for (const interaction of hostInteractions) {
+      applyLiveHostInteraction(root, interaction.actionType, interaction.payload);
+    }
+  }, [hostInteractions]);
+
+  function updateInput(next: MockAirlineRuntimeInput): void {
+    setHostInteractions([]);
+    setInput(next);
+  }
 
   const rendered = renderStudioRuntimeReactView({
     session: runtime,
@@ -335,13 +349,15 @@ function PublishedExperience({ value }: { readonly value: PublicExperience }): R
     );
   }
 
+  const lastInteraction = hostInteractions[hostInteractions.length - 1];
   return createElement(
     "main",
     {
       ref: liveExperienceRef,
       className: "live-page",
       "data-testid": "live-experience",
-      "data-demo-host-completions": hostCompletions.current,
+      "data-demo-host-completions": hostInteractions.length,
+      "data-demo-last-action": lastInteraction?.actionType,
     },
     createElement(
       "header",
@@ -349,7 +365,7 @@ function PublishedExperience({ value }: { readonly value: PublicExperience }): R
       createElement("div", null, createElement("span", { className: "live-dot" }), createElement("strong", null, value.name), createElement("code", null, value.id)),
       createElement("span", null, "Published Vira runtime · domain-bound"),
     ),
-    createElement(DomainControls, { input, onChange: setInput }),
+    createElement(DomainControls, { input, onChange: updateInput }),
     createElement("section", { className: "live-canvas" }, rendered.value),
   );
 }
