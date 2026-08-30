@@ -136,6 +136,17 @@ const defaultPropsByTemplate: Readonly<Record<AirlineStarterTemplateId, Readonly
   "booking-review": { origin: "SAW", destination: "BER", passengers: 2, fare: "smart", "base-price": 138, currency: "EUR" },
 });
 
+const starterInteractionByTemplate: Readonly<Record<AirlineStarterTemplateId, Readonly<{ event: string; actionEvent: string }>>> = Object.freeze({
+  "flight-search": { event: "submit", actionEvent: "flight.search.submit" },
+  "flight-results": { event: "select", actionEvent: "flight.offer.select" },
+  "fare-comparison": { event: "select", actionEvent: "flight.fare.select" },
+  "traveller-details": { event: "submit", actionEvent: "flight.passenger.submit" },
+  "seat-selection": { event: "select", actionEvent: "flight.seat.select" },
+  baggage: { event: "select", actionEvent: "flight.baggage.select" },
+  extras: { event: "submit", actionEvent: "flight.extras.submit" },
+  "booking-review": { event: "continue", actionEvent: "flight.booking.handoff" },
+});
+
 export function airlineStarterProps(template: AirlineStarterTemplateId): Readonly<Record<string, string | number>> {
   return defaultPropsByTemplate[template];
 }
@@ -149,6 +160,7 @@ export function createAirlineStarterDocument(experienceId: string, template: Air
     order: 0,
     props: { ...defaultPropsByTemplate[template] },
   };
+  const interaction = starterInteractionByTemplate[template];
   return {
     version: "1",
     id: experienceId,
@@ -156,6 +168,12 @@ export function createAirlineStarterDocument(experienceId: string, template: Air
     entryView: "main",
     views: [{ id: "main", nodes: [node] }],
     bindings: [],
-    interactions: [],
+    interactions: [{
+      viewId: "main",
+      nodeId: "root",
+      event: interaction.event,
+      actionEvent: interaction.actionEvent,
+      routes: [],
+    }],
   };
 }
