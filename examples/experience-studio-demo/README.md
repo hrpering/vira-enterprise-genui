@@ -60,6 +60,14 @@ This demo uses a real file-backed server store under `examples/experience-studio
 
 This is intentionally a **demo persistence adapter**, not a claim of production cloud persistence, tenancy, authentication, or deployment infrastructure. Replacing the file store with a database/object store does not change the Studio `StudioDocument → StudioPublication → Studio Runtime` path proven here.
 
+## Demo host action completion
+
+Published Studio interactions still follow the canonical runtime action lifecycle. A successful interaction creates a host action and the Studio runtime waits for a host outcome before accepting the next interaction.
+
+The local demo has no airline backend, so its live host explicitly acknowledges each successful starter action with a `success` completion. This is demo-only host behavior: it prevents a successful action from remaining permanently pending, but it does **not** claim that an external airline operation, booking, seat assignment, payment, or policy workflow succeeded.
+
+A production host must execute its own host effect and call `complete()` with the real `success`, `empty`, or `error` outcome.
+
 ## Browser acceptance gate
 
 ```bash
@@ -72,7 +80,8 @@ The Chromium test performs the full user lifecycle:
 2. open the real Puck workbench;
 3. publish it through the Studio publish gate;
 4. open `/live/<id>` and verify the published runtime actually renders;
-5. unpublish it and verify the live URL becomes unavailable;
-6. delete the draft and verify it disappears from the Studio library.
+5. trigger the same published interaction twice and verify the demo host completes both actions instead of leaving the runtime stuck in `ACTION_PENDING`;
+6. unpublish it and verify the live URL becomes unavailable;
+7. delete the draft and verify it disappears from the Studio library.
 
-The test does not accept a status label such as “Published” as proof of publication; it verifies the separate live runtime route.
+The test does not accept a status label such as “Published” as proof of publication; it verifies the separate live runtime route and the action completion lifecycle.
