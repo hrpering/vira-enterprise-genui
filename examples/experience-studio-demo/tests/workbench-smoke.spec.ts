@@ -4,6 +4,7 @@ const fatalConsolePatterns = [
   "Each child in a list should have a unique",
   "Cannot read properties of undefined",
   "Cannot read properties of null",
+  "prop key must be one semantic segment",
 ] as const;
 
 function watchPage(page: import("@playwright/test").Page, pageErrors: string[], consoleRegressions: string[]): void {
@@ -24,7 +25,8 @@ test("creates, publishes, serves, unpublishes and deletes a real Studio experien
 
   await page.goto("/");
   await expect(page.getByText("Your experiences", { exact: true })).toBeVisible();
-  await expect(page.getByText("Starter GenUI experiences", { exact: true })).toBeVisible();
+  await expect(page.getByText("Start from a real GenUI surface", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("starter-gallery")).toBeVisible();
 
   await page.getByTestId("create-template-flight-search").click();
   await page.getByTestId("new-experience-name").fill(name);
@@ -34,6 +36,7 @@ test("creates, publishes, serves, unpublishes and deletes a real Studio experien
   await expect(page.getByTestId("vira-studio-workbench")).toBeVisible();
   await expect(page.getByText(name, { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Search flights", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-testid="vira-studio-preview"] input[type="date"]')).toHaveValue("2026-09-15");
   await expect(page.getByTestId("publication-status")).toHaveText("Draft only");
   await expect(page.getByTestId("vira-studio-error")).toHaveCount(0);
 
@@ -56,6 +59,7 @@ test("creates, publishes, serves, unpublishes and deletes a real Studio experien
   await expect(livePage.getByText(name, { exact: true })).toBeVisible();
   await expect(livePage.getByText("Search flights", { exact: true })).toBeVisible();
   await expect(livePage.locator(".vira-search-card")).toBeVisible();
+  await expect(livePage.locator('input[type="date"]')).toHaveValue("2026-09-15");
 
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByTestId("unpublish-experience").click();
@@ -73,6 +77,90 @@ test("creates, publishes, serves, unpublishes and deletes a real Studio experien
 
   await livePage.reload();
   await expect(livePage.getByTestId("live-not-published")).toBeVisible();
+
+  expect(pageErrors).toEqual([]);
+  expect(consoleRegressions).toEqual([]);
+});
+
+test("uses one shared brand renderer from gallery through Studio and published runtime", async ({ page, context }) => {
+  const pageErrors: string[] = [];
+  const consoleRegressions: string[] = [];
+  watchPage(page, pageErrors, consoleRegressions);
+
+  const id = `demo.seat-${Date.now()}`;
+  const name = "Shared seat map";
+
+  await page.goto("/");
+  const gallery = page.getByTestId("starter-gallery");
+  await expect(gallery.getByText("Flight results", { exact: true })).toBeVisible();
+  await expect(gallery.getByText("Fare comparison", { exact: true })).toBeVisible();
+  await expect(gallery.getByText("Traveller details", { exact: true })).toBeVisible();
+  await expect(gallery.getByText("Seat selection", { exact: true })).toBeVisible();
+  await expect(gallery.getByText("Baggage", { exact: true })).toBeVisible();
+  await expect(gallery.getByText("Insurance & extras", { exact: true })).toBeVisible();
+  await expect(gallery.getByText("Booking review", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-template="seat-selection"] .vira-plane')).toBeVisible();
+  await expect(page.locator('[data-template="seat-selection"] .vira-seat:not(:disabled)').first()).toBeEnabled();
+
+  const seatThumbnail = page.locator('[data-template="seat-selection"] .template-preview');
+  await expect(seatThumbnail).toHaveAttribute("inert", "");
+  await expect(seatThumbnail).toHaveAttribute("aria-hidden", "true");
+  const thumbnailSeat = page.locator('[data-template="seat-selection"] .template-preview .vira-seat:not(:disabled)').first();
+  const thumbnailAcceptedProgrammaticFocus = await thumbnailSeat.evaluate((node) => {
+    (node as HTMLElement).focus();
+    return document.activeElement === node;
+  });
+  expect(thumbnailAcceptedProgrammaticFocus).toBe(false);
+  await page.getByTestId("new-experience").focus();
+  for (let index = 0; index < 12; index += 1) {
+    await page.keyboard.press("Tab");
+    const focusEnteredPreview = await page.evaluate(() => document.activeElement instanceof Element
+      && document.activeElement.closest(".template-preview, .dialog-selected-preview") !== null);
+    expect(focusEnteredPreview).toBe(false);
+  }
+
+  await page.getByTestId("create-template-seat-selection").click();
+  await page.getByTestId("new-experience-name").fill(name);
+  await page.getByTestId("new-experience-id").fill(id);
+  await page.getByTestId("create-experience").click();
+
+  await expect(page.getByTestId("vira-studio-workbench")).toBeVisible();
+  const studioPreview = page.getByTestId("vira-studio-preview");
+  await expect(studioPreview.locator(".vira-plane")).toBeVisible();
+  await expect(studioPreview.locator(".vira-active-traveller div > span")).toHaveText("1/2 assigned");
+  const authoringSeat = studioPreview.locator(".vira-seat:not(:disabled):not(.selected)").first();
+  await expect(authoringSeat).toBeEnabled();
+  await authoringSeat.click();
+  await expect(studioPreview.locator(".vira-active-traveller div > span")).toHaveText("2/2 assigned");
+  await expect(authoringSeat).toHaveClass(/selected/);
+  await expect(page.getByText("Radius", { exact: true })).toBeVisible();
+  await expect(page.getByText("Shadow", { exact: true })).toBeVisible();
+
+  await page.getByTestId("vira-studio-panel-components").click();
+  await expect(page.getByText("Fare comparison", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Seat map", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Baggage selector", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Booking review", { exact: true }).first()).toBeVisible();
+
+  await page.getByTestId("vira-studio-publish").click();
+  await expect(page.getByTestId("publication-status")).toHaveText("Published live");
+
+  const livePage = await context.newPage();
+  watchPage(livePage, pageErrors, consoleRegressions);
+  await livePage.goto(`/live/${id}`);
+  await expect(livePage.getByTestId("live-experience")).toBeVisible();
+  await expect(livePage.locator(".vira-plane")).toBeVisible();
+  await expect(livePage.getByText("Pick seats together", { exact: true })).toBeVisible();
+  await expect(livePage.locator(".vira-active-traveller div > span")).toHaveText("1/2 assigned");
+  const liveSeat = livePage.locator(".vira-seat:not(:disabled):not(.selected)").first();
+  await expect(liveSeat).toBeEnabled();
+  await liveSeat.click();
+  await expect(livePage.locator(".vira-active-traveller div > span")).toHaveText("2/2 assigned");
+  await expect(liveSeat).toHaveClass(/selected/);
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByTestId("delete-experience").click();
+  await expect(page.getByTestId(`experience-${id}`)).toHaveCount(0);
 
   expect(pageErrors).toEqual([]);
   expect(consoleRegressions).toEqual([]);

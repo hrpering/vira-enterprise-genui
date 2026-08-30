@@ -1,3 +1,6 @@
+import "../../airline-brand-kit/styles/base.css";
+import "../../airline-brand-kit/styles/booking-flow.css";
+import "./brand-gallery.css";
 import { planExperience } from "@vira-enterprise-genui/planner";
 import { createRuntimeState } from "@vira-enterprise-genui/runtime-core";
 import { createStudioRuntimeSession } from "@vira-enterprise-genui/studio-runtime";
@@ -14,6 +17,7 @@ import {
   createStarterDocument,
   runtimePermissionPolicy,
   runtimeRenderers,
+  starterPreview,
   starterTemplates,
   workbenchRenderers,
 } from "./catalog.js";
@@ -31,7 +35,7 @@ import {
 import type { ExperienceRecord, ExperienceSummary, PublicExperience } from "./api.js";
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unexpected Studio demo error";
+  return error instanceof Error ? error.message : "Unexpected Studio error";
 }
 
 function semanticIdFromName(name: string): string {
@@ -58,7 +62,8 @@ interface CreateDialogProps {
 }
 
 function CreateDialog({ initialTemplate, onCancel, onCreated }: CreateDialogProps): ReactElement {
-  const templateDefinition = starterTemplates.find((candidate) => candidate.id === initialTemplate) ?? starterTemplates[0];
+  const templateDefinition = starterTemplates.find((candidate) => candidate.id === initialTemplate);
+  if (!templateDefinition) throw new Error(`Unknown starter template: ${initialTemplate}`);
   const [name, setName] = useState(templateDefinition.label);
   const [id, setId] = useState(semanticIdFromName(templateDefinition.label));
   const [template, setTemplate] = useState<StarterTemplateId>(initialTemplate);
@@ -70,11 +75,7 @@ function CreateDialog({ initialTemplate, onCancel, onCreated }: CreateDialogProp
     setBusy(true);
     setIssue(undefined);
     try {
-      const record = await createExperience({
-        id,
-        name: name.trim(),
-        document: createStarterDocument(id, template),
-      });
+      const record = await createExperience({ id, name: name.trim(), document: createStarterDocument(id, template) });
       onCreated(record);
     } catch (error) {
       setIssue(errorMessage(error));
@@ -88,9 +89,10 @@ function CreateDialog({ initialTemplate, onCancel, onCreated }: CreateDialogProp
     createElement(
       "section",
       { className: "create-dialog", role: "dialog", "aria-modal": true, "aria-labelledby": "create-title" },
-      createElement("div", { className: "dialog-kicker" }, "Create a real Studio draft"),
+      createElement("div", { className: "dialog-kicker" }, "Create a persisted Studio draft"),
       createElement("h2", { id: "create-title" }, "New experience"),
-      createElement("p", null, "The draft is persisted by the demo server. Publish creates a separate live publication."),
+      createElement("p", null, "Start from the same brand component library used by the Vira airline integration. Publish creates a separate live artifact."),
+      createElement("div", { className: "dialog-selected-preview" }, starterPreview(template)),
       createElement(
         "label",
         { className: "dialog-field" },
@@ -165,9 +167,7 @@ function Dashboard({ onOpen }: DashboardProps): ReactElement {
     }
   }
 
-  useEffect(() => {
-    void refresh();
-  }, []);
+  useEffect(() => { void refresh(); }, []);
 
   return createElement(
     "main",
@@ -175,7 +175,7 @@ function Dashboard({ onOpen }: DashboardProps): ReactElement {
     createElement(
       "header",
       { className: "home-header" },
-      createElement("div", null, createElement("strong", null, "Vira Experience Studio"), createElement("span", null, "Real draft → publish → live → unpublish/delete lifecycle")),
+      createElement("div", null, createElement("strong", null, "Vira Experience Studio"), createElement("span", null, "Author with the same brand components Vira renders at runtime")),
       createElement("button", { type: "button", className: "primary-button", onClick: () => setDialogTemplate("blank"), "data-testid": "new-experience" }, "+ New experience"),
     ),
     createElement(
@@ -186,7 +186,7 @@ function Dashboard({ onOpen }: DashboardProps): ReactElement {
       loading
         ? createElement("div", { className: "empty-card" }, "Loading persisted drafts…")
         : experiences.length === 0
-          ? createElement("div", { className: "empty-card" }, createElement("strong", null, "No experiences yet"), createElement("span", null, "Create one below, edit it in Puck, publish it, and open its real live URL."))
+          ? createElement("div", { className: "empty-card" }, createElement("strong", null, "No experiences yet"), createElement("span", null, "Choose a visual starter below, edit it, publish it, and open the separate live runtime URL."))
           : createElement(
               "div",
               { className: "experience-grid", "data-testid": "experience-list" },
@@ -201,18 +201,19 @@ function Dashboard({ onOpen }: DashboardProps): ReactElement {
     ),
     createElement(
       "section",
-      { className: "home-section" },
-      createElement("div", { className: "section-heading" }, createElement("div", null, createElement("span", null, "Approved catalog"), createElement("h2", null, "Starter GenUI experiences"))),
+      { className: "home-section starter-library" },
+      createElement("div", { className: "section-heading" }, createElement("div", null, createElement("span", null, "Shared brand component library"), createElement("h2", null, "Start from a real GenUI surface"), createElement("p", { className: "section-copy" }, "These thumbnails are rendered by the same airline brand renderer used by the Vira integration, not screenshots or placeholder cards."))),
       createElement(
         "div",
-        { className: "template-grid" },
+        { className: "template-grid visual-template-grid", "data-testid": "starter-gallery" },
         ...starterTemplates.map((template) => createElement(
           "article",
-          { key: template.id, className: "template-card" },
-          createElement("span", { className: "template-icon" }, template.id === "flight-search" ? "✈" : template.id === "visa-check" ? "◎" : template.id === "blank" ? "+" : "i"),
-          createElement("strong", null, template.label),
-          createElement("p", null, template.description),
-          createElement("button", { type: "button", className: "secondary-button", onClick: () => setDialogTemplate(template.id), "data-testid": `create-template-${template.id}` }, "Create from starter"),
+          { key: template.id, className: "template-card visual-template-card", "data-template": template.id },
+          createElement("div", { className: "template-preview", "aria-hidden": true }, starterPreview(template.id)),
+          createElement("div", { className: "template-card-copy" },
+            createElement("strong", null, template.label),
+            createElement("p", null, template.description),
+            createElement("button", { type: "button", className: "secondary-button", onClick: () => setDialogTemplate(template.id), "data-testid": `create-template-${template.id}` }, "Create from starter")),
         )),
       ),
     ),
@@ -258,14 +259,8 @@ function Editor({ record, onBack, onDeleted }: EditorProps): ReactElement {
     saveQueue.current = saveQueue.current
       .catch(() => undefined)
       .then(() => saveExperienceDraft(record.id, record.name, document))
-      .then(() => {
-        setSaveState("Saved");
-        setIssue(undefined);
-      })
-      .catch((error: unknown) => {
-        setSaveState("Save failed");
-        setIssue(errorMessage(error));
-      });
+      .then(() => { setSaveState("Saved"); setIssue(undefined); })
+      .catch((error: unknown) => { setSaveState("Save failed"); setIssue(errorMessage(error)); });
   }
 
   async function unpublish(): Promise<void> {
@@ -338,10 +333,7 @@ function StudioApp(): ReactElement {
     }
     setLoading(true);
     void readExperience(selectedId)
-      .then((value) => {
-        setRecord(value);
-        setIssue(undefined);
-      })
+      .then((value) => { setRecord(value); setIssue(undefined); })
       .catch((error: unknown) => setIssue(errorMessage(error)))
       .finally(() => setLoading(false));
   }, [selectedId]);
@@ -375,10 +367,8 @@ function buildRuntime(publicExperience: PublicExperience) {
     futureCapabilities: [],
   });
   if (!planned.ok) throw new Error(planned.issue.message);
-
   const runtimeState = createRuntimeState(`live-${publicExperience.id.replaceAll(".", "-")}`, planned.value);
   if (!runtimeState.ok) throw new Error(runtimeState.issue.message);
-
   let actionSequence = 0;
   const runtime = createStudioRuntimeSession({
     publication: publicExperience.publication,
@@ -403,12 +393,7 @@ function PublishedExperience({ value }: { readonly value: PublicExperience }): R
   return createElement(
     "main",
     { className: "live-page", "data-testid": "live-experience" },
-    createElement(
-      "header",
-      { className: "live-header" },
-      createElement("div", null, createElement("span", { className: "live-dot" }), createElement("strong", null, value.name), createElement("code", null, value.id)),
-      createElement("span", null, "Published Vira runtime"),
-    ),
+    createElement("header", { className: "live-header" }, createElement("div", null, createElement("span", { className: "live-dot" }), createElement("strong", null, value.name), createElement("code", null, value.id)), createElement("span", null, "Published Vira runtime")),
     createElement("section", { className: "live-canvas" }, rendered.value),
   );
 }
@@ -417,24 +402,15 @@ function LiveApp({ id }: { readonly id: string }): ReactElement {
   const [value, setValue] = useState<PublicExperience>();
   const [notPublished, setNotPublished] = useState(false);
   const [issue, setIssue] = useState<string>();
-
   useEffect(() => {
     void readPublicExperience(id)
-      .then((result) => {
-        setValue(result);
-        setNotPublished(false);
-        setIssue(undefined);
-      })
+      .then((result) => { setValue(result); setNotPublished(false); setIssue(undefined); })
       .catch((error: unknown) => {
         const message = errorMessage(error);
-        if (message.includes("not published")) setNotPublished(true);
-        else setIssue(message);
+        if (message.includes("not published")) setNotPublished(true); else setIssue(message);
       });
   }, [id]);
-
-  if (notPublished) {
-    return createElement("main", { className: "live-missing", "data-testid": "live-not-published" }, createElement("span", null, "404"), createElement("h1", null, "This experience is not published"), createElement("p", null, "The live publication was removed. The Studio draft may still exist."), createElement("a", { href: "/" }, "Open Experience Studio"));
-  }
+  if (notPublished) return createElement("main", { className: "live-missing", "data-testid": "live-not-published" }, createElement("span", null, "404"), createElement("h1", null, "This experience is not published"), createElement("p", null, "The live publication was removed. The Studio draft may still exist."), createElement("a", { href: "/" }, "Open Experience Studio"));
   if (issue) return createElement("main", { className: "live-missing" }, createElement("h1", null, "Live experience failed"), createElement("p", null, issue));
   if (!value) return createElement("main", { className: "live-missing" }, "Loading published experience…");
   return createElement(PublishedExperience, { value });
@@ -443,6 +419,4 @@ function LiveApp({ id }: { readonly id: string }): ReactElement {
 const root = document.getElementById("root");
 if (!root) throw new Error("demo root element missing");
 const liveMatch = window.location.pathname.match(/^\/live\/([^/]+)$/);
-createRoot(root).render(liveMatch
-  ? createElement(LiveApp, { id: decodeURIComponent(liveMatch[1] ?? "") })
-  : createElement(StudioApp));
+createRoot(root).render(liveMatch ? createElement(LiveApp, { id: decodeURIComponent(liveMatch[1] ?? "") }) : createElement(StudioApp));

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@puckeditor/core": "0.22.4",
+    "@vira-enterprise-genui/airline-brand-kit": "workspace:*",
     "@vira-enterprise-genui/planner": "workspace:*",
     "@vira-enterprise-genui/runtime-core": "workspace:*",
     "@vira-enterprise-genui/studio-compiler": "workspace:*",
