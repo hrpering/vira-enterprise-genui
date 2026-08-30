@@ -1,3 +1,10 @@
+import {
+  DEFAULT_MOCK_RUNTIME_INPUT,
+  airportByCode,
+  getMissedFlightGuidance,
+  getSpecialAssistanceGuidance,
+  getVisaGuidance,
+} from "@vira-enterprise-genui/mock-airline-domain";
 import type {
   RenderCapabilityBinding,
   RuntimeWebDomBeginContext,
@@ -352,55 +359,63 @@ export function createAirlineGuidanceController(container: HTMLElement, result: 
 
 function previewResult(component: string, props: Readonly<Record<string, unknown>>): AirlineGuidanceResult {
   if (component === AIRLINE_GUIDANCE_STUDIO_COMPONENTS.specialAssistance) {
+    const source = getSpecialAssistanceGuidance();
     return {
       experience: "advisory.special-assistance",
       input: {},
       data: {
-        summary: text(props.summary) ?? "Choose the assistance level that best matches the passenger's mobility needs.",
-        deadline: text(props.deadline) ?? "Request as early as possible before departure",
-        types: [
-          { id: "WCHR", title: "Ramp assistance", copy: "Passenger can use stairs and walk to the seat." },
-          { id: "WCHS", title: "Stair assistance", copy: "Passenger cannot use stairs but can walk to the seat." },
-          { id: "WCHC", title: "Cabin-seat assistance", copy: "Passenger needs assistance all the way to the seat." },
-        ],
-        notes: ["Request assistance before departure.", "Bring mobility-device details when relevant."],
+        ...source,
+        summary: text(props.summary) ?? source.summary,
+        deadline: text(props.deadline) ?? source.deadline,
       },
     };
   }
   if (component === AIRLINE_GUIDANCE_STUDIO_COMPONENTS.missedFlight) {
+    const source = getMissedFlightGuidance();
+    const nextAction = text(props["next-action"]);
+    const scenarios = records(source.scenarios).map((scenario, index) => (
+      index === 0 && nextAction ? { ...scenario, nextAction } : scenario
+    ));
     return {
       experience: "policy.missed-flight",
       input: {},
       data: {
-        summary: text(props.summary) ?? "What happens depends on when and where the journey is interrupted.",
-        scenarios: [
-          { id: "no-show", label: "No-show", title: "If you do not board", points: ["Remaining itinerary may be affected by fare rules.", "A fare difference or service fee may apply."], nextAction: text(props["next-action"]) ?? "Check the fare rules attached to the ticket before rebooking." },
-          { id: "connection", label: "Connection", title: "If a connection is missed", points: ["Check whether the itinerary is protected as one booking.", "Contact the operating airline when a prior delay caused the miss."], nextAction: "Verify the ticket and operating-carrier conditions." },
-          { id: "airport-delay", label: "Airport delay", title: "If you arrive late", points: ["Airport closing times can differ from departure time.", "Rebooking depends on the fare conditions."], nextAction: "Review the current ticket rules and next available flight." },
-        ],
+        ...source,
+        summary: text(props.summary) ?? source.summary,
+        scenarios,
       },
     };
   }
+
+  const defaultOrigin = airportByCode(DEFAULT_MOCK_RUNTIME_INPUT.origin)?.country;
+  const defaultDestination = airportByCode(DEFAULT_MOCK_RUNTIME_INPUT.destination)?.country;
+  const originCountry = text(props["origin-country"]) ?? defaultOrigin;
+  const destinationCountry = text(props["destination-country"]) ?? defaultDestination;
+  const source = getVisaGuidance({
+    ...(originCountry ? { originCountry } : {}),
+    ...(destinationCountry ? { destinationCountry } : {}),
+  });
   return {
     experience: "compliance.visa-check",
     input: {
-      originCountry: text(props["origin-country"]) ?? "Türkiye",
-      destinationCountry: text(props["destination-country"]) ?? "Germany",
-      nationality: "TUR",
-      passportIssuer: "TR",
-      residence: "TUR",
+      ...(originCountry ? { originCountry } : {}),
+      ...(destinationCountry ? { destinationCountry } : {}),
     },
-    data: { summary: text(props.summary) ?? "Entry rules depend on the traveler's passport, nationality and residence status." },
+    data: {
+      ...source,
+      summary: text(props.summary) ?? source.summary,
+    },
   };
 }
 
 function previewState(result: AirlineGuidanceResult): RuntimeState {
+  const firstScenario = records(result.data.scenarios)[0];
   return {
     plan: {
       state: {
         "guidance-type": result.experience,
         "assistance-type": "",
-        "policy-scenario": result.experience === "policy.missed-flight" ? "no-show" : "",
+        "policy-scenario": result.experience === "policy.missed-flight" ? text(firstScenario?.id) ?? "" : "",
         "visa-status": "collecting",
         "guidance-handoff": "",
       },
