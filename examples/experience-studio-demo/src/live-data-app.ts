@@ -16,7 +16,7 @@ import { createRuntimeState } from "@vira-enterprise-genui/runtime-core";
 import { createStudioRuntimeSession, type StudioRuntimeSession } from "@vira-enterprise-genui/studio-runtime";
 import { renderStudioRuntimeReactView } from "@vira-enterprise-genui/studio-runtime-react";
 import { createElement, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, ReactElement } from "react";
+import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import { readPublicExperience, type PublicExperience } from "./api.js";
 import {
@@ -61,11 +61,6 @@ const inputStyle: CSSProperties = {
   color: "#121a2f",
 };
 
-interface LiveHostInteraction {
-  readonly actionType: string;
-  readonly payload: Readonly<Record<string, unknown>>;
-}
-
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected Studio runtime error";
 }
@@ -78,36 +73,41 @@ function stringValue(value: unknown): string | undefined {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
 }
 
-function applyLiveSeatSelection(root: HTMLElement, payload: Readonly<Record<string, unknown>>): void {
-  const seat = stringValue(payload.seat);
-  if (!seat) return;
+function seatId(button: HTMLButtonElement): string | undefined {
+  const value = button.querySelector("strong")?.textContent?.trim();
+  return value && value.length > 0 ? value : undefined;
+}
 
-  let selectedButton: HTMLButtonElement | undefined;
+function applyLiveSeatState(
+  root: HTMLElement,
+  selectedSeats: ReadonlySet<string>,
+  baseAssigned: { current: number | undefined },
+): void {
+  const progress = root.querySelector<HTMLElement>(".vira-active-traveller div > span");
+  if (!progress) return;
+
+  const match = progress.textContent?.match(/^(\d+)\/(\d+) assigned$/);
+  if (!match) return;
+  const currentAssigned = Number.parseInt(match[1] ?? "0", 10);
+  const passengers = Number.parseInt(match[2] ?? "0", 10);
+  if (!Number.isSafeInteger(passengers) || passengers < 1) return;
+
+  if (baseAssigned.current === undefined) {
+    baseAssigned.current = Math.min(passengers, Math.max(0, currentAssigned));
+  }
+
   for (const button of root.querySelectorAll<HTMLButtonElement>("button.vira-seat")) {
-    if (button.querySelector("strong")?.textContent?.trim() === seat) {
-      selectedButton = button;
-      break;
+    const id = seatId(button);
+    if (id && selectedSeats.has(id)) {
+      button.classList.add("selected");
+      button.disabled = true;
     }
   }
-  if (
-    !selectedButton
-    || selectedButton.classList.contains("occupied")
-    || selectedButton.classList.contains("selected")
-  ) return;
-  selectedButton.classList.add("selected");
-  selectedButton.disabled = true;
 
-  const banner = root.querySelector<HTMLElement>(".vira-active-traveller");
-  const progress = banner?.querySelector<HTMLElement>("div > span");
-  const match = progress?.textContent?.match(/^(\d+)\/(\d+) assigned$/);
-  if (!progress || !match) return;
-
-  const current = Number.parseInt(match[1] ?? "0", 10);
-  const passengers = Number.parseInt(match[2] ?? "0", 10);
-  if (!Number.isSafeInteger(current) || !Number.isSafeInteger(passengers) || passengers < 1) return;
-  const assigned = Math.min(passengers, current + 1);
+  const assigned = Math.min(passengers, baseAssigned.current + selectedSeats.size);
   progress.textContent = `${assigned}/${passengers} assigned`;
 
+  const banner = root.querySelector<HTMLElement>(".vira-active-traveller");
   const avatar = banner?.querySelector<HTMLElement>(":scope > span");
   const title = banner?.querySelector<HTMLElement>("div > strong");
   if (title) {
@@ -132,15 +132,6 @@ function applyLiveFareSelection(root: HTMLElement, payload: Readonly<Record<stri
   for (const button of root.querySelectorAll<HTMLButtonElement>("button.vira-fare-option")) {
     button.classList.toggle("selected", button.querySelector("strong")?.textContent?.trim() === fare.name);
   }
-}
-
-function applyLiveHostInteraction(
-  root: HTMLElement,
-  actionType: string,
-  payload: Readonly<Record<string, unknown>>,
-): void {
-  if (actionType === "travel.flight.seat.select") applyLiveSeatSelection(root, payload);
-  else if (actionType === "travel.flight.fare.select") applyLiveFareSelection(root, payload);
 }
 
 function buildRuntime(
@@ -311,29 +302,72 @@ function DomainControls({
 }
 
 function PublishedExperience({ value }: { readonly value: PublicExperience }): ReactElement {
+  const hostCompletions = useRef(0);
+  const lastHostAction = useRef<string>();
   const liveExperienceRef = useRef<HTMLElement | null>(null);
-  const [hostInteractions, setHostInteractions] = useState<readonly LiveHostInteraction[]>([]);
+  const selectedSeats = useRef(new Set<string>());
+  const baseAssigned = useRef<number | undefined>(undefined);
+  const timers = useRef(new Set<number>());
   const [input, setInput] = useState<MockAirlineRuntimeInput>({ ...DEFAULT_MOCK_RUNTIME_INPUT });
 
   const runtime = useMemo(
     () => buildRuntime(value, input, (actionType, payload) => {
-      setHostInteractions((current) => [...current, { actionType, payload }]);
+      hostCompletions.current += 1;
+      lastHostAction.current = actionType;
+      const root = liveExperienceRef.current;
+      if (!root) return;
+      root.setAttribute("data-demo-host-completions", String(hostCompletions.current));
+      root.setAttribute("data-demo-last-action", actionType);
+      if (actionType === "travel.flight.fare.select") applyLiveFareSelection(root, payload);
     }),
     [value.id, value.publishedAt, input.origin, input.destination, input.departureDate, input.passengers, input.fare],
   );
   useEffect(() => () => runtime.dispose(), [runtime]);
-  useEffect(() => {
-    const root = liveExperienceRef.current;
-    if (!root) return;
-    for (const interaction of hostInteractions) {
-      applyLiveHostInteraction(root, interaction.actionType, interaction.payload);
-    }
-  }, [hostInteractions]);
+  useEffect(() => () => {
+    for (const timer of timers.current) window.clearTimeout(timer);
+    timers.current.clear();
+  }, []);
+
+  function resetInteractionState(): void {
+    selectedSeats.current.clear();
+    baseAssigned.current = undefined;
+    hostCompletions.current = 0;
+    lastHostAction.current = undefined;
+    for (const timer of timers.current) window.clearTimeout(timer);
+    timers.current.clear();
+  }
 
   function updateInput(next: MockAirlineRuntimeInput): void {
-    setHostInteractions([]);
+    resetInteractionState();
     setInput(next);
   }
+
+  const onClickCapture = (event: ReactMouseEvent<HTMLElement>): void => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest<HTMLButtonElement>("button.vira-seat");
+    const root = liveExperienceRef.current;
+    if (!button || !root?.contains(button)) return;
+    if (button.disabled || button.classList.contains("occupied") || button.classList.contains("selected")) return;
+
+    const id = seatId(button);
+    if (!id) return;
+    const completionBeforeClick = hostCompletions.current;
+    selectedSeats.current.add(id);
+
+    const timer = window.setTimeout(() => {
+      timers.current.delete(timer);
+      const currentRoot = liveExperienceRef.current;
+      const completed = hostCompletions.current === completionBeforeClick + 1
+        && lastHostAction.current === "travel.flight.seat.select";
+      if (!currentRoot || !completed) {
+        selectedSeats.current.delete(id);
+        return;
+      }
+      applyLiveSeatState(currentRoot, selectedSeats.current, baseAssigned);
+    }, 0);
+    timers.current.add(timer);
+  };
 
   const rendered = renderStudioRuntimeReactView({
     session: runtime,
@@ -349,15 +383,15 @@ function PublishedExperience({ value }: { readonly value: PublicExperience }): R
     );
   }
 
-  const lastInteraction = hostInteractions[hostInteractions.length - 1];
   return createElement(
     "main",
     {
       ref: liveExperienceRef,
+      onClickCapture,
       className: "live-page",
       "data-testid": "live-experience",
-      "data-demo-host-completions": hostInteractions.length,
-      "data-demo-last-action": lastInteraction?.actionType,
+      "data-demo-host-completions": hostCompletions.current,
+      "data-demo-last-action": lastHostAction.current,
     },
     createElement(
       "header",
