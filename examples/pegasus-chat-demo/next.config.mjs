@@ -2,6 +2,7 @@
 const nextConfig = {
   transpilePackages: [
     "@vira-enterprise-genui/adapter-sdk",
+    "@vira-enterprise-genui/airline-brand-kit",
     "@vira-enterprise-genui/composer",
     "@vira-enterprise-genui/planner",
     "@vira-enterprise-genui/protocol",

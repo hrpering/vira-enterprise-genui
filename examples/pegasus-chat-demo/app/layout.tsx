@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
-import "../../airline-brand-kit/styles/base.css";
-import "../../airline-brand-kit/styles/booking-flow.css";
+import "@vira-enterprise-genui/airline-brand-kit/base.css";
+import "@vira-enterprise-genui/airline-brand-kit/booking-flow.css";
 import "./guidance.css";
 
 export const metadata: Metadata = {
