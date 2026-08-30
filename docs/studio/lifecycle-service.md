@@ -50,6 +50,14 @@ Both lifecycle counters are bounded safe integers. If `recordVersion` or `draftR
 
 A successful store mutation acknowledgement must match the exact canonical record the service asked to persist. A provider that returns altered document, publication, identity, version or timestamp data is treated as `STORE_FAILURE` rather than becoming the service response.
 
+### Persisted records are revalidated at the storage boundary
+
+TypeScript types do not make a database, object store or external adapter trustworthy at runtime. Every record returned by `read` or `list` is therefore checked before it becomes lifecycle state.
+
+The service reparses the persisted `StudioDocument`, recompiles a persisted `StudioPublication` and requires the stored publication to equal the deterministic compiler output. It also rejects impossible timestamp ordering, invalid lifecycle counter relationships and duplicate experience ids returned by one workspace list operation. Malformed or hostile adapter output collapses to the generic `STORE_FAILURE` boundary.
+
+This persisted-data check intentionally proves canonical structure rather than re-authorizing historical content against today's active brand catalog. Catalog/binding/action policy changes can therefore be handled explicitly by the host instead of silently making old records unreadable.
+
 ### Drafts use canonical Studio validation
 
 Create/save operations validate the document through the active component catalog, binding source catalog, design rules and action-flow contract before persistence.
