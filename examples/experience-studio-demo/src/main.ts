@@ -34,6 +34,7 @@ import {
   unpublishExperience,
 } from "./api.js";
 import type { ExperienceRecord, ExperienceSummary, PublicExperience } from "./api.js";
+import { createMockAuthoringRenderers } from "./authoring-preview.js";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected Studio error";
@@ -65,7 +66,7 @@ interface CreateDialogProps {
 function CreateDialog({ initialTemplate, onCancel, onCreated }: CreateDialogProps): ReactElement {
   const templateDefinition = starterTemplates.find((candidate) => candidate.id === initialTemplate);
   if (!templateDefinition) throw new Error(`Unknown starter template: ${initialTemplate}`);
-  const [name, setName] = useState(templateDefinition.label);
+  const [name, setName] = useState<string>(templateDefinition.label);
   const [id, setId] = useState(semanticIdFromName(templateDefinition.label));
   const [template, setTemplate] = useState<StarterTemplateId>(initialTemplate);
   const [busy, setBusy] = useState(false);
@@ -194,7 +195,7 @@ function Dashboard({ onOpen }: DashboardProps): ReactElement {
               ...experiences.map((experience) => createElement(
                 "button",
                 { key: experience.id, type: "button", className: "experience-card", onClick: () => onOpen(experience.id), "data-testid": `experience-${experience.id}` },
-                createElement("div", { className: "experience-card-top" }, createElement("strong", null, experience.name), createElement("span", { className: experience.published ? "status published" : "status draft" }, experience.published ? "Published" : "Draft")),
+                createElement("div", { className: "experience-card-top" }, createElement("strong", null, experience.name), createElement("span", { className: experience.published ? "status published" : "status draft", }, experience.published ? "Published" : "Draft")),
                 createElement("code", null, experience.id),
                 createElement("span", null, experience.published ? "Live publication available" : "Not live yet"),
               )),
@@ -254,6 +255,7 @@ function Editor({ record, onBack, onDeleted }: EditorProps): ReactElement {
     return createElement("main", { className: "fatal-page" }, createElement("h1", null, "Studio draft could not be opened"), createElement("pre", null, sessionResult.issue.message), createElement("button", { onClick: onBack }, "Back"));
   }
   const session = sessionResult.value;
+  const authoringRenderers = createMockAuthoringRenderers(session, workbenchRenderers);
 
   function persistDraft(document: ExperienceRecord["document"]): void {
     setSaveState("Saving…");
@@ -305,7 +307,7 @@ function Editor({ record, onBack, onDeleted }: EditorProps): ReactElement {
     issue ? createElement("div", { className: "editor-error", role: "alert" }, issue) : null,
     createElement(ViraStudioWorkbench, {
       session,
-      renderers: workbenchRenderers,
+      renderers: authoringRenderers,
       title: record.name,
       height: "calc(100vh - 74px)",
       onDocumentChange: (document) => persistDraft(document),
