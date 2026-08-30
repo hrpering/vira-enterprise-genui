@@ -34,8 +34,9 @@ function applyAuthoringSeatState(
   const passengers = Number.parseInt(match[2] ?? "0", 10);
   if (!Number.isSafeInteger(passengers) || passengers < 1) return;
 
-  const initialAssigned = baseAssigned.current ?? Math.min(passengers, Math.max(0, currentAssigned));
-  if (baseAssigned.current === undefined) baseAssigned.current = initialAssigned;
+  if (baseAssigned.current === undefined) {
+    baseAssigned.current = Math.min(passengers, Math.max(0, currentAssigned));
+  }
 
   for (const button of root.querySelectorAll<HTMLButtonElement>(SEAT_SELECTOR)) {
     const id = seatId(button);
@@ -45,7 +46,7 @@ function applyAuthoringSeatState(
     }
   }
 
-  const assigned = Math.min(passengers, initialAssigned + selectedSeats.size);
+  const assigned = Math.min(passengers, baseAssigned.current + selectedSeats.size);
   progress.textContent = `${assigned}/${passengers} assigned`;
 
   const banner = root.querySelector<HTMLElement>(".vira-active-traveller");
@@ -76,6 +77,7 @@ function InteractiveAuthoringSurface({ children }: { readonly children: ReactNod
 
     const portals = new Map<HTMLElement, (() => void) | undefined>();
     const seatListeners = new Map<HTMLButtonElement, () => void>();
+    const timers = new Set<number>();
 
     const registerInteractiveElements = (): void => {
       for (const element of root.querySelectorAll<HTMLElement>(INTERACTIVE_SELECTOR)) {
@@ -88,7 +90,11 @@ function InteractiveAuthoringSurface({ children }: { readonly children: ReactNod
           const id = seatId(element);
           if (!id) return;
           selectedSeats.current.add(id);
-          queueMicrotask(() => applyAuthoringSeatState(root, selectedSeats.current, baseAssigned));
+          const timer = window.setTimeout(() => {
+            timers.delete(timer);
+            applyAuthoringSeatState(root, selectedSeats.current, baseAssigned);
+          }, 0);
+          timers.add(timer);
         };
         element.addEventListener("click", onSeatClick);
         seatListeners.set(element, onSeatClick);
@@ -96,26 +102,17 @@ function InteractiveAuthoringSurface({ children }: { readonly children: ReactNod
       applyAuthoringSeatState(root, selectedSeats.current, baseAssigned);
     };
 
-    const stopEditorBubble = (event: Event): void => {
-      const target = event.target;
-      if (!(target instanceof Element) || target.closest(INTERACTIVE_SELECTOR) === null) return;
-      event.stopPropagation();
-    };
-
     registerInteractiveElements();
     const observer = new MutationObserver(registerInteractiveElements);
     observer.observe(root, { childList: true, subtree: true });
-    root.addEventListener("click", stopEditorBubble);
-    root.addEventListener("pointerdown", stopEditorBubble);
 
     return () => {
       observer.disconnect();
-      root.removeEventListener("click", stopEditorBubble);
-      root.removeEventListener("pointerdown", stopEditorBubble);
+      for (const timer of timers) window.clearTimeout(timer);
       for (const [button, listener] of seatListeners) button.removeEventListener("click", listener);
       for (const cleanup of [...portals.values()].reverse()) cleanup?.();
     };
-  }, [children]);
+  }, []);
 
   return createElement("div", { ref, style: { display: "contents" } }, children);
 }
