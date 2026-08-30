@@ -173,13 +173,75 @@ interface SharedDomHostProps {
   readonly preview?: boolean;
 }
 
+function passengerCountFromProps(props: Readonly<Record<string, unknown>>): number {
+  const value = props.passengers;
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(8, Math.max(1, Math.round(value)))
+    : 2;
+}
+
+function installLocalSeatAssignmentState(
+  host: HTMLElement,
+  component: string,
+  props: Readonly<Record<string, unknown>>,
+): () => void {
+  if (component !== AIRLINE_STUDIO_COMPONENTS.seatMap) return () => undefined;
+  const passengers = passengerCountFromProps(props);
+  const initialProgress = host.querySelector<HTMLElement>(".vira-active-traveller div > span")?.textContent ?? "";
+  const parsedAssigned = Number.parseInt(initialProgress.split("/")[0] ?? "", 10);
+  let assigned = Number.isSafeInteger(parsedAssigned)
+    ? Math.min(passengers, Math.max(0, parsedAssigned))
+    : passengers > 1 ? 1 : 0;
+
+  const onClick = (event: Event): void => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const seat = target.closest("button.vira-seat");
+    if (!(seat instanceof HTMLButtonElement) || !host.contains(seat)) return;
+    if (seat.disabled || seat.classList.contains("occupied") || seat.classList.contains("selected")) return;
+
+    assigned = Math.min(passengers, assigned + 1);
+    seat.classList.add("selected");
+    seat.disabled = true;
+
+    const banner = host.querySelector<HTMLElement>(".vira-active-traveller");
+    const avatar = banner?.querySelector<HTMLElement>(":scope > span");
+    const title = banner?.querySelector<HTMLElement>("div > strong");
+    const progress = banner?.querySelector<HTMLElement>("div > span");
+    if (progress) progress.textContent = `${assigned}/${passengers} assigned`;
+    if (title) {
+      title.textContent = assigned >= passengers
+        ? "All travellers have seats"
+        : `Choose a seat for traveller ${assigned + 1}`;
+    }
+    if (avatar) avatar.textContent = `P${Math.min(passengers, assigned + 1)}`;
+
+    if (assigned >= passengers) {
+      for (const candidate of host.querySelectorAll<HTMLButtonElement>("button.vira-seat")) {
+        if (!candidate.classList.contains("occupied")) candidate.disabled = true;
+      }
+    }
+  };
+
+  host.addEventListener("click", onClick);
+  return () => host.removeEventListener("click", onClick);
+}
+
 function SharedDomHost({ family, component, props, emit, preview = false }: SharedDomHostProps): ReactElement {
   const ref = useRef<HTMLDivElement | null>(null);
   useLayoutEffect(() => {
     if (!ref.current) return undefined;
-    return family === "booking"
-      ? mountAirlineStudioComponent(ref.current, component, props, emit)
-      : mountAirlineGuidanceStudioComponent(ref.current, component, props, emit);
+    const host = ref.current;
+    const disposeRenderer = family === "booking"
+      ? mountAirlineStudioComponent(host, component, props, emit)
+      : mountAirlineGuidanceStudioComponent(host, component, props, emit);
+    const disposeLocalState = family === "booking"
+      ? installLocalSeatAssignmentState(host, component, props)
+      : () => undefined;
+    return () => {
+      disposeLocalState();
+      disposeRenderer();
+    };
   }, [family, component, props, emit]);
   return createElement("div", {
     ref,
