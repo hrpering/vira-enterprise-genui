@@ -357,6 +357,10 @@ function StudioApp(): ReactElement {
   return createElement(Editor, { record, onBack: back, onDeleted: back });
 }
 
+function freezeStudioSession(value: StudioRuntimeSession): StudioRuntimeSession {
+  return Object.freeze(value);
+}
+
 function buildRuntime(publicExperience: PublicExperience, onHostCompletion: () => void): StudioRuntimeSession {
   const planned = planExperience({
     id: `live-${publicExperience.id.replaceAll(".", "-")}`,
@@ -384,7 +388,7 @@ function buildRuntime(publicExperience: PublicExperience, onHostCompletion: () =
   });
   if (!runtime.ok) throw new Error(runtime.issue.message);
   const session = runtime.value;
-  return Object.freeze({
+  return freezeStudioSession({
     currentViewId: () => session.currentViewId(),
     currentView: () => session.currentView(),
     currentRuntimeState: () => session.currentRuntimeState(),
