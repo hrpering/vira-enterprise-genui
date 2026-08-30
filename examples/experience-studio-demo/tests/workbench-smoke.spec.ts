@@ -102,14 +102,37 @@ test("uses one shared brand renderer from gallery through Studio and published r
   await expect(page.locator('[data-template="seat-selection"] .vira-plane')).toBeVisible();
   await expect(page.locator('[data-template="seat-selection"] .vira-seat:not(:disabled)').first()).toBeEnabled();
 
+  const seatThumbnail = page.locator('[data-template="seat-selection"] .template-preview');
+  await expect(seatThumbnail).toHaveAttribute("inert", "");
+  await expect(seatThumbnail).toHaveAttribute("aria-hidden", "true");
+  const thumbnailSeat = page.locator('[data-template="seat-selection"] .template-preview .vira-seat:not(:disabled)').first();
+  const thumbnailAcceptedProgrammaticFocus = await thumbnailSeat.evaluate((node) => {
+    (node as HTMLElement).focus();
+    return document.activeElement === node;
+  });
+  expect(thumbnailAcceptedProgrammaticFocus).toBe(false);
+  await page.getByTestId("new-experience").focus();
+  for (let index = 0; index < 12; index += 1) {
+    await page.keyboard.press("Tab");
+    const focusEnteredPreview = await page.evaluate(() => document.activeElement instanceof Element
+      && document.activeElement.closest(".template-preview, .dialog-selected-preview") !== null);
+    expect(focusEnteredPreview).toBe(false);
+  }
+
   await page.getByTestId("create-template-seat-selection").click();
   await page.getByTestId("new-experience-name").fill(name);
   await page.getByTestId("new-experience-id").fill(id);
   await page.getByTestId("create-experience").click();
 
   await expect(page.getByTestId("vira-studio-workbench")).toBeVisible();
-  await expect(page.locator('[data-testid="vira-studio-preview"] .vira-plane')).toBeVisible();
-  await expect(page.locator('[data-testid="vira-studio-preview"] .vira-seat:not(:disabled)').first()).toBeEnabled();
+  const studioPreview = page.getByTestId("vira-studio-preview");
+  await expect(studioPreview.locator(".vira-plane")).toBeVisible();
+  await expect(studioPreview.locator(".vira-active-traveller div > span")).toHaveText("1/2 assigned");
+  const authoringSeat = studioPreview.locator(".vira-seat:not(:disabled):not(.selected)").first();
+  await expect(authoringSeat).toBeEnabled();
+  await authoringSeat.click();
+  await expect(studioPreview.locator(".vira-active-traveller div > span")).toHaveText("2/2 assigned");
+  await expect(authoringSeat).toHaveClass(/selected/);
   await expect(page.getByText("Radius", { exact: true })).toBeVisible();
   await expect(page.getByText("Shadow", { exact: true })).toBeVisible();
 
@@ -128,7 +151,12 @@ test("uses one shared brand renderer from gallery through Studio and published r
   await expect(livePage.getByTestId("live-experience")).toBeVisible();
   await expect(livePage.locator(".vira-plane")).toBeVisible();
   await expect(livePage.getByText("Pick seats together", { exact: true })).toBeVisible();
-  await expect(livePage.locator(".vira-seat:not(:disabled)").first()).toBeEnabled();
+  await expect(livePage.locator(".vira-active-traveller div > span")).toHaveText("1/2 assigned");
+  const liveSeat = livePage.locator(".vira-seat:not(:disabled):not(.selected)").first();
+  await expect(liveSeat).toBeEnabled();
+  await liveSeat.click();
+  await expect(livePage.locator(".vira-active-traveller div > span")).toHaveText("2/2 assigned");
+  await expect(liveSeat).toHaveClass(/selected/);
 
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByTestId("delete-experience").click();
