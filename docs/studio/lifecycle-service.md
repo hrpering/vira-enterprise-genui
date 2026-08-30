@@ -46,6 +46,10 @@ WHERE workspace_id = ?
 
 A zero-row update is a version conflict, not a successful save.
 
+Both lifecycle counters are bounded safe integers. If `recordVersion` or `draftRevision` cannot be incremented safely, the service fails with `VERSION_OVERFLOW` **before** calling the storage mutation port. An invalid overflowed record is never intentionally handed to the store.
+
+A successful store mutation acknowledgement must match the exact canonical record the service asked to persist. A provider that returns altered document, publication, identity, version or timestamp data is treated as `STORE_FAILURE` rather than becoming the service response.
+
 ### Drafts use canonical Studio validation
 
 Create/save operations validate the document through the active component catalog, binding source catalog, design rules and action-flow contract before persistence.
@@ -64,6 +68,8 @@ A record tracks two distinct counters:
 
 - `draftRevision`: increments only when the draft document/name is saved.
 - `recordVersion`: increments for every persisted mutation and is used for optimistic concurrency.
+
+`recordVersion` must never be lower than `draftRevision`.
 
 Example:
 
