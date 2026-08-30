@@ -198,9 +198,8 @@ function storeFailure<T>(): StudioLifecycleResult<T> {
 
 function mutationFailure<T>(code: StudioLifecycleStoreMutationCode): StudioLifecycleResult<T> {
   if (code === "NOT_FOUND") return failure("NOT_FOUND", "$.id", "Studio experience was not found");
-  return failure("CONFLICT", "$.expectedRecordVersion", code === "ALREADY_EXISTS"
-    ? "Studio experience already exists"
-    : "Studio experience changed since it was loaded");
+  if (code === "ALREADY_EXISTS") return failure("CONFLICT", "$.id", "Studio experience already exists");
+  return failure("CONFLICT", "$.expectedRecordVersion", "Studio experience changed since it was loaded");
 }
 
 function summary(record: StudioLifecycleRecord): StudioLifecycleSummary {
