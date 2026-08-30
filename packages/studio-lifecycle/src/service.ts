@@ -246,7 +246,7 @@ function validateVersionedInput(input: StudioLifecycleVersionedInput): StudioLif
 }
 
 export function createStudioLifecycleService(configuration: StudioLifecycleServiceConfiguration): StudioLifecycleService {
-  return Object.freeze({
+  const service: StudioLifecycleService = {
     async list(workspaceId) {
       const identity = validateIdentity(workspaceId);
       if (!identity.ok) return identity;
@@ -299,7 +299,7 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
       }
     },
 
-    async save(input: StudioLifecycleSaveInput) {
+    async save(input) {
       const valid = validateCreateInput(input);
       if (!valid.ok) return valid;
       const version = validateExpectedVersion(input.expectedRecordVersion);
@@ -416,5 +416,6 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
         return storeFailure();
       }
     },
-  });
+  };
+  return Object.freeze(service);
 }
