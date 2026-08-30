@@ -98,13 +98,13 @@ test("uses one shared brand renderer from gallery through Studio and published r
 
   await page.goto("/");
   const gallery = page.getByTestId("starter-gallery");
-  await expect(gallery.getByText("Flight results", { exact: true })).toBeVisible();
-  await expect(gallery.getByText("Fare comparison", { exact: true })).toBeVisible();
-  await expect(gallery.getByText("Traveller details", { exact: true })).toBeVisible();
-  await expect(gallery.getByText("Seat selection", { exact: true })).toBeVisible();
-  await expect(gallery.getByText("Baggage", { exact: true })).toBeVisible();
-  await expect(gallery.getByText("Insurance & extras", { exact: true })).toBeVisible();
-  await expect(gallery.getByText("Booking review", { exact: true })).toBeVisible();
+  await expect(gallery.locator('[data-template="flight-results"] .template-card-copy > strong')).toHaveText("Flight results");
+  await expect(gallery.locator('[data-template="fare-comparison"] .template-card-copy > strong')).toHaveText("Fare comparison");
+  await expect(gallery.locator('[data-template="traveller-details"] .template-card-copy > strong')).toHaveText("Traveller details");
+  await expect(gallery.locator('[data-template="seat-selection"] .template-card-copy > strong')).toHaveText("Seat selection");
+  await expect(gallery.locator('[data-template="baggage"] .template-card-copy > strong')).toHaveText("Baggage");
+  await expect(gallery.locator('[data-template="extras"] .template-card-copy > strong')).toHaveText("Insurance & extras");
+  await expect(gallery.locator('[data-template="booking-review"] .template-card-copy > strong')).toHaveText("Booking review");
   await expect(page.locator('[data-template="seat-selection"] .vira-plane')).toBeVisible();
   await expect(page.locator('[data-template="seat-selection"] .vira-seat:not(:disabled)').first()).toBeEnabled();
 
