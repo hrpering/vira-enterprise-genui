@@ -36,6 +36,27 @@ export interface PublicExperience {
   readonly publishedAt: string;
 }
 
+const recordVersions = new Map<string, number>();
+const mutationQueues = new Map<string, Promise<void>>();
+
+function rememberRecord(record: ExperienceRecord): ExperienceRecord {
+  recordVersions.set(record.id, record.recordVersion);
+  return record;
+}
+
+function expectedRecordVersion(id: string): number {
+  const version = recordVersions.get(id);
+  if (version === undefined) throw new Error("Studio lifecycle version is unavailable; reload the experience before changing it");
+  return version;
+}
+
+function enqueueMutation<T>(id: string, operation: () => Promise<T>): Promise<T> {
+  const previous = mutationQueues.get(id) ?? Promise.resolve();
+  const current = previous.catch(() => undefined).then(operation);
+  mutationQueues.set(id, current.then(() => undefined, () => undefined));
+  return current;
+}
+
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   if (!headers.has("content-type")) headers.set("content-type", "application/json");
@@ -56,54 +77,58 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
 
 export async function listExperiences(): Promise<readonly ExperienceSummary[]> {
   const value = await requestJson<{ readonly experiences: readonly ExperienceSummary[] }>("/api/experiences");
+  for (const summary of value.experiences) recordVersions.set(summary.id, summary.recordVersion);
   return value.experiences;
 }
 
-export function readExperience(id: string): Promise<ExperienceRecord> {
-  return requestJson(`/api/experiences/${encodeURIComponent(id)}`);
+export async function readExperience(id: string): Promise<ExperienceRecord> {
+  return rememberRecord(await requestJson<ExperienceRecord>(`/api/experiences/${encodeURIComponent(id)}`));
 }
 
-export function createExperience(input: {
+export async function createExperience(input: {
   readonly id: string;
   readonly name: string;
   readonly document: StudioExperienceDocument;
 }): Promise<ExperienceRecord> {
-  return requestJson("/api/experiences", {
+  return rememberRecord(await requestJson<ExperienceRecord>("/api/experiences", {
     method: "POST",
     body: JSON.stringify(input),
-  });
+  }));
 }
 
 export function saveExperienceDraft(
   id: string,
   name: string,
   document: StudioExperienceDocument,
-  expectedRecordVersion: number,
 ): Promise<ExperienceRecord> {
-  return requestJson(`/api/experiences/${encodeURIComponent(id)}`, {
+  return enqueueMutation(id, async () => rememberRecord(await requestJson<ExperienceRecord>(`/api/experiences/${encodeURIComponent(id)}`, {
     method: "PUT",
-    body: JSON.stringify({ name, document, expectedRecordVersion }),
-  });
+    body: JSON.stringify({ name, document, expectedRecordVersion: expectedRecordVersion(id) }),
+  })));
 }
 
-export function publishExperience(id: string, expectedRecordVersion: number): Promise<ExperienceRecord> {
-  return requestJson(`/api/experiences/${encodeURIComponent(id)}/publication`, {
+export function publishExperience(id: string, _publication: StudioPublication): Promise<ExperienceRecord> {
+  return enqueueMutation(id, async () => rememberRecord(await requestJson<ExperienceRecord>(`/api/experiences/${encodeURIComponent(id)}/publication`, {
     method: "PUT",
-    body: JSON.stringify({ expectedRecordVersion }),
-  });
+    body: JSON.stringify({ expectedRecordVersion: expectedRecordVersion(id) }),
+  })));
 }
 
-export function unpublishExperience(id: string, expectedRecordVersion: number): Promise<ExperienceRecord> {
-  return requestJson(`/api/experiences/${encodeURIComponent(id)}/publication`, {
+export function unpublishExperience(id: string): Promise<ExperienceRecord> {
+  return enqueueMutation(id, async () => rememberRecord(await requestJson<ExperienceRecord>(`/api/experiences/${encodeURIComponent(id)}/publication`, {
     method: "DELETE",
-    body: JSON.stringify({ expectedRecordVersion }),
-  });
+    body: JSON.stringify({ expectedRecordVersion: expectedRecordVersion(id) }),
+  })));
 }
 
-export function deleteExperience(id: string, expectedRecordVersion: number): Promise<{ readonly deleted: true; readonly id: string }> {
-  return requestJson(`/api/experiences/${encodeURIComponent(id)}`, {
-    method: "DELETE",
-    body: JSON.stringify({ expectedRecordVersion }),
+export function deleteExperience(id: string): Promise<{ readonly deleted: true; readonly id: string }> {
+  return enqueueMutation(id, async () => {
+    const result = await requestJson<{ readonly deleted: true; readonly id: string }>(`/api/experiences/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      body: JSON.stringify({ expectedRecordVersion: expectedRecordVersion(id) }),
+    });
+    recordVersions.delete(id);
+    return result;
   });
 }
 
