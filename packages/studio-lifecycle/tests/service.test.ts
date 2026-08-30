@@ -13,6 +13,9 @@ function key(workspaceId: string, id: string): string {
 
 class MemoryStore implements StudioLifecycleStore {
   readonly records = new Map<string, StudioLifecycleRecord>();
+  createCalls = 0;
+  replaceCalls = 0;
+  deleteCalls = 0;
 
   async list(workspaceId: string): Promise<readonly StudioLifecycleRecord[]> {
     return [...this.records.values()].filter((record) => record.workspaceId === workspaceId);
@@ -23,6 +26,7 @@ class MemoryStore implements StudioLifecycleStore {
   }
 
   async create(record: StudioLifecycleRecord): Promise<StudioLifecycleStoreMutationResult> {
+    this.createCalls += 1;
     const id = key(record.workspaceId, record.id);
     if (this.records.has(id)) return { ok: false, code: "ALREADY_EXISTS" };
     this.records.set(id, record);
@@ -30,6 +34,7 @@ class MemoryStore implements StudioLifecycleStore {
   }
 
   async replace(record: StudioLifecycleRecord, expectedRecordVersion: number): Promise<StudioLifecycleStoreMutationResult> {
+    this.replaceCalls += 1;
     const id = key(record.workspaceId, record.id);
     const current = this.records.get(id);
     if (!current) return { ok: false, code: "NOT_FOUND" };
@@ -39,12 +44,27 @@ class MemoryStore implements StudioLifecycleStore {
   }
 
   async delete(workspaceId: string, id: string, expectedRecordVersion: number): Promise<StudioLifecycleStoreDeleteResult> {
+    this.deleteCalls += 1;
     const recordKey = key(workspaceId, id);
     const current = this.records.get(recordKey);
     if (!current) return { ok: false, code: "NOT_FOUND" };
     if (current.recordVersion !== expectedRecordVersion) return { ok: false, code: "VERSION_CONFLICT" };
     this.records.delete(recordKey);
     return { ok: true };
+  }
+}
+
+class TamperingAcknowledgementStore extends MemoryStore {
+  override async replace(record: StudioLifecycleRecord, expectedRecordVersion: number): Promise<StudioLifecycleStoreMutationResult> {
+    const result = await super.replace(record, expectedRecordVersion);
+    if (!result.ok) return result;
+    return {
+      ok: true,
+      value: {
+        ...result.value,
+        name: `${result.value.name} tampered`,
+      },
+    };
   }
 }
 
@@ -90,8 +110,7 @@ function document(id: string, text: string) {
   };
 }
 
-function setup() {
-  const store = new MemoryStore();
+function setup(store: StudioLifecycleStore = new MemoryStore()) {
   let now = Date.UTC(2026, 7, 30, 3, 0, 0, 0);
   const service = createStudioLifecycleService({
     store,
@@ -242,7 +261,8 @@ describe("Studio lifecycle service", () => {
   });
 
   it("rejects invalid documents before touching storage", async () => {
-    const { store, service } = setup();
+    const store = new MemoryStore();
+    const { service } = setup(store);
     const result = await service.create({
       workspaceId: "workspace-a",
       id: "demo.invalid",
@@ -252,5 +272,86 @@ describe("Studio lifecycle service", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.issue.code).toBe("INVALID_DOCUMENT");
     expect(store.records.size).toBe(0);
+    expect(store.createCalls).toBe(0);
+  });
+
+  it("fails closed before a version overflow can reach storage", async () => {
+    const store = new MemoryStore();
+    const { service } = setup(store);
+    const id = "demo.overflow";
+    const created = await service.create({
+      workspaceId: "workspace-a",
+      id,
+      name: "Overflow",
+      document: document(id, "A"),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    store.records.set(key("workspace-a", id), {
+      ...created.value,
+      recordVersion: Number.MAX_SAFE_INTEGER,
+    });
+    const replaceCallsBefore = store.replaceCalls;
+    const result = await service.publish({
+      workspaceId: "workspace-a",
+      id,
+      expectedRecordVersion: Number.MAX_SAFE_INTEGER,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issue.code).toBe("VERSION_OVERFLOW");
+      expect(result.issue.path).toBe("$.recordVersion");
+    }
+    expect(store.replaceCalls).toBe(replaceCallsBefore);
+    expect(store.records.get(key("workspace-a", id))?.recordVersion).toBe(Number.MAX_SAFE_INTEGER);
+  });
+
+  it("rejects a successful store acknowledgement that changes canonical record data", async () => {
+    const store = new TamperingAcknowledgementStore();
+    const { service } = setup(store);
+    const id = "demo.tampered-ack";
+    const created = await service.create({
+      workspaceId: "workspace-a",
+      id,
+      name: "Tamper check",
+      document: document(id, "A"),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    const result = await service.save({
+      workspaceId: "workspace-a",
+      id,
+      name: "Tamper check",
+      expectedRecordVersion: 1,
+      document: document(id, "B"),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.issue.code).toBe("STORE_FAILURE");
+  });
+
+  it("rejects stored records whose record version is behind their draft revision", async () => {
+    const store = new MemoryStore();
+    const { service } = setup(store);
+    const id = "demo.invalid-version-order";
+    const created = await service.create({
+      workspaceId: "workspace-a",
+      id,
+      name: "Version order",
+      document: document(id, "A"),
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    store.records.set(key("workspace-a", id), {
+      ...created.value,
+      draftRevision: 2,
+      recordVersion: 1,
+    });
+    const result = await service.read("workspace-a", id);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.issue.code).toBe("STORE_FAILURE");
   });
 });
