@@ -139,6 +139,9 @@ test("uses one shared brand renderer from gallery through Studio and published r
   await authoringSeat.click();
   await expect(studioPreview.locator(".vira-active-traveller div > span")).toHaveText("2/2 assigned");
   await expect(authoringSeat).toHaveClass(/selected/);
+
+  await page.getByTestId("vira-studio-panel-layers").click();
+  await page.getByTestId("vira-studio-layer-root").click();
   await expect(page.getByText("Radius", { exact: true })).toBeVisible();
   await expect(page.getByText("Shadow", { exact: true })).toBeVisible();
 
