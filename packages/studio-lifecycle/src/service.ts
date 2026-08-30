@@ -198,15 +198,10 @@ async function readCurrent(
   workspaceId: string,
   id: string,
 ): Promise<StudioLifecycleResult<StudioLifecycleRecord>> {
-  let record: StudioLifecycleRecord | undefined;
   try {
-    record = await configuration.store.read(workspaceId, id);
-  } catch {
-    return storeFailure();
-  }
-  if (!record) return failure("NOT_FOUND", "$.id", "Studio experience was not found");
-  if (!validStoredRecordIdentity(record, workspaceId, id)) return storeFailure();
-  try {
+    const record = await configuration.store.read(workspaceId, id);
+    if (!record) return failure("NOT_FOUND", "$.id", "Studio experience was not found");
+    if (!validStoredRecordIdentity(record, workspaceId, id)) return storeFailure();
     return { ok: true, value: snapshot(record) };
   } catch {
     return storeFailure();
@@ -231,14 +226,9 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
     async list(workspaceId) {
       const identity = validateIdentity(workspaceId);
       if (!identity.ok) return identity;
-      let records: readonly StudioLifecycleRecord[];
       try {
-        records = await configuration.store.list(workspaceId);
-      } catch {
-        return storeFailure();
-      }
-      if (!Array.isArray(records) || records.some((record) => !validStoredRecordIdentity(record, workspaceId))) return storeFailure();
-      try {
+        const records = await configuration.store.list(workspaceId);
+        if (!Array.isArray(records) || records.some((record) => !validStoredRecordIdentity(record, workspaceId))) return storeFailure();
         const output = records
           .map((record) => summary(snapshot(record)))
           .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt) || left.id.localeCompare(right.id));
