@@ -20,6 +20,7 @@
     "demo:flight-search": "pnpm build && pnpm --filter @vira-enterprise-genui/flight-search-demo start",
     "demo:experience-studio": "pnpm --filter @vira-enterprise-genui/experience-studio-demo dev",
     "demo:pegasus-chat": "pnpm --filter @vira-enterprise-genui/pegasus-chat-demo dev",
+    "demo:compare": "pnpm -r --parallel --stream --filter @vira-enterprise-genui/experience-studio-demo --filter @vira-enterprise-genui/pegasus-chat-demo run dev",
     "demo:pegasus-chat:check": "pnpm --filter @vira-enterprise-genui/pegasus-chat-demo typecheck && pnpm --filter @vira-enterprise-genui/pegasus-chat-demo build"
   },
   "devDependencies": {

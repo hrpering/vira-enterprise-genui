@@ -12,10 +12,15 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "pnpm exec vite --host 127.0.0.1 --port 4174 --strictPort",
+    command: "node ./server.mjs",
     url: "http://127.0.0.1:4174",
     reuseExistingServer: false,
     timeout: 120_000,
+    env: {
+      HOST: "127.0.0.1",
+      PORT: "4174",
+      VIRA_STUDIO_DATA_DIR: ".data-e2e"
+    }
   },
   projects: [
     {

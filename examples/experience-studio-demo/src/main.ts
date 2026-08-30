@@ -1,119 +1,448 @@
-import { createStudioDesignCatalog } from "@vira-enterprise-genui/studio-design";
+import { planExperience } from "@vira-enterprise-genui/planner";
+import { createRuntimeState } from "@vira-enterprise-genui/runtime-core";
+import { createStudioRuntimeSession } from "@vira-enterprise-genui/studio-runtime";
+import { renderStudioRuntimeReactView } from "@vira-enterprise-genui/studio-runtime-react";
 import { createStudioWorkbenchSession } from "@vira-enterprise-genui/studio-workbench";
 import { ViraStudioWorkbench } from "@vira-enterprise-genui/studio-workbench-react";
-import { createElement, useState } from "react";
-import type { ComponentType, ReactElement } from "react";
+import { createElement, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactElement } from "react";
 import { createRoot } from "react-dom/client";
-
-const baseCatalog = {
-  version: "1",
-  id: "pegasus.demo.components",
-  brandId: "pegasus.demo",
-  components: [
-    { ref: "demo.layout.stack", label: "Stack", category: "layout", kind: "layout", props: [], slots: [{ name: "content", label: "Content" }], events: [] },
-    { ref: "demo.component.heading", label: "Heading", category: "content", kind: "content", props: [{ key: "text", type: "string", required: true, bindable: false }], slots: [], events: [] },
-    { ref: "demo.component.text", label: "Text", category: "content", kind: "content", props: [{ key: "text", type: "string", required: true, bindable: false }], slots: [], events: [] },
-    { ref: "demo.component.airport", label: "Airport picker", category: "flight", kind: "input", props: [{ key: "label", type: "string", required: true, bindable: false }, { key: "value", type: "string", required: true, bindable: false }], slots: [], events: [] },
-    { ref: "demo.component.date", label: "Date picker", category: "flight", kind: "input", props: [{ key: "label", type: "string", required: true, bindable: false }, { key: "value", type: "string", required: true, bindable: false }], slots: [], events: [] },
-    { ref: "demo.component.button", label: "Button", category: "action", kind: "action", props: [{ key: "label", type: "string", required: true, bindable: false }], slots: [], events: [{ name: "press", label: "Press" }] },
-    { ref: "demo.component.flight-list", label: "Flight list", category: "flight", kind: "content", props: [{ key: "items", type: "string", required: true, bindable: true }], slots: [], events: [] }
-  ]
-};
-
-const styled = createStudioDesignCatalog(baseCatalog, {
-  colorMode: "any",
-  fonts: ["Inter", "Arial", "Georgia"],
-  allowGradient: true,
-  shadows: ["none", "sm", "md", "lg", "xl"],
-  layouts: ["block", "row", "column", "grid2", "grid3"]
-});
-if (!styled.ok) throw new Error(styled.issue.message);
-const componentCatalog = styled.value;
-
-const bindingSourceCatalog = {
-  version: "1",
-  id: "pegasus.demo.data",
-  sources: [{ kind: "domain", path: "travel.flight.results", label: "Flight search results", valueType: "string" }]
-};
-
-const actionAdapter = {
-  version: "1",
-  id: "pegasus.demo.actions",
-  mappings: [{ event: "flight.search.submit", actionType: "travel.flight.search.submit" }]
-};
-
-const initialDocument = {
-  version: "1",
-  id: "pegasus.flight-discovery",
-  recipeId: "travel.flight.search",
-  entryView: "search",
-  views: [
-    {
-      id: "search",
-      nodes: [
-        { id: "root", component: "demo.layout.stack", order: 0, props: { designbackgroundmode: "gradient", designgradientfrom: "#111827", designgradientto: "#312E81", designgradientangle: 135, designpadding: 36, designgap: 18, designradius: 28, designshadow: "xl", designlayout: "column" } },
-        { id: "title", component: "demo.component.heading", parentId: "root", slot: "content", order: 0, props: { text: "Where do you want to fly?", designcolor: "#FFFFFF", designfont: "Inter", designfontsize: 42, designweight: "700", designlineheight: 1.08 } },
-        { id: "origin", component: "demo.component.airport", parentId: "root", slot: "content", order: 1, props: { label: "From", value: "Istanbul (SAW)", designbackgroundmode: "solid", designbackground: "#FFFFFF", designcolor: "#111827", designpadding: 18, designradius: 18, designshadow: "md" } },
-        { id: "destination", component: "demo.component.airport", parentId: "root", slot: "content", order: 2, props: { label: "To", value: "Berlin (BER)", designbackgroundmode: "solid", designbackground: "#FFFFFF", designcolor: "#111827", designpadding: 18, designradius: 18, designshadow: "md" } },
-        { id: "date", component: "demo.component.date", parentId: "root", slot: "content", order: 3, props: { label: "Departure", value: "15 Sep 2026", designbackgroundmode: "solid", designbackground: "#FFFFFF", designcolor: "#111827", designpadding: 18, designradius: 18 } },
-        { id: "submit", component: "demo.component.button", parentId: "root", slot: "content", order: 4, props: { label: "Find the best flights", designbackgroundmode: "solid", designbackground: "#FACC15", designcolor: "#111827", designpadding: 16, designradius: 16, designweight: "700", designshadow: "lg", designwidth: "full" } }
-      ]
-    },
-    {
-      id: "results",
-      nodes: [
-        { id: "root", component: "demo.layout.stack", order: 0, props: { designpadding: 28, designgap: 14, designlayout: "column" } },
-        { id: "results-title", component: "demo.component.heading", parentId: "root", slot: "content", order: 0, props: { text: "Best flights", designfontsize: 34, designweight: "700" } },
-        { id: "flights", component: "demo.component.flight-list", parentId: "root", slot: "content", order: 1, props: {} }
-      ]
-    }
-  ],
-  bindings: [{ viewId: "results", nodeId: "flights", prop: "items", source: { kind: "domain", path: "travel.flight.results" } }],
-  interactions: [{ viewId: "search", nodeId: "submit", event: "press", actionEvent: "flight.search.submit", routes: [{ outcome: "success", viewId: "results" }] }]
-};
-
-let nodeSequence = 0;
-const sessionResult = createStudioWorkbenchSession({
-  document: initialDocument,
-  componentCatalog,
-  bindingSourceCatalog,
+import {
   actionAdapter,
-  allocateNodeId: ({ component }) => `${component.split(".").at(-1) ?? "node"}-${++nodeSequence}`.toLowerCase()
-});
-if (!sessionResult.ok) throw new Error(sessionResult.issue.message);
-const session = sessionResult.value;
+  bindingSourceCatalog,
+  componentCatalog,
+  createStarterDocument,
+  runtimePermissionPolicy,
+  runtimeRenderers,
+  starterTemplates,
+  workbenchRenderers,
+} from "./catalog.js";
+import type { StarterTemplateId } from "./catalog.js";
+import {
+  createExperience,
+  deleteExperience,
+  listExperiences,
+  publishExperience,
+  readExperience,
+  readPublicExperience,
+  saveExperienceDraft,
+  unpublishExperience,
+} from "./api.js";
+import type { ExperienceRecord, ExperienceSummary, PublicExperience } from "./api.js";
 
-type SlotComponent = ComponentType<{ minEmptyHeight?: number }>;
-const renderers = {
-  "demo.layout.stack": ({ props }: { props: Readonly<Record<string, unknown>> }) => {
-    const Content = props.content as SlotComponent | undefined;
-    return createElement("section", { className: "demo-stack" }, Content ? createElement(Content, { minEmptyHeight: 120 }) : null);
-  },
-  "demo.component.heading": ({ props }: { props: Readonly<Record<string, unknown>> }) => createElement("h1", { className: "demo-heading" }, String(props.text ?? "Heading")),
-  "demo.component.text": ({ props }: { props: Readonly<Record<string, unknown>> }) => createElement("p", { className: "demo-text" }, String(props.text ?? "Text")),
-  "demo.component.airport": ({ props }: { props: Readonly<Record<string, unknown>> }) => createElement("div", { className: "demo-field" }, createElement("span", null, String(props.label ?? "Airport")), createElement("strong", null, String(props.value ?? "Choose airport"))),
-  "demo.component.date": ({ props }: { props: Readonly<Record<string, unknown>> }) => createElement("div", { className: "demo-field" }, createElement("span", null, String(props.label ?? "Date")), createElement("strong", null, String(props.value ?? "Choose date"))),
-  "demo.component.button": ({ props }: { props: Readonly<Record<string, unknown>> }) => createElement("button", { className: "demo-button", type: "button" }, String(props.label ?? "Button")),
-  "demo.component.flight-list": ({ props }: { props: Readonly<Record<string, unknown>> }) => createElement("div", { className: "demo-flights" }, String(props.items ?? "Bind this component from the Data panel"))
-};
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unexpected Studio demo error";
+}
 
-function App(): ReactElement {
-  const [publication, setPublication] = useState<string>("Not published yet");
-  return createElement("main", { className: "app-shell" },
-    createElement("div", { className: "app-intro" },
-      createElement("div", null, createElement("strong", null, "Vira Experience Studio"), createElement("span", null, "Human Puck authoring demo")),
-      createElement("code", null, publication),
+function semanticIdFromName(name: string): string {
+  let slug = name
+    .trim()
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+  if (!/^[a-z]/.test(slug)) slug = `experience-${slug || "new"}`;
+  return `demo.${slug}`;
+}
+
+function navigateToExperience(id?: string): void {
+  const url = id ? `/?experience=${encodeURIComponent(id)}` : "/";
+  window.history.pushState({}, "", url);
+}
+
+interface CreateDialogProps {
+  readonly initialTemplate: StarterTemplateId;
+  readonly onCancel: () => void;
+  readonly onCreated: (record: ExperienceRecord) => void;
+}
+
+function CreateDialog({ initialTemplate, onCancel, onCreated }: CreateDialogProps): ReactElement {
+  const templateDefinition = starterTemplates.find((candidate) => candidate.id === initialTemplate) ?? starterTemplates[0];
+  const [name, setName] = useState(templateDefinition.label);
+  const [id, setId] = useState(semanticIdFromName(templateDefinition.label));
+  const [template, setTemplate] = useState<StarterTemplateId>(initialTemplate);
+  const [busy, setBusy] = useState(false);
+  const [issue, setIssue] = useState<string>();
+  const customId = useRef(false);
+
+  async function submit(): Promise<void> {
+    setBusy(true);
+    setIssue(undefined);
+    try {
+      const record = await createExperience({
+        id,
+        name: name.trim(),
+        document: createStarterDocument(id, template),
+      });
+      onCreated(record);
+    } catch (error) {
+      setIssue(errorMessage(error));
+      setBusy(false);
+    }
+  }
+
+  return createElement(
+    "div",
+    { className: "dialog-backdrop", role: "presentation" },
+    createElement(
+      "section",
+      { className: "create-dialog", role: "dialog", "aria-modal": true, "aria-labelledby": "create-title" },
+      createElement("div", { className: "dialog-kicker" }, "Create a real Studio draft"),
+      createElement("h2", { id: "create-title" }, "New experience"),
+      createElement("p", null, "The draft is persisted by the demo server. Publish creates a separate live publication."),
+      createElement(
+        "label",
+        { className: "dialog-field" },
+        createElement("span", null, "Name"),
+        createElement("input", {
+          value: name,
+          "data-testid": "new-experience-name",
+          onChange: (event: { target: { value: string } }) => {
+            const next = event.target.value;
+            setName(next);
+            if (!customId.current) setId(semanticIdFromName(next));
+          },
+        }),
+      ),
+      createElement(
+        "label",
+        { className: "dialog-field" },
+        createElement("span", null, "Experience ID"),
+        createElement("input", {
+          value: id,
+          "data-testid": "new-experience-id",
+          onChange: (event: { target: { value: string } }) => {
+            customId.current = true;
+            setId(event.target.value);
+          },
+        }),
+      ),
+      createElement(
+        "label",
+        { className: "dialog-field" },
+        createElement("span", null, "Starter"),
+        createElement(
+          "select",
+          {
+            value: template,
+            "data-testid": "new-experience-template",
+            onChange: (event: { target: { value: string } }) => setTemplate(event.target.value as StarterTemplateId),
+          },
+          ...starterTemplates.map((item) => createElement("option", { key: item.id, value: item.id }, item.label)),
+        ),
+      ),
+      issue ? createElement("div", { className: "dialog-error", role: "alert" }, issue) : null,
+      createElement(
+        "div",
+        { className: "dialog-actions" },
+        createElement("button", { type: "button", className: "secondary-button", onClick: onCancel, disabled: busy }, "Cancel"),
+        createElement("button", { type: "button", className: "primary-button", onClick: () => void submit(), disabled: busy || name.trim().length === 0 || id.trim().length === 0, "data-testid": "create-experience" }, busy ? "Creating…" : "Create experience"),
+      ),
     ),
+  );
+}
+
+interface DashboardProps {
+  readonly onOpen: (id: string) => void;
+}
+
+function Dashboard({ onOpen }: DashboardProps): ReactElement {
+  const [experiences, setExperiences] = useState<readonly ExperienceSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [issue, setIssue] = useState<string>();
+  const [dialogTemplate, setDialogTemplate] = useState<StarterTemplateId>();
+
+  async function refresh(): Promise<void> {
+    setLoading(true);
+    try {
+      setExperiences(await listExperiences());
+      setIssue(undefined);
+    } catch (error) {
+      setIssue(errorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void refresh();
+  }, []);
+
+  return createElement(
+    "main",
+    { className: "studio-home" },
+    createElement(
+      "header",
+      { className: "home-header" },
+      createElement("div", null, createElement("strong", null, "Vira Experience Studio"), createElement("span", null, "Real draft → publish → live → unpublish/delete lifecycle")),
+      createElement("button", { type: "button", className: "primary-button", onClick: () => setDialogTemplate("blank"), "data-testid": "new-experience" }, "+ New experience"),
+    ),
+    createElement(
+      "section",
+      { className: "home-section" },
+      createElement("div", { className: "section-heading" }, createElement("div", null, createElement("span", null, "Persisted"), createElement("h1", null, "Your experiences")), createElement("button", { type: "button", className: "text-button", onClick: () => void refresh() }, "Refresh")),
+      issue ? createElement("div", { className: "home-error", role: "alert" }, issue) : null,
+      loading
+        ? createElement("div", { className: "empty-card" }, "Loading persisted drafts…")
+        : experiences.length === 0
+          ? createElement("div", { className: "empty-card" }, createElement("strong", null, "No experiences yet"), createElement("span", null, "Create one below, edit it in Puck, publish it, and open its real live URL."))
+          : createElement(
+              "div",
+              { className: "experience-grid", "data-testid": "experience-list" },
+              ...experiences.map((experience) => createElement(
+                "button",
+                { key: experience.id, type: "button", className: "experience-card", onClick: () => onOpen(experience.id), "data-testid": `experience-${experience.id}` },
+                createElement("div", { className: "experience-card-top" }, createElement("strong", null, experience.name), createElement("span", { className: experience.published ? "status published" : "status draft" }, experience.published ? "Published" : "Draft")),
+                createElement("code", null, experience.id),
+                createElement("span", null, experience.published ? "Live publication available" : "Not live yet"),
+              )),
+            ),
+    ),
+    createElement(
+      "section",
+      { className: "home-section" },
+      createElement("div", { className: "section-heading" }, createElement("div", null, createElement("span", null, "Approved catalog"), createElement("h2", null, "Starter GenUI experiences"))),
+      createElement(
+        "div",
+        { className: "template-grid" },
+        ...starterTemplates.map((template) => createElement(
+          "article",
+          { key: template.id, className: "template-card" },
+          createElement("span", { className: "template-icon" }, template.id === "flight-search" ? "✈" : template.id === "visa-check" ? "◎" : template.id === "blank" ? "+" : "i"),
+          createElement("strong", null, template.label),
+          createElement("p", null, template.description),
+          createElement("button", { type: "button", className: "secondary-button", onClick: () => setDialogTemplate(template.id), "data-testid": `create-template-${template.id}` }, "Create from starter"),
+        )),
+      ),
+    ),
+    dialogTemplate ? createElement(CreateDialog, {
+      initialTemplate: dialogTemplate,
+      onCancel: () => setDialogTemplate(undefined),
+      onCreated: (record) => {
+        setDialogTemplate(undefined);
+        onOpen(record.id);
+      },
+    }) : null,
+  );
+}
+
+interface EditorProps {
+  readonly record: ExperienceRecord;
+  readonly onBack: () => void;
+  readonly onDeleted: () => void;
+}
+
+function Editor({ record, onBack, onDeleted }: EditorProps): ReactElement {
+  const [published, setPublished] = useState(record.publication !== null);
+  const [saveState, setSaveState] = useState("Saved");
+  const [issue, setIssue] = useState<string>();
+  const nodeSequence = useRef(0);
+  const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
+
+  const sessionResult = useMemo(() => createStudioWorkbenchSession({
+    document: record.document,
+    componentCatalog,
+    bindingSourceCatalog,
+    actionAdapter,
+    allocateNodeId: ({ component }) => `${component.split(".").at(-1) ?? "node"}-${++nodeSequence.current}`.toLowerCase(),
+  }), [record.id]);
+
+  if (!sessionResult.ok) {
+    return createElement("main", { className: "fatal-page" }, createElement("h1", null, "Studio draft could not be opened"), createElement("pre", null, sessionResult.issue.message), createElement("button", { onClick: onBack }, "Back"));
+  }
+  const session = sessionResult.value;
+
+  function persistDraft(document: ExperienceRecord["document"]): void {
+    setSaveState("Saving…");
+    saveQueue.current = saveQueue.current
+      .catch(() => undefined)
+      .then(() => saveExperienceDraft(record.id, record.name, document))
+      .then(() => {
+        setSaveState("Saved");
+        setIssue(undefined);
+      })
+      .catch((error: unknown) => {
+        setSaveState("Save failed");
+        setIssue(errorMessage(error));
+      });
+  }
+
+  async function unpublish(): Promise<void> {
+    if (!window.confirm("Unpublish this experience? Its live URL will stop resolving immediately.")) return;
+    try {
+      await unpublishExperience(record.id);
+      setPublished(false);
+      setIssue(undefined);
+    } catch (error) {
+      setIssue(errorMessage(error));
+    }
+  }
+
+  async function remove(): Promise<void> {
+    if (!window.confirm("Delete this experience draft and any live publication? This cannot be undone.")) return;
+    try {
+      await deleteExperience(record.id);
+      onDeleted();
+    } catch (error) {
+      setIssue(errorMessage(error));
+    }
+  }
+
+  return createElement(
+    "main",
+    { className: "editor-page" },
+    createElement(
+      "div",
+      { className: "app-intro" },
+      createElement("div", { className: "intro-left" }, createElement("button", { type: "button", className: "back-button", onClick: onBack }, "← Experiences"), createElement("div", null, createElement("strong", null, record.name), createElement("code", null, record.id))),
+      createElement(
+        "div",
+        { className: "lifecycle-actions" },
+        createElement("span", { className: "save-state" }, saveState),
+        createElement("span", { className: published ? "status published" : "status draft", "data-testid": "publication-status" }, published ? "Published live" : "Draft only"),
+        published ? createElement("a", { className: "secondary-button link-button", href: `/live/${encodeURIComponent(record.id)}`, target: "_blank", rel: "noreferrer", "data-testid": "open-live" }, "Open live ↗") : null,
+        published ? createElement("button", { type: "button", className: "secondary-button", onClick: () => void unpublish(), "data-testid": "unpublish-experience" }, "Unpublish") : null,
+        createElement("button", { type: "button", className: "danger-button", onClick: () => void remove(), "data-testid": "delete-experience" }, "Delete"),
+      ),
+    ),
+    issue ? createElement("div", { className: "editor-error", role: "alert" }, issue) : null,
     createElement(ViraStudioWorkbench, {
       session,
-      renderers,
-      title: "Pegasus · Flight Discovery",
+      renderers: workbenchRenderers,
+      title: record.name,
       height: "calc(100vh - 74px)",
-      onPublish: (value) => setPublication(`Published ${value.id}`)
-    })
+      onDocumentChange: (document) => persistDraft(document),
+      onPublish: async (publication) => {
+        await publishExperience(record.id, publication);
+        setPublished(true);
+        setIssue(undefined);
+      },
+      onError: (workbenchIssue) => setIssue(workbenchIssue.message),
+    }),
   );
+}
+
+function StudioApp(): ReactElement {
+  const initialId = new URLSearchParams(window.location.search).get("experience") ?? undefined;
+  const [selectedId, setSelectedId] = useState<string | undefined>(initialId);
+  const [record, setRecord] = useState<ExperienceRecord>();
+  const [loading, setLoading] = useState(Boolean(initialId));
+  const [issue, setIssue] = useState<string>();
+
+  useEffect(() => {
+    if (!selectedId) {
+      setRecord(undefined);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    void readExperience(selectedId)
+      .then((value) => {
+        setRecord(value);
+        setIssue(undefined);
+      })
+      .catch((error: unknown) => setIssue(errorMessage(error)))
+      .finally(() => setLoading(false));
+  }, [selectedId]);
+
+  function open(id: string): void {
+    navigateToExperience(id);
+    setSelectedId(id);
+  }
+
+  function back(): void {
+    navigateToExperience();
+    setSelectedId(undefined);
+    setRecord(undefined);
+    setIssue(undefined);
+  }
+
+  if (!selectedId) return createElement(Dashboard, { onOpen: open });
+  if (loading) return createElement("main", { className: "fatal-page" }, "Loading persisted Studio draft…");
+  if (issue || !record) return createElement("main", { className: "fatal-page" }, createElement("h1", null, "Experience unavailable"), createElement("p", null, issue ?? "Draft not found"), createElement("button", { onClick: back }, "Back to experiences"));
+  return createElement(Editor, { record, onBack: back, onDeleted: back });
+}
+
+function buildRuntime(publicExperience: PublicExperience) {
+  const planned = planExperience({
+    id: `live-${publicExperience.id.replaceAll(".", "-")}`,
+    intent: { version: "1", namespace: "studio.live", name: "published" },
+    state: {},
+    requiredState: [],
+    capabilityRequirements: [],
+    availableCapabilities: [],
+    futureCapabilities: [],
+  });
+  if (!planned.ok) throw new Error(planned.issue.message);
+
+  const runtimeState = createRuntimeState(`live-${publicExperience.id.replaceAll(".", "-")}`, planned.value);
+  if (!runtimeState.ok) throw new Error(runtimeState.issue.message);
+
+  let actionSequence = 0;
+  const runtime = createStudioRuntimeSession({
+    publication: publicExperience.publication,
+    componentCatalog,
+    bindingSourceCatalog,
+    actionAdapter,
+    runtimeState: runtimeState.value,
+    permissionPolicy: runtimePermissionPolicy,
+  }, {
+    data: { read: () => undefined },
+    actionIds: { nextId: () => `live-action-${++actionSequence}` },
+  });
+  if (!runtime.ok) throw new Error(runtime.issue.message);
+  return runtime.value;
+}
+
+function PublishedExperience({ value }: { readonly value: PublicExperience }): ReactElement {
+  const runtime = useMemo(() => buildRuntime(value), [value.id, value.publishedAt]);
+  useEffect(() => () => runtime.dispose(), [runtime]);
+  const rendered = renderStudioRuntimeReactView({ session: runtime, componentCatalog, renderers: runtimeRenderers });
+  if (!rendered.ok) return createElement("main", { className: "fatal-page" }, createElement("h1", null, "Published runtime failed"), createElement("p", null, rendered.issue.message));
+  return createElement(
+    "main",
+    { className: "live-page", "data-testid": "live-experience" },
+    createElement(
+      "header",
+      { className: "live-header" },
+      createElement("div", null, createElement("span", { className: "live-dot" }), createElement("strong", null, value.name), createElement("code", null, value.id)),
+      createElement("span", null, "Published Vira runtime"),
+    ),
+    createElement("section", { className: "live-canvas" }, rendered.value),
+  );
+}
+
+function LiveApp({ id }: { readonly id: string }): ReactElement {
+  const [value, setValue] = useState<PublicExperience>();
+  const [notPublished, setNotPublished] = useState(false);
+  const [issue, setIssue] = useState<string>();
+
+  useEffect(() => {
+    void readPublicExperience(id)
+      .then((result) => {
+        setValue(result);
+        setNotPublished(false);
+        setIssue(undefined);
+      })
+      .catch((error: unknown) => {
+        const message = errorMessage(error);
+        if (message.includes("not published")) setNotPublished(true);
+        else setIssue(message);
+      });
+  }, [id]);
+
+  if (notPublished) {
+    return createElement("main", { className: "live-missing", "data-testid": "live-not-published" }, createElement("span", null, "404"), createElement("h1", null, "This experience is not published"), createElement("p", null, "The live publication was removed. The Studio draft may still exist."), createElement("a", { href: "/" }, "Open Experience Studio"));
+  }
+  if (issue) return createElement("main", { className: "live-missing" }, createElement("h1", null, "Live experience failed"), createElement("p", null, issue));
+  if (!value) return createElement("main", { className: "live-missing" }, "Loading published experience…");
+  return createElement(PublishedExperience, { value });
 }
 
 const root = document.getElementById("root");
 if (!root) throw new Error("demo root element missing");
-createRoot(root).render(createElement(App));
+const liveMatch = window.location.pathname.match(/^\/live\/([^/]+)$/);
+createRoot(root).render(liveMatch
+  ? createElement(LiveApp, { id: decodeURIComponent(liveMatch[1] ?? "") })
+  : createElement(StudioApp));
