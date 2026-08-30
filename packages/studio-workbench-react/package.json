@@ -7,7 +7,9 @@
   "dependencies": {
     "@puckeditor/core": "0.22.4",
     "@vira-enterprise-genui/studio-binding": "workspace:*",
+    "@vira-enterprise-genui/studio-catalog": "workspace:*",
     "@vira-enterprise-genui/studio-compiler": "workspace:*",
+    "@vira-enterprise-genui/studio-design": "workspace:*",
     "@vira-enterprise-genui/studio-flow": "workspace:*",
     "@vira-enterprise-genui/studio-react": "workspace:*",
     "@vira-enterprise-genui/studio-schema": "workspace:*",
