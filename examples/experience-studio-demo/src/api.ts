@@ -2,19 +2,28 @@ import type { StudioPublication } from "@vira-enterprise-genui/studio-compiler";
 import type { StudioExperienceDocument } from "@vira-enterprise-genui/studio-schema";
 
 export interface ExperienceSummary {
+  readonly workspaceId: string;
   readonly id: string;
   readonly name: string;
+  readonly draftRevision: number;
+  readonly recordVersion: number;
   readonly published: boolean;
+  readonly publishedDraftRevision: number | null;
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly publishedAt: string | null;
 }
 
 export interface ExperienceRecord {
+  readonly version: "1";
+  readonly workspaceId: string;
   readonly id: string;
   readonly name: string;
+  readonly draftRevision: number;
+  readonly recordVersion: number;
   readonly document: StudioExperienceDocument;
   readonly publication: StudioPublication | null;
+  readonly publishedDraftRevision: number | null;
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly publishedAt: string | null;
@@ -69,26 +78,33 @@ export function saveExperienceDraft(
   id: string,
   name: string,
   document: StudioExperienceDocument,
+  expectedRecordVersion: number,
 ): Promise<ExperienceRecord> {
   return requestJson(`/api/experiences/${encodeURIComponent(id)}`, {
     method: "PUT",
-    body: JSON.stringify({ name, document }),
+    body: JSON.stringify({ name, document, expectedRecordVersion }),
   });
 }
 
-export function publishExperience(id: string, publication: StudioPublication): Promise<ExperienceRecord> {
+export function publishExperience(id: string, expectedRecordVersion: number): Promise<ExperienceRecord> {
   return requestJson(`/api/experiences/${encodeURIComponent(id)}/publication`, {
     method: "PUT",
-    body: JSON.stringify({ publication }),
+    body: JSON.stringify({ expectedRecordVersion }),
   });
 }
 
-export function unpublishExperience(id: string): Promise<ExperienceRecord> {
-  return requestJson(`/api/experiences/${encodeURIComponent(id)}/publication`, { method: "DELETE" });
+export function unpublishExperience(id: string, expectedRecordVersion: number): Promise<ExperienceRecord> {
+  return requestJson(`/api/experiences/${encodeURIComponent(id)}/publication`, {
+    method: "DELETE",
+    body: JSON.stringify({ expectedRecordVersion }),
+  });
 }
 
-export function deleteExperience(id: string): Promise<{ readonly deleted: true; readonly id: string }> {
-  return requestJson(`/api/experiences/${encodeURIComponent(id)}`, { method: "DELETE" });
+export function deleteExperience(id: string, expectedRecordVersion: number): Promise<{ readonly deleted: true; readonly id: string }> {
+  return requestJson(`/api/experiences/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    body: JSON.stringify({ expectedRecordVersion }),
+  });
 }
 
 export function readPublicExperience(id: string): Promise<PublicExperience> {
