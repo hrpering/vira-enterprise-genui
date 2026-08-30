@@ -31,3 +31,13 @@ export type {
   AirlineFlightOffer,
   AirlineViraDomController,
 } from "./runtime.js";
+export {
+  AIRLINE_GUIDANCE_STUDIO_COMPONENTS,
+  createAirlineGuidanceController,
+  mountAirlineGuidanceStudioComponent,
+} from "./guidance.js";
+export type {
+  AirlineGuidanceController,
+  AirlineGuidanceExperience,
+  AirlineGuidanceResult,
+} from "./guidance.js";

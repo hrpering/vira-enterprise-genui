@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./studio": "./src/studio.ts",
     "./base.css": "./styles/base.css",
-    "./booking-flow.css": "./styles/booking-flow.css"
+    "./booking-flow.css": "./styles/booking-flow.css",
+    "./guidance.css": "./styles/guidance.css"
   },
   "dependencies": {
     "@vira-enterprise-genui/protocol": "workspace:*",
