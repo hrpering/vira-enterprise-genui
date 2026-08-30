@@ -18,6 +18,7 @@
     "@vira-enterprise-genui/adapter-sdk": "workspace:*",
     "@vira-enterprise-genui/airline-brand-kit": "workspace:*",
     "@vira-enterprise-genui/composer": "workspace:*",
+    "@vira-enterprise-genui/mock-airline-domain": "workspace:*",
     "@vira-enterprise-genui/planner": "workspace:*",
     "@vira-enterprise-genui/protocol": "workspace:*",
     "@vira-enterprise-genui/react": "workspace:*",

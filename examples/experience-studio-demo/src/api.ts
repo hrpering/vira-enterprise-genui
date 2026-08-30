@@ -1,5 +1,6 @@
 import type { StudioPublication } from "@vira-enterprise-genui/studio-compiler";
 import type { StudioExperienceDocument } from "@vira-enterprise-genui/studio-schema";
+import { applyMockDomainBindings } from "./mock-bindings.js";
 
 export interface ExperienceSummary {
   readonly workspaceId: string;
@@ -90,9 +91,10 @@ export async function createExperience(input: {
   readonly name: string;
   readonly document: StudioExperienceDocument;
 }): Promise<ExperienceRecord> {
+  const document = applyMockDomainBindings(input.document);
   return rememberRecord(await requestJson<ExperienceRecord>("/api/experiences", {
     method: "POST",
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, document }),
   }));
 }
 

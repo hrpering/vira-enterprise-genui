@@ -3,7 +3,8 @@ import {
   type StudioLifecycleService,
   type StudioLifecycleStore,
 } from "@vira-enterprise-genui/studio-lifecycle";
-import { actionAdapter, bindingSourceCatalog, componentCatalog } from "./catalog.js";
+import { actionAdapter, componentCatalog } from "./catalog.js";
+import { mockBindingSourceCatalog } from "./mock-bindings.js";
 
 export const DEMO_STUDIO_WORKSPACE_ID = "demo.local" as const;
 
@@ -11,7 +12,7 @@ export function createDemoStudioLifecycleService(store: StudioLifecycleStore): S
   return createStudioLifecycleService({
     store,
     componentCatalog,
-    bindingSourceCatalog,
+    bindingSourceCatalog: mockBindingSourceCatalog,
     actionAdapter,
     nowUnixMs: Date.now,
   });
