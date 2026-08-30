@@ -64,8 +64,10 @@ test("creates, publishes, serves, unpublishes and deletes a real Studio experien
   await expect(liveExperience).toHaveAttribute("data-demo-host-completions", "0");
   await livePage.getByRole("button", { name: "Search flights", exact: true }).click();
   await expect(liveExperience).toHaveAttribute("data-demo-host-completions", "1");
+  await expect(liveExperience).toHaveAttribute("data-demo-last-action", "travel.flight.search.submit");
   await livePage.getByRole("button", { name: "Search flights", exact: true }).click();
   await expect(liveExperience).toHaveAttribute("data-demo-host-completions", "2");
+  await expect(liveExperience).toHaveAttribute("data-demo-last-action", "travel.flight.search.submit");
 
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByTestId("unpublish-experience").click();
@@ -157,13 +159,16 @@ test("uses one shared brand renderer from gallery through Studio and published r
   const livePage = await context.newPage();
   watchPage(livePage, pageErrors, consoleRegressions);
   await livePage.goto(`/live/${id}`);
-  await expect(livePage.getByTestId("live-experience")).toBeVisible();
+  const liveExperience = livePage.getByTestId("live-experience");
+  await expect(liveExperience).toBeVisible();
   await expect(livePage.locator(".vira-plane")).toBeVisible();
   await expect(livePage.getByText("Pick seats together", { exact: true })).toBeVisible();
   await expect(livePage.locator(".vira-active-traveller div > span")).toHaveText("1/2 assigned");
   const liveSeat = livePage.getByRole("button", { name: /^4C/ });
   await expect(liveSeat).toBeEnabled();
   await liveSeat.click();
+  await expect(liveExperience).toHaveAttribute("data-demo-host-completions", "1");
+  await expect(liveExperience).toHaveAttribute("data-demo-last-action", "travel.flight.seat.select");
   await expect(livePage.locator(".vira-active-traveller div > span")).toHaveText("2/2 assigned");
   await expect(liveSeat).toHaveClass(/selected/);
 
