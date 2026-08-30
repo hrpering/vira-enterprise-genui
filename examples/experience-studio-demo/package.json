@@ -15,6 +15,7 @@
     "@vira-enterprise-genui/runtime-core": "workspace:*",
     "@vira-enterprise-genui/studio-compiler": "workspace:*",
     "@vira-enterprise-genui/studio-design": "workspace:*",
+    "@vira-enterprise-genui/studio-lifecycle": "workspace:*",
     "@vira-enterprise-genui/studio-runtime": "workspace:*",
     "@vira-enterprise-genui/studio-runtime-react": "workspace:*",
     "@vira-enterprise-genui/studio-schema": "workspace:*",
