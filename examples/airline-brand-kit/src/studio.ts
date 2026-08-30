@@ -14,7 +14,7 @@ export const AIRLINE_STUDIO_CATALOG_INPUT = {
       props: [
         { key: "origin", type: "string", required: true, bindable: true },
         { key: "destination", type: "string", required: true, bindable: true },
-        { key: "departure-date", type: "string", required: true, bindable: true },
+        { key: "departure", type: "string", required: true, bindable: true },
         { key: "passengers", type: "number", required: true, bindable: true },
       ],
       slots: [],
@@ -126,7 +126,7 @@ export const AIRLINE_STARTER_TEMPLATES = Object.freeze([
 export type AirlineStarterTemplateId = (typeof AIRLINE_STARTER_TEMPLATES)[number]["id"];
 
 const defaultPropsByTemplate: Readonly<Record<AirlineStarterTemplateId, Readonly<Record<string, string | number>>>> = Object.freeze({
-  "flight-search": { origin: "SAW", destination: "BER", "departure-date": "2026-09-15", passengers: 2 },
+  "flight-search": { origin: "SAW", destination: "BER", departure: "2026-09-15", passengers: 2 },
   "flight-results": { origin: "SAW", destination: "BER", passengers: 2, "base-price": 138, currency: "EUR" },
   "fare-comparison": { passengers: 2, "base-price": 138, currency: "EUR" },
   "traveller-details": { passengers: 2 },

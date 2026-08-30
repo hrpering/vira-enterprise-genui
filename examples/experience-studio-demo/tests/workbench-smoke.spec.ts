@@ -36,6 +36,7 @@ test("creates, publishes, serves, unpublishes and deletes a real Studio experien
   await expect(page.getByTestId("vira-studio-workbench")).toBeVisible();
   await expect(page.getByText(name, { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Search flights", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-testid="vira-studio-preview"] input[type="date"]')).toHaveValue("2026-09-15");
   await expect(page.getByTestId("publication-status")).toHaveText("Draft only");
   await expect(page.getByTestId("vira-studio-error")).toHaveCount(0);
 
@@ -58,6 +59,7 @@ test("creates, publishes, serves, unpublishes and deletes a real Studio experien
   await expect(livePage.getByText(name, { exact: true })).toBeVisible();
   await expect(livePage.getByText("Search flights", { exact: true })).toBeVisible();
   await expect(livePage.locator(".vira-search-card")).toBeVisible();
+  await expect(livePage.locator('input[type="date"]')).toHaveValue("2026-09-15");
 
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByTestId("unpublish-experience").click();
@@ -98,6 +100,7 @@ test("uses one shared brand renderer from gallery through Studio and published r
   await expect(gallery.getByText("Insurance & extras", { exact: true })).toBeVisible();
   await expect(gallery.getByText("Booking review", { exact: true })).toBeVisible();
   await expect(page.locator('[data-template="seat-selection"] .vira-plane')).toBeVisible();
+  await expect(page.locator('[data-template="seat-selection"] .vira-seat:not(:disabled)').first()).toBeEnabled();
 
   await page.getByTestId("create-template-seat-selection").click();
   await page.getByTestId("new-experience-name").fill(name);
@@ -106,6 +109,7 @@ test("uses one shared brand renderer from gallery through Studio and published r
 
   await expect(page.getByTestId("vira-studio-workbench")).toBeVisible();
   await expect(page.locator('[data-testid="vira-studio-preview"] .vira-plane')).toBeVisible();
+  await expect(page.locator('[data-testid="vira-studio-preview"] .vira-seat:not(:disabled)').first()).toBeEnabled();
   await expect(page.getByText("Radius", { exact: true })).toBeVisible();
   await expect(page.getByText("Shadow", { exact: true })).toBeVisible();
 
@@ -124,6 +128,7 @@ test("uses one shared brand renderer from gallery through Studio and published r
   await expect(livePage.getByTestId("live-experience")).toBeVisible();
   await expect(livePage.locator(".vira-plane")).toBeVisible();
   await expect(livePage.getByText("Pick seats together", { exact: true })).toBeVisible();
+  await expect(livePage.locator(".vira-seat:not(:disabled)").first()).toBeEnabled();
 
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByTestId("delete-experience").click();

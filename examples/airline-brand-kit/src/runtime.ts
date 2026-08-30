@@ -744,7 +744,12 @@ function previewSeed(props: Readonly<Record<string, unknown>>): AirlineFlightExp
   const base = Math.max(1, number(props["base-price"], 138));
   const currency = text(props.currency, "EUR").toUpperCase();
   return {
-    input: { origin, destination, departureDate: text(props["departure-date"], "2026-09-15"), passengers },
+    input: {
+      origin,
+      destination,
+      departureDate: text(props.departure, text(props["departure-date"], "2026-09-15")),
+      passengers,
+    },
     data: {
       offers: PREVIEW_OFFERS.map((offer, index) => ({ ...offer, origin, destination, price: base + index * 13, currency })),
     },
@@ -757,7 +762,14 @@ function previewState(step: string, seed: AirlineFlightExperienceSeed, props: Re
   const selected = seed.data.offers[0];
   const fareOption = fareById(fare) ?? FARE_OPTIONS[1];
   const base = selected?.price ?? 138;
-  const seatSelections = Array.from({ length: Math.min(count, 2) }, (_, index) => ({ passengerIndex: index, seat: index === 0 ? "4A" : "4C", fee: fare === "smart" ? 18 : 18 }));
+  // Keep previews genuinely interactive: for multi-traveller examples show one
+  // selected seat while leaving the next traveller available for selection.
+  const previewSeatCount = count > 1 ? 1 : 0;
+  const seatSelections = Array.from({ length: previewSeatCount }, (_, passengerIndex) => ({
+    passengerIndex,
+    seat: "4A",
+    fee: 18,
+  }));
   const baggageSelections = Array.from({ length: count }, (_, index) => ({ passengerIndex: index, optionId: "20kg", kilograms: 20, fee: baggageFeeForFare(BAGGAGE_OPTIONS[2], fare) }));
   const state = {
     passengers: count,

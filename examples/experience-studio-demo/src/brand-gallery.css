@@ -1,5 +1,14 @@
 @import "@vira-enterprise-genui/airline-brand-kit/guidance.css";
 
+/* The Studio shell still contains legacy demo selectors loaded earlier.
+   Reset only container layout here so the shared brand kit remains the visual
+   source of truth for guidance in gallery, authoring and live runtime. */
+.vira-guidance {
+  padding: 0;
+  display: block;
+  gap: 0;
+}
+
 .section-copy {
   max-width: 760px;
   margin: 8px 0 0;
