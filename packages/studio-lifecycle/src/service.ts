@@ -62,6 +62,18 @@ function validVersion(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 1;
 }
 
+function validTimestamp(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) && new Date(parsed).toISOString() === value;
+}
+
+function nestedDocumentPath(path: string): string {
+  if (path === "$") return "$.document";
+  if (path.startsWith("$.document")) return path;
+  return `$.document${path.slice(1)}`;
+}
+
 function validateIdentity(workspaceId: unknown, id?: unknown): StudioLifecycleResult<true> {
   if (!validWorkspaceId(workspaceId)) {
     return failure("INVALID_WORKSPACE", "$.workspaceId", "workspaceId must be one bounded opaque workspace key");
@@ -107,15 +119,15 @@ function validateDraft(
     configuration.bindingSourceCatalog,
   );
   if (!bindings.ok) {
-    return failure("INVALID_DOCUMENT", `$.document${bindings.issue.path.slice(1)}`, bindings.issue.message);
+    return failure("INVALID_DOCUMENT", nestedDocumentPath(bindings.issue.path), bindings.issue.message);
   }
   const design = validateStudioDesignDocument(bindings.value, configuration.componentCatalog);
   if (!design.ok) {
-    return failure("INVALID_DOCUMENT", `$.document${design.issue.path.slice(1)}`, design.issue.message);
+    return failure("INVALID_DOCUMENT", nestedDocumentPath(design.issue.path), design.issue.message);
   }
   const flow = validateStudioDocumentFlow(design.value, configuration.componentCatalog, configuration.actionAdapter);
   if (!flow.ok) {
-    return failure("INVALID_DOCUMENT", `$.document${flow.issue.path.slice(1)}`, flow.issue.message);
+    return failure("INVALID_DOCUMENT", nestedDocumentPath(flow.issue.path), flow.issue.message);
   }
   if (flow.value.id !== expectedId) {
     return failure("INVALID_DOCUMENT", "$.document.id", "Studio document id must match the lifecycle record id");
@@ -124,14 +136,35 @@ function validateDraft(
 }
 
 function validStoredRecordIdentity(record: StudioLifecycleRecord, workspaceId: string, id?: string): boolean {
-  return record.version === STUDIO_LIFECYCLE_RECORD_VERSION
-    && record.workspaceId === workspaceId
-    && (id === undefined || record.id === id)
-    && validExperienceId(record.id)
-    && validName(record.name)
-    && validVersion(record.draftRevision)
-    && validVersion(record.recordVersion)
-    && record.document.id === record.id;
+  if (record.version !== STUDIO_LIFECYCLE_RECORD_VERSION
+    || record.workspaceId !== workspaceId
+    || (id !== undefined && record.id !== id)
+    || !validExperienceId(record.id)
+    || !validName(record.name)
+    || !validVersion(record.draftRevision)
+    || !validVersion(record.recordVersion)
+    || !validTimestamp(record.createdAt)
+    || !validTimestamp(record.updatedAt)
+    || record.document.id !== record.id) return false;
+
+  if (record.publication === null) {
+    return record.publishedDraftRevision === null && record.publishedAt === null;
+  }
+  return record.publication.id === record.id
+    && record.publication.document.id === record.id
+    && validVersion(record.publishedDraftRevision)
+    && record.publishedDraftRevision <= record.draftRevision
+    && validTimestamp(record.publishedAt);
+}
+
+function validMutationAcknowledgement(record: StudioLifecycleRecord, expected: StudioLifecycleRecord): boolean {
+  return validStoredRecordIdentity(record, expected.workspaceId, expected.id)
+    && record.recordVersion === expected.recordVersion
+    && record.draftRevision === expected.draftRevision
+    && record.name === expected.name
+    && record.updatedAt === expected.updatedAt
+    && record.publishedDraftRevision === expected.publishedDraftRevision
+    && record.publishedAt === expected.publishedAt;
 }
 
 function storeFailure<T>(): StudioLifecycleResult<T> {
@@ -245,7 +278,7 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
       try {
         const stored = await configuration.store.create(record);
         if (!stored.ok) return mutationFailure(stored.code);
-        if (!validStoredRecordIdentity(stored.value, input.workspaceId, input.id)) return storeFailure();
+        if (!validMutationAcknowledgement(stored.value, record)) return storeFailure();
         return { ok: true, value: snapshot(stored.value) };
       } catch {
         return storeFailure();
@@ -277,7 +310,7 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
       try {
         const stored = await configuration.store.replace(next, version.value);
         if (!stored.ok) return mutationFailure(stored.code);
-        if (!validStoredRecordIdentity(stored.value, input.workspaceId, input.id)) return storeFailure();
+        if (!validMutationAcknowledgement(stored.value, next)) return storeFailure();
         return { ok: true, value: snapshot(stored.value) };
       } catch {
         return storeFailure();
@@ -299,7 +332,7 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
         actionAdapter: configuration.actionAdapter,
       });
       if (!publication.ok) {
-        return failure("PUBLISH_FAILED", `$.document${publication.issue.path.slice(1)}`, publication.issue.message);
+        return failure("PUBLISH_FAILED", nestedDocumentPath(publication.issue.path), publication.issue.message);
       }
       const now = timestamp(configuration);
       if (!now.ok) return now;
@@ -314,7 +347,7 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
       try {
         const stored = await configuration.store.replace(next, version.value);
         if (!stored.ok) return mutationFailure(stored.code);
-        if (!validStoredRecordIdentity(stored.value, input.workspaceId, input.id)) return storeFailure();
+        if (!validMutationAcknowledgement(stored.value, next)) return storeFailure();
         return { ok: true, value: snapshot(stored.value) };
       } catch {
         return storeFailure();
@@ -343,7 +376,7 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
       try {
         const stored = await configuration.store.replace(next, version.value);
         if (!stored.ok) return mutationFailure(stored.code);
-        if (!validStoredRecordIdentity(stored.value, input.workspaceId, input.id)) return storeFailure();
+        if (!validMutationAcknowledgement(stored.value, next)) return storeFailure();
         return { ok: true, value: snapshot(stored.value) };
       } catch {
         return storeFailure();
