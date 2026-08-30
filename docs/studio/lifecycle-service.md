@@ -68,7 +68,7 @@ Publish additionally runs `prepareStudioPublication`, so the persisted live arti
 
 The core package does not depend on PostgreSQL, Redis, S3, a filesystem or a cloud provider. Adapters implement `StudioLifecycleStore`.
 
-The existing `examples/experience-studio-demo/.data` filesystem remains a local demonstration adapter until it is migrated onto this port; it is not described as enterprise persistence.
+`examples/experience-studio-demo` now consumes this port through a local file-backed adapter. That adapter serializes mutations inside one demo server process and uses lifecycle `recordVersion` compare-and-swap semantics, but it is explicitly not enterprise persistence or a substitute for a database's cross-process conditional-write primitive.
 
 ## Record versions
 
