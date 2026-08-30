@@ -11,6 +11,7 @@
     "./guidance.css": "./styles/guidance.css"
   },
   "dependencies": {
+    "@vira-enterprise-genui/mock-airline-domain": "workspace:*",
     "@vira-enterprise-genui/protocol": "workspace:*",
     "@vira-enterprise-genui/runtime-web": "workspace:*",
     "@vira-enterprise-genui/studio-schema": "workspace:*"

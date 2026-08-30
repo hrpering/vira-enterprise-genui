@@ -1,0 +1,9 @@
+{
+  "name": "@vira-enterprise-genui/mock-airline-domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

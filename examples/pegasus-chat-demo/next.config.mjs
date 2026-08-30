@@ -4,6 +4,7 @@ const nextConfig = {
     "@vira-enterprise-genui/adapter-sdk",
     "@vira-enterprise-genui/airline-brand-kit",
     "@vira-enterprise-genui/composer",
+    "@vira-enterprise-genui/mock-airline-domain",
     "@vira-enterprise-genui/planner",
     "@vira-enterprise-genui/protocol",
     "@vira-enterprise-genui/react",

@@ -1,5 +1,6 @@
 import type { StudioPublication } from "@vira-enterprise-genui/studio-compiler";
 import type { StudioExperienceDocument } from "@vira-enterprise-genui/studio-schema";
+import { applyMockDomainBindings } from "./mock-bindings.js";
 
 export interface ExperienceSummary {
   readonly workspaceId: string;
@@ -57,6 +58,29 @@ function enqueueMutation<T>(id: string, operation: () => Promise<T>): Promise<T>
   return current;
 }
 
+async function waitForMutationQuiescence(id: string): Promise<void> {
+  while (true) {
+    const observed = mutationQueues.get(id);
+    if (observed) await observed.catch(() => undefined);
+    await Promise.resolve();
+    if (mutationQueues.get(id) === observed) return;
+  }
+}
+
+async function readQuiescentExperience(id: string): Promise<ExperienceRecord> {
+  while (true) {
+    await waitForMutationQuiescence(id);
+    const observed = mutationQueues.get(id);
+    const record = await readExperience(id);
+    await waitForMutationQuiescence(id);
+    if (mutationQueues.get(id) === observed) return record;
+  }
+}
+
+function sameDocument(left: StudioExperienceDocument, right: StudioExperienceDocument): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   if (!headers.has("content-type")) headers.set("content-type", "application/json");
@@ -90,9 +114,10 @@ export async function createExperience(input: {
   readonly name: string;
   readonly document: StudioExperienceDocument;
 }): Promise<ExperienceRecord> {
+  const document = applyMockDomainBindings(input.document);
   return rememberRecord(await requestJson<ExperienceRecord>("/api/experiences", {
     method: "POST",
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, document }),
   }));
 }
 
@@ -107,21 +132,27 @@ export function saveExperienceDraft(
   })));
 }
 
-export function publishExperience(id: string, _publication: StudioPublication): Promise<ExperienceRecord> {
+export async function publishExperience(id: string, publication: StudioPublication): Promise<ExperienceRecord> {
+  const current = await readQuiescentExperience(id);
+  if (!sameDocument(current.document, publication.document)) {
+    throw new Error("Studio draft changed while Publish was waiting for autosave; review the latest draft and publish again");
+  }
   return enqueueMutation(id, async () => rememberRecord(await requestJson<ExperienceRecord>(`/api/experiences/${encodeURIComponent(id)}/publication`, {
     method: "PUT",
-    body: JSON.stringify({ expectedRecordVersion: expectedRecordVersion(id) }),
+    body: JSON.stringify({ expectedRecordVersion: current.recordVersion }),
   })));
 }
 
-export function unpublishExperience(id: string): Promise<ExperienceRecord> {
+export async function unpublishExperience(id: string): Promise<ExperienceRecord> {
+  await waitForMutationQuiescence(id);
   return enqueueMutation(id, async () => rememberRecord(await requestJson<ExperienceRecord>(`/api/experiences/${encodeURIComponent(id)}/publication`, {
     method: "DELETE",
     body: JSON.stringify({ expectedRecordVersion: expectedRecordVersion(id) }),
   })));
 }
 
-export function deleteExperience(id: string): Promise<{ readonly deleted: true; readonly id: string }> {
+export async function deleteExperience(id: string): Promise<{ readonly deleted: true; readonly id: string }> {
+  await waitForMutationQuiescence(id);
   return enqueueMutation(id, async () => {
     const result = await requestJson<{ readonly deleted: true; readonly id: string }>(`/api/experiences/${encodeURIComponent(id)}`, {
       method: "DELETE",
