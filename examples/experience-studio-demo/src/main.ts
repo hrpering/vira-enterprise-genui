@@ -4,6 +4,7 @@ import "./brand-gallery.css";
 import { planExperience } from "@vira-enterprise-genui/planner";
 import { createRuntimeState } from "@vira-enterprise-genui/runtime-core";
 import { createStudioRuntimeSession } from "@vira-enterprise-genui/studio-runtime";
+import type { StudioRuntimeSession } from "@vira-enterprise-genui/studio-runtime";
 import { renderStudioRuntimeReactView } from "@vira-enterprise-genui/studio-runtime-react";
 import { createStudioWorkbenchSession } from "@vira-enterprise-genui/studio-workbench";
 import { ViraStudioWorkbench } from "@vira-enterprise-genui/studio-workbench-react";
@@ -356,7 +357,7 @@ function StudioApp(): ReactElement {
   return createElement(Editor, { record, onBack: back, onDeleted: back });
 }
 
-function buildRuntime(publicExperience: PublicExperience) {
+function buildRuntime(publicExperience: PublicExperience, onHostCompletion: () => void): StudioRuntimeSession {
   const planned = planExperience({
     id: `live-${publicExperience.id.replaceAll(".", "-")}`,
     intent: { version: "1", namespace: "studio.live", name: "published" },
@@ -382,17 +383,37 @@ function buildRuntime(publicExperience: PublicExperience) {
     actionIds: { nextId: () => `live-action-${++actionSequence}` },
   });
   if (!runtime.ok) throw new Error(runtime.issue.message);
-  return runtime.value;
+  const session = runtime.value;
+  return Object.freeze({
+    currentViewId: () => session.currentViewId(),
+    currentView: () => session.currentView(),
+    currentRuntimeState: () => session.currentRuntimeState(),
+    dispatch(input) {
+      const result = session.dispatch(input);
+      if (!result.ok) return result;
+      const completion = session.complete({ actionId: result.value.action.id, outcome: "success" });
+      if (!completion.ok) return { ok: false, stage: "studio", issue: completion.issue };
+      onHostCompletion();
+      return result;
+    },
+    applyHostPatch: (patch) => session.applyHostPatch(patch),
+    complete: (input) => session.complete(input),
+    dispose: () => session.dispose(),
+  });
 }
 
 function PublishedExperience({ value }: { readonly value: PublicExperience }): ReactElement {
-  const runtime = useMemo(() => buildRuntime(value), [value.id, value.publishedAt]);
+  const [hostCompletions, setHostCompletions] = useState(0);
+  const runtime = useMemo(
+    () => buildRuntime(value, () => setHostCompletions((count) => count + 1)),
+    [value.id, value.publishedAt],
+  );
   useEffect(() => () => runtime.dispose(), [runtime]);
   const rendered = renderStudioRuntimeReactView({ session: runtime, componentCatalog, renderers: runtimeRenderers });
   if (!rendered.ok) return createElement("main", { className: "fatal-page" }, createElement("h1", null, "Published runtime failed"), createElement("p", null, rendered.issue.message));
   return createElement(
     "main",
-    { className: "live-page", "data-testid": "live-experience" },
+    { className: "live-page", "data-testid": "live-experience", "data-demo-host-completions": hostCompletions },
     createElement("header", { className: "live-header" }, createElement("div", null, createElement("span", { className: "live-dot" }), createElement("strong", null, value.name), createElement("code", null, value.id)), createElement("span", null, "Published Vira runtime")),
     createElement("section", { className: "live-canvas" }, rendered.value),
   );
