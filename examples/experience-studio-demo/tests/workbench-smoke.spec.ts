@@ -55,11 +55,17 @@ test("creates, publishes, serves, unpublishes and deletes a real Studio experien
   const livePage = await context.newPage();
   watchPage(livePage, pageErrors, consoleRegressions);
   await livePage.goto(`/live/${id}`);
-  await expect(livePage.getByTestId("live-experience")).toBeVisible();
+  const liveExperience = livePage.getByTestId("live-experience");
+  await expect(liveExperience).toBeVisible();
   await expect(livePage.getByText(name, { exact: true })).toBeVisible();
   await expect(livePage.getByText("Search flights", { exact: true })).toBeVisible();
   await expect(livePage.locator(".vira-search-card")).toBeVisible();
   await expect(livePage.locator('input[type="date"]')).toHaveValue("2026-09-15");
+  await expect(liveExperience).toHaveAttribute("data-demo-host-completions", "0");
+  await livePage.getByRole("button", { name: "Search flights", exact: true }).click();
+  await expect(liveExperience).toHaveAttribute("data-demo-host-completions", "1");
+  await livePage.getByRole("button", { name: "Search flights", exact: true }).click();
+  await expect(liveExperience).toHaveAttribute("data-demo-host-completions", "2");
 
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByTestId("unpublish-experience").click();
