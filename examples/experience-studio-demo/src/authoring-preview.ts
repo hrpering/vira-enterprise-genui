@@ -1,4 +1,5 @@
 import { registerOverlayPortal } from "@puckeditor/core";
+import { AIRLINE_STUDIO_COMPONENTS } from "@vira-enterprise-genui/airline-brand-kit";
 import type { StudioWorkbenchSession } from "@vira-enterprise-genui/studio-workbench";
 import { createElement, useLayoutEffect, useRef } from "react";
 import type { MouseEvent as ReactMouseEvent, ReactElement, ReactNode } from "react";
@@ -65,7 +66,13 @@ function applyAuthoringSeatState(
   }
 }
 
-function InteractiveAuthoringSurface({ children }: { readonly children: ReactNode }): ReactElement {
+function InteractiveAuthoringSurface({
+  children,
+  interactionKey,
+}: {
+  readonly children: ReactNode;
+  readonly interactionKey: string;
+}): ReactElement {
   const ref = useRef<HTMLDivElement | null>(null);
   const selectedSeats = useRef(new Set<string>());
   const baseAssigned = useRef<number | undefined>(undefined);
@@ -74,6 +81,11 @@ function InteractiveAuthoringSurface({ children }: { readonly children: ReactNod
   useLayoutEffect(() => {
     const root = ref.current;
     if (!root) return undefined;
+
+    selectedSeats.current.clear();
+    baseAssigned.current = undefined;
+    for (const timer of timers.current) window.clearTimeout(timer);
+    timers.current.clear();
 
     // One portal for the trusted brand-renderer surface is enough. Registering
     // every imperative child as its own portal caused Puck's pointer lifecycle
@@ -86,7 +98,7 @@ function InteractiveAuthoringSurface({ children }: { readonly children: ReactNod
       timers.current.clear();
       disposePortal?.();
     };
-  }, []);
+  }, [interactionKey]);
 
   const onClickCapture = (event: ReactMouseEvent<HTMLDivElement>): void => {
     const target = event.target;
@@ -116,6 +128,13 @@ function InteractiveAuthoringSurface({ children }: { readonly children: ReactNod
   }, children);
 }
 
+function interactionKey(context: TrustedRenderContext, props: Readonly<Record<string, unknown>>): string {
+  if (context.component !== AIRLINE_STUDIO_COMPONENTS.seatMap) {
+    return `${context.nodeId}:${context.component}`;
+  }
+  return `${context.nodeId}:${context.component}:${String(props.passengers ?? "")}:${String(props.fare ?? "")}`;
+}
+
 export function createMockAuthoringRenderers(
   session: Pick<StudioWorkbenchSession, "currentDocument" | "currentViewId">,
   renderers: Readonly<Record<string, unknown>>,
@@ -134,7 +153,7 @@ export function createMockAuthoringRenderers(
       );
       return createElement(
         InteractiveAuthoringSurface,
-        null,
+        { interactionKey: interactionKey(context, props) },
         renderer({ ...context, props }),
       );
     };
