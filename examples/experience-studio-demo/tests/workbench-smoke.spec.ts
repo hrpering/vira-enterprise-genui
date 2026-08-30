@@ -134,7 +134,7 @@ test("uses one shared brand renderer from gallery through Studio and published r
   const studioPreview = page.getByTestId("vira-studio-preview");
   await expect(studioPreview.locator(".vira-plane")).toBeVisible();
   await expect(studioPreview.locator(".vira-active-traveller div > span")).toHaveText("1/2 assigned");
-  const authoringSeat = studioPreview.locator(".vira-seat:not(:disabled):not(.selected)").first();
+  const authoringSeat = studioPreview.getByRole("button", { name: /^4C/ });
   await expect(authoringSeat).toBeEnabled();
   await authoringSeat.click();
   await expect(studioPreview.locator(".vira-active-traveller div > span")).toHaveText("2/2 assigned");
@@ -158,7 +158,7 @@ test("uses one shared brand renderer from gallery through Studio and published r
   await expect(livePage.locator(".vira-plane")).toBeVisible();
   await expect(livePage.getByText("Pick seats together", { exact: true })).toBeVisible();
   await expect(livePage.locator(".vira-active-traveller div > span")).toHaveText("1/2 assigned");
-  const liveSeat = livePage.locator(".vira-seat:not(:disabled):not(.selected)").first();
+  const liveSeat = livePage.getByRole("button", { name: /^4C/ });
   await expect(liveSeat).toBeEnabled();
   await liveSeat.click();
   await expect(livePage.locator(".vira-active-traveller div > span")).toHaveText("2/2 assigned");
