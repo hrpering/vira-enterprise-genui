@@ -69,10 +69,76 @@ function freezeStudioSession(value: StudioRuntimeSession): StudioRuntimeSession 
   return Object.freeze(value);
 }
 
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function applyLiveSeatSelection(root: HTMLElement, payload: Readonly<Record<string, unknown>>): void {
+  const seat = stringValue(payload.seat);
+  if (!seat) return;
+
+  let selectedButton: HTMLButtonElement | undefined;
+  for (const button of root.querySelectorAll<HTMLButtonElement>("button.vira-seat")) {
+    if (button.querySelector("strong")?.textContent?.trim() === seat) {
+      selectedButton = button;
+      break;
+    }
+  }
+  if (!selectedButton || selectedButton.classList.contains("occupied")) return;
+  selectedButton.classList.add("selected");
+  selectedButton.disabled = true;
+
+  const banner = root.querySelector<HTMLElement>(".vira-active-traveller");
+  const progress = banner?.querySelector<HTMLElement>("div > span");
+  const match = progress?.textContent?.match(/^(\d+)\/(\d+) assigned$/);
+  if (!progress || !match) return;
+
+  const current = Number.parseInt(match[1] ?? "0", 10);
+  const passengers = Number.parseInt(match[2] ?? "0", 10);
+  if (!Number.isSafeInteger(current) || !Number.isSafeInteger(passengers) || passengers < 1) return;
+  const assigned = Math.min(passengers, current + 1);
+  progress.textContent = `${assigned}/${passengers} assigned`;
+
+  const avatar = banner?.querySelector<HTMLElement>(":scope > span");
+  const title = banner?.querySelector<HTMLElement>("div > strong");
+  if (title) {
+    title.textContent = assigned >= passengers
+      ? "All travellers have seats"
+      : `Choose a seat for traveller ${assigned + 1}`;
+  }
+  if (avatar) avatar.textContent = `P${Math.min(passengers, assigned + 1)}`;
+
+  if (assigned >= passengers) {
+    for (const button of root.querySelectorAll<HTMLButtonElement>("button.vira-seat")) {
+      if (!button.classList.contains("occupied")) button.disabled = true;
+    }
+  }
+}
+
+function applyLiveFareSelection(root: HTMLElement, payload: Readonly<Record<string, unknown>>): void {
+  const fareId = stringValue(payload.fareId);
+  if (!fareId) return;
+  const fare = FARE_OPTIONS.find((candidate) => candidate.id === fareId);
+  if (!fare) return;
+  for (const button of root.querySelectorAll<HTMLButtonElement>("button.vira-fare-option")) {
+    button.classList.toggle("selected", button.querySelector("strong")?.textContent?.trim() === fare.name);
+  }
+}
+
+function applyLiveHostInteraction(
+  root: HTMLElement,
+  actionType: string,
+  payload: Readonly<Record<string, unknown>>,
+): void {
+  root.setAttribute("data-demo-last-action", actionType);
+  if (actionType === "travel.flight.seat.select") applyLiveSeatSelection(root, payload);
+  else if (actionType === "travel.flight.fare.select") applyLiveFareSelection(root, payload);
+}
+
 function buildRuntime(
   publicExperience: PublicExperience,
   input: MockAirlineRuntimeInput,
-  onHostCompletion: () => void,
+  onHostCompletion: (actionType: string, payload: Readonly<Record<string, unknown>>) => void,
 ): StudioRuntimeSession {
   const runtimeData = createMockAirlineRuntimeData(input);
   const planned = planExperience({
@@ -118,7 +184,7 @@ function buildRuntime(
       if (!result.ok) return result;
       const completion = session.complete({ actionId: result.value.action.id, outcome: "success" });
       if (!completion.ok) return { ok: false, stage: "studio", issue: completion.issue };
-      onHostCompletion();
+      onHostCompletion(result.value.action.type, result.value.action.payload);
       return result;
     },
     applyHostPatch: (patch) => session.applyHostPatch(patch),
@@ -242,9 +308,12 @@ function PublishedExperience({ value }: { readonly value: PublicExperience }): R
   const [input, setInput] = useState<MockAirlineRuntimeInput>({ ...DEFAULT_MOCK_RUNTIME_INPUT });
 
   const runtime = useMemo(
-    () => buildRuntime(value, input, () => {
+    () => buildRuntime(value, input, (actionType, payload) => {
       hostCompletions.current += 1;
-      liveExperienceRef.current?.setAttribute("data-demo-host-completions", String(hostCompletions.current));
+      const root = liveExperienceRef.current;
+      if (!root) return;
+      root.setAttribute("data-demo-host-completions", String(hostCompletions.current));
+      applyLiveHostInteraction(root, actionType, payload);
     }),
     [value.id, value.publishedAt, input.origin, input.destination, input.departureDate, input.passengers, input.fare],
   );
