@@ -34,9 +34,8 @@ function applyAuthoringSeatState(
   const passengers = Number.parseInt(match[2] ?? "0", 10);
   if (!Number.isSafeInteger(passengers) || passengers < 1) return;
 
-  if (baseAssigned.current === undefined) {
-    baseAssigned.current = Math.min(passengers, Math.max(0, currentAssigned));
-  }
+  const initialAssigned = baseAssigned.current ?? Math.min(passengers, Math.max(0, currentAssigned));
+  if (baseAssigned.current === undefined) baseAssigned.current = initialAssigned;
 
   for (const button of root.querySelectorAll<HTMLButtonElement>(SEAT_SELECTOR)) {
     const id = seatId(button);
@@ -46,7 +45,7 @@ function applyAuthoringSeatState(
     }
   }
 
-  const assigned = Math.min(passengers, baseAssigned.current + selectedSeats.size);
+  const assigned = Math.min(passengers, initialAssigned + selectedSeats.size);
   progress.textContent = `${assigned}/${passengers} assigned`;
 
   const banner = root.querySelector<HTMLElement>(".vira-active-traveller");
@@ -69,7 +68,7 @@ function applyAuthoringSeatState(
 function InteractiveAuthoringSurface({ children }: { readonly children: ReactNode }): ReactElement {
   const ref = useRef<HTMLDivElement | null>(null);
   const selectedSeats = useRef(new Set<string>());
-  const baseAssigned = useRef<number>();
+  const baseAssigned = useRef<number | undefined>(undefined);
 
   useLayoutEffect(() => {
     const root = ref.current;
