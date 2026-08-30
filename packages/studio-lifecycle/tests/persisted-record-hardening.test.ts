@@ -106,7 +106,8 @@ it("rejects a persisted publication whose manifest does not match its document",
 });
 
 it("rejects impossible persisted timestamp ordering", async () => {
-  const record: StudioLifecycleRecord = {\n    ...canonicalRecord("demo.timestamp-order"),
+  const record: StudioLifecycleRecord = {
+    ...canonicalRecord("demo.timestamp-order"),
     createdAt: updatedAt,
     updatedAt: createdAt,
   };
