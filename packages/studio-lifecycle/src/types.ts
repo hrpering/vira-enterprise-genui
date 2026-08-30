@@ -64,6 +64,7 @@ export type StudioLifecycleIssueCode =
   | "INVALID_ID"
   | "INVALID_NAME"
   | "INVALID_VERSION"
+  | "VERSION_OVERFLOW"
   | "INVALID_CLOCK"
   | "INVALID_DOCUMENT"
   | "PUBLISH_FAILED"
