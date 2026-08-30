@@ -15,6 +15,14 @@ const idPattern = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/;
 
 await mkdir(storeDir, { recursive: true });
 
+const vite = await createViteServer({
+  root,
+  appType: "spa",
+  server: { middlewareMode: true },
+});
+const lifecycleModule = await vite.ssrLoadModule("/src/server-lifecycle.ts");
+const { createDemoStudioLifecycleService, DEMO_STUDIO_WORKSPACE_ID } = lifecycleModule;
+
 function sendJson(response, status, value) {
   const body = JSON.stringify(value);
   response.statusCode = status;
@@ -25,17 +33,66 @@ function sendJson(response, status, value) {
 
 function safeId(raw) {
   if (typeof raw !== "string") return undefined;
-  const value = decodeURIComponent(raw);
-  return idPattern.test(value) ? value : undefined;
+  try {
+    const value = decodeURIComponent(raw);
+    return idPattern.test(value) ? value : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function fileFor(id) {
   return path.join(storeDir, `${id}.json`);
 }
 
+function objectRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function sameJson(left, right) {
+  try {
+    return JSON.stringify(left) === JSON.stringify(right);
+  } catch {
+    return false;
+  }
+}
+
+function migrateLegacyRecord(value, id) {
+  if (!objectRecord(value)) return value;
+  const alreadyVersioned = "version" in value
+    || "workspaceId" in value
+    || "draftRevision" in value
+    || "recordVersion" in value
+    || "publishedDraftRevision" in value;
+  if (alreadyVersioned || value.id !== id) return value;
+
+  const publication = value.publication ?? null;
+  const publicationMatchesDraft = objectRecord(publication)
+    && objectRecord(publication.document)
+    && sameJson(publication.document, value.document);
+  const draftRevision = publication !== null && !publicationMatchesDraft ? 2 : 1;
+  const recordVersion = publication !== null ? draftRevision + 1 : draftRevision;
+
+  return {
+    version: "1",
+    workspaceId: DEMO_STUDIO_WORKSPACE_ID,
+    id: value.id,
+    name: value.name,
+    draftRevision,
+    recordVersion,
+    document: value.document,
+    publication,
+    publishedDraftRevision: publication !== null ? 1 : null,
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt,
+    publishedAt: publication !== null ? value.publishedAt : null,
+  };
+}
+
 async function readRecord(id) {
   try {
-    return JSON.parse(await readFile(fileFor(id), "utf8"));
+    const value = JSON.parse(await readFile(fileFor(id), "utf8"));
+    return migrateLegacyRecord(value, id);
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") return undefined;
     throw error;
@@ -49,6 +106,66 @@ async function writeRecord(record) {
   await rename(temporary, target);
 }
 
+let mutationTail = Promise.resolve();
+function serializeMutation(operation) {
+  const next = mutationTail.then(operation, operation);
+  mutationTail = next.then(() => undefined, () => undefined);
+  return next;
+}
+
+const fileStore = {
+  async list(workspaceId) {
+    if (workspaceId !== DEMO_STUDIO_WORKSPACE_ID) return [];
+    const names = (await readdir(storeDir)).filter((name) => name.endsWith(".json")).sort();
+    const records = [];
+    for (const name of names) {
+      const id = name.slice(0, -5);
+      if (!idPattern.test(id)) throw new Error("invalid Studio demo record filename");
+      const record = await readRecord(id);
+      if (record) records.push(record);
+    }
+    return records;
+  },
+
+  async read(workspaceId, id) {
+    if (workspaceId !== DEMO_STUDIO_WORKSPACE_ID) return undefined;
+    return readRecord(id);
+  },
+
+  async create(record) {
+    if (record.workspaceId !== DEMO_STUDIO_WORKSPACE_ID) throw new Error("unexpected Studio demo workspace");
+    return serializeMutation(async () => {
+      if (await readRecord(record.id)) return { ok: false, code: "ALREADY_EXISTS" };
+      await writeRecord(record);
+      return { ok: true, value: record };
+    });
+  },
+
+  async replace(record, expectedRecordVersion) {
+    if (record.workspaceId !== DEMO_STUDIO_WORKSPACE_ID) throw new Error("unexpected Studio demo workspace");
+    return serializeMutation(async () => {
+      const current = await readRecord(record.id);
+      if (!current) return { ok: false, code: "NOT_FOUND" };
+      if (current.recordVersion !== expectedRecordVersion) return { ok: false, code: "VERSION_CONFLICT" };
+      await writeRecord(record);
+      return { ok: true, value: record };
+    });
+  },
+
+  async delete(workspaceId, id, expectedRecordVersion) {
+    if (workspaceId !== DEMO_STUDIO_WORKSPACE_ID) throw new Error("unexpected Studio demo workspace");
+    return serializeMutation(async () => {
+      const current = await readRecord(id);
+      if (!current) return { ok: false, code: "NOT_FOUND" };
+      if (current.recordVersion !== expectedRecordVersion) return { ok: false, code: "VERSION_CONFLICT" };
+      await unlink(fileFor(id));
+      return { ok: true };
+    });
+  },
+};
+
+const lifecycle = createDemoStudioLifecycleService(fileStore);
+
 async function readJsonBody(request) {
   const chunks = [];
   let total = 0;
@@ -61,96 +178,65 @@ async function readJsonBody(request) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
-function validDocument(value, expectedId) {
-  return value !== null
-    && typeof value === "object"
-    && !Array.isArray(value)
-    && value.version === "1"
-    && value.id === expectedId
-    && typeof value.recipeId === "string"
-    && typeof value.entryView === "string"
-    && Array.isArray(value.views)
-    && value.views.length > 0
-    && Array.isArray(value.bindings)
-    && Array.isArray(value.interactions);
+function lifecycleStatus(issue) {
+  if (issue.code === "NOT_FOUND") return 404;
+  if (issue.code === "CONFLICT") return 409;
+  if (issue.code === "STORE_FAILURE" || issue.code === "INVALID_CLOCK" || issue.code === "VERSION_OVERFLOW") return 500;
+  return 400;
 }
 
-function validPublication(value, expectedId) {
-  return value !== null
-    && typeof value === "object"
-    && !Array.isArray(value)
-    && value.id === expectedId
-    && value.document !== null
-    && typeof value.document === "object"
-    && !Array.isArray(value.document)
-    && value.document.id === expectedId;
-}
-
-async function listSummaries() {
-  const names = (await readdir(storeDir)).filter((name) => name.endsWith(".json")).sort();
-  const summaries = [];
-  for (const name of names) {
-    const id = name.slice(0, -5);
-    const record = await readRecord(id);
-    if (!record) continue;
-    summaries.push({
-      id: record.id,
-      name: record.name,
-      published: record.publication !== null,
-      createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
-      publishedAt: record.publishedAt,
-    });
-  }
-  return summaries.sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
+function sendLifecycleFailure(response, result) {
+  sendJson(response, lifecycleStatus(result.issue), { error: result.issue.message, code: result.issue.code });
 }
 
 async function handleApi(request, response, pathname) {
   if (pathname === "/api/experiences" && request.method === "GET") {
-    sendJson(response, 200, { experiences: await listSummaries() });
+    const result = await lifecycle.list(DEMO_STUDIO_WORKSPACE_ID);
+    if (!result.ok) sendLifecycleFailure(response, result);
+    else sendJson(response, 200, { experiences: result.value });
     return true;
   }
 
   if (pathname === "/api/experiences" && request.method === "POST") {
     const body = await readJsonBody(request);
     const id = safeId(body.id);
-    const name = typeof body.name === "string" ? body.name.trim() : "";
-    if (!id || name.length < 1 || name.length > 120 || !validDocument(body.document, id)) {
-      sendJson(response, 400, { error: "invalid experience create payload" });
+    if (!id) {
+      sendJson(response, 400, { error: "invalid experience id" });
       return true;
     }
-    if (await readRecord(id)) {
-      sendJson(response, 409, { error: "experience already exists" });
-      return true;
-    }
-    const now = new Date().toISOString();
-    const record = {
+    const result = await lifecycle.create({
+      workspaceId: DEMO_STUDIO_WORKSPACE_ID,
       id,
-      name,
+      name: typeof body.name === "string" ? body.name.trim() : "",
       document: body.document,
-      publication: null,
-      createdAt: now,
-      updatedAt: now,
-      publishedAt: null,
-    };
-    await writeRecord(record);
-    sendJson(response, 201, record);
+    });
+    if (!result.ok) sendLifecycleFailure(response, result);
+    else sendJson(response, 201, result.value);
     return true;
   }
 
   const publicMatch = pathname.match(/^\/api\/publications\/([^/]+)$/);
   if (publicMatch && request.method === "GET") {
     const id = safeId(publicMatch[1]);
-    const record = id ? await readRecord(id) : undefined;
-    if (!record?.publication) {
+    if (!id) {
+      sendJson(response, 404, { error: "experience is not published" });
+      return true;
+    }
+    const result = await lifecycle.read(DEMO_STUDIO_WORKSPACE_ID, id);
+    if (!result.ok) {
+      if (result.issue.code === "NOT_FOUND") sendJson(response, 404, { error: "experience is not published" });
+      else sendLifecycleFailure(response, result);
+      return true;
+    }
+    if (!result.value.publication || !result.value.publishedAt) {
       sendJson(response, 404, { error: "experience is not published" });
       return true;
     }
     sendJson(response, 200, {
-      id: record.id,
-      name: record.name,
-      publication: record.publication,
-      publishedAt: record.publishedAt,
+      id: result.value.id,
+      name: result.value.name,
+      publication: result.value.publication,
+      publishedAt: result.value.publishedAt,
     });
     return true;
   }
@@ -158,28 +244,30 @@ async function handleApi(request, response, pathname) {
   const publicationMatch = pathname.match(/^\/api\/experiences\/([^/]+)\/publication$/);
   if (publicationMatch) {
     const id = safeId(publicationMatch[1]);
-    const record = id ? await readRecord(id) : undefined;
-    if (!id || !record) {
+    if (!id) {
       sendJson(response, 404, { error: "experience not found" });
       return true;
     }
     if (request.method === "PUT") {
       const body = await readJsonBody(request);
-      if (!validPublication(body.publication, id)) {
-        sendJson(response, 400, { error: "invalid Studio publication" });
-        return true;
-      }
-      const now = new Date().toISOString();
-      const next = { ...record, publication: body.publication, updatedAt: now, publishedAt: now };
-      await writeRecord(next);
-      sendJson(response, 200, next);
+      const result = await lifecycle.publish({
+        workspaceId: DEMO_STUDIO_WORKSPACE_ID,
+        id,
+        expectedRecordVersion: body.expectedRecordVersion,
+      });
+      if (!result.ok) sendLifecycleFailure(response, result);
+      else sendJson(response, 200, result.value);
       return true;
     }
     if (request.method === "DELETE") {
-      const now = new Date().toISOString();
-      const next = { ...record, publication: null, updatedAt: now, publishedAt: null };
-      await writeRecord(next);
-      sendJson(response, 200, next);
+      const body = await readJsonBody(request);
+      const result = await lifecycle.unpublish({
+        workspaceId: DEMO_STUDIO_WORKSPACE_ID,
+        id,
+        expectedRecordVersion: body.expectedRecordVersion,
+      });
+      if (!result.ok) sendLifecycleFailure(response, result);
+      else sendJson(response, 200, result.value);
       return true;
     }
   }
@@ -187,42 +275,44 @@ async function handleApi(request, response, pathname) {
   const experienceMatch = pathname.match(/^\/api\/experiences\/([^/]+)$/);
   if (experienceMatch) {
     const id = safeId(experienceMatch[1]);
-    const record = id ? await readRecord(id) : undefined;
-    if (!id || !record) {
+    if (!id) {
       sendJson(response, 404, { error: "experience not found" });
       return true;
     }
     if (request.method === "GET") {
-      sendJson(response, 200, record);
+      const result = await lifecycle.read(DEMO_STUDIO_WORKSPACE_ID, id);
+      if (!result.ok) sendLifecycleFailure(response, result);
+      else sendJson(response, 200, result.value);
       return true;
     }
     if (request.method === "PUT") {
       const body = await readJsonBody(request);
-      const name = typeof body.name === "string" ? body.name.trim() : record.name;
-      if (name.length < 1 || name.length > 120 || !validDocument(body.document, id)) {
-        sendJson(response, 400, { error: "invalid Studio draft" });
-        return true;
-      }
-      const next = { ...record, name, document: body.document, updatedAt: new Date().toISOString() };
-      await writeRecord(next);
-      sendJson(response, 200, next);
+      const result = await lifecycle.save({
+        workspaceId: DEMO_STUDIO_WORKSPACE_ID,
+        id,
+        name: typeof body.name === "string" ? body.name.trim() : "",
+        document: body.document,
+        expectedRecordVersion: body.expectedRecordVersion,
+      });
+      if (!result.ok) sendLifecycleFailure(response, result);
+      else sendJson(response, 200, result.value);
       return true;
     }
     if (request.method === "DELETE") {
-      await unlink(fileFor(id));
-      sendJson(response, 200, { deleted: true, id });
+      const body = await readJsonBody(request);
+      const result = await lifecycle.delete({
+        workspaceId: DEMO_STUDIO_WORKSPACE_ID,
+        id,
+        expectedRecordVersion: body.expectedRecordVersion,
+      });
+      if (!result.ok) sendLifecycleFailure(response, result);
+      else sendJson(response, 200, { deleted: true, id: result.value.id });
       return true;
     }
   }
 
   return false;
 }
-
-const vite = await createViteServer({
-  root,
-  appType: "spa",
-  server: { middlewareMode: true },
-});
 
 const server = createHttpServer(async (request, response) => {
   try {
@@ -238,7 +328,8 @@ const server = createHttpServer(async (request, response) => {
     });
   } catch (error) {
     console.error(error);
-    if (!response.headersSent) sendJson(response, 500, { error: "Studio demo server failed" });
+    const invalidBody = error instanceof SyntaxError || (error instanceof Error && error.message === "request body is too large");
+    if (!response.headersSent) sendJson(response, invalidBody ? 400 : 500, { error: invalidBody ? "invalid request body" : "Studio demo server failed" });
     else response.end();
   }
 });
