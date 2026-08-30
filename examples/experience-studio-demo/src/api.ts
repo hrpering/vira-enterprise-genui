@@ -58,6 +58,19 @@ function enqueueMutation<T>(id: string, operation: () => Promise<T>): Promise<T>
   return current;
 }
 
+async function waitForMutationQuiescence(id: string): Promise<void> {
+  while (true) {
+    const observed = mutationQueues.get(id);
+    if (observed) await observed.catch(() => undefined);
+    await Promise.resolve();
+    if (mutationQueues.get(id) === observed) return;
+  }
+}
+
+function sameDocument(left: StudioExperienceDocument, right: StudioExperienceDocument): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   if (!headers.has("content-type")) headers.set("content-type", "application/json");
@@ -109,21 +122,28 @@ export function saveExperienceDraft(
   })));
 }
 
-export function publishExperience(id: string, _publication: StudioPublication): Promise<ExperienceRecord> {
+export async function publishExperience(id: string, publication: StudioPublication): Promise<ExperienceRecord> {
+  await waitForMutationQuiescence(id);
+  let current = await readExperience(id);
+  if (!sameDocument(current.document, publication.document)) {
+    current = await saveExperienceDraft(id, current.name, publication.document);
+  }
   return enqueueMutation(id, async () => rememberRecord(await requestJson<ExperienceRecord>(`/api/experiences/${encodeURIComponent(id)}/publication`, {
     method: "PUT",
-    body: JSON.stringify({ expectedRecordVersion: expectedRecordVersion(id) }),
+    body: JSON.stringify({ expectedRecordVersion: current.recordVersion }),
   })));
 }
 
-export function unpublishExperience(id: string): Promise<ExperienceRecord> {
+export async function unpublishExperience(id: string): Promise<ExperienceRecord> {
+  await waitForMutationQuiescence(id);
   return enqueueMutation(id, async () => rememberRecord(await requestJson<ExperienceRecord>(`/api/experiences/${encodeURIComponent(id)}/publication`, {
     method: "DELETE",
     body: JSON.stringify({ expectedRecordVersion: expectedRecordVersion(id) }),
   })));
 }
 
-export function deleteExperience(id: string): Promise<{ readonly deleted: true; readonly id: string }> {
+export async function deleteExperience(id: string): Promise<{ readonly deleted: true; readonly id: string }> {
+  await waitForMutationQuiescence(id);
   return enqueueMutation(id, async () => {
     const result = await requestJson<{ readonly deleted: true; readonly id: string }>(`/api/experiences/${encodeURIComponent(id)}`, {
       method: "DELETE",

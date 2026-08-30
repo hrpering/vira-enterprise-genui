@@ -192,7 +192,9 @@ function DomainControls({
         "Departure",
         createElement("input", {
           style: inputStyle,
-          type: "date",
+          type: "text",
+          inputMode: "numeric",
+          placeholder: "YYYY-MM-DD",
           value: input.departureDate,
           "data-testid": "domain-departure",
           onChange: (event: { target: { value: string } }) => onChange({ ...input, departureDate: event.target.value }),
