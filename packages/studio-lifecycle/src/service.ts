@@ -1,8 +1,12 @@
 import { validateStudioDocumentBindings } from "@vira-enterprise-genui/studio-binding";
+import { compileStudioExperience } from "@vira-enterprise-genui/studio-compiler";
 import { validateStudioDesignDocument } from "@vira-enterprise-genui/studio-design";
 import { validateStudioDocumentFlow } from "@vira-enterprise-genui/studio-flow";
 import { prepareStudioPublication } from "@vira-enterprise-genui/studio-publish";
-import type { StudioExperienceDocument } from "@vira-enterprise-genui/studio-schema";
+import {
+  parseStudioExperienceDocument,
+  type StudioExperienceDocument,
+} from "@vira-enterprise-genui/studio-schema";
 import {
   STUDIO_LIFECYCLE_RECORD_VERSION,
 } from "./types.js";
@@ -83,10 +87,16 @@ function validVersion(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 1;
 }
 
-function validTimestamp(value: unknown): value is string {
-  if (typeof value !== "string") return false;
+function timestampValue(value: unknown): number | undefined {
+  if (typeof value !== "string") return undefined;
   const parsed = Date.parse(value);
-  return Number.isFinite(parsed) && new Date(parsed).toISOString() === value;
+  if (!Number.isFinite(parsed)) return undefined;
+  try {
+    if (new Date(parsed).toISOString() !== value) return undefined;
+  } catch {
+    return undefined;
+  }
+  return parsed;
 }
 
 function nestedDocumentPath(path: string): string {
@@ -164,6 +174,8 @@ function validateDraft(
 }
 
 function validStoredRecordIdentity(record: StudioLifecycleRecord, workspaceId: string, id?: string): boolean {
+  const createdAt = timestampValue(record.createdAt);
+  const updatedAt = timestampValue(record.updatedAt);
   if (record.version !== STUDIO_LIFECYCLE_RECORD_VERSION
     || record.workspaceId !== workspaceId
     || (id !== undefined && record.id !== id)
@@ -172,18 +184,30 @@ function validStoredRecordIdentity(record: StudioLifecycleRecord, workspaceId: s
     || !validVersion(record.draftRevision)
     || !validVersion(record.recordVersion)
     || record.recordVersion < record.draftRevision
-    || !validTimestamp(record.createdAt)
-    || !validTimestamp(record.updatedAt)
-    || record.document.id !== record.id) return false;
+    || createdAt === undefined
+    || updatedAt === undefined
+    || updatedAt < createdAt) return false;
+
+  const parsedDocument = parseStudioExperienceDocument(record.document);
+  if (!parsedDocument.ok
+    || parsedDocument.value.id !== record.id
+    || !sameData(parsedDocument.value, record.document)) return false;
 
   if (record.publication === null) {
     return record.publishedDraftRevision === null && record.publishedAt === null;
   }
-  return record.publication.id === record.id
-    && record.publication.document.id === record.id
-    && validVersion(record.publishedDraftRevision)
-    && record.publishedDraftRevision <= record.draftRevision
-    && validTimestamp(record.publishedAt);
+
+  const publishedAt = timestampValue(record.publishedAt);
+  if (!validVersion(record.publishedDraftRevision)
+    || record.publishedDraftRevision > record.draftRevision
+    || publishedAt === undefined
+    || publishedAt < createdAt
+    || publishedAt > updatedAt) return false;
+
+  const compiledPublication = compileStudioExperience(record.publication.document);
+  return compiledPublication.ok
+    && compiledPublication.value.id === record.id
+    && sameData(compiledPublication.value, record.publication);
 }
 
 function validMutationAcknowledgement(record: StudioLifecycleRecord, expected: StudioLifecycleRecord): boolean {
@@ -251,7 +275,12 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
       if (!identity.ok) return identity;
       try {
         const records = await configuration.store.list(workspaceId);
-        if (!Array.isArray(records) || records.some((record) => !validStoredRecordIdentity(record, workspaceId))) return storeFailure();
+        if (!Array.isArray(records)) return storeFailure();
+        const seenIds = new Set<string>();
+        for (const record of records) {
+          if (!validStoredRecordIdentity(record, workspaceId) || seenIds.has(record.id)) return storeFailure();
+          seenIds.add(record.id);
+        }
         const output = records
           .map((record) => summary(snapshot(record)))
           .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt) || left.id.localeCompare(right.id));
