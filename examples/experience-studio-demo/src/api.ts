@@ -67,6 +67,16 @@ async function waitForMutationQuiescence(id: string): Promise<void> {
   }
 }
 
+async function readQuiescentExperience(id: string): Promise<ExperienceRecord> {
+  while (true) {
+    await waitForMutationQuiescence(id);
+    const observed = mutationQueues.get(id);
+    const record = await readExperience(id);
+    await waitForMutationQuiescence(id);
+    if (mutationQueues.get(id) === observed) return record;
+  }
+}
+
 function sameDocument(left: StudioExperienceDocument, right: StudioExperienceDocument): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
@@ -123,10 +133,9 @@ export function saveExperienceDraft(
 }
 
 export async function publishExperience(id: string, publication: StudioPublication): Promise<ExperienceRecord> {
-  await waitForMutationQuiescence(id);
-  let current = await readExperience(id);
+  const current = await readQuiescentExperience(id);
   if (!sameDocument(current.document, publication.document)) {
-    current = await saveExperienceDraft(id, current.name, publication.document);
+    throw new Error("Studio draft changed while Publish was waiting for autosave; review the latest draft and publish again");
   }
   return enqueueMutation(id, async () => rememberRecord(await requestJson<ExperienceRecord>(`/api/experiences/${encodeURIComponent(id)}/publication`, {
     method: "PUT",
