@@ -79,7 +79,7 @@ const baseCatalog = {
       kind: "content",
       props: [
         { key: "summary", type: "string", required: true, bindable: false },
-        { key: "nextAction", type: "string", required: true, bindable: false },
+        { key: "next-action", type: "string", required: true, bindable: false },
       ],
       slots: [],
       events: [],
@@ -90,8 +90,8 @@ const baseCatalog = {
       category: "guidance",
       kind: "content",
       props: [
-        { key: "originCountry", type: "string", required: true, bindable: false },
-        { key: "destinationCountry", type: "string", required: true, bindable: false },
+        { key: "origin-country", type: "string", required: true, bindable: false },
+        { key: "destination-country", type: "string", required: true, bindable: false },
         { key: "summary", type: "string", required: true, bindable: false },
       ],
       slots: [],
@@ -209,7 +209,7 @@ function specialAssistance(props: Readonly<Record<string, unknown>>): ReactNode 
 
 function missedFlight(props: Readonly<Record<string, unknown>>): ReactNode {
   const summary = textProp(props, "summary", "What happens depends on when and where the journey is interrupted.");
-  const nextAction = textProp(props, "nextAction", "Check the fare rules attached to the current ticket before rebooking.");
+  const nextAction = textProp(props, "next-action", "Check the fare rules attached to the current ticket before rebooking.");
   return createElement(
     "section",
     { className: "vira-guidance" },
@@ -226,8 +226,8 @@ function missedFlight(props: Readonly<Record<string, unknown>>): ReactNode {
 }
 
 function visaCheck(props: Readonly<Record<string, unknown>>): ReactNode {
-  const origin = textProp(props, "originCountry", "Türkiye");
-  const destination = textProp(props, "destinationCountry", "Germany");
+  const origin = textProp(props, "origin-country", "Türkiye");
+  const destination = textProp(props, "destination-country", "Germany");
   const summary = textProp(props, "summary", "Entry rules depend on the traveler's passport, nationality and residence status.");
   return createElement(
     "section",
@@ -314,11 +314,11 @@ function starterNodes(template: StarterTemplateId): StudioNode[] {
   }
 
   if (template === "missed-flight") {
-    nodes.push({ id: "missed-flight", component: "airline.component.missed-flight", parentId: "root", slot: "content", order: 0, props: { summary: "What happens depends on when and where the journey is interrupted.", nextAction: "Check the fare rules attached to the current ticket before rebooking." } });
+    nodes.push({ id: "missed-flight", component: "airline.component.missed-flight", parentId: "root", slot: "content", order: 0, props: { summary: "What happens depends on when and where the journey is interrupted.", "next-action": "Check the fare rules attached to the current ticket before rebooking." } });
     return nodes;
   }
 
-  nodes.push({ id: "visa-check", component: "airline.component.visa-check", parentId: "root", slot: "content", order: 0, props: { originCountry: "Türkiye", destinationCountry: "Germany", summary: "Entry rules depend on the traveler's passport, nationality and residence status." } });
+  nodes.push({ id: "visa-check", component: "airline.component.visa-check", parentId: "root", slot: "content", order: 0, props: { "origin-country": "Türkiye", "destination-country": "Germany", summary: "Entry rules depend on the traveler's passport, nationality and residence status." } });
   return nodes;
 }
 
