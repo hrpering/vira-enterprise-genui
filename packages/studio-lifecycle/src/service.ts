@@ -15,7 +15,6 @@ import type {
   StudioLifecycleIssueCode,
   StudioLifecycleRecord,
   StudioLifecycleResult,
-  StudioLifecycleSaveInput,
   StudioLifecycleService,
   StudioLifecycleServiceConfiguration,
   StudioLifecycleStoreMutationCode,
@@ -26,6 +25,20 @@ import type {
 const workspacePattern = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const experienceIdPattern = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/;
 const controlCharacterPattern = /[\u0000-\u001F\u007F]/;
+const lifecycleRecordFields = new Set([
+  "version",
+  "workspaceId",
+  "id",
+  "name",
+  "draftRevision",
+  "recordVersion",
+  "document",
+  "publication",
+  "publishedDraftRevision",
+  "createdAt",
+  "updatedAt",
+  "publishedAt",
+]);
 
 function failure<T>(code: StudioLifecycleIssueCode, path: string, message: string): StudioLifecycleResult<T> {
   return { ok: false, issue: { code, path, message } };
@@ -64,6 +77,21 @@ function sameData(left: unknown, right: unknown): boolean {
   for (let index = 0; index < leftKeys.length; index += 1) {
     const key = leftKeys[index];
     if (!key || key !== rightKeys[index] || !sameData(leftObject[key], rightObject[key])) return false;
+  }
+  return true;
+}
+
+function validLifecycleRecordObject(value: unknown): value is StudioLifecycleRecord {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return false;
+  if (Object.getOwnPropertySymbols(value).length > 0) return false;
+  const keys = Object.keys(value);
+  if (Object.getOwnPropertyNames(value).length !== keys.length || keys.length !== lifecycleRecordFields.size) return false;
+  for (const key of keys) {
+    if (!lifecycleRecordFields.has(key)) return false;
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (!descriptor || !("value" in descriptor)) return false;
   }
   return true;
 }
@@ -174,7 +202,9 @@ function validateDraft(
   return { ok: true, value: snapshot(flow.value) };
 }
 
-function validStoredRecordIdentity(record: StudioLifecycleRecord, workspaceId: string, id?: string): boolean {
+function validStoredRecordIdentity(recordInput: unknown, workspaceId: string, id?: string): recordInput is StudioLifecycleRecord {
+  if (!validLifecycleRecordObject(recordInput)) return false;
+  const record = recordInput;
   const createdAt = timestampValue(record.createdAt);
   const updatedAt = timestampValue(record.updatedAt);
   if (record.version !== STUDIO_LIFECYCLE_RECORD_VERSION
@@ -270,7 +300,7 @@ function validateVersionedInput(input: StudioLifecycleVersionedInput): StudioLif
 }
 
 export function createStudioLifecycleService(configuration: StudioLifecycleServiceConfiguration): StudioLifecycleService {
-  return Object.freeze({
+  const service: StudioLifecycleService = {
     async list(workspaceId) {
       const identity = validateIdentity(workspaceId);
       if (!identity.ok) return identity;
@@ -328,7 +358,7 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
       }
     },
 
-    async save(input: StudioLifecycleSaveInput) {
+    async save(input) {
       const valid = validateCreateInput(input);
       if (!valid.ok) return valid;
       const version = validateExpectedVersion(input.expectedRecordVersion);
@@ -445,5 +475,6 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
         return storeFailure();
       }
     },
-  });
+  };
+  return Object.freeze(service);
 }
