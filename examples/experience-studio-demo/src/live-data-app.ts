@@ -130,7 +130,6 @@ function applyLiveHostInteraction(
   actionType: string,
   payload: Readonly<Record<string, unknown>>,
 ): void {
-  root.setAttribute("data-demo-last-action", actionType);
   if (actionType === "travel.flight.seat.select") applyLiveSeatSelection(root, payload);
   else if (actionType === "travel.flight.fare.select") applyLiveFareSelection(root, payload);
 }
@@ -313,7 +312,10 @@ function PublishedExperience({ value }: { readonly value: PublicExperience }): R
       const root = liveExperienceRef.current;
       if (!root) return;
       root.setAttribute("data-demo-host-completions", String(hostCompletions.current));
-      applyLiveHostInteraction(root, actionType, payload);
+      root.setAttribute("data-demo-last-action", actionType);
+      window.setTimeout(() => {
+        if (liveExperienceRef.current === root) applyLiveHostInteraction(root, actionType, payload);
+      }, 0);
     }),
     [value.id, value.publishedAt, input.origin, input.destination, input.departureDate, input.passengers, input.fare],
   );
