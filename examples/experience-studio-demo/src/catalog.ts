@@ -10,7 +10,6 @@ import {
   airlineStarterProps,
   createAirlineStarterDocument,
 } from "@vira-enterprise-genui/airline-brand-kit/studio";
-import type { AirlineStarterTemplateId } from "@vira-enterprise-genui/airline-brand-kit/studio";
 import { createStudioDesignCatalog } from "@vira-enterprise-genui/studio-design";
 import type { StudioRuntimeReactRenderer } from "@vira-enterprise-genui/studio-runtime-react";
 import type { StudioExperienceDocument, StudioNode } from "@vira-enterprise-genui/studio-schema";
