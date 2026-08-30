@@ -37,6 +37,23 @@ http://127.0.0.1:4173
 
 The home screen lists persisted experiences and approved starter GenUI surfaces for flight search, special assistance, missed-flight policy, visa checks, and a blank layout.
 
+## Compare Studio and chat side by side
+
+Run both demos at the same time from one terminal:
+
+```bash
+pnpm demo:compare
+```
+
+Then open the two independent applications side by side in the browser:
+
+```text
+Experience Studio  http://127.0.0.1:4173
+Pegasus chat       http://127.0.0.1:4180
+```
+
+They are intentionally separate applications. This makes it possible to build/publish an experience in Studio while keeping the real chat demo open next to it for visual and behavioral comparison.
+
 ## Persistence
 
 This demo uses a real file-backed server store under `examples/experience-studio-demo/.data/`. Drafts and publications survive browser refreshes and server restarts. `.data/` is ignored by git.
