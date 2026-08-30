@@ -303,7 +303,7 @@ function DomainControls({
 
 function PublishedExperience({ value }: { readonly value: PublicExperience }): ReactElement {
   const hostCompletions = useRef(0);
-  const lastHostAction = useRef<string>();
+  const lastHostAction = useRef<string | undefined>(undefined);
   const liveExperienceRef = useRef<HTMLElement | null>(null);
   const selectedSeats = useRef(new Set<string>());
   const baseAssigned = useRef<number | undefined>(undefined);
