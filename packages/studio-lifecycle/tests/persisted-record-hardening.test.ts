@@ -127,3 +127,43 @@ it("rejects duplicate experience ids returned by a workspace list adapter", asyn
   expect(result.ok).toBe(false);
   if (!result.ok) expect(result.issue.code).toBe("STORE_FAILURE");
 });
+
+it("rejects unknown root fields instead of leaking storage-only state", async () => {
+  const id = "demo.extra-root-field";
+  const record = {
+    ...canonicalRecord(id),
+    storageSecret: "must-not-escape",
+  } as unknown as StudioLifecycleRecord;
+
+  const result = await serviceFor({ async read() { return record; } }).read(workspaceId, id);
+  expect(result.ok).toBe(false);
+  if (!result.ok) expect(result.issue.code).toBe("STORE_FAILURE");
+});
+
+it("rejects persisted lifecycle records with custom prototypes", async () => {
+  const id = "demo.custom-prototype";
+  const record = Object.assign(Object.create({ storageMarker: true }), canonicalRecord(id)) as StudioLifecycleRecord;
+
+  const result = await serviceFor({ async read() { return record; } }).read(workspaceId, id);
+  expect(result.ok).toBe(false);
+  if (!result.ok) expect(result.issue.code).toBe("STORE_FAILURE");
+});
+
+it("rejects accessor-backed record fields without executing the accessor", async () => {
+  const id = "demo.accessor-field";
+  const record = { ...canonicalRecord(id) } as StudioLifecycleRecord & Record<string, unknown>;
+  let getterCalled = false;
+  Object.defineProperty(record, "name", {
+    enumerable: true,
+    configurable: true,
+    get() {
+      getterCalled = true;
+      return "Accessor record";
+    },
+  });
+
+  const result = await serviceFor({ async read() { return record; } }).read(workspaceId, id);
+  expect(result.ok).toBe(false);
+  if (!result.ok) expect(result.issue.code).toBe("STORE_FAILURE");
+  expect(getterCalled).toBe(false);
+});
