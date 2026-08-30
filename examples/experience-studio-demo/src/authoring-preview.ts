@@ -151,11 +151,10 @@ export function createMockAuthoringRenderers(
         context.nodeId,
         context.props,
       );
-      return createElement(
-        InteractiveAuthoringSurface,
-        { interactionKey: interactionKey(context, props) },
-        renderer({ ...context, props }),
-      );
+      return createElement(InteractiveAuthoringSurface, {
+        interactionKey: interactionKey(context, props),
+        children: renderer({ ...context, props }),
+      });
     };
   }
 
