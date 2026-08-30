@@ -16,6 +16,7 @@
     "@assistant-ui/react": "0.15.17",
     "@assistant-ui/react-markdown": "0.14.13",
     "@vira-enterprise-genui/adapter-sdk": "workspace:*",
+    "@vira-enterprise-genui/airline-brand-kit": "workspace:*",
     "@vira-enterprise-genui/composer": "workspace:*",
     "@vira-enterprise-genui/planner": "workspace:*",
     "@vira-enterprise-genui/protocol": "workspace:*",
@@ -26,7 +27,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-markdown": "10.1.0",
-    "remark-gfm": "4.0.1",
+    "remark-gfm": "4.1.0",
     "zod": "^4.1.0"
   },
   "devDependencies": {

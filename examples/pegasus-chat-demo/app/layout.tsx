@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
-import "./booking-flow.css";
+import "../../airline-brand-kit/styles/base.css";
+import "../../airline-brand-kit/styles/booking-flow.css";
 import "./guidance.css";
 
 export const metadata: Metadata = {
   title: "Airline Assistant · Vira GenUI",
-  description: "Real LLM chat with inline Vira Enterprise GenUI experiences.",
+  description: "Real LLM chat connected to Vira Enterprise GenUI.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
