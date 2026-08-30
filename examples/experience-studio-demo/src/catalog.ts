@@ -176,113 +176,14 @@ interface SharedDomHostProps {
   readonly preview?: boolean;
 }
 
-interface LocalSeatState {
-  readonly key: string;
-  readonly baseAssigned: number;
-  readonly selected: Set<string>;
-}
-
-function passengerCountFromProps(props: Readonly<Record<string, unknown>>): number {
-  const value = props.passengers;
-  return typeof value === "number" && Number.isFinite(value)
-    ? Math.min(8, Math.max(1, Math.round(value)))
-    : 2;
-}
-
-function seatStateKey(component: string, props: Readonly<Record<string, unknown>>): string {
-  const fare = typeof props.fare === "string" ? props.fare : "";
-  return `${component}:${passengerCountFromProps(props)}:${fare}`;
-}
-
-function seatId(button: HTMLButtonElement): string | undefined {
-  const value = button.querySelector("strong")?.textContent?.trim();
-  return value && value.length > 0 ? value : undefined;
-}
-
-function applyLocalSeatState(host: HTMLElement, passengers: number, state: LocalSeatState): void {
-  for (const button of host.querySelectorAll<HTMLButtonElement>("button.vira-seat")) {
-    const id = seatId(button);
-    if (id && state.selected.has(id)) {
-      button.classList.add("selected");
-      button.disabled = true;
-    }
-  }
-
-  const assigned = Math.min(passengers, state.baseAssigned + state.selected.size);
-  const banner = host.querySelector<HTMLElement>(".vira-active-traveller");
-  const avatar = banner?.querySelector<HTMLElement>(":scope > span");
-  const title = banner?.querySelector<HTMLElement>("div > strong");
-  const progress = banner?.querySelector<HTMLElement>("div > span");
-  if (progress) progress.textContent = `${assigned}/${passengers} assigned`;
-  if (title) {
-    title.textContent = assigned >= passengers
-      ? "All travellers have seats"
-      : `Choose a seat for traveller ${assigned + 1}`;
-  }
-  if (avatar) avatar.textContent = `P${Math.min(passengers, assigned + 1)}`;
-
-  if (assigned >= passengers) {
-    for (const candidate of host.querySelectorAll<HTMLButtonElement>("button.vira-seat")) {
-      if (!candidate.classList.contains("occupied")) candidate.disabled = true;
-    }
-  }
-}
-
-function installLocalSeatAssignmentState(
-  host: HTMLElement,
-  component: string,
-  props: Readonly<Record<string, unknown>>,
-  holder: { current: LocalSeatState | undefined },
-): () => void {
-  if (component !== AIRLINE_STUDIO_COMPONENTS.seatMap) return () => undefined;
-  const passengers = passengerCountFromProps(props);
-  const key = seatStateKey(component, props);
-  if (!holder.current || holder.current.key !== key) {
-    const initialProgress = host.querySelector<HTMLElement>(".vira-active-traveller div > span")?.textContent ?? "";
-    const parsedAssigned = Number.parseInt(initialProgress.split("/")[0] ?? "", 10);
-    holder.current = {
-      key,
-      baseAssigned: Number.isSafeInteger(parsedAssigned)
-        ? Math.min(passengers, Math.max(0, parsedAssigned))
-        : passengers > 1 ? 1 : 0,
-      selected: new Set<string>(),
-    };
-  }
-  const localState = holder.current;
-  applyLocalSeatState(host, passengers, localState);
-
-  const onClick = (event: Event): void => {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
-    const button = target.closest("button.vira-seat");
-    if (!(button instanceof HTMLButtonElement) || !host.contains(button)) return;
-    if (button.disabled || button.classList.contains("occupied") || button.classList.contains("selected")) return;
-    const id = seatId(button);
-    if (!id) return;
-    localState.selected.add(id);
-    queueMicrotask(() => applyLocalSeatState(host, passengers, localState));
-  };
-
-  host.addEventListener("click", onClick, true);
-  return () => host.removeEventListener("click", onClick, true);
-}
-
 function SharedDomHost({ family, component, props, emit, preview = false }: SharedDomHostProps): ReactElement {
   const ref = useRef<HTMLDivElement | null>(null);
-  const localSeatState = useRef<LocalSeatState | undefined>(undefined);
   useLayoutEffect(() => {
     if (!ref.current) return undefined;
     const host = ref.current;
-    const disposeRenderer = family === "booking"
+    return family === "booking"
       ? mountAirlineStudioComponent(host, component, props, emit)
       : mountAirlineGuidanceStudioComponent(host, component, props, emit);
-    const disposeLocalState = family === "booking"
-      ? installLocalSeatAssignmentState(host, component, props, localSeatState)
-      : () => undefined;
-    return () => {
-      disposeLocalState();
-      disposeRenderer();
-    };
   }, [family, component, props, emit]);
   return createElement("div", {
     ref,
