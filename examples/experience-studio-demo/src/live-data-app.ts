@@ -15,7 +15,7 @@ import { planExperience } from "@vira-enterprise-genui/planner";
 import { createRuntimeState } from "@vira-enterprise-genui/runtime-core";
 import { createStudioRuntimeSession, type StudioRuntimeSession } from "@vira-enterprise-genui/studio-runtime";
 import { renderStudioRuntimeReactView } from "@vira-enterprise-genui/studio-runtime-react";
-import { createElement, useEffect, useMemo, useState } from "react";
+import { createElement, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import { readPublicExperience, type PublicExperience } from "./api.js";
@@ -237,11 +237,15 @@ function DomainControls({
 }
 
 function PublishedExperience({ value }: { readonly value: PublicExperience }): ReactElement {
-  const [hostCompletions, setHostCompletions] = useState(0);
+  const hostCompletions = useRef(0);
+  const liveExperienceRef = useRef<HTMLElement | null>(null);
   const [input, setInput] = useState<MockAirlineRuntimeInput>({ ...DEFAULT_MOCK_RUNTIME_INPUT });
 
   const runtime = useMemo(
-    () => buildRuntime(value, input, () => setHostCompletions((count) => count + 1)),
+    () => buildRuntime(value, input, () => {
+      hostCompletions.current += 1;
+      liveExperienceRef.current?.setAttribute("data-demo-host-completions", String(hostCompletions.current));
+    }),
     [value.id, value.publishedAt, input.origin, input.destination, input.departureDate, input.passengers, input.fare],
   );
   useEffect(() => () => runtime.dispose(), [runtime]);
@@ -262,7 +266,12 @@ function PublishedExperience({ value }: { readonly value: PublicExperience }): R
 
   return createElement(
     "main",
-    { className: "live-page", "data-testid": "live-experience", "data-demo-host-completions": hostCompletions },
+    {
+      ref: liveExperienceRef,
+      className: "live-page",
+      "data-testid": "live-experience",
+      "data-demo-host-completions": hostCompletions.current,
+    },
     createElement(
       "header",
       { className: "live-header" },
