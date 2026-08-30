@@ -3,13 +3,17 @@
 This browser demo proves the complete local Studio lifecycle instead of only showing an in-memory Puck authoring shell.
 
 ```text
-Create persisted draft
+Create / edit in Experience Studio
       ↓
-Edit in Vira Experience Studio / Puck
+version-aware demo API client
       ↓
-Studio publish validation + StudioPublication
+StudioLifecycleService
       ↓
-Persist publication on the demo server
+canonical Studio validation + publication compiler
+      ↓
+StudioLifecycleStore
+      ↓
+local file adapter (.data)
       ↓
 /live/<experience-id>
       ↓
@@ -54,11 +58,21 @@ Pegasus chat       http://127.0.0.1:4180
 
 They are intentionally separate applications. This makes it possible to build/publish an experience in Studio while keeping the real chat demo open next to it for visual and behavioral comparison.
 
-## Persistence
+## Persistence and concurrency
 
-This demo uses a real file-backed server store under `examples/experience-studio-demo/.data/`. Drafts and publications survive browser refreshes and server restarts. `.data/` is ignored by git.
+This demo uses the product `@vira-enterprise-genui/studio-lifecycle` service with a file-backed `StudioLifecycleStore` adapter under `examples/experience-studio-demo/.data/`. Drafts and publications survive browser refreshes and server restarts. `.data/` is ignored by git.
 
-This is intentionally a **demo persistence adapter**, not a claim of production cloud persistence, tenancy, authentication, or deployment infrastructure. Replacing the file store with a database/object store does not change the Studio `StudioDocument → StudioPublication → Studio Runtime` path proven here.
+The browser remembers each lifecycle `recordVersion` and serializes save/publish/unpublish/delete mutations. The server passes that expected version to `StudioLifecycleService`, and the file adapter performs the compare-and-swap check inside a single-process mutation queue. A stale browser tab therefore receives a lifecycle conflict instead of silently overwriting newer work.
+
+Older demo records written before the lifecycle package existed are migrated to a conservative lifecycle-version baseline when they are read. Newly written files always use the canonical lifecycle record shape.
+
+This remains intentionally a **local demo persistence adapter**, not a claim of production cloud persistence, tenancy, authentication, cross-process locking, or deployment infrastructure. A production database/object-store adapter must implement the `StudioLifecycleStore` atomic expected-version contract using the storage system's real conditional-write primitive.
+
+## Publish authority
+
+The browser no longer sends an arbitrary publication for the server to persist. Publish requests carry only the expected lifecycle version. `StudioLifecycleService` validates the persisted draft and creates the canonical `StudioPublication` on the server-side product boundary.
+
+This preserves the Studio contract that ordinary draft saves do not silently mutate the live artifact. A later draft remains separate until an explicit republish succeeds.
 
 ## Demo host action completion
 
@@ -78,7 +92,7 @@ The Chromium test performs the full user lifecycle:
 
 1. create a new persisted flight-search experience;
 2. open the real Puck workbench;
-3. publish it through the Studio publish gate;
+3. publish it through the lifecycle service and Studio publish gate;
 4. open `/live/<id>` and verify the published runtime actually renders;
 5. trigger the same published interaction twice and verify the demo host completes both actions instead of leaving the runtime stuck in `ACTION_PENDING`;
 6. unpublish it and verify the live URL becomes unavailable;
