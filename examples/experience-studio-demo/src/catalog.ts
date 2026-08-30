@@ -10,6 +10,10 @@ import {
   airlineStarterProps,
   createAirlineStarterDocument,
 } from "@vira-enterprise-genui/airline-brand-kit/studio";
+import {
+  DEFAULT_MOCK_RUNTIME_INPUT,
+  createMockAirlineRuntimeData,
+} from "@vira-enterprise-genui/mock-airline-domain";
 import { createStudioDesignCatalog } from "@vira-enterprise-genui/studio-design";
 import type { StudioRuntimeReactRenderer } from "@vira-enterprise-genui/studio-runtime-react";
 import type { StudioExperienceDocument, StudioNode } from "@vira-enterprise-genui/studio-schema";
@@ -351,24 +355,31 @@ export const starterTemplates = Object.freeze([...AIRLINE_STARTER_TEMPLATES, ...
 export type StarterTemplateId = (typeof starterTemplates)[number]["id"];
 
 type GuidanceTemplateId = (typeof guidanceTemplates)[number]["id"];
+const guidanceRuntimeData = createMockAirlineRuntimeData(DEFAULT_MOCK_RUNTIME_INPUT);
+
+function guidanceString(path: string): string {
+  const value = guidanceRuntimeData[path];
+  if (typeof value !== "string") throw new Error(`Mock airline guidance default ${path} must be a string`);
+  return value;
+}
 
 function guidanceProps(template: GuidanceTemplateId): Readonly<Record<string, string>> {
   if (template === "special-assistance") {
     return {
-      summary: "Choose the assistance level that best matches the passenger's mobility needs.",
-      deadline: "Request as early as possible before departure",
+      summary: guidanceString("guidance.special-assistance.summary"),
+      deadline: guidanceString("guidance.special-assistance.deadline"),
     };
   }
   if (template === "missed-flight") {
     return {
-      summary: "What happens depends on when and where the journey is interrupted.",
-      "next-action": "Check the fare rules attached to the current ticket before rebooking.",
+      summary: guidanceString("guidance.missed-flight.summary"),
+      "next-action": guidanceString("guidance.missed-flight.next-action"),
     };
   }
   return {
-    "origin-country": "Türkiye",
-    "destination-country": "Germany",
-    summary: "Entry rules depend on the traveler's passport, nationality and residence status.",
+    "origin-country": guidanceString("guidance.visa.origin-country"),
+    "destination-country": guidanceString("guidance.visa.destination-country"),
+    summary: guidanceString("guidance.visa.summary"),
   };
 }
 
