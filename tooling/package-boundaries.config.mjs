@@ -6,6 +6,7 @@ export const allowedDependencies = Object.freeze({
   planner: ["protocol"],
   composer: ["protocol", "planner"],
   "adapter-sdk": ["protocol"],
+  "experience-packs": [],
   "runtime-web": ["protocol", "runtime-core", "composer", "adapter-sdk", "security"],
   "web-component": ["runtime-web"],
   react: ["runtime-web"],
