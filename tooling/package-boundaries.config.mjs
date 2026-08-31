@@ -36,4 +36,5 @@ export const allowedDependencies = Object.freeze({
   "studio-host-runtime": ["studio-host", "studio-runtime", "studio-schema"],
   "studio-enterprise": ["protocol", "studio-schema"],
   genui: ["studio-authoring", "studio-host", "studio-host-runtime", "studio-runtime", "studio-runtime-react"],
+  "genui-web-component": ["genui"],
 });
