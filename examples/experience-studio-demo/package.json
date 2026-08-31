@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./reference": "./src/reference.ts"
+  },
   "scripts": {
     "dev": "node ./server.mjs",
     "build": "vite build",
