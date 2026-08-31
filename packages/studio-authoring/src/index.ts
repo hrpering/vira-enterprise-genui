@@ -8,6 +8,17 @@ export type {
   StudioAuthoringPublicationResult,
 } from "./authoring.js";
 export {
+  buildStudioExperience,
+  previewStudioExperience,
+  validateStudioExperience,
+} from "./tooling.js";
+export type {
+  StudioBuildResult,
+  StudioToolingContext,
+  StudioToolingPreviewResult,
+  StudioValidationResult,
+} from "./tooling.js";
+export {
   STUDIO_DOCUMENT_VERSION,
   parseStudioExperienceDocument,
 } from "@vira-enterprise-genui/studio-schema";
