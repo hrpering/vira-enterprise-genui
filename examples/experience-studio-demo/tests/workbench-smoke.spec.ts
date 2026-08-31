@@ -35,14 +35,23 @@ test("creates, publishes, serves, unpublishes and deletes a real Studio experien
 
   await expect(page.getByTestId("vira-studio-workbench")).toBeVisible();
   await expect(page.getByText(name, { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("Search flights", { exact: true })).toBeVisible();
-  await expect(page.locator('[data-testid="vira-studio-preview"] input[type="date"]')).toHaveValue("2026-09-15");
+  const studioPreview = page.getByTestId("vira-studio-preview");
+  await expect(studioPreview.locator("h2.demo-heading").filter({ hasText: "Search flights" })).toBeVisible();
+  await expect(studioPreview.locator('.vira-search-card button[type="submit"]')).toBeVisible();
+  await expect(studioPreview.locator('input[type="date"]')).toHaveValue("2026-09-15");
   await expect(page.getByTestId("publication-status")).toHaveText("Draft only");
   await expect(page.getByTestId("vira-studio-error")).toHaveCount(0);
 
-  for (const panel of ["components", "layers", "views", "data", "actions"] as const) {
+  for (const panel of ["components", "layers", "views"] as const) {
     await page.getByTestId(`vira-studio-panel-${panel}`).click();
     await expect(page.getByTestId("vira-studio-workbench")).toBeVisible();
+    await expect(page.getByTestId("vira-studio-error")).toHaveCount(0);
+  }
+
+  await page.getByTestId("vira-studio-panel-layers").click();
+  await page.getByTestId("vira-studio-layer-root").click();
+  for (const tab of ["content", "design", "data", "actions"] as const) {
+    await page.getByTestId(`vira-studio-inspector-${tab}`).click();
     await expect(page.getByTestId("vira-studio-error")).toHaveCount(0);
   }
 
@@ -58,7 +67,7 @@ test("creates, publishes, serves, unpublishes and deletes a real Studio experien
   const liveExperience = livePage.getByTestId("live-experience");
   await expect(liveExperience).toBeVisible();
   await expect(livePage.getByText(name, { exact: true })).toBeVisible();
-  await expect(livePage.getByText("Search flights", { exact: true })).toBeVisible();
+  await expect(livePage.getByRole("heading", { name: "Search flights", exact: true })).toBeVisible();
   await expect(livePage.locator(".vira-search-card")).toBeVisible();
   await expect(livePage.locator('input[type="date"]')).toHaveValue("2026-09-15");
   await expect(liveExperience).toHaveAttribute("data-demo-host-completions", "0");
@@ -144,6 +153,7 @@ test("uses one shared brand renderer from gallery through Studio and published r
 
   await page.getByTestId("vira-studio-panel-layers").click();
   await page.getByTestId("vira-studio-layer-root").click();
+  await page.getByTestId("vira-studio-inspector-design").click();
   await expect(page.getByText("Radius", { exact: true })).toBeVisible();
   await expect(page.getByText("Shadow", { exact: true })).toBeVisible();
 

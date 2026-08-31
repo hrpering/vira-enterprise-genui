@@ -1,3 +1,4 @@
+import type { StudioRuntimeReactRenderer } from "@vira-enterprise-genui/studio-runtime-react";
 import {
   actionAdapter,
   bindingSourceCatalog,
@@ -28,5 +29,5 @@ export const AIRLINE_BRAND_PACKAGE_INPUT = Object.freeze({
   })),
 });
 
-export const airlineAuthoringRenderers = workbenchRenderers;
-export const airlineRuntimeRenderers = runtimeRenderers;
+export const airlineAuthoringRenderers: Readonly<Record<string, unknown>> = workbenchRenderers;
+export const airlineRuntimeRenderers: Readonly<Record<string, StudioRuntimeReactRenderer>> = runtimeRenderers;

@@ -1,6 +1,6 @@
-import { isSemanticSegment, parseJsonValue } from "@vira-enterprise-genui/protocol";
+import { parseJsonValue } from "@vira-enterprise-genui/protocol";
 import type { JsonObject, JsonValue } from "@vira-enterprise-genui/protocol";
-import { parseStudioExperienceDocument } from "@vira-enterprise-genui/studio-schema";
+import { isStudioPayloadKey, parseStudioExperienceDocument } from "@vira-enterprise-genui/studio-schema";
 import {
   createStudioComponentCatalog as legacyCreate,
   resolveStudioCatalogComponent as legacyResolve,
@@ -104,10 +104,10 @@ function payloadDefinition(
       result: catalogFailure("INVALID_EVENT_PAYLOAD", `${path}.${unknown}`, `unknown event payload field: ${unknown}`),
     };
   }
-  if (typeof value.key !== "string" || !isSemanticSegment(value.key)) {
+  if (typeof value.key !== "string" || !isStudioPayloadKey(value.key)) {
     return {
       ok: false,
-      result: catalogFailure("INVALID_EVENT_PAYLOAD", `${path}.key`, "payload key must be one semantic segment"),
+      result: catalogFailure("INVALID_EVENT_PAYLOAD", `${path}.key`, "payload key must be a bounded Studio payload field name"),
     };
   }
   if (value.type !== "string" && value.type !== "number" && value.type !== "boolean" && value.type !== "enum") {

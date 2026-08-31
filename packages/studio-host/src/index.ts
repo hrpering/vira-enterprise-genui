@@ -9,6 +9,7 @@ export {
   STUDIO_HOST_SNAPSHOT_VERSION,
 } from "./types.js";
 export type {
+  StudioHostActionDescriptor,
   StudioHostActionOutcome,
   StudioHostActionResult,
   StudioHostActionResultValidationResult,

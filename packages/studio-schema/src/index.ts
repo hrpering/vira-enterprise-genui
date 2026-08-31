@@ -25,4 +25,9 @@ export type {
   StudioView,
 } from "./types.js";
 export { parseStudioExperienceDocument } from "./validate-v2.js";
+export {
+  STUDIO_SCOPE_ROOT,
+  isStudioPayloadKey,
+  isStudioScopePath,
+} from "./syntax.js";
 export { isSemanticSegment as isStudioSemanticSegment } from "@vira-enterprise-genui/protocol";

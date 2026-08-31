@@ -4,9 +4,9 @@ import {
   createMockAirlineRuntimeData,
 } from "@vira-enterprise-genui/mock-airline-domain";
 import { createRuntimeState } from "@vira-enterprise-genui/runtime-core";
-import { prepareStudioPublication } from "@vira-enterprise-genui/studio-publish";
 import { createStudioRuntimeSession } from "@vira-enterprise-genui/studio-runtime";
 import { describe, expect, it } from "vitest";
+import { prepareStudioPublication } from "../../../packages/studio-publish/src/index.js";
 import {
   actionAdapter,
   bindingSourceCatalog,

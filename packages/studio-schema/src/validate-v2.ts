@@ -1,5 +1,6 @@
-import { isSemanticNamespace, isSemanticSegment, parseJsonValue } from "@vira-enterprise-genui/protocol";
+import { isSemanticNamespace, parseJsonValue } from "@vira-enterprise-genui/protocol";
 import type { JsonObject, JsonValue } from "@vira-enterprise-genui/protocol";
+import { isStudioPayloadKey, isStudioScopePath } from "./syntax.js";
 import { parseStudioExperienceDocument as parseLegacyStudioExperienceDocument } from "./validate.js";
 import { STUDIO_MAX_ACTION_PAYLOAD_BINDINGS } from "./types.js";
 import type {
@@ -12,6 +13,8 @@ import type {
 } from "./types.js";
 
 type MutableJsonObject = { [key: string]: JsonValue };
+
+const LEGACY_SCOPE_PLACEHOLDER_PATH = "studio.scope.value" as const;
 
 function failure(
   code: StudioValidationCode,
@@ -43,12 +46,6 @@ function freeze<T>(value: T): T {
 function exact(value: JsonObject, allowed: readonly string[]): string | undefined {
   const set = new Set(allowed);
   return Object.keys(value).sort().find((key) => !set.has(key));
-}
-
-function validScopePath(value: unknown): value is string {
-  return typeof value === "string"
-    && value.startsWith("currentItem.")
-    && isSemanticNamespace(value);
 }
 
 function validPath(value: unknown): value is string {
@@ -110,7 +107,9 @@ function parseSource(
       result: failure("UNKNOWN_FIELD", `${path}.${unknown}`, `unknown source field: ${unknown}`),
     };
   }
-  const valid = value.kind === "scope" ? validScopePath(value.path) : validPath(value.path);
+  const valid = value.kind === "scope"
+    ? typeof value.path === "string" && isStudioScopePath(value.path)
+    : validPath(value.path);
   if (!valid) {
     return {
       ok: false,
@@ -118,7 +117,7 @@ function parseSource(
         "INVALID_ACTION_PAYLOAD",
         `${path}.path`,
         value.kind === "scope"
-          ? "scope path must start with currentItem and be semantic"
+          ? "scope path must start with currentItem and use semantic tail segments"
           : "source path must be semantic",
       ),
     };
@@ -185,15 +184,18 @@ export function parseStudioExperienceDocument(input: unknown): StudioExperienceD
       if (!binding || !source) continue;
 
       if (source.kind === "scope") {
-        if (!validScopePath(source.path)) {
+        if (typeof source.path !== "string" || !isStudioScopePath(source.path)) {
           return failure(
             "INVALID_BINDING",
             `$.bindings[${index}].source.path`,
-            "scope binding path must start with currentItem and be semantic",
+            "scope binding path must start with currentItem and use semantic tail segments",
           );
         }
         bindingSources[index] = { kind: "scope", path: source.path };
-        binding.source = { kind: "domain", path: source.path };
+        // The v1 structural parser knows only state/domain semantic paths. Use a
+        // fixed valid placeholder while it checks document shape, then restore
+        // the canonical scope source below. The placeholder never escapes v2.
+        binding.source = { kind: "domain", path: LEGACY_SCOPE_PLACEHOLDER_PATH };
       } else if ((source.kind === "state" || source.kind === "domain") && validPath(source.path)) {
         bindingSources[index] = { kind: source.kind, path: source.path };
       }
@@ -227,8 +229,8 @@ export function parseStudioExperienceDocument(input: unknown): StudioExperienceD
         if (!value) return failure("INVALID_ACTION_PAYLOAD", base, "payload binding must be an object");
         const unknown = exact(value, ["key", "source"]);
         if (unknown) return failure("UNKNOWN_FIELD", `${base}.${unknown}`, `unknown payload binding field: ${unknown}`);
-        if (typeof value.key !== "string" || !isSemanticSegment(value.key)) {
-          return failure("INVALID_ACTION_PAYLOAD", `${base}.key`, "payload key must be one semantic segment");
+        if (typeof value.key !== "string" || !isStudioPayloadKey(value.key)) {
+          return failure("INVALID_ACTION_PAYLOAD", `${base}.key`, "payload key must be a bounded Studio payload field name");
         }
         if (keys.has(value.key)) {
           return failure("INVALID_ACTION_PAYLOAD", `${base}.key`, "duplicate payload key");

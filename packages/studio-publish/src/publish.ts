@@ -1,8 +1,10 @@
 import { validateStudioDocumentBindings } from "@vira-enterprise-genui/studio-binding";
-import { validateStudioDocumentPayloadCompleteness } from "@vira-enterprise-genui/studio-catalog";
 import { compileStudioExperience } from "@vira-enterprise-genui/studio-compiler";
 import { validateStudioDesignDocument } from "@vira-enterprise-genui/studio-design";
-import { validateStudioDocumentFlow } from "@vira-enterprise-genui/studio-flow";
+import {
+  validateStudioDocumentActionPayloadCompleteness,
+  validateStudioDocumentFlow,
+} from "@vira-enterprise-genui/studio-flow";
 import { STUDIO_PREVIEW_VERSION } from "./types.js";
 import type { StudioPreviewResult, StudioPublishResult, StudioPublishValidationCode } from "./types.js";
 
@@ -52,7 +54,7 @@ export function prepareStudioPublication(input: {
     );
   }
 
-  const payloads = validateStudioDocumentPayloadCompleteness(bindings.value, input.componentCatalog);
+  const payloads = validateStudioDocumentActionPayloadCompleteness(bindings.value, input.componentCatalog);
   if (!payloads.ok) {
     return publishFailure(
       "INVALID_FLOW",

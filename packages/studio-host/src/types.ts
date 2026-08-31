@@ -1,4 +1,3 @@
-import type { ActionDescriptor } from "@vira-enterprise-genui/adapter-sdk";
 import type { JsonObject } from "@vira-enterprise-genui/protocol";
 
 export const STUDIO_HOST_BRIDGE_VERSION = "1" as const;
@@ -6,6 +5,11 @@ export const STUDIO_HOST_SNAPSHOT_VERSION = "1" as const;
 export const STUDIO_HOST_ACTION_OUTCOMES = Object.freeze(["success", "empty", "error"] as const);
 
 export type StudioHostActionOutcome = (typeof STUDIO_HOST_ACTION_OUTCOMES)[number];
+
+export interface StudioHostActionDescriptor {
+  readonly type: string;
+  readonly payload: JsonObject;
+}
 
 export interface StudioHostSnapshot {
   readonly version: typeof STUDIO_HOST_SNAPSHOT_VERSION;
@@ -26,7 +30,7 @@ export interface StudioHostBridge {
   readonly version: typeof STUDIO_HOST_BRIDGE_VERSION;
   readonly id: string;
   readonly snapshot: () => StudioHostSnapshot;
-  readonly dispatch: (action: ActionDescriptor) => Promise<StudioHostActionResult>;
+  readonly dispatch: (action: StudioHostActionDescriptor) => Promise<StudioHostActionResult>;
   readonly subscribe: (listener: StudioHostSnapshotListener) => StudioHostUnsubscribe;
 }
 

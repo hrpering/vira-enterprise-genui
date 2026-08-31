@@ -35,7 +35,7 @@ describe("hybrid airline starter decomposition", () => {
 
   it("converts functional widget defaults to mock-domain bindings without changing the editable wrapper graph", () => {
     const source = createStarterDocument("demo.seat-selection", "seat-selection");
-    const sourceNodes = source.views[0]?.nodes.length;
+    const sourceNodes = source.views[0]?.nodes.length ?? 0;
     const bound = applyMockDomainBindings(source);
     const widget = bound.views[0]?.nodes.find((node) => node.id === "widget");
 
