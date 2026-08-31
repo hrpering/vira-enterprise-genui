@@ -26,13 +26,13 @@ Entrypoints must reference artifacts whose role is `experience`.
 
 The initial role/media-type surface is deliberately fail-closed:
 
-- `experience`: Vira Studio publication or Vira experience JSON;
+- `experience`: canonical Vira Studio publication JSON only;
 - `design`: Vira design bundle JSON;
 - `catalog`: Vira component catalog JSON;
 - `metadata`: Vira experience metadata JSON;
 - `asset`: PNG, JPEG, WebP, or AVIF.
 
-Active content such as HTML, JavaScript, WebAssembly, SVG, shell content, or arbitrary binary media types is not accepted by the v1 contract.
+XP-001 does not invent a second generic experience payload format. Active content such as HTML, JavaScript, WebAssembly, SVG, shell content, or arbitrary binary media types is not accepted by the v1 contract.
 
 ## Distribution adapters
 
@@ -44,7 +44,7 @@ Registry transport is intentionally outside this package. A future registry adap
 - parsed manifests are detached from input and deeply frozen;
 - artifact and entrypoint ids are unique;
 - publisher namespace parity is exact;
-- entrypoints resolve to experience artifacts;
+- entrypoints resolve to canonical Studio publication artifacts;
 - compatibility ranges cannot be inverted;
 - deterministic serialization sorts object keys while preserving array order;
 - no registry, network, Studio, Puck, runtime, React, or telemetry dependency is permitted in the v1 package.

@@ -9,7 +9,6 @@ export const EXPERIENCE_PACK_MAX_ARTIFACT_SIZE_BYTES = 10_000_000_000 as const;
 export const EXPERIENCE_PACK_ALLOWED_MEDIA_TYPES = Object.freeze({
   experience: Object.freeze([
     "application/vnd.vira.studio-publication.v1+json",
-    "application/vnd.vira.experience.v1+json",
   ]),
   design: Object.freeze(["application/vnd.vira.design-bundle.v1+json"]),
   catalog: Object.freeze(["application/vnd.vira.component-catalog.v1+json"]),
