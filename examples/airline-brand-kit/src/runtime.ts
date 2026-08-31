@@ -1,3 +1,4 @@
+import { searchFlights } from "@vira-enterprise-genui/mock-airline-domain";
 import { parseDomainData, type JsonObject } from "@vira-enterprise-genui/protocol";
 import type {
   RenderCapabilityBinding,
@@ -731,28 +732,20 @@ export function createAirlineViraDomController(container: HTMLElement, seed: Air
 
 export const createPegasusViraDomController = createAirlineViraDomController;
 
-const PREVIEW_OFFERS: readonly AirlineFlightOffer[] = Object.freeze([
-  { id: "vx-979", origin: "SAW", destination: "BER", departure: "09:10", arrival: "11:15", duration: "3h 05m", flightNumber: "VX 979", price: 138, currency: "EUR" },
-  { id: "vx-977", origin: "SAW", destination: "BER", departure: "12:35", arrival: "14:40", duration: "3h 05m", flightNumber: "VX 977", price: 151, currency: "EUR" },
-  { id: "vx-981", origin: "SAW", destination: "BER", departure: "18:20", arrival: "20:25", duration: "3h 05m", flightNumber: "VX 981", price: 166, currency: "EUR" },
-]);
-
 function previewSeed(props: Readonly<Record<string, unknown>>): AirlineFlightExperienceSeed {
   const passengers = Math.min(8, Math.max(1, Math.round(number(props.passengers, 2))));
   const origin = text(props.origin, "SAW").toUpperCase();
   const destination = text(props.destination, "BER").toUpperCase();
-  const base = Math.max(1, number(props["base-price"], 138));
-  const currency = text(props.currency, "EUR").toUpperCase();
+  const departureDate = text(props.departure, text(props["departure-date"], "2026-09-15"));
+  const result = searchFlights({ origin, destination, departureDate, passengers });
   return {
     input: {
-      origin,
-      destination,
-      departureDate: text(props.departure, text(props["departure-date"], "2026-09-15")),
-      passengers,
+      origin: result.origin,
+      destination: result.destination,
+      departureDate: result.departureDate,
+      passengers: result.passengers,
     },
-    data: {
-      offers: PREVIEW_OFFERS.map((offer, index) => ({ ...offer, origin, destination, price: base + index * 13, currency })),
-    },
+    data: { offers: result.offers },
   };
 }
 

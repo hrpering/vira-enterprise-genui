@@ -1,4 +1,8 @@
 import { AIRLINE_GUIDANCE_STUDIO_COMPONENTS, AIRLINE_STUDIO_COMPONENTS } from "@vira-enterprise-genui/airline-brand-kit";
+import {
+  DEFAULT_MOCK_RUNTIME_INPUT,
+  createMockAirlineRuntimeData,
+} from "@vira-enterprise-genui/mock-airline-domain";
 import type { StudioBindingSourceDefinition } from "@vira-enterprise-genui/studio-binding";
 import type { StudioExperienceDocument, StudioBinding } from "@vira-enterprise-genui/studio-schema";
 
@@ -38,6 +42,8 @@ export const mockBindingSourceCatalog = Object.freeze({
   id: "airline.studio.data",
   sources: MOCK_BINDING_SOURCES,
 });
+
+const MOCK_AUTHORING_RUNTIME_DATA = createMockAirlineRuntimeData(DEFAULT_MOCK_RUNTIME_INPUT);
 
 type ComponentBindingMap = Readonly<Record<string, Readonly<Record<string, string>>>>;
 
@@ -100,6 +106,27 @@ const componentBindings: ComponentBindingMap = Object.freeze({
 
 function bindingKey(binding: StudioBinding): string {
   return `${binding.viewId}\u0000${binding.nodeId}\u0000${binding.prop}`;
+}
+
+export function resolveMockDomainPreviewProps(
+  document: StudioExperienceDocument,
+  viewId: string,
+  nodeId: string,
+  props: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> {
+  const resolved: Record<string, unknown> = { ...props };
+  for (const binding of document.bindings) {
+    if (
+      binding.viewId !== viewId
+      || binding.nodeId !== nodeId
+      || binding.source.kind !== "domain"
+    ) {
+      continue;
+    }
+    const value = MOCK_AUTHORING_RUNTIME_DATA[binding.source.path];
+    if (value !== undefined) resolved[binding.prop] = value;
+  }
+  return resolved;
 }
 
 export function applyMockDomainBindings(document: StudioExperienceDocument): StudioExperienceDocument {

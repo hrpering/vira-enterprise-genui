@@ -1,3 +1,7 @@
+import {
+  DEFAULT_MOCK_RUNTIME_INPUT,
+  createMockAirlineRuntimeData,
+} from "@vira-enterprise-genui/mock-airline-domain";
 import type { StudioExperienceDocument, StudioNode } from "@vira-enterprise-genui/studio-schema";
 import { AIRLINE_STUDIO_COMPONENTS } from "./runtime.js";
 
@@ -125,15 +129,60 @@ export const AIRLINE_STARTER_TEMPLATES = Object.freeze([
 
 export type AirlineStarterTemplateId = (typeof AIRLINE_STARTER_TEMPLATES)[number]["id"];
 
+const defaultRuntimeData = createMockAirlineRuntimeData(DEFAULT_MOCK_RUNTIME_INPUT);
+
+function defaultString(path: string): string {
+  const value = defaultRuntimeData[path];
+  if (typeof value !== "string") throw new Error(`Mock airline Studio default ${path} must be a string`);
+  return value;
+}
+
+function defaultNumber(path: string): number {
+  const value = defaultRuntimeData[path];
+  if (typeof value !== "number") throw new Error(`Mock airline Studio default ${path} must be a number`);
+  return value;
+}
+
 const defaultPropsByTemplate: Readonly<Record<AirlineStarterTemplateId, Readonly<Record<string, string | number>>>> = Object.freeze({
-  "flight-search": { origin: "SAW", destination: "BER", departure: "2026-09-15", passengers: 2 },
-  "flight-results": { origin: "SAW", destination: "BER", passengers: 2, "base-price": 138, currency: "EUR" },
-  "fare-comparison": { passengers: 2, "base-price": 138, currency: "EUR" },
-  "traveller-details": { passengers: 2 },
-  "seat-selection": { passengers: 2, fare: "smart" },
-  baggage: { passengers: 2, fare: "smart" },
-  extras: { passengers: 2, fare: "smart" },
-  "booking-review": { origin: "SAW", destination: "BER", passengers: 2, fare: "smart", "base-price": 138, currency: "EUR" },
+  "flight-search": {
+    origin: defaultString("search.origin"),
+    destination: defaultString("search.destination"),
+    departure: defaultString("search.departure"),
+    passengers: defaultNumber("search.passengers"),
+  },
+  "flight-results": {
+    origin: defaultString("results.origin"),
+    destination: defaultString("results.destination"),
+    passengers: defaultNumber("results.passengers"),
+    "base-price": defaultNumber("results.base-price"),
+    currency: defaultString("results.currency"),
+  },
+  "fare-comparison": {
+    passengers: defaultNumber("booking.passengers"),
+    "base-price": defaultNumber("results.base-price"),
+    currency: defaultString("results.currency"),
+  },
+  "traveller-details": { passengers: defaultNumber("booking.passengers") },
+  "seat-selection": {
+    passengers: defaultNumber("booking.passengers"),
+    fare: defaultString("booking.fare"),
+  },
+  baggage: {
+    passengers: defaultNumber("booking.passengers"),
+    fare: defaultString("booking.fare"),
+  },
+  extras: {
+    passengers: defaultNumber("booking.passengers"),
+    fare: defaultString("booking.fare"),
+  },
+  "booking-review": {
+    origin: defaultString("review.origin"),
+    destination: defaultString("review.destination"),
+    passengers: defaultNumber("review.passengers"),
+    fare: defaultString("review.fare"),
+    "base-price": defaultNumber("review.base-price"),
+    currency: defaultString("review.currency"),
+  },
 });
 
 const starterInteractionByTemplate: Readonly<Record<AirlineStarterTemplateId, Readonly<{ event: string; actionEvent: string }>>> = Object.freeze({
