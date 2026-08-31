@@ -4,7 +4,7 @@ import {
   createStudioHostSnapshot,
 } from "@vira-enterprise-genui/studio-host";
 import type { StudioHostBridge, StudioHostSnapshot } from "@vira-enterprise-genui/studio-host";
-import type { StudioRuntimeSession } from "@vira-enterprise-genui/studio-runtime";
+import type { StudioRuntimeDispatchResult, StudioRuntimeSession } from "@vira-enterprise-genui/studio-runtime";
 import type { StudioBindingSource } from "@vira-enterprise-genui/studio-schema";
 import type {
   StudioHostedDispatchResult,
@@ -94,57 +94,68 @@ export function createStudioHostRuntimeAdapter(hostInput: unknown): StudioHostRu
     snapshot: () => current,
     connect(session: StudioRuntimeSession): StudioHostedRuntimeController {
       let controllerDisposed = false;
+
+      const forward = async (runtime: StudioRuntimeDispatchResult): Promise<StudioHostedDispatchResult> => {
+        if (disposed || controllerDisposed) return { ok: false, issue: issue("DISPOSED", "$", "hosted Studio runtime is disposed") };
+        if (subscriptionFault) return { ok: false, issue: subscriptionFault };
+        if (!runtime.ok) {
+          return {
+            ok: false,
+            issue: issue("RUNTIME_COMPLETION_FAILED", "$.runtime.dispatch", "Studio runtime rejected the event"),
+            runtime,
+          };
+        }
+
+        const actionId = runtime.value.action.id;
+        let hostRaw: unknown;
+        try {
+          hostRaw = await host.dispatch({
+            type: runtime.value.action.type,
+            payload: runtime.value.action.payload,
+          });
+        } catch {
+          const completion = session.complete({ actionId, outcome: "error" });
+          return {
+            ok: false,
+            issue: issue("HOST_DISPATCH_FAILED", "$.host.dispatch", completion.ok ? "Studio host dispatch failed" : "Studio host dispatch failed and runtime error completion failed"),
+          };
+        }
+
+        const hostResult = createStudioHostActionResult(hostRaw);
+        if (!hostResult.ok) {
+          session.complete({ actionId, outcome: "error" });
+          return { ok: false, issue: issue("INVALID_HOST_RESULT", hostResult.issue.path, hostResult.issue.message) };
+        }
+        if (hostResult.value.snapshot !== undefined) {
+          const snapshotIssue = acceptSnapshot(hostResult.value.snapshot);
+          if (snapshotIssue) {
+            session.complete({ actionId, outcome: "error" });
+            return { ok: false, issue: snapshotIssue };
+          }
+        }
+
+        const completion = session.complete({ actionId, outcome: hostResult.value.outcome });
+        if (!completion.ok) return { ok: false, issue: issue("RUNTIME_COMPLETION_FAILED", completion.issue.path, completion.issue.message) };
+        return {
+          ok: true,
+          value: Object.freeze({
+            actionId,
+            actionType: runtime.value.action.type,
+            outcome: hostResult.value.outcome,
+            completion: completion.value,
+          }),
+        };
+      };
+
       const controller: StudioHostedRuntimeController = {
         currentViewId: () => session.currentViewId(),
         currentView: () => session.currentView(),
         currentRuntimeState: () => session.currentRuntimeState(),
         async dispatch(eventInput): Promise<StudioHostedDispatchResult> {
-          if (disposed || controllerDisposed) return { ok: false, issue: issue("DISPOSED", "$", "hosted Studio runtime is disposed") };
-          if (subscriptionFault) return { ok: false, issue: subscriptionFault };
-
           const runtime = session.dispatch(eventInput);
-          if (!runtime.ok) return { ok: false, issue: issue("RUNTIME_COMPLETION_FAILED", "$.runtime.dispatch", "Studio runtime rejected the event"), runtime };
-
-          const actionId = runtime.value.action.id;
-          let hostRaw: unknown;
-          try {
-            hostRaw = await host.dispatch({
-              type: runtime.value.action.type,
-              payload: runtime.value.action.payload,
-            });
-          } catch {
-            const completion = session.complete({ actionId, outcome: "error" });
-            return {
-              ok: false,
-              issue: issue("HOST_DISPATCH_FAILED", "$.host.dispatch", completion.ok ? "Studio host dispatch failed" : "Studio host dispatch failed and runtime error completion failed"),
-            };
-          }
-
-          const hostResult = createStudioHostActionResult(hostRaw);
-          if (!hostResult.ok) {
-            session.complete({ actionId, outcome: "error" });
-            return { ok: false, issue: issue("INVALID_HOST_RESULT", hostResult.issue.path, hostResult.issue.message) };
-          }
-          if (hostResult.value.snapshot !== undefined) {
-            const snapshotIssue = acceptSnapshot(hostResult.value.snapshot);
-            if (snapshotIssue) {
-              session.complete({ actionId, outcome: "error" });
-              return { ok: false, issue: snapshotIssue };
-            }
-          }
-
-          const completion = session.complete({ actionId, outcome: hostResult.value.outcome });
-          if (!completion.ok) return { ok: false, issue: issue("RUNTIME_COMPLETION_FAILED", completion.issue.path, completion.issue.message) };
-          return {
-            ok: true,
-            value: Object.freeze({
-              actionId,
-              actionType: runtime.value.action.type,
-              outcome: hostResult.value.outcome,
-              completion: completion.value,
-            }),
-          };
+          return forward(runtime);
         },
+        forward,
         dispose() {
           if (controllerDisposed) return;
           controllerDisposed = true;
