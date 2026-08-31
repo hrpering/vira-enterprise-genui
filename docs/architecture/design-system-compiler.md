@@ -33,11 +33,15 @@ Compiler v1 supports literal:
 
 The current Studio design contract accepts opaque `#RRGGBB` values only. Therefore the compiler:
 
+- accepts only color-space names defined by stable DTCG 2025.10;
+- validates each color's three components against the DTCG range for that color space, while preserving the spec's `none` component semantics;
 - converts fully numeric `srgb` components in `[0, 1]` to uppercase `#RRGGBB`;
 - checks an sRGB `hex` fallback for consistency when both representations are present;
-- accepts other DTCG color spaces only when an opaque six-digit `hex` fallback is present;
+- accepts non-sRGB DTCG color spaces only when an opaque six-digit `hex` fallback is present;
 - rejects alpha values other than `1`;
-- rejects unsupported spaces without an exact fallback instead of approximating them.
+- rejects non-sRGB colors without an exact fallback instead of approximating them.
+
+The compiler intentionally does not implement color-science conversion for non-sRGB spaces in v1. Their validated DTCG `hex` fallback is the only value imported into Studio.
 
 ### Font families
 
