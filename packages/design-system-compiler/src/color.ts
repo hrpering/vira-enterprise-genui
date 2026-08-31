@@ -14,6 +14,22 @@ interface ColorFailure {
 type ColorResult = ColorSuccess | ColorFailure;
 
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
+const DTCG_2025_10_COLOR_SPACES = new Set([
+  "srgb",
+  "srgb-linear",
+  "hsl",
+  "hwb",
+  "lab",
+  "lch",
+  "oklab",
+  "oklch",
+  "display-p3",
+  "a98-rgb",
+  "prophoto-rgb",
+  "rec2020",
+  "xyz-d65",
+  "xyz-d50",
+]);
 
 function failure(
   code: DesignSystemCompileIssue["code"],
@@ -32,9 +48,6 @@ function normalizedHex(value: unknown, path: string): ColorResult | undefined {
 }
 
 function srgbHex(components: readonly unknown[], path: string): ColorResult {
-  if (components.length !== 3) {
-    return failure("INVALID_COLOR", path, "sRGB colors must contain exactly three components");
-  }
   const bytes: number[] = [];
   for (let index = 0; index < components.length; index += 1) {
     const component = components[index];
@@ -70,11 +83,11 @@ export function compileDtcgColor(value: unknown, path: string): ColorResult {
     return failure("INVALID_COLOR", `${path}.${unknown}`, `unsupported DTCG color field: ${unknown}`);
   }
 
-  if (typeof color.colorSpace !== "string" || color.colorSpace.length === 0 || color.colorSpace !== color.colorSpace.trim()) {
-    return failure("INVALID_COLOR", `${path}.colorSpace`, "colorSpace must be a non-empty trimmed string");
+  if (typeof color.colorSpace !== "string" || !DTCG_2025_10_COLOR_SPACES.has(color.colorSpace)) {
+    return failure("UNSUPPORTED_COLOR_SPACE", `${path}.colorSpace`, "colorSpace must be a DTCG 2025.10 supported color space");
   }
-  if (!Array.isArray(color.components) || color.components.length === 0) {
-    return failure("INVALID_COLOR", `${path}.components`, "components must be a non-empty array");
+  if (!Array.isArray(color.components) || color.components.length !== 3) {
+    return failure("INVALID_COLOR", `${path}.components`, "DTCG 2025.10 color values must contain exactly three components");
   }
   for (let index = 0; index < color.components.length; index += 1) {
     const component = color.components[index];
@@ -99,7 +112,7 @@ export function compileDtcgColor(value: unknown, path: string): ColorResult {
     return failure(
       "UNSUPPORTED_COLOR_SPACE",
       `${path}.colorSpace`,
-      `color space ${color.colorSpace} requires an opaque six-digit hex fallback in compiler v1`,
+      `DTCG ${color.colorSpace} requires an opaque six-digit hex fallback in compiler v1`,
     );
   }
 
