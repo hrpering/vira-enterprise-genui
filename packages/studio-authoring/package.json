@@ -7,6 +7,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@vira-enterprise-genui/studio-enterprise": "workspace:*",
     "@vira-enterprise-genui/studio-schema": "workspace:*",
     "@vira-enterprise-genui/studio-publish": "workspace:*"
   }
