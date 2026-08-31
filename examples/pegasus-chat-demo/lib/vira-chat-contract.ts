@@ -1,3 +1,5 @@
+export const VIRA_FLIGHT_STUDIO_PUBLICATION = "demo.golden.airline.booking" as const;
+
 export interface FlightOffer {
   readonly id: string;
   readonly carrier: string;
@@ -15,6 +17,7 @@ export interface ViraFlightExperienceResult {
   readonly version: "1";
   readonly kind: "vira.experience";
   readonly experience: "travel.flight.search";
+  readonly publication?: typeof VIRA_FLIGHT_STUDIO_PUBLICATION;
   readonly input: {
     readonly origin: string;
     readonly destination: string;
@@ -64,6 +67,7 @@ export function isViraFlightExperienceResult(value: unknown): value is ViraFligh
   if (!isRecord(value)) return false;
   if (value.version !== "1" || value.kind !== "vira.experience") return false;
   if (value.experience !== "travel.flight.search") return false;
+  if (value.publication !== undefined && value.publication !== VIRA_FLIGHT_STUDIO_PUBLICATION) return false;
 
   const input = value.input;
   const data = value.data;
