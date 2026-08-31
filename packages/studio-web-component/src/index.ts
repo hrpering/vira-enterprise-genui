@@ -10,8 +10,8 @@ export type {
   StudioExperienceElementDefineResult,
   StudioExperienceElementIssue,
   StudioExperienceElementPlatform,
-  StudioExperienceElementReactRoot,
-  StudioExperienceElementReactRootFactory,
   StudioExperienceElementResult,
   StudioExperienceElementValidationCode,
+  StudioExperienceReactRoot,
+  StudioExperienceReactRootFactory,
 } from "./types.js";
