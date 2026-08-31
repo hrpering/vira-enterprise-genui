@@ -1,4 +1,12 @@
 export {
+  defineStudioHost,
+  defineStudioHostSnapshot,
+} from "./factory.js";
+export type {
+  StudioHostDefinition,
+  StudioHostSnapshotDefinition,
+} from "./factory.js";
+export {
   createStudioHostActionResult,
   createStudioHostBridge,
   createStudioHostSnapshot,
