@@ -103,7 +103,7 @@ describe("DTCG design system compiler", () => {
       colors: ["#FFFFFF", "#000000"],
       fonts: ["Inter"],
     });
-    expect(result.value.metadata.colorTokenPaths).toEqual(["$.brand.accent", "$[\"brand\"][\"$root\"]"]);
+    expect(result.value.metadata.colorTokenPaths).toEqual(["$.brand.accent", "$.brand[\"$root\"]"]);
   });
 
   it("converts numeric sRGB deterministically and accepts opaque hex fallbacks for unsupported spaces", () => {
