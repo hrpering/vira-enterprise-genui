@@ -45,6 +45,11 @@ export interface StudioHostedRuntimeController {
   readonly currentView: StudioRuntimeSession["currentView"];
   readonly currentRuntimeState: StudioRuntimeSession["currentRuntimeState"];
   readonly dispatch: (input: Parameters<StudioRuntimeSession["dispatch"]>[0]) => Promise<StudioHostedDispatchResult>;
+  /**
+   * Forwards a successful action that was already dispatched by the canonical Studio runtime.
+   * This is used by UI renderers so an interaction is never dispatched twice just to reach the host.
+   */
+  readonly forward: (runtime: StudioRuntimeDispatchResult) => Promise<StudioHostedDispatchResult>;
   readonly dispose: () => void;
 }
 
