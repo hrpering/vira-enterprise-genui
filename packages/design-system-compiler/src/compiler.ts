@@ -47,6 +47,13 @@ interface CompileState {
   readonly fontTokenPaths: string[];
 }
 
+interface GroupChild {
+  readonly key: string;
+  readonly path: string;
+  readonly value: Record<string, unknown>;
+  readonly isToken: boolean;
+}
+
 function failure(issueValue: DesignSystemCompileIssue): DesignSystemCompileResult {
   return { ok: false, issue: issueValue };
 }
@@ -201,6 +208,17 @@ function visitToken(
   return undefined;
 }
 
+function visitGroupChild(
+  child: GroupChild,
+  groupType: string | undefined,
+  depth: number,
+  state: CompileState,
+): DesignSystemCompileIssue | undefined {
+  return child.isToken
+    ? visitToken(child.value, child.path, groupType, state)
+    : visitGroup(child.value, child.path, groupType, depth + 1, state);
+}
+
 function visitGroup(
   group: Record<string, unknown>,
   path: string,
@@ -222,6 +240,7 @@ function visitGroup(
   const groupType = Object.hasOwn(group, "$type") ? group.$type as string : inheritedType;
 
   const metadataKeys = new Set(["$type", "$description", "$deprecated"]);
+  const children: GroupChild[] = [];
   for (const key of Object.keys(group).sort()) {
     if (metadataKeys.has(key)) continue;
     if (key.startsWith("$") && key !== "$root") {
@@ -240,9 +259,23 @@ function visitGroup(
     if (key === "$root" && !isToken) {
       return issue("INVALID_GROUP", nextPath, "$root must be a token");
     }
-    const childIssue = isToken
-      ? visitToken(child, nextPath, groupType, state)
-      : visitGroup(child, nextPath, groupType, depth + 1, state);
+    children.push({ key, path: nextPath, value: child, isToken });
+  }
+
+  // DTCG 2025.10 group processing order: local tokens, root token,
+  // extended tokens, nested groups. `$extends` is unsupported in compiler v1,
+  // so the supported order is local tokens -> `$root` -> nested groups.
+  for (const child of children.filter((candidate) => candidate.key !== "$root" && candidate.isToken)) {
+    const childIssue = visitGroupChild(child, groupType, depth, state);
+    if (childIssue) return childIssue;
+  }
+  const rootToken = children.find((candidate) => candidate.key === "$root");
+  if (rootToken) {
+    const childIssue = visitGroupChild(rootToken, groupType, depth, state);
+    if (childIssue) return childIssue;
+  }
+  for (const child of children.filter((candidate) => !candidate.isToken)) {
+    const childIssue = visitGroupChild(child, groupType, depth, state);
     if (childIssue) return childIssue;
   }
   return undefined;
