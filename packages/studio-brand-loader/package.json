@@ -1,0 +1,14 @@
+{
+  "name": "@vira-enterprise-genui/studio-brand-loader",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/protocol": "workspace:*",
+    "@vira-enterprise-genui/studio-brand": "workspace:*",
+    "@vira-enterprise-genui/studio-schema": "workspace:*"
+  }
+}
