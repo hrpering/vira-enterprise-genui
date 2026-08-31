@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   defineStudioExperience,
+  exportAuthoredStudioBundle,
+  importAuthoredStudioBundle,
+  prepareAuthoredStudioPreview,
   prepareAuthoredStudioPublication,
 } from "../../packages/studio-authoring/src/index.js";
 import type { StudioAuthoringDocumentInput } from "../../packages/studio-authoring/src/index.js";
@@ -92,6 +95,55 @@ describe("manual Studio authoring", () => {
           bindingSources: [],
         },
       },
+    });
+  });
+
+  it("previews through the same publication gate instead of a manual-only renderer path", () => {
+    const result = prepareAuthoredStudioPreview({
+      document: document(),
+      componentCatalog: components(),
+      bindingSourceCatalog: sources(),
+      actionAdapter: actions(),
+      viewId: "main",
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        experienceId: "manual.example",
+        viewId: "main",
+        manifest: {
+          componentRefs: ["manual.component.button"],
+          actionEvents: ["manual.submit"],
+          bindingSources: [],
+        },
+      },
+    });
+  });
+
+  it("round-trips manual documents through the same bounded portable bundle used by Canvas", () => {
+    const exported = exportAuthoredStudioBundle({ brandId: "manual.brand", document: document() });
+    expect(exported.ok).toBe(true);
+    if (!exported.ok) return;
+    expect(exported.value.version).toBe("1");
+    expect(exported.value.brandId).toBe("manual.brand");
+
+    const imported = importAuthoredStudioBundle(JSON.parse(JSON.stringify(exported.value)));
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    const canonical = defineStudioExperience(document());
+    expect(canonical.ok).toBe(true);
+    if (!canonical.ok) return;
+    expect(imported.value.document).toEqual(canonical.value);
+    expect(Object.isFrozen(imported.value)).toBe(true);
+  });
+
+  it("rejects unsupported portable versions instead of guessing migrations", () => {
+    const exported = exportAuthoredStudioBundle({ brandId: "manual.brand", document: document() });
+    expect(exported.ok).toBe(true);
+    if (!exported.ok) return;
+    expect(importAuthoredStudioBundle({ ...exported.value, version: "999" })).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_VERSION", path: "$.version" },
     });
   });
 
