@@ -17,6 +17,7 @@
     "verify": "pnpm check:boundaries && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm build:experience-studio && pnpm demo:pegasus-chat:check",
     "verify:browser": "pnpm --filter @vira-enterprise-genui/experience-studio-demo test:e2e",
     "verify:all": "pnpm verify && pnpm verify:browser",
+    "verify:genui": "pnpm check:boundaries && pnpm typecheck && pnpm exec vitest run tests/contract/studio-authoring.test.ts tests/contract/studio-authoring-tooling.test.ts tests/contract/studio-authoring-portable.test.ts tests/contract/studio-host-factory.test.ts tests/integration/manual-canvas-semantic-parity.test.ts tests/integration/golden-manual-canvas-parity.test.ts tests/integration/studio-consumer-parity.test.ts tests/integration/chat-studio-publication-bridge.test.ts examples/experience-studio-demo/src/catalog-v4.test.ts examples/experience-studio-demo/src/golden-airline-experience.test.ts examples/manual-genui-demo/src/index.test.ts && pnpm build:experience-studio && pnpm demo:pegasus-chat:check",
     "demo:flight-search": "pnpm build && pnpm --filter @vira-enterprise-genui/flight-search-demo start",
     "demo:experience-studio": "pnpm --filter @vira-enterprise-genui/experience-studio-demo dev",
     "demo:pegasus-chat": "pnpm --filter @vira-enterprise-genui/pegasus-chat-demo dev",
