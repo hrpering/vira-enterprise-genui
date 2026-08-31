@@ -1,0 +1,12 @@
+{
+  "name": "@vira-enterprise-genui/studio-host-runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@vira-enterprise-genui/studio-host": "workspace:*",
+    "@vira-enterprise-genui/studio-runtime": "workspace:*",
+    "@vira-enterprise-genui/studio-schema": "workspace:*"
+  }
+}

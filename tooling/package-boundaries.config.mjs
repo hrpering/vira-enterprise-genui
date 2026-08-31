@@ -32,4 +32,5 @@ export const allowedDependencies = Object.freeze({
   "studio-brand": ["protocol", "adapter-sdk", "studio-schema", "studio-catalog", "studio-binding", "studio-flow"],
   "studio-brand-loader": ["protocol", "studio-brand", "studio-schema"],
   "studio-host": ["protocol"],
+  "studio-host-runtime": ["studio-host", "studio-runtime", "studio-schema"],
 });
