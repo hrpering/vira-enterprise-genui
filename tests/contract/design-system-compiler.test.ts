@@ -154,6 +154,13 @@ describe("DTCG design system compiler", () => {
         body: { $value: { $ref: "#/fonts/base" } },
       },
     })).toMatchObject({ ok: false, issue: { code: "UNSUPPORTED_REFERENCE", path: "$.fonts.body.$value" } });
+
+    expect(compileDtcgDesignTokens({
+      fonts: {
+        $type: "fontFamily",
+        body: { $value: ["Inter", "{fonts.fallback}"] },
+      },
+    })).toMatchObject({ ok: false, issue: { code: "UNSUPPORTED_REFERENCE", path: "$.fonts.body.$value[1]" } });
   });
 
   it("rejects missing types, unsafe font grammar, and unsupported reserved fields", () => {
@@ -163,7 +170,7 @@ describe("DTCG design system compiler", () => {
 
     expect(compileDtcgDesignTokens({
       font: { $type: "fontFamily", $value: "Inter;url(https://evil.example)" },
-    })).toMatchObject({ ok: false, issue: { code: "INVALID_FONT_FAMILY", path: "$.font.$value[0]" } });
+    })).toMatchObject({ ok: false, issue: { code: "INVALID_FONT_FAMILY", path: "$.font.$value" } });
 
     expect(compileDtcgDesignTokens({
       group: {
