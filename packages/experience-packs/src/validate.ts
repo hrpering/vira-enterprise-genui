@@ -98,8 +98,8 @@ export function parseExperiencePackManifest(input: unknown): ExperiencePackManif
     if (!artifact) {
       return failure("INVALID_ENTRYPOINT", `$.entrypoints[${index}]`, "entrypoint references an artifact that does not exist");
     }
-    if (artifact.role !== "experience") {
-      return failure("INVALID_ENTRYPOINT", `$.entrypoints[${index}]`, "entrypoint must reference an experience artifact");
+    if (artifact.role !== "studio-publication") {
+      return failure("INVALID_ENTRYPOINT", `$.entrypoints[${index}]`, "entrypoint must reference a Studio publication artifact");
     }
     seenEntrypoints.add(entrypoint);
     entrypoints.push(entrypoint);
