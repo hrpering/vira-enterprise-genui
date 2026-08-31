@@ -21,8 +21,8 @@ function manifest() {
     entrypoints: ["main"],
     artifacts: [{
       id: "main",
-      role: "experience",
-      mediaType: "application/vnd.vira.studio-publication.v1+json",
+      role: "studio-publication",
+      mediaType: "application/json",
       digest,
       size: 1234,
     }],
@@ -84,10 +84,20 @@ describe("Experience Pack v1 contract", () => {
     });
   });
 
-  it("rejects active or executable media types", () => {
-    const input = manifest();
-    input.artifacts[0] = { ...firstArtifact(input), mediaType: "text/html" };
-    expect(parseExperiencePackManifest(input)).toMatchObject({
+  it("rejects invented vendor media types and active content", () => {
+    const invented = manifest();
+    invented.artifacts[0] = {
+      ...firstArtifact(invented),
+      mediaType: "application/vnd.vira.studio-publication.v1+json",
+    };
+    expect(parseExperiencePackManifest(invented)).toMatchObject({
+      ok: false,
+      issue: { code: "UNSAFE_MEDIA_TYPE", path: "$.artifacts[0].mediaType" },
+    });
+
+    const active = manifest();
+    active.artifacts[0] = { ...firstArtifact(active), mediaType: "text/html" };
+    expect(parseExperiencePackManifest(active)).toMatchObject({
       ok: false,
       issue: { code: "UNSAFE_MEDIA_TYPE", path: "$.artifacts[0].mediaType" },
     });
@@ -109,12 +119,12 @@ describe("Experience Pack v1 contract", () => {
     });
   });
 
-  it("requires entrypoints to reference experience artifacts", () => {
+  it("requires entrypoints to reference Studio publication artifacts", () => {
     const input = manifest();
     input.artifacts[0] = {
       ...firstArtifact(input),
-      role: "design",
-      mediaType: "application/vnd.vira.design-bundle.v1+json",
+      role: "asset",
+      mediaType: "image/png",
     };
     expect(parseExperiencePackManifest(input)).toMatchObject({
       ok: false,
