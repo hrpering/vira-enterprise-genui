@@ -87,7 +87,7 @@ describe("DTCG design system compiler", () => {
     });
   });
 
-  it("honors inherited group types, explicit token overrides, and $root tokens", () => {
+  it("honors inherited group types, explicit token overrides, $root tokens, and DTCG group order", () => {
     const result = compileDtcgDesignTokens({
       brand: {
         $type: "color",
@@ -100,9 +100,10 @@ describe("DTCG design system compiler", () => {
     if (!result.ok) return;
     expect(result.value.options).toEqual({
       colorMode: "palette",
-      colors: ["#000000", "#FFFFFF"],
+      colors: ["#FFFFFF", "#000000"],
       fonts: ["Inter"],
     });
+    expect(result.value.metadata.colorTokenPaths).toEqual(["$.brand.accent", "$[\"brand\"][\"$root\"]"]);
   });
 
   it("converts numeric sRGB deterministically and accepts opaque hex fallbacks for unsupported spaces", () => {
@@ -208,6 +209,21 @@ describe("DTCG design system compiler", () => {
     expect(compileDtcgDesignTokens({ fonts })).toMatchObject({
       ok: false,
       issue: { code: "FONT_LIMIT_EXCEEDED" },
+    });
+  });
+
+  it("enforces the traversal depth resource budget", () => {
+    const source: Record<string, unknown> = {};
+    let cursor = source;
+    for (let index = 0; index < 34; index += 1) {
+      const next: Record<string, unknown> = {};
+      cursor[`group${index}`] = next;
+      cursor = next;
+    }
+    cursor.token = { $type: "fontFamily", $value: "Inter" };
+    expect(compileDtcgDesignTokens(source)).toMatchObject({
+      ok: false,
+      issue: { code: "RESOURCE_LIMIT_EXCEEDED" },
     });
   });
 
