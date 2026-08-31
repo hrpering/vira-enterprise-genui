@@ -1,0 +1,21 @@
+{
+  "name": "@vira-enterprise-genui/studio-web-component",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@vira-enterprise-genui/studio-runtime": "workspace:*",
+    "@vira-enterprise-genui/studio-runtime-react": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18.2.0 <20",
+    "react-dom": ">=18.2.0 <20"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  }
+}
