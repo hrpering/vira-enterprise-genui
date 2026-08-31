@@ -32,6 +32,8 @@ const TOKEN_RESERVED_FIELDS = new Set(["$value", "$type", "$description", "$depr
 const SAFE_FONT_FAMILY = /^[A-Za-z0-9][A-Za-z0-9 _-]{0,63}$/;
 const MAX_FONT_FALLBACKS = 8;
 
+type NodeKind = "group" | "token";
+
 interface CompileState {
   visitedNodeCount: number;
   visitedTokenCount: number;
@@ -67,6 +69,7 @@ function validateMetadata(
   node: Record<string, unknown>,
   path: string,
   allowed: ReadonlySet<string>,
+  kind: NodeKind,
 ): DesignSystemCompileIssue | undefined {
   if (Object.hasOwn(node, "$extends")) {
     return issue("UNSUPPORTED_EXTENDS", `${path}.$extends`, "DTCG $extends resolution is outside compiler v1");
@@ -78,19 +81,32 @@ function validateMetadata(
   if (unknown) {
     return issue("UNKNOWN_RESERVED_FIELD", childPath(path, unknown), `unsupported DTCG reserved field: ${unknown}`);
   }
+  const invalidCode = kind === "token" ? "INVALID_TOKEN" : "INVALID_GROUP";
   if (Object.hasOwn(node, "$type") && !validTypeName(node.$type)) {
-    return issue("INVALID_GROUP", `${path}.$type`, "$type must be a bounded non-empty string");
+    return issue(invalidCode, `${path}.$type`, "$type must be a bounded non-empty string");
   }
   if (Object.hasOwn(node, "$description") && !validMetadataText(node.$description, DESIGN_SYSTEM_COMPILER_MAX_METADATA_LENGTH)) {
-    return issue("INVALID_GROUP", `${path}.$description`, "$description must be bounded plain text");
+    return issue(invalidCode, `${path}.$description`, "$description must be bounded plain text");
   }
   if (Object.hasOwn(node, "$deprecated")) {
     const deprecated = node.$deprecated;
     if (typeof deprecated !== "boolean" && !validMetadataText(deprecated, DESIGN_SYSTEM_COMPILER_MAX_METADATA_LENGTH)) {
-      return issue("INVALID_GROUP", `${path}.$deprecated`, "$deprecated must be boolean or bounded plain text");
+      return issue(invalidCode, `${path}.$deprecated`, "$deprecated must be boolean or bounded plain text");
     }
   }
   return undefined;
+}
+
+function validateFontName(value: unknown, path: string):
+  | { readonly ok: true; readonly value: string }
+  | { readonly ok: false; readonly issue: DesignSystemCompileIssue } {
+  if (curlyReference(value) || objectReference(value)) {
+    return { ok: false, issue: issue("UNSUPPORTED_REFERENCE", path, "font family references are not resolved by compiler v1") };
+  }
+  if (typeof value !== "string" || value !== value.trim() || !SAFE_FONT_FAMILY.test(value)) {
+    return { ok: false, issue: issue("INVALID_FONT_FAMILY", path, "font family names must use the safe compiler v1 grammar") };
+  }
+  return { ok: true, value };
 }
 
 function compileFontFamily(value: unknown, path: string):
@@ -100,30 +116,23 @@ function compileFontFamily(value: unknown, path: string):
     return { ok: false, issue: issue("UNSUPPORTED_REFERENCE", path, "DTCG token references are not resolved by compiler v1") };
   }
 
-  const families = typeof value === "string"
-    ? [value]
-    : Array.isArray(value)
-      ? value
-      : undefined;
-  if (!families || families.length === 0 || families.length > MAX_FONT_FALLBACKS) {
+  if (typeof value === "string") {
+    return validateFontName(value, path);
+  }
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_FONT_FALLBACKS) {
     return { ok: false, issue: issue("INVALID_FONT_FAMILY", path, `fontFamily must be a string or an array of 1 to ${MAX_FONT_FALLBACKS} strings`) };
   }
 
   const normalized: string[] = [];
   const seen = new Set<string>();
-  for (let index = 0; index < families.length; index += 1) {
-    const family = families[index];
-    if (typeof family !== "string" || family !== family.trim() || !SAFE_FONT_FAMILY.test(family)) {
-      return { ok: false, issue: issue("INVALID_FONT_FAMILY", `${path}[${index}]`, "font family names must use the safe compiler v1 grammar") };
-    }
-    if (curlyReference(family)) {
-      return { ok: false, issue: issue("UNSUPPORTED_REFERENCE", `${path}[${index}]`, "font family references are not resolved by compiler v1") };
-    }
-    if (seen.has(family)) {
+  for (let index = 0; index < value.length; index += 1) {
+    const parsed = validateFontName(value[index], `${path}[${index}]`);
+    if (!parsed.ok) return parsed;
+    if (seen.has(parsed.value)) {
       return { ok: false, issue: issue("INVALID_FONT_FAMILY", `${path}[${index}]`, "font family fallback entries must be unique") };
     }
-    seen.add(family);
-    normalized.push(family);
+    seen.add(parsed.value);
+    normalized.push(parsed.value);
   }
 
   const stack = normalized.join(", ");
@@ -142,7 +151,7 @@ function visitToken(
   const resourceIssue = enterNode(state, path, true);
   if (resourceIssue) return resourceIssue;
 
-  const metadataIssue = validateMetadata(token, path, TOKEN_RESERVED_FIELDS);
+  const metadataIssue = validateMetadata(token, path, TOKEN_RESERVED_FIELDS, "token");
   if (metadataIssue) return metadataIssue;
   const nonReserved = Object.keys(token).sort().find((key) => !key.startsWith("$"));
   if (nonReserved) {
@@ -208,7 +217,7 @@ function visitGroup(
     return issue("INVALID_GROUP", path, "root and nested groups must not contain $value");
   }
 
-  const metadataIssue = validateMetadata(group, path, GROUP_RESERVED_FIELDS);
+  const metadataIssue = validateMetadata(group, path, GROUP_RESERVED_FIELDS, "group");
   if (metadataIssue) return metadataIssue;
   const groupType = Object.hasOwn(group, "$type") ? group.$type as string : inheritedType;
 
