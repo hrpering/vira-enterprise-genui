@@ -13,23 +13,35 @@ interface ColorFailure {
 
 type ColorResult = ColorSuccess | ColorFailure;
 
+interface ComponentRange {
+  readonly min?: number;
+  readonly max?: number;
+  readonly maxExclusive?: boolean;
+}
+
 const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
-const DTCG_2025_10_COLOR_SPACES = new Set([
-  "srgb",
-  "srgb-linear",
-  "hsl",
-  "hwb",
-  "lab",
-  "lch",
-  "oklab",
-  "oklch",
-  "display-p3",
-  "a98-rgb",
-  "prophoto-rgb",
-  "rec2020",
-  "xyz-d65",
-  "xyz-d50",
-]);
+const UNIT: ComponentRange = { min: 0, max: 1 };
+const PERCENT: ComponentRange = { min: 0, max: 100 };
+const HUE: ComponentRange = { min: 0, max: 360, maxExclusive: true };
+const UNBOUNDED: ComponentRange = {};
+const NON_NEGATIVE: ComponentRange = { min: 0 };
+
+const DTCG_2025_10_COMPONENT_RANGES: Readonly<Record<string, readonly ComponentRange[]>> = Object.freeze({
+  srgb: [UNIT, UNIT, UNIT],
+  "srgb-linear": [UNIT, UNIT, UNIT],
+  hsl: [HUE, PERCENT, PERCENT],
+  hwb: [HUE, PERCENT, PERCENT],
+  lab: [PERCENT, UNBOUNDED, UNBOUNDED],
+  lch: [PERCENT, NON_NEGATIVE, HUE],
+  oklab: [UNIT, UNBOUNDED, UNBOUNDED],
+  oklch: [UNIT, NON_NEGATIVE, HUE],
+  "display-p3": [UNIT, UNIT, UNIT],
+  "a98-rgb": [UNIT, UNIT, UNIT],
+  "prophoto-rgb": [UNIT, UNIT, UNIT],
+  rec2020: [UNIT, UNIT, UNIT],
+  "xyz-d65": [UNIT, UNIT, UNIT],
+  "xyz-d50": [UNIT, UNIT, UNIT],
+});
 
 function failure(
   code: DesignSystemCompileIssue["code"],
@@ -47,6 +59,41 @@ function normalizedHex(value: unknown, path: string): ColorResult | undefined {
   return { ok: true, value: value.toUpperCase() };
 }
 
+function validateComponents(
+  colorSpace: string,
+  components: readonly unknown[],
+  path: string,
+): DesignSystemCompileIssue | undefined {
+  const ranges = DTCG_2025_10_COMPONENT_RANGES[colorSpace];
+  if (!ranges) {
+    return { code: "UNSUPPORTED_COLOR_SPACE", path: path.replace(/\.components$/, ".colorSpace"), message: "colorSpace must be a DTCG 2025.10 supported color space" };
+  }
+  if (components.length !== ranges.length) {
+    return { code: "INVALID_COLOR", path, message: `DTCG ${colorSpace} colors must contain exactly ${ranges.length} components` };
+  }
+  for (let index = 0; index < components.length; index += 1) {
+    const component = components[index];
+    if (component === "none") continue;
+    if (typeof component !== "number" || !Number.isFinite(component)) {
+      return { code: "INVALID_COLOR", path: `${path}[${index}]`, message: "color components must be finite numbers or none" };
+    }
+    const range = ranges[index];
+    if (!range) {
+      return { code: "INVALID_COLOR", path: `${path}[${index}]`, message: "color component range is unavailable" };
+    }
+    if (range.min !== undefined && component < range.min) {
+      return { code: "INVALID_COLOR", path: `${path}[${index}]`, message: `component is below the DTCG ${colorSpace} range` };
+    }
+    if (range.max !== undefined) {
+      const exceeds = range.maxExclusive ? component >= range.max : component > range.max;
+      if (exceeds) {
+        return { code: "INVALID_COLOR", path: `${path}[${index}]`, message: `component is above the DTCG ${colorSpace} range` };
+      }
+    }
+  }
+  return undefined;
+}
+
 function srgbHex(components: readonly unknown[], path: string): ColorResult {
   const bytes: number[] = [];
   for (let index = 0; index < components.length; index += 1) {
@@ -54,8 +101,8 @@ function srgbHex(components: readonly unknown[], path: string): ColorResult {
     if (component === "none") {
       return failure("INVALID_COLOR", `${path}[${index}]`, "sRGB none components require a valid hex fallback");
     }
-    if (typeof component !== "number" || !Number.isFinite(component) || component < 0 || component > 1) {
-      return failure("INVALID_COLOR", `${path}[${index}]`, "sRGB components must be finite numbers from 0 to 1");
+    if (typeof component !== "number") {
+      return failure("INVALID_COLOR", `${path}[${index}]`, "sRGB numeric component expected after validation");
     }
     bytes.push(Math.round(component * 255));
   }
@@ -83,18 +130,14 @@ export function compileDtcgColor(value: unknown, path: string): ColorResult {
     return failure("INVALID_COLOR", `${path}.${unknown}`, `unsupported DTCG color field: ${unknown}`);
   }
 
-  if (typeof color.colorSpace !== "string" || !DTCG_2025_10_COLOR_SPACES.has(color.colorSpace)) {
+  if (typeof color.colorSpace !== "string" || !Object.hasOwn(DTCG_2025_10_COMPONENT_RANGES, color.colorSpace)) {
     return failure("UNSUPPORTED_COLOR_SPACE", `${path}.colorSpace`, "colorSpace must be a DTCG 2025.10 supported color space");
   }
-  if (!Array.isArray(color.components) || color.components.length !== 3) {
-    return failure("INVALID_COLOR", `${path}.components`, "DTCG 2025.10 color values must contain exactly three components");
+  if (!Array.isArray(color.components)) {
+    return failure("INVALID_COLOR", `${path}.components`, "DTCG color components must be an array");
   }
-  for (let index = 0; index < color.components.length; index += 1) {
-    const component = color.components[index];
-    if (component !== "none" && (typeof component !== "number" || !Number.isFinite(component))) {
-      return failure("INVALID_COLOR", `${path}.components[${index}]`, "color components must be finite numbers or none");
-    }
-  }
+  const componentIssue = validateComponents(color.colorSpace, color.components, `${path}.components`);
+  if (componentIssue) return { ok: false, issue: componentIssue };
 
   const alpha = Object.hasOwn(color, "alpha") ? color.alpha : 1;
   if (typeof alpha !== "number" || !Number.isFinite(alpha) || alpha < 0 || alpha > 1) {
