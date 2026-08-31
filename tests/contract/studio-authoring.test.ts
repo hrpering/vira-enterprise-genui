@@ -48,7 +48,7 @@ function document(): StudioAuthoringDocumentInput {
       nodeId: "submit",
       event: "press",
       actionEvent: "manual.submit",
-      routes: [],
+      routes: [{ outcome: "success", viewId: "main" }],
     }],
   };
 }
