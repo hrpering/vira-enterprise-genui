@@ -29,6 +29,14 @@ function manifest() {
   };
 }
 
+type ManifestFixture = ReturnType<typeof manifest>;
+
+function firstArtifact(input: ManifestFixture) {
+  const artifact = input.artifacts[0];
+  if (!artifact) throw new Error("test fixture must contain an artifact");
+  return artifact;
+}
+
 describe("Experience Pack v1 contract", () => {
   it("parses into a detached deeply frozen canonical manifest", () => {
     const input = manifest();
@@ -50,7 +58,7 @@ describe("Experience Pack v1 contract", () => {
     });
 
     const input = manifest();
-    input.artifacts[0] = { ...input.artifacts[0], path: "../../payload" } as typeof input.artifacts[0];
+    input.artifacts[0] = { ...firstArtifact(input), path: "../../payload" } as typeof input.artifacts[number];
     expect(parseExperiencePackManifest(input)).toMatchObject({
       ok: false,
       issue: { code: "UNKNOWN_FIELD", path: "$.artifacts[0].path" },
@@ -69,7 +77,7 @@ describe("Experience Pack v1 contract", () => {
 
   it("rejects duplicate artifact ids", () => {
     const input = manifest();
-    input.artifacts.push({ ...input.artifacts[0] });
+    input.artifacts.push({ ...firstArtifact(input) });
     expect(parseExperiencePackManifest(input)).toMatchObject({
       ok: false,
       issue: { code: "DUPLICATE_ARTIFACT", path: "$.artifacts[1].id" },
@@ -78,7 +86,7 @@ describe("Experience Pack v1 contract", () => {
 
   it("rejects active or executable media types", () => {
     const input = manifest();
-    input.artifacts[0] = { ...input.artifacts[0], mediaType: "text/html" };
+    input.artifacts[0] = { ...firstArtifact(input), mediaType: "text/html" };
     expect(parseExperiencePackManifest(input)).toMatchObject({
       ok: false,
       issue: { code: "UNSAFE_MEDIA_TYPE", path: "$.artifacts[0].mediaType" },
@@ -87,14 +95,14 @@ describe("Experience Pack v1 contract", () => {
 
   it("requires lowercase sha256 digests and bounded integer sizes", () => {
     const invalidDigest = manifest();
-    invalidDigest.artifacts[0] = { ...invalidDigest.artifacts[0], digest: "sha256:not-a-digest" };
+    invalidDigest.artifacts[0] = { ...firstArtifact(invalidDigest), digest: "sha256:not-a-digest" };
     expect(parseExperiencePackManifest(invalidDigest)).toMatchObject({
       ok: false,
       issue: { code: "INVALID_ARTIFACT", path: "$.artifacts[0].digest" },
     });
 
     const invalidSize = manifest();
-    invalidSize.artifacts[0] = { ...invalidSize.artifacts[0], size: 1.5 };
+    invalidSize.artifacts[0] = { ...firstArtifact(invalidSize), size: 1.5 };
     expect(parseExperiencePackManifest(invalidSize)).toMatchObject({
       ok: false,
       issue: { code: "INVALID_ARTIFACT", path: "$.artifacts[0].size" },
@@ -104,7 +112,7 @@ describe("Experience Pack v1 contract", () => {
   it("requires entrypoints to reference experience artifacts", () => {
     const input = manifest();
     input.artifacts[0] = {
-      ...input.artifacts[0],
+      ...firstArtifact(input),
       role: "design",
       mediaType: "application/vnd.vira.design-bundle.v1+json",
     };
