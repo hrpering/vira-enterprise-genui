@@ -1,4 +1,11 @@
 import {
+  exportStudioPortableBundle,
+  migrateStudioPortableBundle,
+} from "@vira-enterprise-genui/studio-enterprise";
+import type {
+  StudioPortableBundleResult,
+} from "@vira-enterprise-genui/studio-enterprise";
+import {
   STUDIO_DOCUMENT_VERSION,
   parseStudioExperienceDocument,
 } from "@vira-enterprise-genui/studio-schema";
@@ -9,8 +16,12 @@ import type {
   StudioValidationIssue,
   StudioView,
 } from "@vira-enterprise-genui/studio-schema";
-import { prepareStudioPublication } from "@vira-enterprise-genui/studio-publish";
+import {
+  prepareStudioPreview,
+  prepareStudioPublication,
+} from "@vira-enterprise-genui/studio-publish";
 import type {
+  StudioPreviewResult,
   StudioPublishResult,
   StudioPublishValidationIssue,
 } from "@vira-enterprise-genui/studio-publish";
@@ -31,12 +42,31 @@ export interface StudioAuthoringPublicationInput {
   readonly actionAdapter: unknown;
 }
 
+export interface StudioAuthoringPreviewInput extends StudioAuthoringPublicationInput {
+  readonly viewId: string;
+}
+
+export interface StudioAuthoringBundleInput {
+  readonly brandId: string;
+  readonly document: StudioAuthoringDocumentInput;
+}
+
 type StudioPublication = Extract<StudioPublishResult, { readonly ok: true }>["value"];
+type StudioPreview = Extract<StudioPreviewResult, { readonly ok: true }>["value"];
 
 export type StudioAuthoringPublicationResult =
   | { readonly ok: true; readonly value: StudioPublication }
   | { readonly ok: false; readonly stage: "document"; readonly issue: StudioValidationIssue }
   | { readonly ok: false; readonly stage: "publication"; readonly issue: StudioPublishValidationIssue };
+
+export type StudioAuthoringPreviewResult =
+  | { readonly ok: true; readonly value: StudioPreview }
+  | { readonly ok: false; readonly stage: "document"; readonly issue: StudioValidationIssue }
+  | { readonly ok: false; readonly stage: "preview"; readonly issue: StudioPublishValidationIssue };
+
+export type StudioAuthoringBundleResult =
+  | StudioPortableBundleResult
+  | { readonly ok: false; readonly stage: "document"; readonly issue: StudioValidationIssue };
 
 export function defineStudioExperience(
   input: StudioAuthoringDocumentInput,
@@ -63,4 +93,33 @@ export function prepareAuthoredStudioPublication(
   });
   if (!publication.ok) return { ok: false, stage: "publication", issue: publication.issue };
   return publication;
+}
+
+export function prepareAuthoredStudioPreview(
+  input: StudioAuthoringPreviewInput,
+): StudioAuthoringPreviewResult {
+  const document = defineStudioExperience(input.document);
+  if (!document.ok) return { ok: false, stage: "document", issue: document.issue };
+
+  const preview = prepareStudioPreview({
+    document: document.value,
+    componentCatalog: input.componentCatalog,
+    bindingSourceCatalog: input.bindingSourceCatalog,
+    actionAdapter: input.actionAdapter,
+    viewId: input.viewId,
+  });
+  if (!preview.ok) return { ok: false, stage: "preview", issue: preview.issue };
+  return preview;
+}
+
+export function exportAuthoredStudioBundle(
+  input: StudioAuthoringBundleInput,
+): StudioAuthoringBundleResult {
+  const document = defineStudioExperience(input.document);
+  if (!document.ok) return { ok: false, stage: "document", issue: document.issue };
+  return exportStudioPortableBundle({ brandId: input.brandId, document: document.value });
+}
+
+export function importAuthoredStudioBundle(input: unknown): StudioPortableBundleResult {
+  return migrateStudioPortableBundle(input);
 }
