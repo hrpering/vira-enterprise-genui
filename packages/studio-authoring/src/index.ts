@@ -19,6 +19,14 @@ export type {
   StudioValidationResult,
 } from "./tooling.js";
 export {
+  exportAuthoredStudioBundle,
+  importAuthoredStudioBundle,
+} from "./portable.js";
+export type {
+  StudioPortableExportResult,
+  StudioPortableImportResult,
+} from "./portable.js";
+export {
   STUDIO_DOCUMENT_VERSION,
   parseStudioExperienceDocument,
 } from "@vira-enterprise-genui/studio-schema";
