@@ -3,15 +3,17 @@ import type { StudioExperienceDocument, StudioValidationIssue } from "@vira-ente
 import { prepareStudioPreview, prepareStudioPublication } from "@vira-enterprise-genui/studio-publish";
 import type {
   StudioPreviewDescriptor,
+  StudioPublishResult,
   StudioPublishValidationIssue,
 } from "@vira-enterprise-genui/studio-publish";
-import type { StudioPublication } from "@vira-enterprise-genui/studio-compiler";
 
 export interface StudioToolingContext {
   readonly componentCatalog: unknown;
   readonly bindingSourceCatalog: unknown;
   readonly actionAdapter: unknown;
 }
+
+type StudioPublication = Extract<StudioPublishResult, { readonly ok: true }>["value"];
 
 export type StudioValidationResult =
   | { readonly ok: true; readonly value: StudioExperienceDocument }
