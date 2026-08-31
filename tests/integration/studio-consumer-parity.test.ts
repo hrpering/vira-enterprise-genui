@@ -48,16 +48,12 @@ function session(): StudioRuntimeSession {
         }],
       },
     }),
-    currentRuntimeState: () => ({}) as ReturnType<StudioRuntimeSession["currentRuntimeState"]>,
-    dispatch: () => ({
-      ok: false,
-      stage: "studio",
-      issue: { code: "INTERACTION_NOT_FOUND", path: "$.event", message: "not used" },
-    }),
-    applyHostPatch: () => ({ ok: false, issue: { code: "INVALID_PATCH", path: "$", message: "not used" } }) as ReturnType<StudioRuntimeSession["applyHostPatch"]>,
-    complete: () => ({ ok: false, issue: { code: "NO_PENDING_ACTION", path: "$", message: "not used" } }),
+    currentRuntimeState: () => ({}),
+    dispatch: () => ({ ok: false }),
+    applyHostPatch: () => ({ ok: false }),
+    complete: () => ({ ok: false }),
     dispose: () => undefined,
-  };
+  } as unknown as StudioRuntimeSession;
 }
 
 class FakeHTMLElement {}
