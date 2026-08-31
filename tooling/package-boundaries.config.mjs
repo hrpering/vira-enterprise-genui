@@ -26,6 +26,7 @@ export const allowedDependencies = Object.freeze({
   "studio-authoring": ["studio-schema", "studio-publish", "studio-enterprise"],
   "studio-runtime": ["protocol", "runtime-web", "studio-schema", "studio-compiler", "studio-catalog", "studio-publish"],
   "studio-runtime-react": ["studio-catalog", "studio-design-react", "studio-runtime"],
+  "studio-web-component": ["studio-runtime", "studio-runtime-react"],
   "studio-ai": ["protocol", "adapter-sdk", "studio-schema", "studio-catalog", "studio-binding", "studio-flow"],
   "studio-workbench": ["adapter-sdk", "studio-schema", "studio-catalog", "studio-puck-authoring", "studio-binding", "studio-flow", "studio-publish"],
   "studio-workbench-react": ["studio-schema", "studio-compiler", "studio-react", "studio-binding", "studio-catalog", "studio-design", "studio-flow", "studio-workbench"],
