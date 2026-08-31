@@ -10,5 +10,8 @@
     "@vira-enterprise-genui/genui": "workspace:*",
     "react": "19.2.8",
     "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/react-dom": "19.2.3"
   }
 }
