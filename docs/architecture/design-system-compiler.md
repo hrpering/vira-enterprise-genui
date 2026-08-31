@@ -25,9 +25,9 @@ Compiler v1 supports literal:
 - group `$type` inheritance;
 - token-level `$type` override;
 - group `$root` tokens;
-- deterministic lexicographic traversal.
+- DTCG group processing order: local tokens, `$root`, then nested groups; entries are lexicographically ordered within each supported phase.
 
-Unsupported token types are ignored and counted in compile metadata. The compiler fails if the source contains no supported tokens.
+`$extends` is rejected, so extended-token processing is intentionally absent from the v1 traversal. Unsupported token types are ignored and counted in compile metadata. The compiler fails if the source contains no supported tokens.
 
 ### Colors
 
@@ -57,7 +57,7 @@ Compiler v1 does not resolve:
 - remote resources;
 - arbitrary CSS or executable content.
 
-Unsupported reference semantics fail explicitly. Unknown DTCG reserved `$...` fields fail closed.
+Unsupported reference semantics fail explicitly. Provider-specific `$extensions` and unknown DTCG reserved `$...` fields fail closed rather than being interpreted by the core compiler.
 
 Input traversal is bounded by depth, node and token budgets. Output palette/font counts use the limits already owned by `@vira-enterprise-genui/studio-design`.
 
