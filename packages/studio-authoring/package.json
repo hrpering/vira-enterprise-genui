@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@vira-enterprise-genui/studio-schema": "workspace:*",
-    "@vira-enterprise-genui/studio-publish": "workspace:*"
+    "@vira-enterprise-genui/studio-publish": "workspace:*",
+    "@vira-enterprise-genui/studio-enterprise": "workspace:*"
   }
 }
