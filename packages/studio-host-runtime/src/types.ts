@@ -21,6 +21,8 @@ export interface StudioHostRuntimeDataPort {
   readonly read: (source: StudioBindingSource) => unknown;
 }
 
+export type StudioHostRuntimeSnapshotListener = (snapshot: StudioHostSnapshot) => void;
+
 export interface StudioHostedDispatchSuccess {
   readonly actionId: string;
   readonly actionType: string;
@@ -36,6 +38,8 @@ export interface StudioHostRuntimeAdapter {
   readonly hostId: string;
   readonly data: StudioHostRuntimeDataPort;
   readonly snapshot: () => StudioHostSnapshot;
+  /** Subscribes to accepted monotonic host snapshots. Listener failures never poison the host/runtime bridge. */
+  readonly subscribe: (listener: StudioHostRuntimeSnapshotListener) => () => void;
   readonly connect: (session: StudioRuntimeSession) => StudioHostedRuntimeController;
   readonly dispose: () => void;
 }
