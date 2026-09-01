@@ -105,22 +105,26 @@ function usage(): never {
   throw new Error("VIRA_GENUI_CLI_EXIT");
 }
 
-async function main(): Promise<void> {
-  const command = process.argv[2];
-  const fileName = process.argv[3];
+export async function runGenUICli(argv: readonly string[]): Promise<void> {
+  const command = argv[0];
+  const fileName = argv[1];
   if ((command !== "validate" && command !== "build" && command !== "preview") || !fileName) usage();
 
-  const viewFlag = process.argv.indexOf("--view", 4);
-  const viewId = viewFlag >= 0 ? process.argv[viewFlag + 1] : undefined;
+  const viewFlag = argv.indexOf("--view", 2);
+  const viewId = viewFlag >= 0 ? argv[viewFlag + 1] : undefined;
   if (viewFlag >= 0 && !viewId) usage();
   await runGenUICommand(command, fileName, viewId);
 }
 
+function reportCliFailure(error: unknown): void {
+  if (error instanceof Error && error.message === "VIRA_GENUI_CLI_EXIT") return;
+  process.stderr.write("GenUI CLI failed safely.\n");
+  process.exitCode = 1;
+}
+
 const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : undefined;
 if (invokedPath === import.meta.url) {
-  main().catch((error: unknown) => {
-    if (error instanceof Error && error.message === "VIRA_GENUI_CLI_EXIT") return;
-    process.stderr.write("GenUI CLI failed safely.\n");
-    process.exitCode = 1;
-  });
+  runGenUICli(process.argv.slice(2)).catch(reportCliFailure);
 }
+
+export { reportCliFailure };
