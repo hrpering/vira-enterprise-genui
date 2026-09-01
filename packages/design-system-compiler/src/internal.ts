@@ -2,10 +2,17 @@ import type { DesignSystemCompileIssue } from "./types.js";
 
 export type UnknownRecord = Record<string, unknown>;
 
-const CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/;
 const SAFE_PATH_SEGMENT = /^[A-Za-z_][A-Za-z0-9_-]*$/;
 const BLOCKED_NAMES = new Set(["__proto__", "prototype", "constructor"]);
 const CURLY_REFERENCE = /^\{[^{}]+\}$/;
+
+function hasAsciiControlCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1F || code === 0x7F) return true;
+  }
+  return false;
+}
 
 export function record(value: unknown): UnknownRecord | undefined {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
@@ -25,7 +32,7 @@ export function safeName(value: string): boolean {
   return value.length > 0
     && value.length <= 128
     && value === value.trim()
-    && !CONTROL_CHARACTER_PATTERN.test(value)
+    && !hasAsciiControlCharacter(value)
     && !BLOCKED_NAMES.has(value);
 }
 
@@ -34,13 +41,13 @@ export function validTypeName(value: unknown): value is string {
     && value.length > 0
     && value.length <= 64
     && value === value.trim()
-    && !CONTROL_CHARACTER_PATTERN.test(value);
+    && !hasAsciiControlCharacter(value);
 }
 
 export function validMetadataText(value: unknown, maxLength: number): value is string {
   return typeof value === "string"
     && value.length <= maxLength
-    && !CONTROL_CHARACTER_PATTERN.test(value);
+    && !hasAsciiControlCharacter(value);
 }
 
 export function curlyReference(value: unknown): boolean {
