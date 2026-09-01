@@ -127,6 +127,10 @@ describe("manual Studio authoring", () => {
   it("never evaluates nested accessor properties before canonical JSON validation", () => {
     let getterCalls = 0;
     const base = document();
+    const view = base.views[0];
+    const node = view?.nodes[0];
+    if (!view || !node) throw new Error("manual authoring fixture is incomplete");
+
     const props: Record<string, unknown> = {};
     Object.defineProperty(props, "secret", {
       enumerable: true,
@@ -138,8 +142,8 @@ describe("manual Studio authoring", () => {
     const input = {
       ...base,
       views: [{
-        ...base.views[0],
-        nodes: [{ ...base.views[0]?.nodes[0], props }],
+        ...view,
+        nodes: [{ ...node, props }],
       }],
     } as unknown as StudioAuthoringDocumentInput;
 
