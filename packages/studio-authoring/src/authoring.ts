@@ -69,16 +69,37 @@ export type StudioAuthoringBundleResult =
   | StudioPortableBundleResult
   | { readonly ok: false; readonly stage: "document"; readonly issue: StudioValidationIssue };
 
+function withAuthoringDefaults(input: StudioAuthoringDocumentInput): unknown {
+  if (input === null || typeof input !== "object" || Array.isArray(input)) return input;
+
+  try {
+    const prototype = Object.getPrototypeOf(input);
+    if (prototype !== Object.prototype && prototype !== null) return input;
+    if (Object.getOwnPropertySymbols(input).length > 0) return input;
+
+    const keys = Object.keys(input);
+    if (Object.getOwnPropertyNames(input).length !== keys.length) return input;
+
+    const output: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+    for (const key of keys) {
+      const descriptor = Object.getOwnPropertyDescriptor(input, key);
+      if (!descriptor || !("value" in descriptor)) return input;
+      output[key] = descriptor.value;
+    }
+
+    if (!Object.hasOwn(output, "version")) output.version = STUDIO_DOCUMENT_VERSION;
+    if (!Object.hasOwn(output, "bindings")) output.bindings = [];
+    if (!Object.hasOwn(output, "interactions")) output.interactions = [];
+    return output;
+  } catch {
+    return input;
+  }
+}
+
 export function defineStudioExperience(
   input: StudioAuthoringDocumentInput,
 ): StudioExperienceDocumentResult {
-  const raw = input as unknown as Readonly<Record<string, unknown>>;
-  return parseStudioExperienceDocument({
-    ...input,
-    ...(Object.hasOwn(raw, "version") ? {} : { version: STUDIO_DOCUMENT_VERSION }),
-    ...(Object.hasOwn(raw, "bindings") ? {} : { bindings: [] }),
-    ...(Object.hasOwn(raw, "interactions") ? {} : { interactions: [] }),
-  });
+  return parseStudioExperienceDocument(withAuthoringDefaults(input));
 }
 
 export function prepareAuthoredStudioPublication(
