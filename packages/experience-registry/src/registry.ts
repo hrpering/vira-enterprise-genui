@@ -16,6 +16,8 @@ import {
 const SNAPSHOT_FIELDS = new Set(["schemaVersion", "manifests"]);
 const CANONICAL_SNAPSHOTS = new WeakSet<object>();
 
+type JsonContainer = Record<string, unknown> | unknown[];
+
 function snapshotFailure(
   code: ExperienceRegistryValidationCode,
   path: string,
@@ -26,6 +28,68 @@ function snapshotFailure(
 
 function parsedObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function detachedContainer(source: JsonContainer): JsonContainer {
+  return Array.isArray(source)
+    ? new Array<unknown>(source.length)
+    : Object.create(null) as Record<string, unknown>;
+}
+
+function detachParsedJson(input: unknown): unknown {
+  if (input === null || typeof input !== "object") return input;
+
+  const rootSource = input as JsonContainer;
+  const rootTarget = detachedContainer(rootSource);
+  const stack: Array<{ source: JsonContainer; target: JsonContainer }> = [
+    { source: rootSource, target: rootTarget },
+  ];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) break;
+
+    if (Array.isArray(current.source)) {
+      const target = current.target as unknown[];
+      for (let index = 0; index < current.source.length; index += 1) {
+        const child = current.source[index];
+        if (child !== null && typeof child === "object") {
+          const childSource = child as JsonContainer;
+          const childTarget = detachedContainer(childSource);
+          target[index] = childTarget;
+          stack.push({ source: childSource, target: childTarget });
+        } else {
+          target[index] = child;
+        }
+      }
+      continue;
+    }
+
+    const target = current.target as Record<string, unknown>;
+    for (const key of Object.keys(current.source)) {
+      const child = current.source[key];
+      if (child !== null && typeof child === "object") {
+        const childSource = child as JsonContainer;
+        const childTarget = detachedContainer(childSource);
+        Object.defineProperty(target, key, {
+          value: childTarget,
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
+        stack.push({ source: childSource, target: childTarget });
+      } else {
+        Object.defineProperty(target, key, {
+          value: child,
+          enumerable: true,
+          writable: true,
+          configurable: true,
+        });
+      }
+    }
+  }
+
+  return rootTarget;
 }
 
 function compareText(left: string, right: string): number {
@@ -53,7 +117,7 @@ export function parseExperienceRegistrySnapshot(input: unknown): ExperienceRegis
 
   let parsed: unknown;
   try {
-    parsed = JSON.parse(input) as unknown;
+    parsed = detachParsedJson(JSON.parse(input) as unknown);
   } catch {
     return snapshotFailure("INVALID_JSON", "$", "experience registry input must be valid JSON");
   }
