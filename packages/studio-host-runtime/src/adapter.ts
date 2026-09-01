@@ -56,6 +56,7 @@ export function createStudioHostRuntimeAdapter(hostInput: unknown): StudioHostRu
   let disposed = false;
   let subscriptionFault: StudioHostRuntimeIssue | undefined;
   const listeners = new Set<StudioHostRuntimeSnapshotListener>();
+  const forwardedActionsBySession = new WeakMap<StudioRuntimeSession, Set<string>>();
 
   const notifySnapshot = (snapshot: StudioHostSnapshot): void => {
     for (const listener of [...listeners]) {
@@ -123,7 +124,11 @@ export function createStudioHostRuntimeAdapter(hostInput: unknown): StudioHostRu
     },
     connect(session: StudioRuntimeSession): StudioHostedRuntimeController {
       let controllerDisposed = false;
-      const forwardedActionIds = new Set<string>();
+      let forwardedActionIds = forwardedActionsBySession.get(session);
+      if (!forwardedActionIds) {
+        forwardedActionIds = new Set<string>();
+        forwardedActionsBySession.set(session, forwardedActionIds);
+      }
 
       const forward = async (runtime: StudioRuntimeDispatchResult): Promise<StudioHostedDispatchResult> => {
         if (disposed || controllerDisposed) return { ok: false, issue: issue("DISPOSED", "$", "hosted Studio runtime is disposed") };
@@ -207,7 +212,6 @@ export function createStudioHostRuntimeAdapter(hostInput: unknown): StudioHostRu
         dispose() {
           if (controllerDisposed) return;
           controllerDisposed = true;
-          forwardedActionIds.clear();
           session.dispose();
         },
       };
