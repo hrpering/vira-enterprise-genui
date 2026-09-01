@@ -12,13 +12,20 @@ export const ARTIFACT_ID = /^[a-z][a-z0-9._-]{0,127}$/;
 export const TAG = /^[a-z0-9](?:[a-z0-9._-]{0,63})$/;
 export const SHA256 = /^sha256:[0-9a-f]{64}$/;
 const RELEASE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+const ARRAY_CONSTRUCTOR = Array;
 const ARRAY_IS_ARRAY = Array.isArray;
+const ARRAY_PROTOTYPE = Array.prototype;
+const NUMBER_IS_SAFE_INTEGER = Number.isSafeInteger;
+const OBJECT_CREATE = Object.create;
 const OBJECT_DEFINE_PROPERTY = Object.defineProperty;
 const OBJECT_FREEZE = Object.freeze;
 const OBJECT_GET_OWN_PROPERTY_DESCRIPTOR = Object.getOwnPropertyDescriptor;
+const OBJECT_GET_PROTOTYPE_OF = Object.getPrototypeOf;
 const OBJECT_HAS_OWN = Object.hasOwn;
 const OBJECT_IS_FROZEN = Object.isFrozen;
 const OBJECT_KEYS = Object.keys;
+const OBJECT_PROTOTYPE = Object.prototype;
+const REFLECT_OWN_KEYS = Reflect.ownKeys;
 const STRING_CONVERT = String;
 
 function ownData(object: object, key: PropertyKey): PropertyDescriptor | undefined {
@@ -38,13 +45,13 @@ function defineOwnData(target: object, key: PropertyKey, value: unknown): void {
 export function record(value: unknown): UnknownRecord | undefined {
   try {
     if (value === null || typeof value !== "object" || ARRAY_IS_ARRAY(value)) return undefined;
-    const prototype = Object.getPrototypeOf(value);
-    if (prototype !== Object.prototype && prototype !== null) return undefined;
+    const prototype = OBJECT_GET_PROTOTYPE_OF(value);
+    if (prototype !== OBJECT_PROTOTYPE && prototype !== null) return undefined;
 
-    const keys = Reflect.ownKeys(value);
+    const keys = REFLECT_OWN_KEYS(value);
     if (keys.some((key) => typeof key === "symbol")) return undefined;
 
-    const result = Object.create(null) as UnknownRecord;
+    const result = OBJECT_CREATE(null) as UnknownRecord;
     for (const key of keys) {
       if (typeof key !== "string") return undefined;
       const descriptor = ownData(value, key);
@@ -63,8 +70,8 @@ export function denseOwnDataArray(
 ): DenseOwnDataArrayResult {
   try {
     if (!ARRAY_IS_ARRAY(value)) return { ok: false, reason: "invalid" };
-    const prototype = Object.getPrototypeOf(value);
-    if (prototype !== Array.prototype && prototype !== null) {
+    const prototype = OBJECT_GET_PROTOTYPE_OF(value);
+    if (prototype !== ARRAY_PROTOTYPE && prototype !== null) {
       return { ok: false, reason: "invalid" };
     }
 
@@ -72,13 +79,13 @@ export function denseOwnDataArray(
     if (
       !lengthDescriptor
       || typeof lengthDescriptor.value !== "number"
-      || !Number.isSafeInteger(lengthDescriptor.value)
+      || !NUMBER_IS_SAFE_INTEGER(lengthDescriptor.value)
       || lengthDescriptor.value < 0
     ) return { ok: false, reason: "invalid" };
     const length = lengthDescriptor.value;
     if (length > maxLength) return { ok: false, reason: "limit-exceeded" };
 
-    const result = new Array<unknown>(length);
+    const result = new ARRAY_CONSTRUCTOR<unknown>(length);
     for (let index = 0; index < length; index += 1) {
       const key = STRING_CONVERT(index);
       const descriptor = ownData(value, key);
@@ -112,7 +119,7 @@ export function releaseVersion(value: unknown): readonly [number, number, number
   const parts = value.split(".");
   if (parts.length !== 3) return undefined;
   const version = [Number(parts[0]), Number(parts[1]), Number(parts[2])] as const;
-  return version.every((part) => Number.isSafeInteger(part) && part >= 0 && part <= 999_999_999)
+  return version.every((part) => NUMBER_IS_SAFE_INTEGER(part) && part >= 0 && part <= 999_999_999)
     ? version
     : undefined;
 }
@@ -157,10 +164,10 @@ export function stable(value: unknown): unknown {
     if (
       !lengthDescriptor
       || typeof lengthDescriptor.value !== "number"
-      || !Number.isSafeInteger(lengthDescriptor.value)
+      || !NUMBER_IS_SAFE_INTEGER(lengthDescriptor.value)
       || lengthDescriptor.value < 0
     ) return value;
-    const result = new Array<unknown>(lengthDescriptor.value);
+    const result = new ARRAY_CONSTRUCTOR<unknown>(lengthDescriptor.value);
     for (let index = 0; index < lengthDescriptor.value; index += 1) {
       const key = STRING_CONVERT(index);
       const descriptor = ownData(value, key);
@@ -171,7 +178,7 @@ export function stable(value: unknown): unknown {
   }
   const object = record(value);
   if (!object) return value;
-  const result: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+  const result: Record<string, unknown> = OBJECT_CREATE(null) as Record<string, unknown>;
   for (const key of OBJECT_KEYS(object).sort()) result[key] = stable(object[key]);
   return result;
 }
