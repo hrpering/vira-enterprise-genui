@@ -12,7 +12,7 @@ export const FORM_PRIMITIVE_COMPONENTS = Object.freeze([
       { key: "label", type: "string", required: true, bindable: true },
       { key: "value", type: "string", required: true, bindable: true },
       { key: "placeholder", type: "string", required: true, bindable: true },
-      { key: "inputType", type: "enum", required: true, bindable: false, options: ["text", "email", "date"] },
+      { key: "input-type", type: "enum", required: true, bindable: false, options: ["text", "email", "date"] },
     ],
     slots: [],
     events: [{
@@ -90,7 +90,7 @@ function inputControl(
   readOnly = false,
 ): ReactNode {
   return fieldShell(textProp(props, "label", "Field"), createElement("input", {
-    type: textProp(props, "inputType", "text"),
+    type: textProp(props, "input-type", "text"),
     value: textProp(props, "value", ""),
     placeholder: textProp(props, "placeholder", ""),
     readOnly,
