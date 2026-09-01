@@ -2,11 +2,8 @@ import type { ExperiencePackManifest } from "@vira-enterprise-genui/experience-p
 
 export const EXPERIENCE_REGISTRY_SCHEMA_VERSION = "1" as const;
 export const EXPERIENCE_REGISTRY_MAX_MANIFESTS = 256 as const;
-export const EXPERIENCE_REGISTRY_MAX_DEPTH = 16 as const;
-export const EXPERIENCE_REGISTRY_MAX_NODES = 100_000 as const;
-export const EXPERIENCE_REGISTRY_MAX_ARRAY_LENGTH = 256 as const;
-export const EXPERIENCE_REGISTRY_QUERY_ID_MAX_LENGTH = 127 as const;
-export const EXPERIENCE_REGISTRY_QUERY_VERSION_MAX_LENGTH = 29 as const;
+export const EXPERIENCE_REGISTRY_MAX_SERIALIZED_LENGTH = 16_000_000 as const;
+export const EXPERIENCE_REGISTRY_QUERY_MAX_LENGTH = 4_096 as const;
 
 export interface ExperienceRegistrySnapshot {
   readonly schemaVersion: typeof EXPERIENCE_REGISTRY_SCHEMA_VERSION;
@@ -15,11 +12,11 @@ export interface ExperienceRegistrySnapshot {
 
 export type ExperienceRegistryValidationCode =
   | "INVALID_INPUT"
+  | "INVALID_JSON"
   | "UNKNOWN_FIELD"
   | "INVALID_SCHEMA_VERSION"
   | "INVALID_MANIFESTS"
   | "MANIFEST_LIMIT_EXCEEDED"
-  | "UNSAFE_MANIFEST"
   | "INVALID_MANIFEST"
   | "DUPLICATE_MANIFEST";
 
