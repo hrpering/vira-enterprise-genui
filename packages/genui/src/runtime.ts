@@ -9,7 +9,6 @@ import type {
 import { createStudioRuntimeSession } from "@vira-enterprise-genui/studio-runtime";
 import type {
   StudioRuntimeIssue,
-  StudioRuntimeSession,
 } from "@vira-enterprise-genui/studio-runtime";
 import { renderStudioRuntimeReactView } from "@vira-enterprise-genui/studio-runtime-react";
 import type {
@@ -30,13 +29,12 @@ export interface ViraExperienceRuntimeInput {
 export type ViraExperienceRuntimeListener = () => void;
 export type ViraExperienceController = Pick<
   StudioHostedRuntimeController,
-  "currentViewId" | "currentView" | "currentRuntimeState" | "dispatch" | "forward"
+  "currentViewId" | "currentView" | "currentRuntimeState" | "dispatch"
 >;
 
 export interface ViraExperienceRuntime {
   readonly hostId: string;
-  readonly session: StudioRuntimeSession;
-  /** Public controller intentionally excludes dispose; the outer runtime owns the full host/session lifecycle. */
+  /** Public controller exposes complete user actions only; raw session/forward internals stay private. */
   readonly controller: ViraExperienceController;
   /** Monotonic render-invalidation token for accepted host snapshots and completed runtime transitions. */
   readonly revision: () => number;
@@ -105,6 +103,14 @@ export function createViraExperienceRuntime(
     notify();
   };
 
+  const forwardRendererDispatch = async (
+    runtimeResult: ReturnType<typeof session.value.dispatch>,
+  ): Promise<StudioHostedDispatchResult> => {
+    const result = await hostedController.forward(runtimeResult);
+    notifyAfterHostedResult(result);
+    return result;
+  };
+
   const controller: ViraExperienceController = Object.freeze({
     currentViewId: hostedController.currentViewId,
     currentView: hostedController.currentView,
@@ -114,18 +120,12 @@ export function createViraExperienceRuntime(
       notifyAfterHostedResult(result);
       return result;
     },
-    async forward(runtimeResult): Promise<StudioHostedDispatchResult> {
-      const result = await hostedController.forward(runtimeResult);
-      notifyAfterHostedResult(result);
-      return result;
-    },
   });
 
   const unsubscribeHost = host.value.subscribe(() => { notify(); });
 
   const runtime: ViraExperienceRuntime = {
     hostId: host.value.hostId,
-    session: session.value,
     controller,
     revision: () => changeRevision,
     subscribe(listener): () => void {
@@ -144,7 +144,7 @@ export function createViraExperienceRuntime(
         componentCatalog: input.componentCatalog,
         renderers,
         onDispatch: (result) => {
-          void controller.forward(result).then((hostResult) => {
+          void forwardRendererDispatch(result).then((hostResult) => {
             onHostResult?.(hostResult);
           });
         },
