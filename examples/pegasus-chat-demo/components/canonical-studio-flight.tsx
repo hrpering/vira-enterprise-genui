@@ -12,6 +12,7 @@ import {
 import {
   createViraExperienceRuntime,
   prepareAuthoredStudioPublication,
+  type StudioAuthoringDocumentInput,
   type StudioRuntimeReactRenderer,
   type ViraExperienceRuntime,
 } from "@vira-enterprise-genui/genui";
@@ -72,9 +73,12 @@ function runtimeState() {
   return result.ok ? result.value : undefined;
 }
 
-function documentFor(result: ViraFlightExperienceResult) {
-  const views: Array<{ id: string; nodes: readonly unknown[] }> = [];
-  const interactions: unknown[] = [];
+type AuthoredView = StudioAuthoringDocumentInput["views"][number];
+type AuthoredInteraction = NonNullable<StudioAuthoringDocumentInput["interactions"]>[number];
+
+function documentFor(result: ViraFlightExperienceResult): StudioAuthoringDocumentInput {
+  const views: AuthoredView[] = [];
+  const interactions: AuthoredInteraction[] = [];
 
   for (let index = 0; index < STEPS.length; index += 1) {
     const step = STEPS[index];
@@ -154,7 +158,7 @@ function createRuntime(result: ViraFlightExperienceResult): ViraExperienceRuntim
   const state = runtimeState();
   if (!state) return undefined;
   const publication = prepareAuthoredStudioPublication({
-    document: documentFor(result) as never,
+    document: documentFor(result),
     componentCatalog: AIRLINE_STUDIO_CATALOG_INPUT,
     bindingSourceCatalog,
     actionAdapter,
