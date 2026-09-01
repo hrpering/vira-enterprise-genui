@@ -2,6 +2,9 @@ import { EXPERIENCE_PACK_ALLOWED_MEDIA_TYPES } from "./types.js";
 import type { ExperiencePackArtifactRole } from "./types.js";
 
 export type UnknownRecord = Record<string, unknown>;
+export type DenseOwnDataArrayResult =
+  | { readonly ok: true; readonly value: readonly unknown[] }
+  | { readonly ok: false; readonly reason: "invalid" | "limit-exceeded" };
 
 export const SEGMENT = /^[a-z0-9](?:[a-z0-9._-]{0,62})$/;
 export const PACK_ID = /^[a-z0-9](?:[a-z0-9._-]{0,62})\/[a-z0-9](?:[a-z0-9._-]{0,62})$/;
@@ -10,10 +13,77 @@ export const TAG = /^[a-z0-9](?:[a-z0-9._-]{0,63})$/;
 export const SHA256 = /^sha256:[0-9a-f]{64}$/;
 const RELEASE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
+function ownData(object: object, key: PropertyKey): PropertyDescriptor | undefined {
+  const descriptor = Object.getOwnPropertyDescriptor(object, key);
+  return descriptor && "value" in descriptor ? descriptor : undefined;
+}
+
+function defineOwnData(target: object, key: PropertyKey, value: unknown): void {
+  Object.defineProperty(target, key, {
+    value,
+    enumerable: true,
+    writable: true,
+    configurable: true,
+  });
+}
+
 export function record(value: unknown): UnknownRecord | undefined {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
-  const prototype = Object.getPrototypeOf(value);
-  return prototype === Object.prototype || prototype === null ? value as UnknownRecord : undefined;
+  try {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return undefined;
+
+    const keys = Reflect.ownKeys(value);
+    if (keys.some((key) => typeof key === "symbol")) return undefined;
+
+    const result = Object.create(null) as UnknownRecord;
+    for (const key of keys) {
+      if (typeof key !== "string") return undefined;
+      const descriptor = ownData(value, key);
+      if (!descriptor) return undefined;
+      defineOwnData(result, key, descriptor.value);
+    }
+    return result;
+  } catch {
+    return undefined;
+  }
+}
+
+export function denseOwnDataArray(
+  value: unknown,
+  maxLength: number,
+): DenseOwnDataArrayResult {
+  try {
+    if (!Array.isArray(value)) return { ok: false, reason: "invalid" };
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Array.prototype && prototype !== null) {
+      return { ok: false, reason: "invalid" };
+    }
+
+    const lengthDescriptor = ownData(value, "length");
+    if (
+      !lengthDescriptor
+      || typeof lengthDescriptor.value !== "number"
+      || !Number.isSafeInteger(lengthDescriptor.value)
+      || lengthDescriptor.value < 0
+    ) return { ok: false, reason: "invalid" };
+    const length = lengthDescriptor.value;
+    if (length > maxLength) return { ok: false, reason: "limit-exceeded" };
+
+    const result = new Array<unknown>(length);
+    for (let index = 0; index < length; index += 1) {
+      const descriptor = ownData(value, String(index));
+      if (!descriptor) return { ok: false, reason: "invalid" };
+      defineOwnData(result, String(index), descriptor.value);
+    }
+    return { ok: true, value: result };
+  } catch {
+    return { ok: false, reason: "invalid" };
+  }
+}
+
+export function appendOwnArrayValue<T>(array: T[], value: T): void {
+  defineOwnData(array, String(array.length), value);
 }
 
 export function exact(value: UnknownRecord, allowed: readonly string[]): string | undefined {
