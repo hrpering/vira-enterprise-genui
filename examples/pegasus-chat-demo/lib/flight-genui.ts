@@ -19,14 +19,16 @@ const registry = parseExperienceRegistrySnapshot(JSON.stringify({
   manifests: [FLIGHT_BOOKING_PACK_MANIFEST],
 }));
 if (!registry.ok) throw new Error(`Invalid flight Experience Registry: ${registry.issue.message}`);
+const registrySnapshot = registry.value;
 
 const capabilities = createViraRuntimeCapabilityRegistry([FLIGHT_BOOKING_RUNTIME_PROFILE]);
 if (!capabilities.ok) throw new Error(`Invalid flight runtime capability profile: ${capabilities.issue.message}`);
+const capabilityRegistry = capabilities.value;
 
 export function createFlightChatBridge(): ViraChatBridge {
   const resolver = createViraExperienceResolver({
-    registry: registry.value,
-    capabilities: capabilities.value,
+    registry: registrySnapshot,
+    capabilities: capabilityRegistry,
     artifactResolver: {
       async resolveStudioPublication({ packId, version, artifactId, digest }) {
         if (
