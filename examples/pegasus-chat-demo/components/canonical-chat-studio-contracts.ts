@@ -33,37 +33,33 @@ const assistantCommandEvent = Object.freeze({
 } as const);
 
 function extendComponent(component: (typeof AIRLINE_STUDIO_CATALOG_INPUT.components)[number]) {
-  let props = component.props;
-  if (component.ref === AIRLINE_STUDIO_COMPONENTS.flightResults) {
-    props = Object.freeze([
-      ...props,
-      { key: "departure", type: "string", required: false, bindable: true },
-    ]);
-  } else if (component.ref === AIRLINE_STUDIO_COMPONENTS.extrasSelector) {
-    props = Object.freeze([
-      ...props,
-      { key: "insurance-id", type: "string", required: false, bindable: true },
-      { key: "selected-extras", type: "string", required: false, bindable: true },
-    ]);
-  } else if (component.ref === AIRLINE_STUDIO_COMPONENTS.bookingReview) {
-    props = Object.freeze([
-      ...props,
-      { key: "flight-number", type: "string", required: false, bindable: true },
-      { key: "schedule", type: "string", required: false, bindable: true },
-      { key: "seat-summary", type: "string", required: false, bindable: true },
-      { key: "baggage-summary", type: "string", required: false, bindable: true },
-      { key: "insurance-label", type: "string", required: false, bindable: true },
-      { key: "extras-summary", type: "string", required: false, bindable: true },
-      { key: "total", type: "number", required: false, bindable: true },
-    ]);
-  }
-
+  const extraProps = component.ref === AIRLINE_STUDIO_COMPONENTS.flightResults
+    ? [{ key: "departure", type: "string", required: false, bindable: true }] as const
+    : component.ref === AIRLINE_STUDIO_COMPONENTS.extrasSelector
+      ? [
+          { key: "insurance-id", type: "string", required: false, bindable: true },
+          { key: "selected-extras", type: "string", required: false, bindable: true },
+        ] as const
+      : component.ref === AIRLINE_STUDIO_COMPONENTS.bookingReview
+        ? [
+            { key: "flight-number", type: "string", required: false, bindable: true },
+            { key: "schedule", type: "string", required: false, bindable: true },
+            { key: "seat-summary", type: "string", required: false, bindable: true },
+            { key: "baggage-summary", type: "string", required: false, bindable: true },
+            { key: "insurance-label", type: "string", required: false, bindable: true },
+            { key: "extras-summary", type: "string", required: false, bindable: true },
+            { key: "total", type: "number", required: false, bindable: true },
+          ] as const
+        : [] as const;
   const events = component.ref === AIRLINE_STUDIO_COMPONENTS.extrasSelector
     || component.ref === AIRLINE_STUDIO_COMPONENTS.bookingReview
     ? Object.freeze([...component.events, assistantCommandEvent])
     : component.events;
-
-  return Object.freeze({ ...component, props, events });
+  return Object.freeze({
+    ...component,
+    props: Object.freeze([...component.props, ...extraProps]),
+    events,
+  });
 }
 
 export const CANONICAL_CHAT_COMPONENT_CATALOG = Object.freeze({
