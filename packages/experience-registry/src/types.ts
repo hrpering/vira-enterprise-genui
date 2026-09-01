@@ -30,11 +30,6 @@ export type ExperienceRegistrySnapshotResult =
   | { readonly ok: true; readonly value: ExperienceRegistrySnapshot }
   | { readonly ok: false; readonly issue: ExperienceRegistryValidationIssue };
 
-export interface ExperienceRegistryLookupQuery {
-  readonly id: string;
-  readonly version: string;
-}
-
 export interface ExperienceRegistryLookup {
   readonly manifest: ExperiencePackManifest | null;
 }
