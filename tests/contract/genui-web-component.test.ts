@@ -24,6 +24,35 @@ describe("GenUI web component lifecycle contract", () => {
     expect(element.isDisposed()).toBe(true);
   });
 
+  it("cleans the runtime subscription when the initial render fails", () => {
+    const element = createElementForContractTest();
+    let subscriptions = 0;
+    let unsubscriptions = 0;
+    const runtime = {
+      subscribe: () => {
+        subscriptions += 1;
+        return () => { unsubscriptions += 1; };
+      },
+      renderReact: () => ({
+        ok: false,
+        issue: { message: "blocked by canonical runtime" },
+      }),
+    } as unknown as ViraExperienceRuntime;
+
+    const result = element.mount({ runtime, renderers: {} });
+
+    expect(result).toEqual({
+      ok: false,
+      issue: {
+        code: "RENDER_FAILED",
+        message: "blocked by canonical runtime",
+      },
+    });
+    expect(subscriptions).toBe(1);
+    expect(unsubscriptions).toBe(1);
+    expect(element.isMounted()).toBe(false);
+  });
+
   it("fails closed when mount is attempted after disposal", () => {
     const element = createElementForContractTest();
     element.dispose();
