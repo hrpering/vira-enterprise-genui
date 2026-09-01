@@ -48,6 +48,21 @@ function target(initialView: string) {
   const runtime = {
     controller: {
       currentViewId: () => view,
+      currentView: () => ({
+        ok: true,
+        value: {
+          experienceId: "test.chat",
+          viewId: view,
+          nodes: [{
+            id: `${view}-root`,
+            sourceNodeId: `${view}-root`,
+            component: "test.component",
+            order: 0,
+            props: view === "seat-selection" ? { passengers: 2 } : {},
+            eventPayloads: {},
+          }],
+        },
+      }),
       dispatch: async (input: { nodeId: string; event: string; payload?: unknown }) => {
         dispatches.push(input);
         return {
@@ -97,13 +112,15 @@ describe("Pegasus Chat canonical command bridge", () => {
       });
 
       fixture.setView("seat-selection");
+      const beforeSeats = fixture.dispatches.length;
       await expect(applyCanonicalViraCommand(command("set-seat-zone", "front"))).resolves.toEqual({ ok: true });
-      expect(fixture.dispatches.at(-1)).toMatchObject({
-        nodeId: "seat-selection-root",
-        event: "select",
-        payload: { passengerIndex: 0 },
-      });
-      expect(typeof (fixture.dispatches.at(-1)?.payload as { seat?: unknown } | undefined)?.seat).toBe("string");
+      const seatDispatches = fixture.dispatches.slice(beforeSeats);
+      expect(seatDispatches).toHaveLength(2);
+      expect(seatDispatches.map((entry) => (entry.payload as { passengerIndex?: unknown }).passengerIndex)).toEqual([0, 1]);
+      expect(seatDispatches.every((entry) =>
+        entry.nodeId === "seat-selection-root"
+        && entry.event === "select"
+        && typeof (entry.payload as { seat?: unknown }).seat === "string")).toBe(true);
 
       fixture.setView("baggage");
       await expect(applyCanonicalViraCommand(command("set-baggage-all", "20kg"))).resolves.toEqual({ ok: true });
