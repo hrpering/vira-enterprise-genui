@@ -191,13 +191,17 @@ function createRuntime(result: ViraFlightExperienceResult): ViraExperienceRuntim
 export function CanonicalStudioFlightExperience({ result }: { readonly result: ViraFlightExperienceResult }) {
   const runtime = useMemo(() => createRuntime(result), [result]);
   const [, setRevision] = useState(0);
-  useEffect(() => () => { runtime?.dispose(); }, [runtime]);
+  useEffect(() => {
+    if (!runtime) return undefined;
+    const unsubscribe = runtime.subscribe(() => { setRevision((value) => value + 1); });
+    return () => {
+      unsubscribe();
+      runtime.dispose();
+    };
+  }, [runtime]);
 
   if (!runtime) return <div className="flight-error">Vira could not load the approved GenUI publication.</div>;
-  const rendered = runtime.renderReact({
-    renderers,
-    onHostResult: () => { setRevision((value) => value + 1); },
-  });
+  const rendered = runtime.renderReact({ renderers });
   if (!rendered.ok) return <div className="flight-error">Vira stopped this GenUI experience safely.</div>;
   return <div className="vira-experience" aria-label="Approved interactive flight booking">{rendered.value}</div>;
 }
