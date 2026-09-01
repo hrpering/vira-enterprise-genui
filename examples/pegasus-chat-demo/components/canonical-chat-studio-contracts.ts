@@ -32,27 +32,44 @@ const assistantCommandEvent = Object.freeze({
   ],
 } as const);
 
+function extendComponent(component: (typeof AIRLINE_STUDIO_CATALOG_INPUT.components)[number]) {
+  let props = component.props;
+  if (component.ref === AIRLINE_STUDIO_COMPONENTS.flightResults) {
+    props = Object.freeze([
+      ...props,
+      { key: "departure", type: "string", required: false, bindable: true },
+    ]);
+  } else if (component.ref === AIRLINE_STUDIO_COMPONENTS.extrasSelector) {
+    props = Object.freeze([
+      ...props,
+      { key: "insurance-id", type: "string", required: false, bindable: true },
+      { key: "selected-extras", type: "string", required: false, bindable: true },
+    ]);
+  } else if (component.ref === AIRLINE_STUDIO_COMPONENTS.bookingReview) {
+    props = Object.freeze([
+      ...props,
+      { key: "flight-number", type: "string", required: false, bindable: true },
+      { key: "schedule", type: "string", required: false, bindable: true },
+      { key: "seat-summary", type: "string", required: false, bindable: true },
+      { key: "baggage-summary", type: "string", required: false, bindable: true },
+      { key: "insurance-label", type: "string", required: false, bindable: true },
+      { key: "extras-summary", type: "string", required: false, bindable: true },
+      { key: "total", type: "number", required: false, bindable: true },
+    ]);
+  }
+
+  const events = component.ref === AIRLINE_STUDIO_COMPONENTS.extrasSelector
+    || component.ref === AIRLINE_STUDIO_COMPONENTS.bookingReview
+    ? Object.freeze([...component.events, assistantCommandEvent])
+    : component.events;
+
+  return Object.freeze({ ...component, props, events });
+}
+
 export const CANONICAL_CHAT_COMPONENT_CATALOG = Object.freeze({
   ...AIRLINE_STUDIO_CATALOG_INPUT,
   id: "airline.chat.studio.components",
-  components: Object.freeze(AIRLINE_STUDIO_CATALOG_INPUT.components.map((component) => {
-    const withDeparture = component.ref === AIRLINE_STUDIO_COMPONENTS.flightResults
-      ? Object.freeze({
-          ...component,
-          props: Object.freeze([
-            ...component.props,
-            { key: "departure", type: "string", required: false, bindable: true },
-          ]),
-        })
-      : component;
-    return withDeparture.ref === AIRLINE_STUDIO_COMPONENTS.extrasSelector
-      || withDeparture.ref === AIRLINE_STUDIO_COMPONENTS.bookingReview
-      ? Object.freeze({
-          ...withDeparture,
-          events: Object.freeze([...withDeparture.events, assistantCommandEvent]),
-        })
-      : withDeparture;
-  })),
+  components: Object.freeze(AIRLINE_STUDIO_CATALOG_INPUT.components.map(extendComponent)),
 });
 
 export const CANONICAL_CHAT_ACTION_ADAPTER = Object.freeze({
@@ -83,12 +100,21 @@ export const CANONICAL_CHAT_BINDING_SOURCE_CATALOG = Object.freeze({
     { kind: "domain" as const, path: "results.currency", label: "Results currency", valueType: "string" as const },
     { kind: "domain" as const, path: "booking.passengers", label: "Booking passengers", valueType: "number" as const },
     { kind: "domain" as const, path: "booking.fare", label: "Booking fare", valueType: "enum" as const },
+    { kind: "domain" as const, path: "extras.insurance-id", label: "Selected insurance", valueType: "string" as const },
+    { kind: "domain" as const, path: "extras.selected", label: "Selected extras", valueType: "string" as const },
     { kind: "domain" as const, path: "review.origin", label: "Review origin", valueType: "string" as const },
     { kind: "domain" as const, path: "review.destination", label: "Review destination", valueType: "string" as const },
     { kind: "domain" as const, path: "review.passengers", label: "Review passengers", valueType: "number" as const },
     { kind: "domain" as const, path: "review.fare", label: "Review fare", valueType: "enum" as const },
     { kind: "domain" as const, path: "review.base-price", label: "Review base price", valueType: "number" as const },
     { kind: "domain" as const, path: "review.currency", label: "Review currency", valueType: "string" as const },
+    { kind: "domain" as const, path: "review.flight-number", label: "Review flight number", valueType: "string" as const },
+    { kind: "domain" as const, path: "review.schedule", label: "Review schedule", valueType: "string" as const },
+    { kind: "domain" as const, path: "review.seat-summary", label: "Review seats", valueType: "string" as const },
+    { kind: "domain" as const, path: "review.baggage-summary", label: "Review baggage", valueType: "string" as const },
+    { kind: "domain" as const, path: "review.insurance-label", label: "Review insurance", valueType: "string" as const },
+    { kind: "domain" as const, path: "review.extras-summary", label: "Review extras", valueType: "string" as const },
+    { kind: "domain" as const, path: "review.total", label: "Review total", valueType: "number" as const },
   ]),
 });
 
@@ -122,7 +148,12 @@ const bindingsByStep: Readonly<Record<string, Readonly<Record<string, string>>>>
   "traveller-details": Object.freeze({ passengers: "booking.passengers" }),
   "seat-selection": Object.freeze({ passengers: "booking.passengers", fare: "booking.fare" }),
   baggage: Object.freeze({ passengers: "booking.passengers", fare: "booking.fare" }),
-  extras: Object.freeze({ passengers: "booking.passengers", fare: "booking.fare" }),
+  extras: Object.freeze({
+    passengers: "booking.passengers",
+    fare: "booking.fare",
+    "insurance-id": "extras.insurance-id",
+    "selected-extras": "extras.selected",
+  }),
   "booking-review": Object.freeze({
     origin: "review.origin",
     destination: "review.destination",
@@ -130,8 +161,31 @@ const bindingsByStep: Readonly<Record<string, Readonly<Record<string, string>>>>
     fare: "review.fare",
     "base-price": "review.base-price",
     currency: "review.currency",
+    "flight-number": "review.flight-number",
+    schedule: "review.schedule",
+    "seat-summary": "review.seat-summary",
+    "baggage-summary": "review.baggage-summary",
+    "insurance-label": "review.insurance-label",
+    "extras-summary": "review.extras-summary",
+    total: "review.total",
   }),
 });
+
+function addBindings(
+  bindings: AuthoredBinding[],
+  viewId: string,
+  nodeId: string,
+  mapping: Readonly<Record<string, string>>,
+): void {
+  for (const [prop, path] of Object.entries(mapping)) {
+    bindings.push({
+      viewId,
+      nodeId,
+      prop,
+      source: { kind: "domain", path },
+    });
+  }
+}
 
 export function createCanonicalChatDocument(
   result: ViraFlightExperienceResult,
@@ -163,23 +217,23 @@ export function createCanonicalChatDocument(
       props.currency = first?.currency ?? "EUR";
     }
 
-    for (const [prop, path] of Object.entries(bindingsByStep[step] ?? {})) {
-      delete props[prop];
-      bindings.push({
-        viewId: step,
-        nodeId: id,
-        prop,
-        source: { kind: "domain", path },
-      });
-    }
+    const stepBindings = bindingsByStep[step] ?? {};
+    for (const prop of Object.keys(stepBindings)) delete props[prop];
+    addBindings(bindings, step, id, stepBindings);
 
     views.push({ id: step, nodes: [{ ...node, id, props }] });
     for (const interaction of source.interactions) {
+      const routes = step === "seat-selection" || step === "baggage"
+        ? [
+            { outcome: "success" as const, viewId: next },
+            { outcome: "empty" as const, viewId: step },
+          ]
+        : [{ outcome: "success" as const, viewId: next }];
       interactions.push({
         ...interaction,
         viewId: step,
         nodeId: id,
-        routes: [{ outcome: "success", viewId: next }],
+        routes,
       });
     }
     if (step === "extras" || step === "booking-review") {
@@ -193,10 +247,13 @@ export function createCanonicalChatDocument(
     }
   }
 
-  const review = createAirlineStarterDocument("chat.segment.confirmation", "booking-review");
-  const reviewNode = review.views[0]?.nodes[0];
-  if (!reviewNode) throw new Error("Missing booking review confirmation node");
-  views.push({ id: "confirmation", nodes: [{ ...reviewNode, id: "confirmation-root" }] });
+  const confirmationSource = createAirlineStarterDocument("chat.segment.confirmation", "booking-review");
+  const confirmationNode = confirmationSource.views[0]?.nodes[0];
+  if (!confirmationNode) throw new Error("Missing booking review confirmation node");
+  const confirmationProps: Record<string, JsonValue> = { ...confirmationNode.props };
+  for (const prop of Object.keys(bindingsByStep["booking-review"] ?? {})) delete confirmationProps[prop];
+  views.push({ id: "confirmation", nodes: [{ ...confirmationNode, id: "confirmation-root", props: confirmationProps }] });
+  addBindings(bindings, "confirmation", "confirmation-root", bindingsByStep["booking-review"] ?? {});
 
   return {
     id: "pegasus.chat.approved-booking",
