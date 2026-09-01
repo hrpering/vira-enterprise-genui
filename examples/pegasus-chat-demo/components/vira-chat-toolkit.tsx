@@ -6,10 +6,10 @@ import {
   ViraChatExperience,
 } from "@vira-enterprise-genui/genui-chat";
 import { parseViraExperienceMessage } from "@vira-enterprise-genui/genui-resolver";
-import { createFlightChatBridge } from "../lib/flight-genui.js";
+import { createDemoChatBridge } from "../lib/demo-genui.js";
 import guidanceToolkit from "./vira-guidance-toolkit";
 
-const flightBridge = createFlightChatBridge();
+const experienceBridge = createDemoChatBridge();
 
 function failure(message: string) {
   return <div className="flight-error">{message}</div>;
@@ -35,7 +35,7 @@ export const viraChatToolkit = defineToolkit({
       if (parsed.value.op === "present") {
         return (
           <ViraChatExperience
-            bridge={flightBridge}
+            bridge={experienceBridge}
             message={result}
             pending={(
               <div className="flight-loading" aria-live="polite">
@@ -49,9 +49,9 @@ export const viraChatToolkit = defineToolkit({
       }
       return (
         <ViraChatCommandEffect
-          bridge={flightBridge}
+          bridge={experienceBridge}
           message={result}
-          renderFailure={() => failure("This booking change could not be applied to the requested experience.")}
+          renderFailure={() => failure("This change could not be applied to the requested experience.")}
         />
       );
     },
