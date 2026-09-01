@@ -1,29 +1,30 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import type { ViraExperienceRuntime } from "../../packages/genui/src/index.js";
+import {
+  createViraGenUIElementClass,
+  type ViraGenUIReactRootFactory,
+} from "../../packages/genui-web-component/src/index.js";
 
-const rootState = vi.hoisted(() => ({
+const rootState = {
   renders: [] as unknown[],
   unmounts: 0,
   failCreate: false,
-}));
-
-vi.mock("react-dom/client", () => ({
-  createRoot: () => {
-    if (rootState.failCreate) throw new Error("createRoot failed");
-    return {
-      render: (value: unknown) => { rootState.renders.push(value); },
-      unmount: () => { rootState.unmounts += 1; },
-    };
-  },
-}));
-
-import { createViraGenUIElementClass } from "../../packages/genui-web-component/src/index.js";
+};
 
 class FakeHTMLElement {}
+
+const rootFactory: ViraGenUIReactRootFactory = () => {
+  if (rootState.failCreate) throw new Error("createRoot failed");
+  return {
+    render: (value: unknown) => { rootState.renders.push(value); },
+    unmount: () => { rootState.unmounts += 1; },
+  };
+};
 
 function createElementForContractTest() {
   const ElementClass = createViraGenUIElementClass(
     FakeHTMLElement as unknown as typeof HTMLElement,
+    rootFactory,
   );
   return new ElementClass();
 }
