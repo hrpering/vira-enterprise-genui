@@ -26,10 +26,16 @@ export interface ViraExperienceRuntimeInput {
   readonly host: unknown;
 }
 
+export type ViraExperienceRuntimeListener = () => void;
+
 export interface ViraExperienceRuntime {
   readonly hostId: string;
   readonly session: StudioRuntimeSession;
   readonly controller: StudioHostedRuntimeController;
+  /** Monotonic consumer-visible revision for route completions and accepted host snapshots. */
+  readonly revision: () => number;
+  /** Subscribe to runtime changes without introducing a second state store. */
+  readonly subscribe: (listener: ViraExperienceRuntimeListener) => () => void;
   readonly renderReact: (input: {
     readonly renderers: unknown;
     readonly onHostResult?: (result: StudioHostedDispatchResult) => void;
@@ -52,7 +58,7 @@ export function createViraExperienceRuntime(
   const host = createStudioHostRuntimeAdapter(input.host);
   if (!host.ok) return { ok: false, stage: "host", issue: host.issue };
 
-  let sequence = 0;
+  let actionSequence = 0;
   const session = createStudioRuntimeSession({
     publication: input.publication,
     componentCatalog: input.componentCatalog,
@@ -62,7 +68,7 @@ export function createViraExperienceRuntime(
     permissionPolicy: input.permissionPolicy,
   }, {
     data: host.value.data,
-    actionIds: { nextId: () => `vira-action-${++sequence}` },
+    actionIds: { nextId: () => `vira-action-${++actionSequence}` },
   });
   if (!session.ok) {
     host.value.dispose();
@@ -71,10 +77,38 @@ export function createViraExperienceRuntime(
 
   const controller = host.value.connect(session.value);
   let disposed = false;
+  let changeRevision = 0;
+  const listeners = new Set<ViraExperienceRuntimeListener>();
+
+  const notify = (): void => {
+    if (disposed) return;
+    changeRevision += 1;
+    for (const listener of [...listeners]) {
+      try {
+        listener();
+      } catch {
+        // UI observers are outside the canonical runtime boundary.
+      }
+    }
+  };
+
+  const unsubscribeHost = host.value.subscribe(() => { notify(); });
+
   const runtime: ViraExperienceRuntime = {
     hostId: host.value.hostId,
     session: session.value,
     controller,
+    revision: () => changeRevision,
+    subscribe(listener): () => void {
+      if (disposed) return () => {};
+      listeners.add(listener);
+      let active = true;
+      return () => {
+        if (!active) return;
+        active = false;
+        listeners.delete(listener);
+      };
+    },
     renderReact({ renderers, onHostResult }): StudioRuntimeReactRenderResult {
       return renderStudioRuntimeReactView({
         session: session.value,
@@ -83,6 +117,7 @@ export function createViraExperienceRuntime(
         onDispatch: (result) => {
           void controller.forward(result).then((hostResult) => {
             onHostResult?.(hostResult);
+            notify();
           });
         },
       });
@@ -90,6 +125,8 @@ export function createViraExperienceRuntime(
     dispose() {
       if (disposed) return;
       disposed = true;
+      unsubscribeHost();
+      listeners.clear();
       controller.dispose();
       host.value.dispose();
     },
