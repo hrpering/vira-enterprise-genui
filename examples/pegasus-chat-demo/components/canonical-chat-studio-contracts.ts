@@ -5,7 +5,7 @@ import {
 } from "@vira-enterprise-genui/airline-brand-kit/studio";
 import type { StudioAuthoringDocumentInput } from "@vira-enterprise-genui/genui";
 import type { JsonValue } from "@vira-enterprise-genui/protocol";
-import type { ViraFlightExperienceResult } from "../lib/vira-chat-contract";
+import type { ViraFlightExperienceResult } from "../lib/vira-chat-contract.js";
 
 const STEPS = [
   "flight-search",
