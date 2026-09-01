@@ -1,0 +1,12 @@
+{
+  "name": "@vira-enterprise-genui/genui-cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "vira-genui": "./src/cli.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/studio-authoring": "workspace:*"
+  }
+}
