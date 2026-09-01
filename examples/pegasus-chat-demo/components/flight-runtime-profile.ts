@@ -20,6 +20,7 @@ import type {
   ViraCommandAdapter,
   ViraCommandAdapterResult,
   ViraRuntimeCapabilityProfile,
+  ViraRuntimeProfileContext,
   ViraRuntimeProfilePreparation,
 } from "@vira-enterprise-genui/genui-resolver";
 import {
@@ -502,5 +503,5 @@ export const FLIGHT_BOOKING_RUNTIME_PROFILE: ViraRuntimeCapabilityProfile = Obje
   componentRefs: FLIGHT_BOOKING_PUBLICATION.manifest.componentRefs,
   actionEvents: FLIGHT_BOOKING_PUBLICATION.manifest.actionEvents,
   bindingSources: FLIGHT_BOOKING_PUBLICATION.manifest.bindingSources,
-  prepare: ({ payload }) => prepareFlightRuntime(payload),
+  prepare: ({ payload }: ViraRuntimeProfileContext) => prepareFlightRuntime(payload),
 });
