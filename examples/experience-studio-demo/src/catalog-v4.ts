@@ -1,5 +1,8 @@
 import type { StudioComponentCatalog } from "@vira-enterprise-genui/studio-catalog";
-import { createStudioDesignCatalog } from "@vira-enterprise-genui/studio-design";
+import {
+  createStudioDesignCatalog,
+  isStudioDesignPropKey,
+} from "@vira-enterprise-genui/studio-design";
 import type { StudioRuntimeReactRenderer } from "@vira-enterprise-genui/studio-runtime-react";
 import type { StudioExperienceDocument } from "@vira-enterprise-genui/studio-schema";
 import type { ReactElement } from "react";
@@ -54,12 +57,20 @@ export function starterPreview(template: StarterTemplateId): ReactElement {
   return baseStarterPreview(template === BOOKING_JOURNEY_TEMPLATE_ID ? "flight-search" : template);
 }
 
+// catalog-v3 already exposes a design-augmented catalog. v4 must compose from
+// the underlying semantic component contracts, not feed design-owned props back
+// through createStudioDesignCatalog a second time.
+const semanticBaseComponents = baseComponentCatalog.components.map((component) => ({
+  ...component,
+  props: component.props.filter((prop) => !isStudioDesignPropKey(prop.key)),
+}));
+
 const v4Catalog = createStudioDesignCatalog({
   version: baseComponentCatalog.version,
   id: baseComponentCatalog.id,
   brandId: baseComponentCatalog.brandId,
   components: [
-    ...baseComponentCatalog.components,
+    ...semanticBaseComponents,
     ...FORM_PRIMITIVE_COMPONENTS,
   ],
 }, {
