@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { ViraExperienceRuntime } from "../../packages/genui/src/index.js";
 import { createViraGenUIElementClass } from "../../packages/genui-web-component/src/index.js";
 
 class FakeHTMLElement {}
@@ -28,7 +29,7 @@ describe("GenUI web component lifecycle contract", () => {
     element.dispose();
 
     const result = element.mount({
-      runtime: {} as never,
+      runtime: {} as unknown as ViraExperienceRuntime,
       renderers: {},
     });
 
