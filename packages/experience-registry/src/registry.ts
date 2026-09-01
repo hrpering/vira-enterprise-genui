@@ -13,9 +13,13 @@ import {
   EXPERIENCE_REGISTRY_SCHEMA_VERSION,
 } from "./types.js";
 
-const SNAPSHOT_FIELDS = new Set(["schemaVersion", "manifests"]);
 const CANONICAL_SNAPSHOTS = new WeakSet<object>();
 const EXPERIENCE_REGISTRY_MAX_DETACHED_CONTAINERS = 100_000;
+const REFLECT_APPLY = Reflect.apply;
+const REFLECT_OWN_KEYS = Reflect.ownKeys;
+const WEAK_SET_ADD = WeakSet.prototype.add;
+const WEAK_SET_HAS = WeakSet.prototype.has;
+const STRING_TRIM = String.prototype.trim;
 
 type JsonContainer = Record<string, unknown> | unknown[];
 interface DetachWorkItem {
@@ -40,6 +44,36 @@ function ownData(object: object, key: PropertyKey): PropertyDescriptor | undefin
   return descriptor && "value" in descriptor ? descriptor : undefined;
 }
 
+function defineOwnData(target: object, key: PropertyKey, value: unknown): void {
+  Object.defineProperty(target, key, {
+    value,
+    enumerable: true,
+    writable: true,
+    configurable: true,
+  });
+}
+
+function weakSetAdd(set: WeakSet<object>, value: object): void {
+  REFLECT_APPLY(WEAK_SET_ADD, set, [value]);
+}
+
+function weakSetHas(set: WeakSet<object>, value: object): boolean {
+  return REFLECT_APPLY(WEAK_SET_HAS, set, [value]) as boolean;
+}
+
+function trimString(value: string): string {
+  return REFLECT_APPLY(STRING_TRIM, value, []) as string;
+}
+
+function onlySnapshotFields(value: Record<string, unknown>): boolean {
+  const keys = REFLECT_OWN_KEYS(value);
+  for (let index = 0; index < keys.length; index += 1) {
+    const key = keys[index];
+    if (key !== "schemaVersion" && key !== "manifests") return false;
+  }
+  return true;
+}
+
 function detachedContainer(source: JsonContainer): JsonContainer {
   if (!Array.isArray(source)) {
     return Object.create(null) as Record<string, unknown>;
@@ -51,15 +85,6 @@ function detachedContainer(source: JsonContainer): JsonContainer {
   const target = new Array<unknown>(length);
   Object.setPrototypeOf(target, null);
   return target;
-}
-
-function defineOwnData(target: object, key: PropertyKey, value: unknown): void {
-  Object.defineProperty(target, key, {
-    value,
-    enumerable: true,
-    writable: true,
-    configurable: true,
-  });
 }
 
 function appendOwnArrayValue<T>(array: T[], value: T): void {
@@ -104,7 +129,10 @@ function detachParsedJson(input: JsonContainer): JsonContainer | undefined {
     }
 
     const target = current.target as Record<string, unknown>;
-    for (const key of Object.keys(current.source)) {
+    const keys = REFLECT_OWN_KEYS(current.source);
+    for (let index = 0; index < keys.length; index += 1) {
+      const key = keys[index];
+      if (typeof key !== "string") return undefined;
       const childDescriptor = ownData(current.source, key);
       if (!childDescriptor) return undefined;
       const child = childDescriptor.value;
@@ -134,6 +162,43 @@ function compareManifest(left: ExperiencePackManifest, right: ExperiencePackMani
   return idOrder === 0 ? compareText(left.version, right.version) : idOrder;
 }
 
+function containsExactManifest(
+  manifests: readonly ExperiencePackManifest[],
+  id: string,
+  version: string,
+): boolean {
+  const length = ownData(manifests, "length")?.value;
+  if (typeof length !== "number" || !Number.isSafeInteger(length) || length < 0) return true;
+  for (let index = 0; index < length; index += 1) {
+    const descriptor = ownData(manifests, String(index));
+    if (!descriptor) return true;
+    const candidate = descriptor.value as ExperiencePackManifest;
+    if (candidate.id === id && candidate.version === version) return true;
+  }
+  return false;
+}
+
+function insertCanonicalManifest(
+  manifests: ExperiencePackManifest[],
+  manifest: ExperiencePackManifest,
+): boolean {
+  let insertAt = 0;
+  while (insertAt < manifests.length) {
+    const current = ownData(manifests, String(insertAt));
+    if (!current) return false;
+    if (compareManifest(manifest, current.value as ExperiencePackManifest) < 0) break;
+    insertAt += 1;
+  }
+
+  for (let index = manifests.length; index > insertAt; index -= 1) {
+    const previous = ownData(manifests, String(index - 1));
+    if (!previous) return false;
+    defineOwnData(manifests, String(index), previous.value);
+  }
+  defineOwnData(manifests, String(insertAt), manifest);
+  return true;
+}
+
 export function parseExperienceRegistrySnapshot(input: unknown): ExperienceRegistrySnapshotResult {
   if (
     typeof input !== "string"
@@ -157,9 +222,7 @@ export function parseExperienceRegistrySnapshot(input: unknown): ExperienceRegis
   if (!parsedObject(parsed)) {
     return snapshotFailure("INVALID_INPUT", "$", "experience registry JSON root must be an object");
   }
-
-  const names = Object.keys(parsed);
-  if (names.some((name) => !SNAPSHOT_FIELDS.has(name))) {
+  if (!onlySnapshotFields(parsed)) {
     return snapshotFailure("UNKNOWN_FIELD", "$", "experience registry snapshot contains an unsupported field");
   }
 
@@ -203,7 +266,6 @@ export function parseExperienceRegistrySnapshot(input: unknown): ExperienceRegis
   }
 
   const canonical: ExperiencePackManifest[] = [];
-  const versionsById = new Map<string, Set<string>>();
   for (let index = 0; index < manifestLength; index += 1) {
     const manifestDescriptor = ownData(detachedManifests, String(index));
     if (!manifestDescriptor) {
@@ -218,28 +280,23 @@ export function parseExperienceRegistrySnapshot(input: unknown): ExperienceRegis
       );
     }
 
-    let versions = versionsById.get(pack.value.id);
-    if (!versions) {
-      versions = new Set<string>();
-      versionsById.set(pack.value.id, versions);
-    }
-    if (versions.has(pack.value.version)) {
+    if (containsExactManifest(canonical, pack.value.id, pack.value.version)) {
       return snapshotFailure(
         "DUPLICATE_MANIFEST",
         `$.manifests[${index}]`,
         "registry snapshot contains a duplicate pack id and version",
       );
     }
-    versions.add(pack.value.version);
-    appendOwnArrayValue(canonical, pack.value);
+    if (!insertCanonicalManifest(canonical, pack.value)) {
+      return snapshotFailure("INVALID_MANIFESTS", "$.manifests", "registry canonical ordering could not be constructed safely");
+    }
   }
 
-  canonical.sort(compareManifest);
   const snapshot: ExperienceRegistrySnapshot = Object.freeze({
     schemaVersion: EXPERIENCE_REGISTRY_SCHEMA_VERSION,
     manifests: Object.freeze(canonical),
   });
-  CANONICAL_SNAPSHOTS.add(snapshot);
+  weakSetAdd(CANONICAL_SNAPSHOTS, snapshot);
   return { ok: true, value: snapshot };
 }
 
@@ -248,14 +305,14 @@ export function isCanonicalExperienceRegistrySnapshot(
 ): input is ExperienceRegistrySnapshot {
   return input !== null
     && typeof input === "object"
-    && CANONICAL_SNAPSHOTS.has(input as object);
+    && weakSetHas(CANONICAL_SNAPSHOTS, input as object);
 }
 
 function boundedQueryString(value: unknown): value is string {
   return typeof value === "string"
     && value.length > 0
     && value.length <= EXPERIENCE_REGISTRY_QUERY_MAX_LENGTH
-    && value === value.trim();
+    && value === trimString(value);
 }
 
 export function lookupExperienceRegistryManifest(
@@ -284,8 +341,35 @@ export function lookupExperienceRegistryManifest(
     };
   }
 
-  const manifest = snapshotInput.manifests.find(
-    (candidate) => candidate.id === idInput && candidate.version === versionInput,
-  ) ?? null;
-  return { ok: true, value: Object.freeze({ manifest }) };
+  const manifestLength = ownData(snapshotInput.manifests, "length")?.value;
+  if (typeof manifestLength !== "number" || !Number.isSafeInteger(manifestLength) || manifestLength < 0) {
+    return {
+      ok: false,
+      issue: {
+        code: "INVALID_SNAPSHOT",
+        path: "$.snapshot",
+        message: "canonical registry snapshot could not be read safely",
+      },
+    };
+  }
+
+  for (let index = 0; index < manifestLength; index += 1) {
+    const descriptor = ownData(snapshotInput.manifests, String(index));
+    if (!descriptor) {
+      return {
+        ok: false,
+        issue: {
+          code: "INVALID_SNAPSHOT",
+          path: "$.snapshot",
+          message: "canonical registry snapshot could not be read safely",
+        },
+      };
+    }
+    const candidate = descriptor.value as ExperiencePackManifest;
+    if (candidate.id === idInput && candidate.version === versionInput) {
+      return { ok: true, value: Object.freeze({ manifest: candidate }) };
+    }
+  }
+
+  return { ok: true, value: Object.freeze({ manifest: null }) };
 }
