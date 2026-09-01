@@ -9,6 +9,26 @@ function restoreProperty(target: object, key: PropertyKey, previous: PropertyDes
   }
 }
 
+function validPack(id: string, version: string) {
+  const publisherId = id.slice(0, id.indexOf("/"));
+  return {
+    schemaVersion: "1",
+    id,
+    version,
+    publisher: { id: publisherId, name: publisherId },
+    metadata: { name: id, tags: [] },
+    compatibility: { minViraVersion: "0.0.0" },
+    entrypoints: ["main"],
+    artifacts: [{
+      id: "main",
+      role: "studio-publication",
+      mediaType: "application/json",
+      digest: `sha256:${"a".repeat(64)}`,
+      size: 1,
+    }],
+  };
+}
+
 describe("Experience Registry prototype-pollution hardening", () => {
   it("detaches array slots without invoking inherited numeric setters", () => {
     const input = JSON.stringify({ schemaVersion: "1", manifests: [] });
@@ -30,6 +50,40 @@ describe("Experience Registry prototype-pollution hardening", () => {
 
     expect(writes).toBe(0);
     expect(result).toMatchObject({ ok: true });
+  });
+
+  it("defines canonical manifest slots as own properties instead of invoking inherited setters", () => {
+    const input = JSON.stringify({
+      schemaVersion: "1",
+      manifests: [
+        validPack("acme/research", "1.0.0"),
+        validPack("vira/flight-booking", "1.0.0"),
+      ],
+    });
+    const previous = Object.getOwnPropertyDescriptor(Array.prototype, "1");
+    let writes = 0;
+    let result: ReturnType<typeof parseExperienceRegistrySnapshot>;
+
+    try {
+      Object.defineProperty(Array.prototype, "1", {
+        configurable: true,
+        set() {
+          writes += 1;
+        },
+      });
+      result = parseExperienceRegistrySnapshot(input);
+    } finally {
+      restoreProperty(Array.prototype, "1", previous);
+    }
+
+    expect(writes).toBe(0);
+    expect(result).toMatchObject({ ok: true });
+    if (result.ok) {
+      expect(result.value.manifests.map((entry) => entry.id)).toEqual([
+        "acme/research",
+        "vira/flight-booking",
+      ]);
+    }
   });
 
   it("removes inherited Object.prototype Pack fields before canonical delegation", () => {
