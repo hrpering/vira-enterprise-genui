@@ -10,4 +10,6 @@ export type {
   ViraGenUIElementMountInput,
   ViraGenUIElementMountResult,
   ViraGenUIElementPlatform,
+  ViraGenUIReactRoot,
+  ViraGenUIReactRootFactory,
 } from "./element.js";
