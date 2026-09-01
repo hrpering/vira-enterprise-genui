@@ -31,8 +31,17 @@ export type ViraGenUIElementConstructor = CustomElementConstructor & {
   new (): HTMLElement & ViraGenUIElementApi;
 };
 
+export interface ViraGenUIElementPlatform {
+  readonly HTMLElementBase: typeof HTMLElement;
+  readonly registry: Pick<CustomElementRegistry, "define" | "get">;
+}
+
+export type ViraGenUIElementDefineResult =
+  | { readonly ok: true; readonly value: ViraGenUIElementConstructor }
+  | { readonly ok: false; readonly issue: { readonly code: "PLATFORM_UNAVAILABLE" | "ALREADY_DEFINED" | "REGISTRATION_FAILED"; readonly message: string } };
+
 export function createViraGenUIElementClass(
-  HTMLElementBase: typeof HTMLElement = HTMLElement,
+  HTMLElementBase: typeof HTMLElement,
 ): ViraGenUIElementConstructor {
   return class ViraGenUIExperienceElement extends HTMLElementBase implements ViraGenUIElementApi {
     #root: Root | undefined;
@@ -95,17 +104,39 @@ export function createViraGenUIElementClass(
   } as ViraGenUIElementConstructor;
 }
 
+function browserPlatform(): ViraGenUIElementPlatform | undefined {
+  const browser = globalThis as typeof globalThis & {
+    HTMLElement?: typeof HTMLElement;
+    customElements?: CustomElementRegistry;
+  };
+  if (typeof browser.HTMLElement !== "function" || !browser.customElements) return undefined;
+  return {
+    HTMLElementBase: browser.HTMLElement,
+    registry: browser.customElements,
+  };
+}
+
 export function defineViraGenUIElement(
-  registry: Pick<CustomElementRegistry, "define" | "get"> = customElements,
-): { readonly ok: true; readonly value: ViraGenUIElementConstructor } | { readonly ok: false; readonly issue: { readonly code: "ALREADY_DEFINED" | "REGISTRATION_FAILED"; readonly message: string } } {
-  if (registry.get(VIRA_GENUI_EXPERIENCE_TAG_NAME)) {
-    return { ok: false, issue: { code: "ALREADY_DEFINED", message: `${VIRA_GENUI_EXPERIENCE_TAG_NAME} is already defined` } };
-  }
-  const elementClass = createViraGenUIElementClass();
+  platform?: ViraGenUIElementPlatform,
+): ViraGenUIElementDefineResult {
+  let resolved: ViraGenUIElementPlatform | undefined;
   try {
-    registry.define(VIRA_GENUI_EXPERIENCE_TAG_NAME, elementClass);
+    resolved = platform ?? browserPlatform();
+  } catch {
+    return { ok: false, issue: { code: "PLATFORM_UNAVAILABLE", message: "GenUI custom elements platform could not be inspected safely" } };
+  }
+  if (!resolved) {
+    return { ok: false, issue: { code: "PLATFORM_UNAVAILABLE", message: "GenUI custom elements platform is unavailable" } };
+  }
+
+  try {
+    if (resolved.registry.get(VIRA_GENUI_EXPERIENCE_TAG_NAME) !== undefined) {
+      return { ok: false, issue: { code: "ALREADY_DEFINED", message: `${VIRA_GENUI_EXPERIENCE_TAG_NAME} is already defined` } };
+    }
+    const elementClass = createViraGenUIElementClass(resolved.HTMLElementBase);
+    resolved.registry.define(VIRA_GENUI_EXPERIENCE_TAG_NAME, elementClass);
+    return { ok: true, value: elementClass };
   } catch {
     return { ok: false, issue: { code: "REGISTRATION_FAILED", message: "GenUI custom element registration failed" } };
   }
-  return { ok: true, value: elementClass };
 }
