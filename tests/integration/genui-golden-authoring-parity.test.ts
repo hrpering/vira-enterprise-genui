@@ -48,6 +48,9 @@ describe("GenUI golden manual/Canvas parity", () => {
     const document = createStarterDocument("airline.gallery.booking-journey", "booking-journey");
     expect(document.views.map((view) => view.id)).toEqual(GOLDEN_AIRLINE_BOOKING_STEPS);
     expect(document.entryView).toBe("flight-search");
+    for (const view of document.views) {
+      expect(view.nodes.length, `${view.id} must remain a composable authored graph`).toBeGreaterThanOrEqual(5);
+    }
   });
 
   it("publishes the complete booking journey from the manual authoring surface", () => {
