@@ -66,7 +66,7 @@ function runtimeState() {
 }
 
 describe("public GenUI runtime", () => {
-  it("wires authored publication, React dispatch and host completion without double dispatch", async () => {
+  it("wires authored publication, React dispatch, host completion and external snapshot changes without double dispatch", async () => {
     const publication = prepareAuthoredStudioPublication({
       document: document(),
       componentCatalog: componentCatalog(),
@@ -77,15 +77,19 @@ describe("public GenUI runtime", () => {
     if (!publication.ok) return;
 
     const actionsSeen: unknown[] = [];
+    let hostListener: ((snapshot: unknown) => void) | undefined;
     const host = {
       version: "1",
       id: "public.genui.host",
       snapshot: () => ({ version: "1", revision: 1, state: {}, domain: {} }),
       dispatch: async (action: unknown) => {
         actionsSeen.push(action);
-        return { outcome: "success" };
+        return { outcome: "success", snapshot: { version: "1", revision: 2, state: {}, domain: {} } };
       },
-      subscribe: () => () => {},
+      subscribe: (listener: (snapshot: unknown) => void) => {
+        hostListener = listener;
+        return () => { hostListener = undefined; };
+      },
     };
 
     const runtime = createViraExperienceRuntime({
@@ -102,6 +106,11 @@ describe("public GenUI runtime", () => {
     });
     expect(runtime.ok).toBe(true);
     if (!runtime.ok) return;
+
+    const observedRevisions: number[] = [];
+    const unsubscribeRuntime = runtime.value.subscribe(() => {
+      observedRevisions.push(runtime.value.revision());
+    });
 
     let resolveHost: ((value: unknown) => void) | undefined;
     const hostResult = new Promise((resolve) => { resolveHost = resolve; });
@@ -125,7 +134,20 @@ describe("public GenUI runtime", () => {
       payload: { sku: "SKU-1" },
     }]);
     expect(runtime.value.controller.currentViewId()).toBe("done");
+    expect(runtime.value.revision()).toBeGreaterThan(0);
+    expect(observedRevisions.length).toBeGreaterThan(0);
+
+    const beforeExternalSnapshot = runtime.value.revision();
+    hostListener?.({ version: "1", revision: 3, state: {}, domain: {} });
+    expect(runtime.value.revision()).toBe(beforeExternalSnapshot + 1);
+    expect(observedRevisions.at(-1)).toBe(runtime.value.revision());
+
+    const observationsBeforeUnsubscribe = observedRevisions.length;
+    unsubscribeRuntime();
+    hostListener?.({ version: "1", revision: 4, state: {}, domain: {} });
+    expect(observedRevisions).toHaveLength(observationsBeforeUnsubscribe);
 
     runtime.value.dispose();
+    expect(hostListener).toBeUndefined();
   });
 });
