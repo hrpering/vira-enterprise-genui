@@ -9,6 +9,7 @@ export type StudioHostRuntimeValidationCode =
   | "HOST_DISPATCH_FAILED"
   | "INVALID_HOST_RESULT"
   | "RUNTIME_COMPLETION_FAILED"
+  | "DUPLICATE_FORWARD"
   | "DISPOSED";
 
 export interface StudioHostRuntimeIssue {
@@ -20,6 +21,8 @@ export interface StudioHostRuntimeIssue {
 export interface StudioHostRuntimeDataPort {
   readonly read: (source: StudioBindingSource) => unknown;
 }
+
+export type StudioHostRuntimeSnapshotListener = (snapshot: StudioHostSnapshot) => void;
 
 export interface StudioHostedDispatchSuccess {
   readonly actionId: string;
@@ -36,6 +39,8 @@ export interface StudioHostRuntimeAdapter {
   readonly hostId: string;
   readonly data: StudioHostRuntimeDataPort;
   readonly snapshot: () => StudioHostSnapshot;
+  /** Subscribes to accepted monotonic host snapshots. Listener failures never poison the host/runtime bridge. */
+  readonly subscribe: (listener: StudioHostRuntimeSnapshotListener) => () => void;
   readonly connect: (session: StudioRuntimeSession) => StudioHostedRuntimeController;
   readonly dispose: () => void;
 }
@@ -45,6 +50,12 @@ export interface StudioHostedRuntimeController {
   readonly currentView: StudioRuntimeSession["currentView"];
   readonly currentRuntimeState: StudioRuntimeSession["currentRuntimeState"];
   readonly dispatch: (input: Parameters<StudioRuntimeSession["dispatch"]>[0]) => Promise<StudioHostedDispatchResult>;
+  /**
+   * Forwards a successful action that was already dispatched by the canonical Studio runtime.
+   * Each action id is forwarded to the host at most once for the adapter/session pair, including
+   * when multiple controllers are connected or the first host attempt has uncertain side effects.
+   */
+  readonly forward: (runtime: StudioRuntimeDispatchResult) => Promise<StudioHostedDispatchResult>;
   readonly dispose: () => void;
 }
 

@@ -95,16 +95,31 @@ function host(outcome: "success" | "empty" | "error" = "success") {
 }
 
 describe("Studio host/runtime integration", () => {
-  it("uses one host snapshot for state/domain reads and tracks subscription revisions", () => {
+  it("uses one host snapshot for state/domain reads and publishes only forward revision changes", () => {
     const fixture = host();
     const adapter = createStudioHostRuntimeAdapter(fixture.bridge);
     expect(adapter.ok).toBe(true);
     if (!adapter.ok) return;
     expect(adapter.value.data.read({ kind: "domain", path: "product.price" })).toBe(79);
     expect(adapter.value.data.read({ kind: "state", path: "cart.count" })).toBe(1);
+
+    const revisions: number[] = [];
+    const unsubscribe = adapter.value.subscribe((snapshot) => { revisions.push(snapshot.revision); });
     fixture.emit({ version: "1", revision: 3, state: { cart: { count: 4 } }, domain: { product: { price: 82 } } });
     expect(adapter.value.data.read({ kind: "domain", path: "product.price" })).toBe(82);
     expect(adapter.value.snapshot().revision).toBe(3);
+    expect(revisions).toEqual([3]);
+
+    fixture.emit({ version: "1", revision: 3, state: { cart: { count: 999 } }, domain: { product: { price: 999 } } });
+    expect(adapter.value.data.read({ kind: "domain", path: "product.price" })).toBe(82);
+    expect(adapter.value.data.read({ kind: "state", path: "cart.count" })).toBe(4);
+    expect(revisions).toEqual([3]);
+
+    unsubscribe();
+    fixture.emit({ version: "1", revision: 4, state: { cart: { count: 5 } }, domain: { product: { price: 84 } } });
+    expect(revisions).toEqual([3]);
+    expect(adapter.value.snapshot().revision).toBe(4);
+    expect(adapter.value.data.read({ kind: "domain", path: "product.price" })).toBe(84);
   });
 
   it.each(["success", "empty", "error"] as const)("correlates %s host outcomes to declared Studio routes", async (outcome) => {
@@ -122,14 +137,90 @@ describe("Studio host/runtime integration", () => {
     expect(fixture.actionsSeen).toEqual([{ type: "demo.order.submit", payload: { sku: "SKU-1" } }]);
   });
 
-  it("rejects stale subscription snapshots fail-closed", () => {
+  it("forwards one canonical runtime action id to the host at most once", async () => {
     const fixture = host();
     const adapter = createStudioHostRuntimeAdapter(fixture.bridge);
     expect(adapter.ok).toBe(true);
     if (!adapter.ok) return;
-    fixture.emit({ version: "1", revision: 2, state: {}, domain: {} });
+
+    const session = runtime(adapter.value.data);
+    const controller = adapter.value.connect(session);
+    const dispatched = session.dispatch({ nodeId: "submit", event: "press", payload: { sku: "SKU-ONCE" } });
+    expect(dispatched.ok).toBe(true);
+    if (!dispatched.ok) return;
+
+    const first = await controller.forward(dispatched);
+    const second = await controller.forward(dispatched);
+
+    expect(first.ok).toBe(true);
+    expect(second).toMatchObject({ ok: false, issue: { code: "DUPLICATE_FORWARD" } });
+    expect(fixture.actionsSeen).toEqual([{ type: "demo.order.submit", payload: { sku: "SKU-ONCE" } }]);
+  });
+
+  it("does not replay an uncertain host transport failure for the same action id", async () => {
+    const fixture = host();
+    let hostAttempts = 0;
+    fixture.bridge.dispatch = async () => {
+      hostAttempts += 1;
+      throw new Error("transport failed after side-effect status became unknown");
+    };
+    const adapter = createStudioHostRuntimeAdapter(fixture.bridge);
+    expect(adapter.ok).toBe(true);
+    if (!adapter.ok) return;
+
+    const session = runtime(adapter.value.data);
+    const controller = adapter.value.connect(session);
+    const dispatched = session.dispatch({ nodeId: "submit", event: "press" });
+    expect(dispatched.ok).toBe(true);
+    if (!dispatched.ok) return;
+
+    const first = await controller.forward(dispatched);
+    const second = await controller.forward(dispatched);
+
+    expect(first).toMatchObject({ ok: false, issue: { code: "HOST_DISPATCH_FAILED" } });
+    expect(second).toMatchObject({ ok: false, issue: { code: "DUPLICATE_FORWARD" } });
+    expect(hostAttempts).toBe(1);
+    expect(controller.currentViewId()).toBe("error");
+  });
+
+  it("keeps a subscription revision fault sticky and ignores later snapshots", () => {
+    const fixture = host();
+    const adapter = createStudioHostRuntimeAdapter(fixture.bridge);
+    expect(adapter.ok).toBe(true);
+    if (!adapter.ok) return;
+
+    fixture.emit({ version: "1", revision: 2, state: { cart: { count: 2 } }, domain: { product: { price: 80 } } });
     fixture.emit({ version: "1", revision: 1, state: {}, domain: {} });
+    fixture.emit({ version: "1", revision: 3, state: { cart: { count: 3 } }, domain: { product: { price: 999 } } });
+
+    expect(adapter.value.snapshot().revision).toBe(2);
     expect(() => adapter.value.data.read({ kind: "domain", path: "product.price" })).toThrow(/moved backwards/);
+  });
+
+  it("ignores a late host result after the controller is disposed", async () => {
+    let resolveHost: ((value: unknown) => void) | undefined;
+    const pendingHostResult = new Promise<unknown>((resolve) => { resolveHost = resolve; });
+    const adapter = createStudioHostRuntimeAdapter({
+      version: "1",
+      id: "vira.demo.delayed-host",
+      snapshot: () => ({ version: "1", revision: 1, state: {}, domain: {} }),
+      dispatch: () => pendingHostResult,
+      subscribe: () => () => {},
+    });
+    expect(adapter.ok).toBe(true);
+    if (!adapter.ok) return;
+
+    const controller = adapter.value.connect(runtime(adapter.value.data));
+    const pending = controller.dispatch({ nodeId: "submit", event: "press" });
+    controller.dispose();
+    resolveHost?.({
+      outcome: "success",
+      snapshot: { version: "1", revision: 9, state: {}, domain: { product: { price: 999 } } },
+    });
+
+    const result = await pending;
+    expect(result).toMatchObject({ ok: false, issue: { code: "DISPOSED" } });
+    expect(adapter.value.snapshot().revision).toBe(1);
   });
 
   it("routes host transport failures to the canonical error outcome without leaving an action pending", async () => {

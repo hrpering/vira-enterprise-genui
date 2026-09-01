@@ -36,4 +36,6 @@ export interface StudioRuntimeReactInput {
   readonly session: StudioRuntimeSession;
   readonly componentCatalog: unknown;
   readonly renderers: unknown;
+  /** Receives the exact canonical runtime dispatch result after a renderer event is dispatched once. */
+  readonly onDispatch?: (result: StudioRuntimeDispatchResult) => void;
 }

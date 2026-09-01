@@ -8,5 +8,5 @@ export {
   starterPreview,
   starterTemplates,
   workbenchRenderers,
-} from "./catalog-v3.js";
-export type { StarterTemplateId } from "./catalog-v3.js";
+} from "./catalog-v4.js";
+export type { StarterTemplateId } from "./catalog-v4.js";

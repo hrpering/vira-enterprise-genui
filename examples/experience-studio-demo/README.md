@@ -39,7 +39,38 @@ Open:
 http://127.0.0.1:4173
 ```
 
-The home screen lists persisted experiences and approved starter GenUI surfaces for flight search, special assistance, missed-flight policy, visa checks, and a blank layout.
+The home screen lists persisted experiences and approved starter GenUI surfaces. In addition to individual flight/guidance starters, the **Full booking journey** starter creates one editable nine-view document:
+
+```text
+Flight Search
+  -> Flight Results
+  -> Fare Comparison
+  -> Traveller Details
+  -> Seat Selection
+  -> Baggage
+  -> Extras
+  -> Booking Review
+  -> Confirmation
+```
+
+This is not nine opaque template aliases. Each view is a canonical authored node graph. Flight Results is a fully editable repeated card using `currentItem` scope; the other booking screens keep only business-critical airline behavior inside trusted widgets while surrounding layout, heading, supporting copy, cards and notices remain normal Studio nodes.
+
+## Component authoring surface
+
+The reference airline catalog includes the existing composable layout/content primitives plus a bounded form/feedback kit:
+
+- Input (`text`, `email`, `date`)
+- Textarea
+- Select
+- Checkbox
+- Radio group
+- Field group with a real child slot
+- Alert
+- Progress
+- Spinner
+- Empty state
+
+These are normal Brand Package components. Their props appear through the existing Puck/Inspector metadata path; workbench and runtime renderer registries must exactly match the active catalog. Interactive primitives declare typed event payloads, but they do not invent a generic backend or hidden form-state store. A production brand makes them operational by connecting their declared events/data bindings to approved host actions and state/domain sources.
 
 ## Compare Studio and chat side by side
 
@@ -80,7 +111,7 @@ Published Studio interactions still follow the canonical runtime action lifecycl
 
 The local demo has no airline backend, so its live host explicitly acknowledges each successful starter action with a `success` completion. This is demo-only host behavior: it prevents a successful action from remaining permanently pending, but it does **not** claim that an external airline operation, booking, seat assignment, payment, or policy workflow succeeded.
 
-A production host must execute its own host effect and call `complete()` with the real `success`, `empty`, or `error` outcome.
+A production host must execute its own host effect and return the real `success`, `empty`, or `error` outcome through the host boundary.
 
 ## Browser acceptance gate
 
@@ -88,14 +119,6 @@ A production host must execute its own host effect and call `complete()` with th
 pnpm verify:browser
 ```
 
-The Chromium test performs the full user lifecycle:
+The browser suite covers both lifecycle and authoring acceptance. It verifies the persisted create/publish/live/unpublish/delete flow and also creates the Full booking journey, checks all nine views and the expanded primitive catalog, selects the Confirmation view, publishes the journey, and fails on known fatal console regressions.
 
-1. create a new persisted flight-search experience;
-2. open the real Puck workbench;
-3. publish it through the lifecycle service and Studio publish gate;
-4. open `/live/<id>` and verify the published runtime actually renders;
-5. trigger the same published interaction twice and verify the demo host completes both actions instead of leaving the runtime stuck in `ACTION_PENDING`;
-6. unpublish it and verify the live URL becomes unavailable;
-7. delete the draft and verify it disappears from the Studio library.
-
-The test does not accept a status label such as “Published” as proof of publication; it verifies the separate live runtime route and the action completion lifecycle.
+The test does not accept a status label such as “Published” as proof of publication; it verifies the separate live runtime route and canonical host action completion lifecycle.
