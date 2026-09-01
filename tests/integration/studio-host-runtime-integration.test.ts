@@ -95,16 +95,27 @@ function host(outcome: "success" | "empty" | "error" = "success") {
 }
 
 describe("Studio host/runtime integration", () => {
-  it("uses one host snapshot for state/domain reads and tracks subscription revisions", () => {
+  it("uses one host snapshot for state/domain reads and publishes accepted revision changes", () => {
     const fixture = host();
     const adapter = createStudioHostRuntimeAdapter(fixture.bridge);
     expect(adapter.ok).toBe(true);
     if (!adapter.ok) return;
     expect(adapter.value.data.read({ kind: "domain", path: "product.price" })).toBe(79);
     expect(adapter.value.data.read({ kind: "state", path: "cart.count" })).toBe(1);
+
+    const revisions: number[] = [];
+    const unsubscribe = adapter.value.subscribe((snapshot) => { revisions.push(snapshot.revision); });
     fixture.emit({ version: "1", revision: 3, state: { cart: { count: 4 } }, domain: { product: { price: 82 } } });
     expect(adapter.value.data.read({ kind: "domain", path: "product.price" })).toBe(82);
     expect(adapter.value.snapshot().revision).toBe(3);
+    expect(revisions).toEqual([3]);
+
+    fixture.emit({ version: "1", revision: 3, state: { cart: { count: 4 } }, domain: { product: { price: 82 } } });
+    expect(revisions).toEqual([3]);
+    unsubscribe();
+    fixture.emit({ version: "1", revision: 4, state: { cart: { count: 5 } }, domain: { product: { price: 84 } } });
+    expect(revisions).toEqual([3]);
+    expect(adapter.value.snapshot().revision).toBe(4);
   });
 
   it.each(["success", "empty", "error"] as const)("correlates %s host outcomes to declared Studio routes", async (outcome) => {
