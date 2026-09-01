@@ -106,6 +106,7 @@ describe("public GenUI runtime", () => {
     });
     expect(runtime.ok).toBe(true);
     if (!runtime.ok) return;
+    expect("dispose" in runtime.value.controller).toBe(false);
 
     const observedRevisions: number[] = [];
     const unsubscribeRuntime = runtime.value.subscribe(() => {
@@ -147,6 +148,7 @@ describe("public GenUI runtime", () => {
     hostListener?.({ version: "1", revision: 4, state: {}, domain: {} });
     expect(observedRevisions).toHaveLength(observationsBeforeUnsubscribe);
 
+    runtime.value.dispose();
     runtime.value.dispose();
     expect(hostListener).toBeUndefined();
   });
