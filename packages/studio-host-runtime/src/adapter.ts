@@ -12,6 +12,7 @@ import type {
   StudioHostRuntimeAdapter,
   StudioHostRuntimeAdapterResult,
   StudioHostRuntimeIssue,
+  StudioHostRuntimeSnapshotListener,
   StudioHostRuntimeValidationCode,
 } from "./types.js";
 
@@ -54,6 +55,17 @@ export function createStudioHostRuntimeAdapter(hostInput: unknown): StudioHostRu
   let current = parsedInitial.value;
   let disposed = false;
   let subscriptionFault: StudioHostRuntimeIssue | undefined;
+  const listeners = new Set<StudioHostRuntimeSnapshotListener>();
+
+  const notifySnapshot = (snapshot: StudioHostSnapshot): void => {
+    for (const listener of [...listeners]) {
+      try {
+        listener(snapshot);
+      } catch {
+        // Consumer observers are outside the trusted host/runtime boundary.
+      }
+    }
+  };
 
   const acceptSnapshot = (candidate: unknown): StudioHostRuntimeIssue | undefined => {
     const parsed = normalizedSnapshot(candidate);
@@ -61,7 +73,9 @@ export function createStudioHostRuntimeAdapter(hostInput: unknown): StudioHostRu
     if (parsed.value.revision < current.revision) {
       return issue("STALE_SNAPSHOT", "$.snapshot.revision", "Studio host snapshot revision moved backwards");
     }
+    const revisionChanged = parsed.value.revision !== current.revision;
     current = parsed.value;
+    if (revisionChanged) notifySnapshot(current);
     return undefined;
   };
 
@@ -92,6 +106,16 @@ export function createStudioHostRuntimeAdapter(hostInput: unknown): StudioHostRu
     hostId: host.id,
     data,
     snapshot: () => current,
+    subscribe(listener): () => void {
+      if (disposed) return () => {};
+      listeners.add(listener);
+      let active = true;
+      return () => {
+        if (!active) return;
+        active = false;
+        listeners.delete(listener);
+      };
+    },
     connect(session: StudioRuntimeSession): StudioHostedRuntimeController {
       let controllerDisposed = false;
 
@@ -169,6 +193,7 @@ export function createStudioHostRuntimeAdapter(hostInput: unknown): StudioHostRu
       disposed = true;
       unsubscribe?.();
       unsubscribe = undefined;
+      listeners.clear();
     },
   };
   return { ok: true, value: Object.freeze(adapter) };
