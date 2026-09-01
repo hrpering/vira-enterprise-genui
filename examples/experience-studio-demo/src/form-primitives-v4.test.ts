@@ -20,6 +20,13 @@ describe("Studio catalog v4 primitives", () => {
     expect(Object.keys(runtimeRenderers).sort()).toEqual(catalogRefs);
   });
 
+  it("keeps primitive prop keys inside the canonical one-semantic-segment contract", () => {
+    const input = componentCatalog.components.find((component) => component.ref === "airline.form.input");
+    const keys = input?.props.map((prop) => prop.key) ?? [];
+    expect(keys).toContain("input-type");
+    expect(keys).not.toContain("inputType");
+  });
+
   it("declares typed payload fields for interactive form primitives", () => {
     const input = componentCatalog.components.find((component) => component.ref === "airline.form.input");
     const checkbox = componentCatalog.components.find((component) => component.ref === "airline.form.checkbox");
