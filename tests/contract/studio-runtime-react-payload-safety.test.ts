@@ -52,15 +52,15 @@ function sessionWith(
         }],
       },
     }),
-    currentRuntimeState: () => ({}) as ReturnType<StudioRuntimeSession["currentRuntimeState"]>,
-    dispatch: (input) => {
+    currentRuntimeState: () => ({}),
+    dispatch: (input: { readonly payload?: unknown }) => {
       capture(input.payload);
       return rejectedDispatch();
     },
-    applyHostPatch: () => ({ ok: false, issue: { code: "INVALID_PATCH", path: "$", message: "not used" } }) as ReturnType<StudioRuntimeSession["applyHostPatch"]>,
-    complete: () => ({ ok: false, issue: { code: "NO_PENDING_ACTION", path: "$", message: "not used" } }),
+    applyHostPatch: () => ({ ok: false }),
+    complete: () => ({ ok: false }),
     dispose: () => {},
-  };
+  } as unknown as StudioRuntimeSession;
 }
 
 describe("Studio runtime React event payload safety", () => {
