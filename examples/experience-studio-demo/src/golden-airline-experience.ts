@@ -5,8 +5,8 @@ import type {
   StudioNode,
   StudioView,
 } from "@vira-enterprise-genui/studio-schema";
-import { createStarterDocument } from "./catalog-v4.js";
-import type { StarterTemplateId } from "./catalog-v4.js";
+import { createStarterDocument } from "./catalog-v3.js";
+import type { StarterTemplateId } from "./catalog-v3.js";
 
 const BOOKING_STEPS = Object.freeze([
   "flight-search",
