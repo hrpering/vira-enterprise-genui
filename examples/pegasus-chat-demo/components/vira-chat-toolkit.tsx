@@ -17,11 +17,20 @@ function CanonicalViraCommandEffect({ result }: { readonly result: ViraCommandRe
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    if (dispatched.current) return;
+    if (dispatched.current) return undefined;
     dispatched.current = true;
-    void applyCanonicalViraCommand(result).then((outcome) => {
-      if (!outcome.ok) setFailed(true);
-    });
+    let active = true;
+    void applyCanonicalViraCommand(result).then(
+      (outcome) => {
+        if (active && !outcome.ok) setFailed(true);
+      },
+      () => {
+        if (active) setFailed(true);
+      },
+    );
+    return () => {
+      active = false;
+    };
   }, [result]);
 
   return failed
