@@ -1,16 +1,20 @@
 import { describe, expect, it } from "vitest";
+import { createRuntimeState } from "../../packages/runtime-core/src/index.js";
 import {
+  createViraExperienceRuntime,
   exportAuthoredStudioBundle,
   prepareAuthoredStudioPublication,
-} from "../../packages/studio-authoring/src/index.js";
+} from "../../packages/genui/src/index.js";
 import {
   importPuckDataIntoStudioDocument,
   studioViewToPuckData,
 } from "../../packages/studio-puck-adapter/src/index.js";
+import { createMockAirlineStudioCollectionData } from "../../examples/mock-airline-domain/src/studio-collections.js";
 import {
   actionAdapter,
   bindingSourceCatalog,
   componentCatalog,
+  runtimePermissionPolicy,
 } from "../../examples/experience-studio-demo/src/catalog.js";
 import {
   GOLDEN_AIRLINE_BOOKING_STEPS,
@@ -18,6 +22,18 @@ import {
 } from "../../examples/experience-studio-demo/src/golden-airline-experience.js";
 
 const BRAND_ID = "airline.brand" as const;
+
+function runtimeState() {
+  const result = createRuntimeState("golden-airline-genui", {
+    version: "1",
+    id: "golden-airline-genui-plan",
+    intent: { version: "1", namespace: "travel.flight", name: "booking" },
+    state: {},
+    capabilities: { required: [], available: [], future: [] },
+  });
+  if (!result.ok) throw new Error(result.issue.message);
+  return result.value;
+}
 
 describe("GenUI golden manual/Canvas parity", () => {
   it("publishes the complete booking journey from the manual authoring surface", () => {
@@ -91,5 +107,85 @@ describe("GenUI golden manual/Canvas parity", () => {
     expect(canvasPublication.ok).toBe(true);
     if (!manualPublication.ok || !canvasPublication.ok) return;
     expect(canvasPublication.value).toEqual(manualPublication.value);
+  });
+
+  it("executes every golden booking step through the canonical runtime and host boundary", async () => {
+    const publication = prepareAuthoredStudioPublication({
+      document: createGoldenAirlineExperience(),
+      componentCatalog,
+      bindingSourceCatalog,
+      actionAdapter,
+    });
+    expect(publication.ok).toBe(true);
+    if (!publication.ok) return;
+
+    const collectionData = createMockAirlineStudioCollectionData();
+    const offers = collectionData["results.offers"];
+    expect(Array.isArray(offers)).toBe(true);
+
+    const actionsSeen: unknown[] = [];
+    const runtime = createViraExperienceRuntime({
+      publication: publication.value,
+      componentCatalog,
+      bindingSourceCatalog,
+      actionAdapter,
+      runtimeState: runtimeState(),
+      permissionPolicy: runtimePermissionPolicy,
+      host: {
+        version: "1",
+        id: "golden-airline-host",
+        snapshot: () => ({
+          version: "1",
+          revision: 1,
+          state: {},
+          domain: { results: { offers } },
+        }),
+        dispatch: async (action: unknown) => {
+          actionsSeen.push(action);
+          return { outcome: "success" };
+        },
+        subscribe: () => () => {},
+      },
+    });
+    expect(runtime.ok).toBe(true);
+    if (!runtime.ok) return;
+
+    for (let index = 0; index < GOLDEN_AIRLINE_BOOKING_STEPS.length - 1; index += 1) {
+      const viewId = GOLDEN_AIRLINE_BOOKING_STEPS[index];
+      const nextViewId = GOLDEN_AIRLINE_BOOKING_STEPS[index + 1];
+      expect(runtime.value.controller.currentViewId()).toBe(viewId);
+
+      const interaction = publication.value.document.interactions.find((candidate) => candidate.viewId === viewId);
+      expect(interaction).toBeDefined();
+      if (!interaction) break;
+
+      const currentView = runtime.value.controller.currentView();
+      expect(currentView.ok).toBe(true);
+      if (!currentView.ok) break;
+      const runtimeNode = currentView.value.nodes.find((node) => node.sourceNodeId === interaction.nodeId);
+      expect(runtimeNode).toBeDefined();
+      if (!runtimeNode) break;
+      const payload = runtimeNode.eventPayloads?.[interaction.event] ?? {};
+
+      const result = await runtime.value.controller.dispatch({
+        nodeId: interaction.nodeId,
+        event: interaction.event,
+        payload,
+      });
+      expect(result.ok).toBe(true);
+      if (!result.ok) break;
+      expect(result.value.outcome).toBe("success");
+      expect(runtime.value.controller.currentViewId()).toBe(nextViewId);
+    }
+
+    expect(runtime.value.controller.currentViewId()).toBe("confirmation");
+    expect(actionsSeen).toHaveLength(GOLDEN_AIRLINE_BOOKING_STEPS.length - 1);
+    expect(actionsSeen).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "travel.flight.search.submit" }),
+      expect.objectContaining({ type: "travel.flight.offer.select", payload: expect.objectContaining({ offerId: expect.any(String) }) }),
+      expect.objectContaining({ type: "travel.flight.booking.handoff" }),
+    ]));
+
+    runtime.value.dispose();
   });
 });
