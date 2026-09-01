@@ -46,10 +46,10 @@ export const FORM_PRIMITIVE_COMPONENTS = Object.freeze([
     kind: "input",
     props: [
       { key: "label", type: "string", required: true, bindable: true },
-      { key: "value", type: "string", required: true, bindable: true },
-      { key: "option-a", type: "string", required: true, bindable: true },
-      { key: "option-b", type: "string", required: true, bindable: true },
-      { key: "option-c", type: "string", required: true, bindable: true },
+      { key: "value", type: "string", required: false, bindable: true },
+      { key: "option-a", type: "string", required: false, bindable: true },
+      { key: "option-b", type: "string", required: false, bindable: true },
+      { key: "option-c", type: "string", required: false, bindable: true },
     ],
     slots: [],
     events: [{
@@ -81,10 +81,10 @@ export const FORM_PRIMITIVE_COMPONENTS = Object.freeze([
     kind: "input",
     props: [
       { key: "legend", type: "string", required: true, bindable: true },
-      { key: "value", type: "string", required: true, bindable: true },
-      { key: "option-a", type: "string", required: true, bindable: true },
-      { key: "option-b", type: "string", required: true, bindable: true },
-      { key: "option-c", type: "string", required: true, bindable: true },
+      { key: "value", type: "string", required: false, bindable: true },
+      { key: "option-a", type: "string", required: false, bindable: true },
+      { key: "option-b", type: "string", required: false, bindable: true },
+      { key: "option-c", type: "string", required: false, bindable: true },
     ],
     slots: [],
     events: [{
