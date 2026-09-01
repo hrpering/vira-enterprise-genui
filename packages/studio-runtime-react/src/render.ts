@@ -16,6 +16,29 @@ function readRendererRegistry(input: unknown, catalog: StudioComponentCatalog): 
   return { ok: true, value: output };
 }
 function deniedDispatch(nodeId: string, event: string): StudioRuntimeDispatchResult { return { ok: false, stage: "studio", issue: { code: "INTERACTION_NOT_FOUND", path: "$.event", message: `component event is not declared for ${nodeId}: ${event}` } }; }
+function mergeRendererPayload(externalPayload: unknown, mapped: Readonly<Record<string, unknown>>): unknown {
+  if (externalPayload === undefined) return mapped;
+  if (externalPayload === null || typeof externalPayload !== "object" || Array.isArray(externalPayload)) return null;
+  try {
+    const prototype = Object.getPrototypeOf(externalPayload);
+    if (prototype !== Object.prototype && prototype !== null) return null;
+    if (Object.getOwnPropertySymbols(externalPayload).length > 0 || Object.getOwnPropertyNames(externalPayload).length !== Object.keys(externalPayload).length) return null;
+    const output: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+    for (const key of Object.keys(externalPayload)) {
+      const descriptor = Object.getOwnPropertyDescriptor(externalPayload, key);
+      if (!descriptor || !("value" in descriptor)) return null;
+      output[key] = descriptor.value;
+    }
+    for (const key of Object.keys(mapped)) {
+      const descriptor = Object.getOwnPropertyDescriptor(mapped, key);
+      if (!descriptor || !("value" in descriptor)) return null;
+      output[key] = descriptor.value;
+    }
+    return output;
+  } catch {
+    return null;
+  }
+}
 export function renderStudioRuntimeReactView(input: StudioRuntimeReactInput): StudioRuntimeReactRenderResult {
   const catalog = createStudioComponentCatalog(input.componentCatalog); if (!catalog.ok) return failure("INVALID_CATALOG", `$.componentCatalog${catalog.issue.path.slice(1)}`, catalog.issue.message);
   const registry = readRendererRegistry(input.renderers, catalog.value); if (!registry.ok) return registry.result; const renderers = registry.value; const current = input.session.currentView(); if (!current.ok) return failure("VIEW_FAILED", current.issue.path, current.issue.message);
@@ -28,7 +51,7 @@ export function renderStudioRuntimeReactView(input: StudioRuntimeReactInput): St
     const component = componentMap.get(node.component) as StudioCatalogComponentDefinition; const renderer = renderers.get(node.component); if (!renderer) return { ok: false, result: failure("MISSING_RENDERER", `$.renderers.${node.component}`, "runtime renderer registry invariant failed") };
     const slots: Record<string, readonly ReactNode[]> = Object.create(null) as Record<string, readonly ReactNode[]>; for (const slot of component.slots) { const children = childMap.get(`${node.id}\u0000${slot.name}`) ?? []; const values: ReactNode[] = []; for (const child of children) { const value = renderNode(child); if (!value.ok) return value; values.push(value.value); } slots[slot.name] = Object.freeze(values); }
     const design = createStudioReactDesignState(node.props); const allowedEvents = new Set(component.events.map((event) => event.name)); const canonicalNodeId = node.sourceNodeId ?? node.id;
-    const context: StudioRuntimeReactRenderContext = Object.freeze({ component: node.component, nodeId: canonicalNodeId, props: design.props, slots: Object.freeze(slots), emit: (event: string, payload?: unknown) => { if (!allowedEvents.has(event)) return deniedDispatch(canonicalNodeId, event); const external = payload !== null && typeof payload === "object" && !Array.isArray(payload) ? payload as Record<string, unknown> : {}; const mapped = node.eventPayloads?.[event] ?? {}; const result = input.session.dispatch({ nodeId: canonicalNodeId, event, payload: { ...external, ...mapped } }); input.onDispatch?.(result); return result; } });
+    const context: StudioRuntimeReactRenderContext = Object.freeze({ component: node.component, nodeId: canonicalNodeId, props: design.props, slots: Object.freeze(slots), emit: (event: string, payload?: unknown) => { if (!allowedEvents.has(event)) return deniedDispatch(canonicalNodeId, event); const mapped = node.eventPayloads?.[event] ?? {}; const result = input.session.dispatch({ nodeId: canonicalNodeId, event, payload: mergeRendererPayload(payload, mapped) }); input.onDispatch?.(result); return result; } });
     let output: ReactNode; try { output = renderer(context); } catch { active.delete(node.id); return { ok: false, result: failure("RENDERER_FAILED", `$.renderers.${node.component}`, "trusted runtime renderer failed") }; }
     active.delete(node.id); rendered.add(node.id); return { ok: true, value: design.style === undefined ? createElement(Fragment, { key: node.id }, output) : createElement("div", { key: node.id, style: design.style }, output) };
   }
