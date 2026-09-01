@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -81,5 +82,18 @@ describe("GenUI manual authoring CLI", () => {
 
     await runGenUICommand("preview", fileName, "main");
     expect(String(output.mock.calls.at(-1)?.[0])).toContain('"viewId": "main"');
+  });
+
+  it("executes the real workspace CLI entry through its TypeScript loader shim", async () => {
+    const fileName = await fixture(document());
+    const result = spawnSync(
+      process.execPath,
+      ["packages/genui-cli/bin/vira-genui.mjs", "validate", fileName],
+      { cwd: process.cwd(), encoding: "utf8" },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(result.stdout).toContain('"id": "cli.example"');
   });
 });
