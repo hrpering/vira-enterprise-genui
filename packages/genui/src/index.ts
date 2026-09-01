@@ -3,6 +3,7 @@ export {
   createViraExperienceRuntime,
 } from "./runtime.js";
 export type {
+  ViraExperienceController,
   ViraExperienceRuntime,
   ViraExperienceRuntimeInput,
   ViraExperienceRuntimeListener,
@@ -18,7 +19,6 @@ export type {
 } from "@vira-enterprise-genui/studio-host";
 export type {
   StudioHostedDispatchResult,
-  StudioHostedRuntimeController,
 } from "@vira-enterprise-genui/studio-host-runtime";
 export type {
   StudioRuntimeReactRenderer,
