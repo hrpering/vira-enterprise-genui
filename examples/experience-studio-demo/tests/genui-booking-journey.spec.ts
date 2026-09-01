@@ -12,6 +12,19 @@ const BOOKING_VIEWS = [
   "confirmation",
 ] as const;
 
+const PRIMITIVE_LABELS = [
+  "Input",
+  "Textarea",
+  "Select",
+  "Checkbox",
+  "Radio group",
+  "Field group",
+  "Alert",
+  "Progress",
+  "Spinner",
+  "Empty state",
+] as const;
+
 const fatalConsolePatterns = [
   "Each child in a list should have a unique",
   "Cannot read properties of undefined",
@@ -65,7 +78,7 @@ test("creates, authors and publishes the full nine-view booking journey", async 
   await expect(page.getByTestId("vira-studio-error")).toHaveCount(0);
 
   await page.getByTestId("vira-studio-panel-components").click();
-  for (const componentLabel of ["Input", "Checkbox", "Alert", "Progress"] as const) {
+  for (const componentLabel of PRIMITIVE_LABELS) {
     await expect(page.getByText(componentLabel, { exact: true }).first()).toBeVisible();
   }
 
