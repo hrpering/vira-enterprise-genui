@@ -196,18 +196,18 @@ const genericComponents = [
   },
 ] as const;
 
-const baseCatalog = {
-  version: "1",
+export const baseComponentCatalogInput = Object.freeze({
+  version: "1" as const,
   id: "airline.studio.components",
   brandId: "airline.brand",
-  components: [
+  components: Object.freeze([
     ...genericComponents,
     ...AIRLINE_STUDIO_CATALOG_INPUT.components,
     ...guidanceComponents,
-  ],
-};
+  ]),
+});
 
-const styledCatalog = createStudioDesignCatalog(baseCatalog, {
+const styledCatalog = createStudioDesignCatalog(baseComponentCatalogInput, {
   colorMode: "any",
   fonts: ["Inter", "Arial", "Georgia"],
   allowGradient: true,
@@ -258,501 +258,147 @@ export const runtimePermissionPolicy = {
   rules: allowedActions.map((id) => ({ subject: "action" as const, id, effect: "allow" as const })),
 } as const;
 
-function textProp(props: Readonly<Record<string, unknown>>, key: string, fallback: string): string {
-  const value = props[key];
-  return typeof value === "string" && value.length > 0 ? value : fallback;
-}
-
-function numberProp(props: Readonly<Record<string, unknown>>, key: string, fallback: number): number {
-  const value = props[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-interface SharedDomHostProps {
-  readonly family: "booking" | "guidance";
-  readonly component: string;
-  readonly props: Readonly<Record<string, unknown>>;
-  readonly emit?: (event: string, payload?: unknown) => void;
-  readonly preview?: boolean;
-}
-
-function SharedDomHost({ family, component, props, emit, preview = false }: SharedDomHostProps): ReactElement {
-  const ref = useRef<HTMLDivElement | null>(null);
-  useLayoutEffect(() => {
-    if (!ref.current) return undefined;
-    const host = ref.current;
-    return family === "booking"
-      ? mountAirlineStudioComponent(host, component, props, emit)
-      : mountAirlineGuidanceStudioComponent(host, component, props, emit);
-  }, [family, component, props, emit]);
-  return createElement("div", {
-    ref,
-    className: preview ? "shared-brand-preview" : "shared-brand-runtime",
-  });
-}
-
-function heading(props: Readonly<Record<string, unknown>>): ReactNode {
-  return createElement("h2", { className: "demo-heading", style: { margin: 0 } }, textProp(props, "text", "Heading"));
-}
-
-function bodyText(props: Readonly<Record<string, unknown>>): ReactNode {
-  return createElement("p", { className: "demo-text", style: { margin: 0 } }, textProp(props, "text", "Text"));
-}
-
-function badge(props: Readonly<Record<string, unknown>>): ReactNode {
-  const tone = textProp(props, "tone", "neutral");
-  const background = tone === "success" ? "#ecfdf3" : tone === "warning" ? "#fff7ed" : tone === "accent" ? "#fff3d6" : "#f3f4f6";
-  return createElement("span", {
-    style: {
-      display: "inline-flex",
-      width: "fit-content",
-      padding: "5px 9px",
-      borderRadius: 999,
-      background,
-      border: "1px solid rgba(18,26,47,.12)",
-      fontSize: 12,
-      fontWeight: 750,
-    },
-  }, textProp(props, "text", "Badge"));
-}
-
-function price(props: Readonly<Record<string, unknown>>): ReactNode {
-  return createElement("strong", {
-    style: { fontSize: 24, letterSpacing: "-.03em" },
-  }, `${textProp(props, "currency", "EUR")} ${numberProp(props, "amount", 0).toFixed(0)}`);
-}
-
-function divider(): ReactNode {
-  return createElement("hr", {
-    style: {
-      width: "100%",
-      border: 0,
-      borderTop: "1px solid rgba(18,26,47,.14)",
-      margin: "4px 0",
-    },
-  });
-}
-
-type SlotComponent = ComponentType<{ minEmptyHeight?: number }>;
-function slotFromProps(props: Readonly<Record<string, unknown>>): ReactNode {
-  const Content = props.content as SlotComponent | undefined;
-  return Content ? createElement(Content, { minEmptyHeight: 64 }) : null;
-}
-
-function stack(props: Readonly<Record<string, unknown>>): ReactNode {
-  return createElement("section", {
-    className: "demo-stack",
-    style: { display: "grid", gap: 14 },
-  }, slotFromProps(props));
-}
-
-function row(props: Readonly<Record<string, unknown>>): ReactNode {
-  return createElement("section", {
-    style: { display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" },
-  }, slotFromProps(props));
-}
-
-function grid(props: Readonly<Record<string, unknown>>): ReactNode {
-  const columns = textProp(props, "columns", "2");
-  return createElement("section", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: `repeat(${columns === "3" ? 3 : 2}, minmax(0, 1fr))`,
-      gap: 12,
-    },
-  }, slotFromProps(props));
-}
-
-function card(props: Readonly<Record<string, unknown>>): ReactNode {
-  const variant = textProp(props, "variant", "default");
-  return createElement("section", {
-    style: {
-      display: "grid",
-      gap: 10,
-      padding: 18,
-      borderRadius: 18,
-      border: "1px solid rgba(18,26,47,.12)",
-      background: variant === "accent" ? "#fff7e8" : variant === "subtle" ? "#f7f8fa" : "#fff",
-      boxShadow: "0 8px 24px rgba(18,26,47,.06)",
-    },
-  }, slotFromProps(props));
-}
-
-function visualButton(props: Readonly<Record<string, unknown>>, onPress?: () => void): ReactNode {
-  const variant = textProp(props, "variant", "primary");
-  return createElement("button", {
-    type: "button",
-    onClick: onPress,
-    style: {
-      width: "fit-content",
-      minHeight: 38,
-      borderRadius: 10,
-      padding: "8px 14px",
-      border: variant === "primary" ? 0 : "1px solid #d1d5db",
-      background: variant === "primary" ? "#111827" : variant === "ghost" ? "transparent" : "#fff",
-      color: variant === "primary" ? "#fff" : "#111827",
-      fontWeight: 750,
-    },
-  }, textProp(props, "label", "Button"));
-}
-
-const bookingWorkbenchRenderers = Object.fromEntries(
-  Object.values(AIRLINE_STUDIO_COMPONENTS).map((component) => [
-    component,
-    ({ props }: { props: Readonly<Record<string, unknown>> }) => createElement(SharedDomHost, {
-      family: "booking",
-      component,
-      props,
-    }),
-  ]),
-);
-const guidanceWorkbenchRenderers = Object.fromEntries(
-  Object.values(AIRLINE_GUIDANCE_STUDIO_COMPONENTS).map((component) => [
-    component,
-    ({ props }: { props: Readonly<Record<string, unknown>> }) => createElement(SharedDomHost, {
-      family: "guidance",
-      component,
-      props,
-    }),
-  ]),
-);
-
-export const workbenchRenderers = {
-  "airline.layout.stack": ({ props }: { props: Readonly<Record<string, unknown>> }) => stack(props),
-  "airline.layout.row": ({ props }: { props: Readonly<Record<string, unknown>> }) => row(props),
-  "airline.layout.grid": ({ props }: { props: Readonly<Record<string, unknown>> }) => grid(props),
-  "airline.layout.card": ({ props }: { props: Readonly<Record<string, unknown>> }) => card(props),
-  "airline.component.heading": ({ props }: { props: Readonly<Record<string, unknown>> }) => heading(props),
-  "airline.component.text": ({ props }: { props: Readonly<Record<string, unknown>> }) => bodyText(props),
-  "airline.component.button": ({ props }: { props: Readonly<Record<string, unknown>> }) => visualButton(props),
-  [OFFER_BUTTON]: ({ props }: { props: Readonly<Record<string, unknown>> }) => visualButton(props),
-  "airline.component.badge": ({ props }: { props: Readonly<Record<string, unknown>> }) => badge(props),
-  "airline.component.price": ({ props }: { props: Readonly<Record<string, unknown>> }) => price(props),
-  "airline.component.divider": () => divider(),
-  ...bookingWorkbenchRenderers,
-  ...guidanceWorkbenchRenderers,
-};
-
-const slotRuntime = (style: Readonly<Record<string, unknown>> = {}): StudioRuntimeReactRenderer => (
-  ({ slots }) => createElement("section", { style }, ...(slots.content ?? []))
-);
-const runtimeRenderersGeneric: Readonly<Record<string, StudioRuntimeReactRenderer>> = {
-  "airline.layout.stack": slotRuntime({ display: "grid", gap: 14 }),
-  "airline.layout.row": slotRuntime({ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }),
-  "airline.layout.grid": ({ props, slots }) => createElement("section", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: `repeat(${textProp(props, "columns", "2") === "3" ? 3 : 2}, minmax(0, 1fr))`,
-      gap: 12,
-    },
-  }, ...(slots.content ?? [])),
-  "airline.layout.card": ({ props, slots }) => {
-    const variant = textProp(props, "variant", "default");
-    return createElement("section", {
-      style: {
-        display: "grid",
-        gap: 10,
-        padding: 18,
-        borderRadius: 18,
-        border: "1px solid rgba(18,26,47,.12)",
-        background: variant === "accent" ? "#fff7e8" : variant === "subtle" ? "#f7f8fa" : "#fff",
-        boxShadow: "0 8px 24px rgba(18,26,47,.06)",
-      },
-    }, ...(slots.content ?? []));
-  },
-  "airline.component.heading": ({ props }) => heading(props),
-  "airline.component.text": ({ props }) => bodyText(props),
-  "airline.component.button": ({ props, emit }) => visualButton(props, () => { emit("press", {}); }),
-  [OFFER_BUTTON]: ({ props, emit }) => visualButton(props, () => { emit("press", {}); }),
-  "airline.component.badge": ({ props }) => badge(props),
-  "airline.component.price": ({ props }) => price(props),
-  "airline.component.divider": () => divider(),
-};
-
-const bookingRuntimeRenderers = Object.fromEntries(
-  Object.values(AIRLINE_STUDIO_COMPONENTS).map((component) => [
-    component,
-    (({ props, emit }) => createElement(SharedDomHost, {
-      family: "booking",
-      component,
-      props,
-      emit: (event, payload) => { emit(event, payload); },
-    })) satisfies StudioRuntimeReactRenderer,
-  ]),
-);
-const guidanceRuntimeRenderers = Object.fromEntries(
-  Object.values(AIRLINE_GUIDANCE_STUDIO_COMPONENTS).map((component) => [
-    component,
-    (({ props, emit }) => createElement(SharedDomHost, {
-      family: "guidance",
-      component,
-      props,
-      emit: (event, payload) => { emit(event, payload); },
-    })) satisfies StudioRuntimeReactRenderer,
-  ]),
-);
-
-export const runtimeRenderers = {
-  ...runtimeRenderersGeneric,
-  ...bookingRuntimeRenderers,
-  ...guidanceRuntimeRenderers,
-};
-
-const guidanceTemplates = [
-  {
-    id: "special-assistance",
-    label: "Special assistance",
-    description: "Mobility and airport assistance guidance.",
-    component: AIRLINE_GUIDANCE_STUDIO_COMPONENTS.specialAssistance,
-  },
-  {
-    id: "missed-flight",
-    label: "Missed flight",
-    description: "Scenario-based missed-flight policy experience.",
-    component: AIRLINE_GUIDANCE_STUDIO_COMPONENTS.missedFlight,
-  },
-  {
-    id: "visa-check",
-    label: "Visa check",
-    description: "Travel-document requirements experience.",
-    component: AIRLINE_GUIDANCE_STUDIO_COMPONENTS.visaCheck,
-  },
-] as const;
-const blankTemplate = {
-  id: "blank",
-  label: "Blank",
-  description: "Start with an empty approved layout.",
-} as const;
-const composableTemplate = {
-  id: "composable-canvas",
-  label: "Composable canvas",
-  description: "A nested card built from individually editable brand primitives.",
-} as const;
-
-export const starterTemplates = Object.freeze([
+const starterTemplatesBase = [
   ...AIRLINE_STARTER_TEMPLATES,
-  ...guidanceTemplates,
-  composableTemplate,
-  blankTemplate,
-]);
-export type StarterTemplateId = (typeof starterTemplates)[number]["id"];
-type GuidanceTemplateId = (typeof guidanceTemplates)[number]["id"];
+  { id: "special-assistance", label: "Special assistance", description: "Wheelchair and reduced-mobility assistance flow.", component: AIRLINE_GUIDANCE_STUDIO_COMPONENTS.specialAssistance },
+  { id: "missed-flight", label: "Missed flight", description: "No-show and missed-flight recovery options.", component: AIRLINE_GUIDANCE_STUDIO_COMPONENTS.missedFlight },
+  { id: "visa-check", label: "Visa check", description: "Country and nationality-aware visa guidance flow.", component: AIRLINE_GUIDANCE_STUDIO_COMPONENTS.visaCheck },
+] as const;
 
-const guidanceRuntimeData = createMockAirlineRuntimeData(DEFAULT_MOCK_RUNTIME_INPUT);
-function guidanceString(path: string): string {
-  const value = guidanceRuntimeData[path];
-  if (typeof value !== "string") throw new Error(`Mock airline guidance default ${path} must be a string`);
-  return value;
+export const starterTemplates = Object.freeze(starterTemplatesBase);
+export type StarterTemplateId = (typeof starterTemplatesBase)[number]["id"];
+
+const defaultRuntimeData = createMockAirlineRuntimeData(DEFAULT_MOCK_RUNTIME_INPUT);
+const collectionRuntimeData = createMockAirlineStudioCollectionData(DEFAULT_MOCK_RUNTIME_INPUT);
+
+function domainValue(path: string): unknown {
+  return path in collectionRuntimeData ? collectionRuntimeData[path] : defaultRuntimeData[path];
 }
 
-function guidanceProps(template: GuidanceTemplateId): Readonly<Record<string, string>> {
+function starterProps(template: StarterTemplateId): Readonly<Record<string, string | number>> {
   if (template === "special-assistance") {
     return {
-      summary: guidanceString("guidance.special-assistance.summary"),
-      deadline: guidanceString("guidance.special-assistance.deadline"),
+      summary: String(domainValue("guidance.special-assistance.summary") ?? "Assistance can be requested."),
+      deadline: String(domainValue("guidance.special-assistance.deadline") ?? "Request before departure."),
     };
   }
   if (template === "missed-flight") {
     return {
-      summary: guidanceString("guidance.missed-flight.summary"),
-      "next-action": guidanceString("guidance.missed-flight.next-action"),
+      summary: String(domainValue("guidance.missed-flight.summary") ?? "Your options depend on fare conditions."),
+      "next-action": String(domainValue("guidance.missed-flight.next-action") ?? "Check the next available flight."),
     };
   }
-  return {
-    "origin-country": guidanceString("guidance.visa.origin-country"),
-    "destination-country": guidanceString("guidance.visa.destination-country"),
-    summary: guidanceString("guidance.visa.summary"),
-  };
+  if (template === "visa-check") {
+    return {
+      "origin-country": String(domainValue("guidance.visa.origin-country") ?? "Türkiye"),
+      "destination-country": String(domainValue("guidance.visa.destination-country") ?? "Germany"),
+      summary: String(domainValue("guidance.visa.summary") ?? "Check entry requirements before travel."),
+    };
+  }
+  return airlineStarterProps(template);
 }
 
-function guidanceDocument(experienceId: string, template: GuidanceTemplateId): StudioExperienceDocument {
-  const definition = guidanceTemplates.find((candidate) => candidate.id === template);
-  if (!definition) throw new Error(`Unknown guidance template: ${template}`);
+function singleNodeStarter(experienceId: string, template: StarterTemplateId): StudioExperienceDocument {
+  if (template in Object.fromEntries(AIRLINE_STARTER_TEMPLATES.map((item) => [item.id, true]))) {
+    return createAirlineStarterDocument(experienceId, template as Parameters<typeof createAirlineStarterDocument>[1]);
+  }
+  const definition = starterTemplates.find((candidate) => candidate.id === template);
+  if (!definition) throw new Error(`Unknown starter template: ${template}`);
   const node: StudioNode = {
     id: "root",
     component: definition.component,
     order: 0,
-    props: { ...guidanceProps(template) },
+    props: { ...starterProps(template) },
   };
-  return {
-    version: "1",
-    id: experienceId,
-    recipeId: `studio.guidance.${experienceId.replaceAll(".", "-")}`,
-    entryView: "main",
-    views: [{ id: "main", nodes: [node] }],
-    bindings: [],
-    interactions: [],
-  };
-}
-
-function blankDocument(experienceId: string): StudioExperienceDocument {
-  return {
-    version: "1",
-    id: experienceId,
-    recipeId: `studio.blank.${experienceId.replaceAll(".", "-")}`,
-    entryView: "main",
-    views: [{
-      id: "main",
-      nodes: [{ id: "root", component: "airline.layout.stack", order: 0, props: {} }],
-    }],
-    bindings: [],
-    interactions: [],
-  };
-}
-
-function composableDocument(experienceId: string): StudioExperienceDocument {
-  const nodes: StudioNode[] = [
-    { id: "root", component: "airline.layout.stack", order: 0, props: { designgap: 16 } },
-    { id: "title", component: "airline.component.heading", parentId: "root", slot: "content", order: 0, props: { text: "Your next experience", designfontsize: 30, designweight: "700" } },
-    { id: "intro", component: "airline.component.text", parentId: "root", slot: "content", order: 1, props: { text: "Every element in this starter is an editable Studio node." } },
-    { id: "card", component: "airline.layout.card", parentId: "root", slot: "content", order: 2, props: { variant: "accent", designradius: 22, designpadding: 20, designgap: 12 } },
-    { id: "badge", component: "airline.component.badge", parentId: "card", slot: "content", order: 0, props: { text: "Flexible", tone: "accent" } },
-    { id: "card-title", component: "airline.component.heading", parentId: "card", slot: "content", order: 1, props: { text: "Build with brand components", designfontsize: 22, designweight: "700" } },
-    { id: "card-copy", component: "airline.component.text", parentId: "card", slot: "content", order: 2, props: { text: "Change copy, styling and layout, then drag in more approved components." } },
-    { id: "price", component: "airline.component.price", parentId: "card", slot: "content", order: 3, props: { amount: 138, currency: "EUR", designfontsize: 28, designweight: "800" } },
-    { id: "button", component: "airline.component.button", parentId: "card", slot: "content", order: 4, props: { label: "Continue", variant: "primary", designradius: 12 } },
-    { id: "divider", component: "airline.component.divider", parentId: "root", slot: "content", order: 3, props: {} },
-  ];
-  return {
-    version: "1",
-    id: experienceId,
-    recipeId: `studio.composable.${experienceId.replaceAll(".", "-")}`,
-    entryView: "main",
-    views: [{ id: "main", nodes }],
-    bindings: [],
-    interactions: [],
-  };
-}
-
-function flightResultsDocument(experienceId: string): StudioExperienceDocument {
-  const nodes: StudioNode[] = [
-    { id: "root", component: "airline.layout.stack", order: 0, props: { designgap: 16 } },
-    { id: "title", component: "airline.component.heading", parentId: "root", slot: "content", order: 0, props: { text: "Available flights", designfontsize: 30, designweight: "800" } },
-    { id: "summary", component: "airline.component.text", parentId: "root", slot: "content", order: 1, props: { text: "Choose the departure that works best for your trip." } },
-    {
-      id: "offer-card",
-      component: "airline.layout.card",
-      parentId: "root",
-      slot: "content",
-      order: 2,
-      props: { variant: "default", designradius: 20, designpadding: 18, designgap: 10 },
-      repeat: { source: { kind: "domain", path: "results.offers" } },
-    },
-    { id: "flight-number", component: "airline.component.badge", parentId: "offer-card", slot: "content", order: 0, props: { tone: "accent" } },
-    { id: "schedule", component: "airline.component.heading", parentId: "offer-card", slot: "content", order: 1, props: { designfontsize: 24, designweight: "800" } },
-    { id: "route", component: "airline.component.text", parentId: "offer-card", slot: "content", order: 2, props: {} },
-    { id: "duration", component: "airline.component.text", parentId: "offer-card", slot: "content", order: 3, props: {} },
-    { id: "price", component: "airline.component.price", parentId: "offer-card", slot: "content", order: 4, props: { designfontsize: 28, designweight: "800" } },
-    { id: "seats", component: "airline.component.badge", parentId: "offer-card", slot: "content", order: 5, props: { tone: "warning" } },
-    { id: "choose", component: OFFER_BUTTON, parentId: "offer-card", slot: "content", order: 6, props: { label: "Choose flight", variant: "primary", designradius: 12 } },
-    { id: "notice", component: "airline.component.text", parentId: "root", slot: "content", order: 3, props: { text: "Prices shown are deterministic demo inventory and update with the mock domain controls." } },
-  ];
-
-  const bindings: StudioBinding[] = [
-    { viewId: "main", nodeId: "flight-number", prop: "text", source: { kind: "scope", path: "currentItem.flight-number" } },
-    { viewId: "main", nodeId: "schedule", prop: "text", source: { kind: "scope", path: "currentItem.schedule" } },
-    { viewId: "main", nodeId: "route", prop: "text", source: { kind: "scope", path: "currentItem.route" } },
-    { viewId: "main", nodeId: "duration", prop: "text", source: { kind: "scope", path: "currentItem.duration-label" } },
-    { viewId: "main", nodeId: "price", prop: "amount", source: { kind: "scope", path: "currentItem.price" } },
-    { viewId: "main", nodeId: "price", prop: "currency", source: { kind: "scope", path: "currentItem.currency" } },
-    { viewId: "main", nodeId: "seats", prop: "text", source: { kind: "scope", path: "currentItem.remaining-seats-label" } },
-  ];
-
-  const interactions: StudioInteraction[] = [{
-    viewId: "main",
-    nodeId: "choose",
-    event: "press",
-    actionEvent: "flight.offer.select",
-    routes: [],
-    payloadBindings: [{
-      key: "offerId",
-      source: { kind: "scope", path: "currentItem.id" },
-    }],
-  }];
-
+  const interaction: StudioInteraction | undefined = template === "special-assistance"
+    ? { viewId: "main", nodeId: "root", event: "select", actionEvent: "guidance.assistance.select", routes: [] }
+    : template === "missed-flight"
+      ? { viewId: "main", nodeId: "root", event: "select", actionEvent: "guidance.policy.select", routes: [] }
+      : template === "visa-check"
+        ? { viewId: "main", nodeId: "root", event: "submit", actionEvent: "guidance.visa.submit", routes: [] }
+        : undefined;
   return {
     version: "1",
     id: experienceId,
     recipeId: `studio.airline.${experienceId.replaceAll(".", "-")}`,
     entryView: "main",
-    views: [{ id: "main", nodes }],
-    bindings,
-    interactions,
+    views: [{ id: "main", nodes: [node] }],
+    bindings: [],
+    interactions: interaction ? [interaction] : [],
   };
 }
 
-export function createStarterDocument(
-  experienceId: string,
-  template: StarterTemplateId,
-): StudioExperienceDocument {
-  if (template === "flight-results") return flightResultsDocument(experienceId);
-  const booking = AIRLINE_STARTER_TEMPLATES.find((candidate) => candidate.id === template);
-  if (booking) return createAirlineStarterDocument(experienceId, booking.id);
-  const guidance = guidanceTemplates.find((candidate) => candidate.id === template);
-  if (guidance) return guidanceDocument(experienceId, guidance.id);
-  if (template === "composable-canvas") return composableDocument(experienceId);
-  return blankDocument(experienceId);
+export function createStarterDocument(experienceId: string, template: StarterTemplateId): StudioExperienceDocument {
+  return singleNodeStarter(experienceId, template);
 }
 
-function flightResultsStarterPreview(): ReactElement {
-  const data = createMockAirlineStudioCollectionData(DEFAULT_MOCK_RUNTIME_INPUT);
-  const offer = Array.isArray(data["results.offers"])
-    ? data["results.offers"]?.[0]
-    : undefined;
-  const record = offer && typeof offer === "object" && !Array.isArray(offer)
-    ? offer as Readonly<Record<string, unknown>>
-    : {};
-  return createElement("div", {
-    style: {
-      display: "grid",
-      gap: 7,
-      padding: 12,
-      borderRadius: 16,
-      border: "1px solid rgba(18,26,47,.12)",
-      background: "#fff",
-    },
-  },
-  createElement("strong", null, String(record.schedule ?? "09:10 → 11:15")),
-  createElement("span", null, String(record.route ?? "SAW → BER")),
-  createElement("span", null, `${String(record.currency ?? "EUR")} ${String(record.price ?? 138)}`),
-  createElement("small", null, "Editable repeated card"));
+function RuntimeHost({ component, props, emit }: { component: string; props: Readonly<Record<string, unknown>>; emit: (event: string, payload?: unknown) => void }): ReactElement {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    if (!ref.current) return undefined;
+    if (component in AIRLINE_STUDIO_COMPONENTS || Object.values(AIRLINE_STUDIO_COMPONENTS).includes(component as typeof AIRLINE_STUDIO_COMPONENTS[keyof typeof AIRLINE_STUDIO_COMPONENTS])) {
+      return mountAirlineStudioComponent(ref.current, component, props, emit);
+    }
+    return mountAirlineGuidanceStudioComponent(ref.current, component, props, emit);
+  }, [component, props, emit]);
+  return createElement("div", { ref });
 }
+
+function passthroughRuntimeRenderer(component: string): StudioRuntimeReactRenderer {
+  return ({ props, emit }) => createElement(RuntimeHost, { component, props, emit: (event, payload) => { emit(event, payload); } });
+}
+
+export const runtimeRenderers: Readonly<Record<string, StudioRuntimeReactRenderer>> = Object.freeze(Object.fromEntries(
+  componentCatalog.components.map((component) => [component.ref, passthroughRuntimeRenderer(component.ref)]),
+));
+
+function WorkbenchText({ children }: { children: ReactNode }): ReactElement {
+  return createElement("div", { style: { padding: 12, border: "1px solid #d1d5db", borderRadius: 8, background: "#fff" } }, children);
+}
+
+const simpleWorkbenchRenderers: Readonly<Record<string, ComponentType<Record<string, unknown>>>> = Object.freeze({
+  "airline.layout.stack": ({ children }) => createElement("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, children as ReactNode),
+  "airline.layout.row": ({ children }) => createElement("div", { style: { display: "flex", gap: 12, alignItems: "center" } }, children as ReactNode),
+  "airline.layout.grid": ({ children, columns }) => createElement("div", { style: { display: "grid", gridTemplateColumns: `repeat(${columns === "3" ? 3 : 2}, minmax(0, 1fr))`, gap: 12 } }, children as ReactNode),
+  "airline.layout.card": ({ children, variant }) => createElement("section", { style: { padding: 16, border: "1px solid #d1d5db", borderRadius: 12, background: variant === "accent" ? "#fff7ed" : variant === "subtle" ? "#f8fafc" : "#fff" } }, children as ReactNode),
+  "airline.component.heading": ({ text }) => createElement("h3", { style: { margin: 0 } }, String(text ?? "Heading")),
+  "airline.component.text": ({ text }) => createElement("p", { style: { margin: 0 } }, String(text ?? "Text")),
+  "airline.component.button": ({ label }) => createElement("button", { type: "button" }, String(label ?? "Action")),
+  [OFFER_BUTTON]: ({ label }) => createElement("button", { type: "button" }, String(label ?? "Choose flight")),
+  "airline.component.badge": ({ text }) => createElement("span", null, String(text ?? "Badge")),
+  "airline.component.price": ({ amount, currency }) => createElement(WorkbenchText, null, `${String(amount ?? 0)} ${String(currency ?? "EUR")}`),
+  "airline.component.divider": () => createElement("hr"),
+});
+
+function StudioHost({ component, props, events }: { component: string; props: Readonly<Record<string, unknown>>; events: Readonly<Record<string, (...args: unknown[]) => void>> }): ReactElement {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    if (!ref.current) return undefined;
+    if (Object.values(AIRLINE_STUDIO_COMPONENTS).includes(component as typeof AIRLINE_STUDIO_COMPONENTS[keyof typeof AIRLINE_STUDIO_COMPONENTS])) {
+      return mountAirlineStudioComponent(ref.current, component, props, (event, payload) => events[event]?.(payload));
+    }
+    if (Object.values(AIRLINE_GUIDANCE_STUDIO_COMPONENTS).includes(component as typeof AIRLINE_GUIDANCE_STUDIO_COMPONENTS[keyof typeof AIRLINE_GUIDANCE_STUDIO_COMPONENTS])) {
+      return mountAirlineGuidanceStudioComponent(ref.current, component, props, (event, payload) => events[event]?.(payload));
+    }
+    return undefined;
+  }, [component, props, events]);
+  return createElement("div", { ref });
+}
+
+export const workbenchRenderers: Readonly<Record<string, ComponentType<Record<string, unknown>>>> = Object.freeze(Object.fromEntries(
+  componentCatalog.components.map((component) => [component.ref,
+    simpleWorkbenchRenderers[component.ref]
+      ?? ((props: Record<string, unknown>) => {
+        const eventMap = Object.fromEntries(component.events.map((event) => [event.name, (...args: unknown[]) => { void args; }]));
+        return createElement(StudioHost, { component: component.ref, props, events: eventMap });
+      }),
+  ]),
+));
 
 export function starterPreview(template: StarterTemplateId): ReactElement {
-  if (template === "flight-results") return flightResultsStarterPreview();
-  const booking = AIRLINE_STARTER_TEMPLATES.find((candidate) => candidate.id === template);
-  if (booking) {
-    return createElement(SharedDomHost, {
-      family: "booking",
-      component: booking.component,
-      props: airlineStarterProps(booking.id),
-      preview: true,
-    });
-  }
-  const guidance = guidanceTemplates.find((candidate) => candidate.id === template);
-  if (guidance) {
-    return createElement(SharedDomHost, {
-      family: "guidance",
-      component: guidance.component,
-      props: guidanceProps(guidance.id),
-      preview: true,
-    });
-  }
-  if (template === "composable-canvas") {
-    return createElement("div", {
-      style: {
-        display: "grid",
-        gap: 8,
-        padding: 12,
-        borderRadius: 16,
-        border: "1px solid rgba(18,26,47,.12)",
-        background: "#fff7e8",
-      },
-    },
-    createElement("strong", null, "Composable canvas"),
-    createElement("span", null, "Heading · Text · Card · Badge · Price · Button"));
-  }
-  return createElement("div", { className: "blank-starter-preview" },
-    createElement("span", null, "+"),
-    createElement("strong", null, "Blank canvas"));
+  const definition = starterTemplates.find((candidate) => candidate.id === template);
+  if (!definition) throw new Error(`Unknown starter template: ${template}`);
+  const renderer = workbenchRenderers[definition.component];
+  if (!renderer) throw new Error(`Missing workbench renderer for starter template: ${template}`);
+  return createElement(renderer, { ...starterProps(template) });
 }
