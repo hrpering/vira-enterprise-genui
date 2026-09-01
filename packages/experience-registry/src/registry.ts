@@ -17,6 +17,10 @@ const SNAPSHOT_FIELDS = new Set(["schemaVersion", "manifests"]);
 const CANONICAL_SNAPSHOTS = new WeakSet<object>();
 
 type JsonContainer = Record<string, unknown> | unknown[];
+interface DetachWorkItem {
+  readonly source: JsonContainer;
+  readonly target: JsonContainer;
+}
 
 function snapshotFailure(
   code: ExperienceRegistryValidationCode,
@@ -31,9 +35,21 @@ function parsedObject(value: unknown): value is Record<string, unknown> {
 }
 
 function detachedContainer(source: JsonContainer): JsonContainer {
-  return Array.isArray(source)
-    ? new Array<unknown>(source.length)
-    : Object.create(null) as Record<string, unknown>;
+  if (!Array.isArray(source)) {
+    return Object.create(null) as Record<string, unknown>;
+  }
+  const target = new Array<unknown>(source.length);
+  Object.setPrototypeOf(target, null);
+  return target;
+}
+
+function defineOwnData(target: object, key: PropertyKey, value: unknown): void {
+  Object.defineProperty(target, key, {
+    value,
+    enumerable: true,
+    writable: true,
+    configurable: true,
+  });
 }
 
 function detachParsedJson(input: unknown): unknown {
@@ -41,13 +57,16 @@ function detachParsedJson(input: unknown): unknown {
 
   const rootSource = input as JsonContainer;
   const rootTarget = detachedContainer(rootSource);
-  const stack: Array<{ source: JsonContainer; target: JsonContainer }> = [
-    { source: rootSource, target: rootTarget },
-  ];
+  const worklist = Object.create(null) as Record<number, DetachWorkItem | undefined>;
+  let readIndex = 0;
+  let writeIndex = 1;
+  worklist[0] = { source: rootSource, target: rootTarget };
 
-  while (stack.length > 0) {
-    const current = stack.pop();
-    if (!current) break;
+  while (readIndex < writeIndex) {
+    const current = worklist[readIndex];
+    delete worklist[readIndex];
+    readIndex += 1;
+    if (!current) continue;
 
     if (Array.isArray(current.source)) {
       const target = current.target as unknown[];
@@ -56,10 +75,11 @@ function detachParsedJson(input: unknown): unknown {
         if (child !== null && typeof child === "object") {
           const childSource = child as JsonContainer;
           const childTarget = detachedContainer(childSource);
-          target[index] = childTarget;
-          stack.push({ source: childSource, target: childTarget });
+          defineOwnData(target, String(index), childTarget);
+          worklist[writeIndex] = { source: childSource, target: childTarget };
+          writeIndex += 1;
         } else {
-          target[index] = child;
+          defineOwnData(target, String(index), child);
         }
       }
       continue;
@@ -71,20 +91,11 @@ function detachParsedJson(input: unknown): unknown {
       if (child !== null && typeof child === "object") {
         const childSource = child as JsonContainer;
         const childTarget = detachedContainer(childSource);
-        Object.defineProperty(target, key, {
-          value: childTarget,
-          enumerable: true,
-          writable: true,
-          configurable: true,
-        });
-        stack.push({ source: childSource, target: childTarget });
+        defineOwnData(target, key, childTarget);
+        worklist[writeIndex] = { source: childSource, target: childTarget };
+        writeIndex += 1;
       } else {
-        Object.defineProperty(target, key, {
-          value: child,
-          enumerable: true,
-          writable: true,
-          configurable: true,
-        });
+        defineOwnData(target, key, child);
       }
     }
   }
