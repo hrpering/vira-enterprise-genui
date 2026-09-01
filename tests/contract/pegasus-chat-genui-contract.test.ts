@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { CANONICAL_CHAT_RENDERERS } from "../../examples/pegasus-chat-demo/components/canonical-chat-renderers.js";
+import { CANONICAL_CHAT_COMPONENT_CATALOG } from "../../examples/pegasus-chat-demo/components/canonical-chat-studio-contracts.js";
 import { isViraFlightExperienceResult } from "../../examples/pegasus-chat-demo/lib/vira-chat-contract.js";
 
 function validResult() {
@@ -38,6 +40,13 @@ function firstOffer() {
 describe("Pegasus Chat approved GenUI result contract", () => {
   it("accepts only the approved flight-experience discriminator with a valid offer payload", () => {
     expect(isViraFlightExperienceResult(validResult())).toBe(true);
+  });
+
+  it("keeps the trusted runtime renderer registry in exact parity with the approved Chat catalog", () => {
+    const componentRefs = CANONICAL_CHAT_COMPONENT_CATALOG.components
+      .map((component) => component.ref)
+      .sort();
+    expect(Object.keys(CANONICAL_CHAT_RENDERERS).sort()).toEqual(componentRefs);
   });
 
   it("rejects a different experience before the Chat renderer can construct a Studio publication", () => {
