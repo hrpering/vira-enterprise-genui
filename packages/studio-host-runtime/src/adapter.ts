@@ -73,9 +73,13 @@ export function createStudioHostRuntimeAdapter(hostInput: unknown): StudioHostRu
     if (parsed.value.revision < current.revision) {
       return issue("STALE_SNAPSHOT", "$.snapshot.revision", "Studio host snapshot revision moved backwards");
     }
-    const revisionChanged = parsed.value.revision !== current.revision;
+    if (parsed.value.revision === current.revision) {
+      // A revision is the host's change token. Duplicate deliveries must never mutate
+      // canonical state/domain behind the same revision or trigger consumer refreshes.
+      return undefined;
+    }
     current = parsed.value;
-    if (revisionChanged) notifySnapshot(current);
+    notifySnapshot(current);
     return undefined;
   };
 
