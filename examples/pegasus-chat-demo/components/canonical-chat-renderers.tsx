@@ -22,6 +22,8 @@ import {
 } from "react";
 import type { ReactElement, ReactNode } from "react";
 
+type RendererContext = Parameters<StudioRuntimeReactRenderer>[0];
+
 function text(props: Readonly<Record<string, unknown>>, key: string, fallback = ""): string {
   const value = props[key];
   return typeof value === "string" && value.length > 0 ? value : fallback;
@@ -53,7 +55,7 @@ function Shell({ children }: { readonly children: ReactNode }): ReactElement {
   return createElement("section", { className: "vira-booking-flow standalone-brand-component" }, children);
 }
 
-function FareRenderer({ props, emit }: Parameters<StudioRuntimeReactRenderer>[0]): ReactElement {
+function FareRenderer({ props, emit }: RendererContext): ReactElement {
   const base = number(props, "base-price");
   const passengers = Math.max(1, Math.round(number(props, "passengers", 1)));
   const currency = text(props, "currency", "EUR");
@@ -87,7 +89,7 @@ function FareRenderer({ props, emit }: Parameters<StudioRuntimeReactRenderer>[0]
   );
 }
 
-function SeatRenderer({ props, emit }: Parameters<StudioRuntimeReactRenderer>[0]): ReactElement {
+function SeatComponent({ props, emit }: Pick<RendererContext, "props" | "emit">): ReactElement {
   const passengers = Math.max(1, Math.min(8, Math.round(number(props, "passengers", 1))));
   const fare = text(props, "fare", "smart");
   const [selected, setSelected] = useState<readonly string[]>([]);
@@ -129,7 +131,10 @@ function SeatRenderer({ props, emit }: Parameters<StudioRuntimeReactRenderer>[0]
   );
 }
 
-function BaggageRenderer({ props, emit }: Parameters<StudioRuntimeReactRenderer>[0]): ReactElement {
+const SeatRenderer: StudioRuntimeReactRenderer = ({ props, emit }) =>
+  createElement(SeatComponent, { props, emit });
+
+function BaggageComponent({ props, emit }: Pick<RendererContext, "props" | "emit">): ReactElement {
   const passengers = Math.max(1, Math.min(8, Math.round(number(props, "passengers", 1))));
   const fare = text(props, "fare", "smart");
   const [selected, setSelected] = useState<ReadonlyMap<number, string>>(() => new Map());
@@ -168,6 +173,9 @@ function BaggageRenderer({ props, emit }: Parameters<StudioRuntimeReactRenderer>
   );
 }
 
+const BaggageRenderer: StudioRuntimeReactRenderer = ({ props, emit }) =>
+  createElement(BaggageComponent, { props, emit });
+
 function selectedExtrasFrom(props: Readonly<Record<string, unknown>>): readonly string[] {
   return text(props, "selected-extras")
     .split(",")
@@ -175,16 +183,17 @@ function selectedExtrasFrom(props: Readonly<Record<string, unknown>>): readonly 
     .filter(Boolean);
 }
 
-function ExtrasRenderer({ props, emit }: Parameters<StudioRuntimeReactRenderer>[0]): ReactElement {
+function ExtrasComponent({ props, emit }: Pick<RendererContext, "props" | "emit">): ReactElement {
   const passengers = Math.max(1, Math.min(8, Math.round(number(props, "passengers", 1))));
   const fare = text(props, "fare", "smart");
   const externalInsurance = text(props, "insurance-id", "none");
+  const externalExtrasText = text(props, "selected-extras");
   const externalExtras = selectedExtrasFrom(props);
   const [insurance, setInsurance] = useState(externalInsurance);
   const [extras, setExtras] = useState<readonly string[]>(externalExtras);
 
   useEffect(() => { setInsurance(externalInsurance); }, [externalInsurance]);
-  useEffect(() => { setExtras(externalExtras); }, [text(props, "selected-extras")]);
+  useEffect(() => { setExtras(externalExtras); }, [externalExtrasText]);
   const selected = new Set(extras);
 
   return createElement(Shell, null,
@@ -226,7 +235,10 @@ function ExtrasRenderer({ props, emit }: Parameters<StudioRuntimeReactRenderer>[
   );
 }
 
-function ReviewRenderer({ nodeId, props, emit }: Parameters<StudioRuntimeReactRenderer>[0]): ReactElement {
+const ExtrasRenderer: StudioRuntimeReactRenderer = ({ props, emit }) =>
+  createElement(ExtrasComponent, { props, emit });
+
+function ReviewRenderer({ nodeId, props, emit }: RendererContext): ReactElement {
   const currency = text(props, "currency", "EUR");
   const total = number(props, "total", number(props, "base-price"));
   const confirmation = nodeId === "confirmation-root";
@@ -269,7 +281,7 @@ const sharedComponents = new Set<string>([
 export const CANONICAL_CHAT_RENDERERS: Readonly<Record<string, StudioRuntimeReactRenderer>> = Object.freeze(Object.fromEntries(
   Object.values(AIRLINE_STUDIO_COMPONENTS).map((component) => {
     if (sharedComponents.has(component)) {
-      return [component, ({ props, emit }: Parameters<StudioRuntimeReactRenderer>[0]) =>
+      return [component, ({ props, emit }: RendererContext) =>
         createElement(SharedAirlineWidget, { component, props, emit })] as const;
     }
     if (component === AIRLINE_STUDIO_COMPONENTS.fareComparison) return [component, FareRenderer] as const;
