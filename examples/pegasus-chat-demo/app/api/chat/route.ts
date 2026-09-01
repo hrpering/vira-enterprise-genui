@@ -19,6 +19,12 @@ import {
   getVisaGuidance,
   searchFlights,
 } from "@vira-enterprise-genui/mock-airline-domain";
+import {
+  RECIPE_CARD_ENTRYPOINT,
+  RECIPE_CARD_PACK_ID,
+  RECIPE_CARD_PACK_VERSION,
+  createRecipePayload,
+} from "@vira-enterprise-genui/recipe-brand-kit";
 import { z } from "zod";
 
 const flightSearchSchema = z.object({
@@ -28,34 +34,49 @@ const flightSearchSchema = z.object({
   passengers: z.number().int().min(1).max(8).default(1),
 });
 
+const recipeInputSchema = z.object({
+  dish: z.enum(["shakshuka", "tomato-pasta", "pancakes"]),
+  servings: z.number().int().min(1).max(12).default(4),
+});
+
 const flightPackSchema = z.object({
   id: z.literal(FLIGHT_BOOKING_PACK_ID),
   version: z.literal(FLIGHT_BOOKING_PACK_VERSION),
   entrypoint: z.literal(FLIGHT_BOOKING_ENTRYPOINT),
 });
 
-const flightCommandSchema = z.enum([
+const recipePackSchema = z.object({
+  id: z.literal(RECIPE_CARD_PACK_ID),
+  version: z.literal(RECIPE_CARD_PACK_VERSION),
+  entrypoint: z.literal(RECIPE_CARD_ENTRYPOINT),
+});
+
+const commandSchema = z.enum([
   "select-cheapest",
   "select-fare",
   "set-baggage-all",
   "set-insurance",
   "add-extra",
   "set-seat-zone",
+  "increase-servings",
+  "decrease-servings",
+  "toggle-favorite",
 ]);
 
-const viraExperienceSchema = z.discriminatedUnion("op", [
-  z.object({
-    op: z.literal("present"),
-    pack: flightPackSchema,
-    input: flightSearchSchema,
-  }),
+const presentSchema = z.union([
+  z.object({ op: z.literal("present"), pack: flightPackSchema, input: flightSearchSchema }),
+  z.object({ op: z.literal("present"), pack: recipePackSchema, input: recipeInputSchema }),
+]);
+
+const viraExperienceSchema = z.union([
+  presentSchema,
   z.object({
     op: z.literal("command"),
     instanceId: z.string().min(1).max(4_096),
-    command: flightCommandSchema,
+    command: commandSchema,
     args: z.object({
       value: z.string().optional().describe(
-        "Command value when required: fare light|smart|flex, baggage none|15kg|20kg|25kg, insurance none|travel|flex-plus, extra priority|fast-track|meal|sms, or seat zone front|extra-legroom|standard",
+        "Optional command value for Flight commands: fare light|smart|flex, baggage none|15kg|20kg|25kg, insurance none|travel|flex-plus, extra priority|fast-track|meal|sms, or seat zone front|extra-legroom|standard",
       ),
     }).default({}),
   }),
@@ -78,6 +99,34 @@ const viraGuidanceSchema = z.object({
 
 type GuidanceExperience = z.infer<typeof viraGuidanceSchema>["experience"];
 type GuidanceInput = z.infer<typeof viraGuidanceSchema>["input"];
+type Presenter = (input: unknown) => Readonly<Record<string, unknown>>;
+
+function packKey(pack: { readonly id: string; readonly version: string; readonly entrypoint: string }): string {
+  return `${pack.id}@${pack.version}:${pack.entrypoint}`;
+}
+
+const presenters = new Map<string, Presenter>([
+  [
+    packKey({ id: FLIGHT_BOOKING_PACK_ID, version: FLIGHT_BOOKING_PACK_VERSION, entrypoint: FLIGHT_BOOKING_ENTRYPOINT }),
+    (input) => {
+      const parsed = flightSearchSchema.parse(input);
+      const searched = searchFlights(parsed);
+      return {
+        input: {
+          origin: searched.origin,
+          destination: searched.destination,
+          departureDate: searched.departureDate,
+          passengers: searched.passengers,
+        },
+        data: { offers: searched.offers },
+      };
+    },
+  ],
+  [
+    packKey({ id: RECIPE_CARD_PACK_ID, version: RECIPE_CARD_PACK_VERSION, entrypoint: RECIPE_CARD_ENTRYPOINT }),
+    (input) => createRecipePayload(recipeInputSchema.parse(input)),
+  ],
+]);
 
 function guidanceData(experience: GuidanceExperience, input: GuidanceInput): Readonly<Record<string, unknown>> {
   if (experience === "advisory.special-assistance") return getSpecialAssistanceGuidance();
@@ -107,27 +156,22 @@ export async function POST(request: Request) {
   const result = streamText({
     model,
     system: [
-      "You are the customer-facing airline assistant in a real web chat.",
-      "Be concise, warm, and transactional. Never mention implementation details, schemas, internal mocks, or developer concepts.",
-      "Operational facts shown in interactive experiences must come from the airline domain tool result. Never invent flight numbers, schedules, prices, availability, fare options, seat inventory, baggage prices, extras, or policy facts.",
+      "You are Vira, a concise customer-facing assistant. Never mention implementation details, schemas, internal mocks, or developer concepts.",
       "Use Vira interactive experiences when structured interaction is more useful than a long paragraph.",
+      "For airline operational facts, use the airline domain tool result. Never invent flight numbers, schedules, prices, availability, fare options, seat inventory, baggage prices, extras, or policy facts.",
       "For wheelchair, reduced-mobility, or airport special-assistance questions, call vira_present_guidance with experience advisory.special-assistance. Do not write the full policy as plain text.",
       "For missed-flight, no-show, missed connection, or what-happens-if-I-miss-my-flight questions, call vira_present_guidance with experience policy.missed-flight. Do not dump a long policy paragraph in chat.",
-      "For visa, entry-requirement, or travel-document questions, call vira_present_guidance with experience compliance.visa-check. Pass originCountry and destinationCountry when the user supplied them. Pass nationality, passportIssuer, or residence only when the user explicitly supplied them; never guess those identity details.",
+      "For visa, entry-requirement, or travel-document questions, call vira_present_guidance with experience compliance.visa-check. Pass originCountry and destinationCountry when supplied. Pass nationality, passportIssuer, or residence only when explicitly supplied; never guess identity details.",
       "After presenting a guidance experience, add at most one short sentence telling the user to use the interactive card below.",
-      "For other ordinary airline questions, answer naturally in chat unless another Vira experience is available.",
-      `When the user wants to search or compare flights and you know origin, destination, departure date, and passenger count, call vira_experience with op present and pack ${FLIGHT_BOOKING_PACK_ID}@${FLIGHT_BOOKING_PACK_VERSION} entrypoint ${FLIGHT_BOOKING_ENTRYPOINT}.`,
+      `When the user wants to search or compare flights and origin, destination, departure date, and passenger count are known, call vira_experience with op present and pack ${FLIGHT_BOOKING_PACK_ID}@${FLIGHT_BOOKING_PACK_VERSION} entrypoint ${FLIGHT_BOOKING_ENTRYPOINT}.`,
       "If a required flight-search field is missing, ask one short follow-up question instead of guessing.",
+      `For an interactive recipe request for Shakshuka, One-Pan Tomato Pasta, or Fluffy Breakfast Pancakes, call vira_experience with op present and pack ${RECIPE_CARD_PACK_ID}@${RECIPE_CARD_PACK_VERSION} entrypoint ${RECIPE_CARD_ENTRYPOINT}. Use dish shakshuka, tomato-pasta, or pancakes and the requested serving count.`,
       "A successful vira_experience present result contains an instanceId. Treat that instanceId as the exact identity of that mounted experience.",
-      "When the user asks to change a mounted booking experience, call vira_experience with op command and the instanceId belonging to that exact experience. Never guess, omit, or substitute an instanceId.",
-      "Map 'cheapest' to select-cheapest.",
-      "Map Light, Smart, or Flex fare requests to select-fare with args.value light, smart, or flex.",
-      "Map baggage requests for everyone to set-baggage-all with args.value none, 15kg, 20kg, or 25kg.",
-      "Map insurance requests to set-insurance with args.value none, travel, or flex-plus.",
-      "Map priority boarding, fast track, meal, or SMS requests to add-extra with args.value priority, fast-track, meal, or sms.",
-      "Map front, extra-legroom, or standard seat preferences to set-seat-zone with args.value front, extra-legroom, or standard.",
-      "After a vira_experience command, acknowledge the change briefly. Do not tell the user to click the option you just applied and do not guess or restate a price; the targeted Vira experience is the source of truth for its current total.",
-      "After presenting a new booking experience, briefly tell the user that the interactive booking flow is available below.",
+      "When multiple Vira experiences exist in the conversation, a command must target the instanceId belonging to the exact experience the user referred to. Never use the newest or latest experience as an implicit target.",
+      "For Flight: map cheapest to select-cheapest; Light/Smart/Flex to select-fare; baggage for everyone to set-baggage-all; insurance to set-insurance; priority/fast track/meal/SMS to add-extra; seat preferences to set-seat-zone.",
+      "For Recipe: map 'one more serving' or increase servings to increase-servings; reduce servings to decrease-servings; save/favorite or unsave to toggle-favorite.",
+      "After a vira_experience command, acknowledge the change briefly. The targeted interactive experience is the source of truth for its current state.",
+      "After presenting a new experience, briefly tell the user that the interactive experience is available below.",
     ].join("\n"),
     messages: await convertToModelMessages(body.messages),
     stopWhen: stepCountIs(5),
@@ -146,21 +190,14 @@ export async function POST(request: Request) {
             };
           }
 
-          const searched = searchFlights(input.input);
+          const presenter = presenters.get(packKey(input.pack));
+          if (!presenter) throw new Error("requested Vira Experience Pack is not registered");
           return {
             version: "1" as const,
             op: "present" as const,
-            instanceId: `flight-${randomUUID()}`,
+            instanceId: `experience-${randomUUID()}`,
             pack: input.pack,
-            payload: {
-              input: {
-                origin: searched.origin,
-                destination: searched.destination,
-                departureDate: searched.departureDate,
-                passengers: searched.passengers,
-              },
-              data: { offers: searched.offers },
-            },
+            payload: presenter(input.input),
           };
         },
       }),
