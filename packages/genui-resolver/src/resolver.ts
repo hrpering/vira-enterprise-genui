@@ -12,10 +12,12 @@ import {
 import { parseJsonValue } from "@vira-enterprise-genui/protocol";
 import type { JsonObject, JsonValue } from "@vira-enterprise-genui/protocol";
 import type {
+  ViraCommandAdapter,
   ViraCommandAdapterResult,
   ViraDependencyManifest,
   ViraRuntimeCapabilityProfile,
   ViraRuntimeCapabilityRegistry,
+  ViraRuntimeProfilePreparation,
 } from "./capabilities.js";
 import type {
   ViraExperiencePackIdentity,
@@ -184,6 +186,21 @@ function commandAdapterResult(result: ViraCommandAdapterResult): ViraResolvedExp
     : commandFailure("COMMAND_REJECTED", result.issue.path, result.issue.message);
 }
 
+function ownCommandAdapter(
+  commands: Readonly<Record<string, ViraCommandAdapter>> | undefined,
+  command: string,
+): ViraCommandAdapter | undefined {
+  if (!commands) return undefined;
+  const descriptor = Object.getOwnPropertyDescriptor(commands, command);
+  return descriptor && "value" in descriptor && typeof descriptor.value === "function"
+    ? descriptor.value
+    : undefined;
+}
+
+function disposePreparation(preparation: ViraRuntimeProfilePreparation): void {
+  try { preparation.dispose?.(); } catch { /* trusted profile cleanup is best-effort */ }
+}
+
 export function createViraExperienceResolver(input: ViraExperienceResolverInput): ViraExperienceResolver {
   const runtimeFactory = input.runtimeFactory ?? createViraExperienceRuntime;
   return Object.freeze({
@@ -233,7 +250,7 @@ export function createViraExperienceResolver(input: ViraExperienceResolverInput)
       }
       const profile: ViraRuntimeCapabilityProfile = capability.value;
 
-      let preparation;
+      let preparation: ViraRuntimeProfilePreparation;
       try {
         preparation = await profile.prepare({
           instanceId: message.instanceId,
@@ -246,6 +263,7 @@ export function createViraExperienceResolver(input: ViraExperienceResolverInput)
       }
       for (const ref of dependencies.value.componentRefs) {
         if (!hasRenderer(preparation.renderers, ref)) {
+          disposePreparation(preparation);
           return failure("MISSING_RENDERER", `$.renderers.${ref}`, `trusted runtime profile does not provide renderer for ${ref}`);
         }
       }
@@ -262,10 +280,15 @@ export function createViraExperienceResolver(input: ViraExperienceResolverInput)
           host: preparation.host,
         });
       } catch {
+        disposePreparation(preparation);
         return failure("RUNTIME_FAILED", "$.runtime", "canonical GenUI runtime factory threw unexpectedly");
       }
-      if (!runtimeResult.ok) return runtimeFailure(runtimeResult);
+      if (!runtimeResult.ok) {
+        disposePreparation(preparation);
+        return runtimeFailure(runtimeResult);
+      }
       const runtime = runtimeResult.value;
+      const commands = preparation.commands ?? profile.commands;
       let disposed = false;
       const pack: ViraExperiencePackIdentity = Object.freeze({ ...message.pack });
       const resolved: ViraResolvedExperience = {
@@ -277,8 +300,8 @@ export function createViraExperienceResolver(input: ViraExperienceResolverInput)
         renderers: preparation.renderers,
         async command(command, args): Promise<ViraResolvedExperienceCommandResult> {
           if (disposed) return commandFailure("RESOLVED_EXPERIENCE_DISPOSED", "$.instanceId", "resolved experience is disposed");
-          const adapter = profile.commands?.[command];
-          if (typeof adapter !== "function") return commandFailure("UNKNOWN_COMMAND", "$.command", "command alias is not registered for this runtime profile");
+          const adapter = ownCommandAdapter(commands, command);
+          if (!adapter) return commandFailure("UNKNOWN_COMMAND", "$.command", "command alias is not registered for this runtime profile");
           try {
             return commandAdapterResult(await adapter({
               runtime,
@@ -296,6 +319,7 @@ export function createViraExperienceResolver(input: ViraExperienceResolverInput)
           if (disposed) return;
           disposed = true;
           runtime.dispose();
+          disposePreparation(preparation);
         },
       };
       return { ok: true, value: Object.freeze(resolved) };

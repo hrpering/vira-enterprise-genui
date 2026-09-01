@@ -19,10 +19,6 @@ export interface ViraRuntimeProfileContext {
   readonly publication: JsonObject;
 }
 
-export interface ViraRuntimeProfilePreparation extends Omit<ViraExperienceRuntimeInput, "publication"> {
-  readonly renderers: Readonly<Record<string, StudioRuntimeReactRenderer>>;
-}
-
 export interface ViraCommandAdapterIssue {
   readonly code: string;
   readonly path: string;
@@ -45,6 +41,14 @@ export interface ViraCommandAdapterContext {
 export type ViraCommandAdapter = (
   context: ViraCommandAdapterContext,
 ) => ViraCommandAdapterResult | Promise<ViraCommandAdapterResult>;
+
+export interface ViraRuntimeProfilePreparation extends Omit<ViraExperienceRuntimeInput, "publication"> {
+  readonly renderers: Readonly<Record<string, StudioRuntimeReactRenderer>>;
+  /** Optional per-instance adapters may close over trusted host state prepared for this exact instance. */
+  readonly commands?: Readonly<Record<string, ViraCommandAdapter>>;
+  /** Releases any profile-owned state. Canonical runtime disposal remains owned by GenUI. */
+  readonly dispose?: () => void;
+}
 
 export interface ViraRuntimeCapabilityProfile {
   readonly id: string;
@@ -115,9 +119,10 @@ function snapshotCommands(
     return { ok: false, issue: issue("INVALID_PROFILE", path, "commands must be a command-adapter record") };
   }
   for (const key of Object.keys(value)) {
-    const adapter = value[key];
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    const adapter = descriptor && "value" in descriptor ? descriptor.value : undefined;
     if (key.length === 0 || key.length > 4_096 || typeof adapter !== "function") {
-      return { ok: false, issue: issue("INVALID_PROFILE", `${path}.${key}`, "command alias must map to a trusted adapter") };
+      return { ok: false, issue: issue("INVALID_PROFILE", `${path}.${key}`, "command alias must map to a trusted own-data adapter") };
     }
     output[key] = adapter;
   }
