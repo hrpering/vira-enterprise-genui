@@ -1,47 +1,23 @@
 "use client";
 
 import { defineToolkit } from "@assistant-ui/react";
-import { useEffect, useRef, useState } from "react";
 import {
-  isViraCommandResult,
-  isViraFlightExperienceResult,
-  type ViraCommandResult,
-} from "../lib/vira-chat-contract";
-import { applyCanonicalViraCommand } from "./canonical-chat-command";
-import { CanonicalStudioFlightExperience } from "./canonical-studio-flight";
-import { viraChatToolkit as reservationToolkit } from "./vira-chat-connector";
+  ViraChatCommandEffect,
+  ViraChatExperience,
+} from "@vira-enterprise-genui/genui-chat";
+import { parseViraExperienceMessage } from "@vira-enterprise-genui/genui-resolver";
+import { createFlightChatBridge } from "../lib/flight-genui.js";
 import guidanceToolkit from "./vira-guidance-toolkit";
 
-function CanonicalViraCommandEffect({ result }: { readonly result: ViraCommandResult }) {
-  const dispatched = useRef(false);
-  const [failed, setFailed] = useState(false);
+const flightBridge = createFlightChatBridge();
 
-  useEffect(() => {
-    if (dispatched.current) return undefined;
-    dispatched.current = true;
-    let active = true;
-    void applyCanonicalViraCommand(result).then(
-      (outcome) => {
-        if (active && !outcome.ok) setFailed(true);
-      },
-      () => {
-        if (active) setFailed(true);
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, [result]);
-
-  return failed
-    ? <div className="flight-error">This booking change could not be applied to the active GenUI step.</div>
-    : null;
+function failure(message: string) {
+  return <div className="flight-error">{message}</div>;
 }
 
 export const viraChatToolkit = defineToolkit({
-  ...reservationToolkit,
   ...guidanceToolkit,
-  vira_present_experience: {
+  vira_experience: {
     type: "backend",
     display: "standalone",
     render: ({ result, status }) => {
@@ -53,18 +29,31 @@ export const viraChatToolkit = defineToolkit({
           </div>
         );
       }
-      if (!isViraFlightExperienceResult(result)) {
-        return <div className="flight-error">This Vira experience could not be displayed.</div>;
+
+      const parsed = parseViraExperienceMessage(result);
+      if (!parsed.ok) return failure("This Vira experience message was rejected safely.");
+      if (parsed.value.op === "present") {
+        return (
+          <ViraChatExperience
+            bridge={flightBridge}
+            message={result}
+            pending={(
+              <div className="flight-loading" aria-live="polite">
+                <span className="flight-loading-dot" />
+                Resolving the approved Experience Pack…
+              </div>
+            )}
+            renderFailure={() => failure("This Vira experience could not be displayed.")}
+          />
+        );
       }
-      return <CanonicalStudioFlightExperience result={result} />;
-    },
-  },
-  vira_interact: {
-    type: "backend",
-    display: "standalone",
-    render: ({ result }) => {
-      if (!isViraCommandResult(result)) return null;
-      return <CanonicalViraCommandEffect result={result} />;
+      return (
+        <ViraChatCommandEffect
+          bridge={flightBridge}
+          message={result}
+          renderFailure={() => failure("This booking change could not be applied to the requested experience.")}
+        />
+      );
     },
   },
 });
