@@ -22,6 +22,7 @@ import {
   type ViraExperienceRuntime,
 } from "@vira-enterprise-genui/genui";
 import { searchFlights } from "@vira-enterprise-genui/mock-airline-domain";
+import type { JsonValue } from "@vira-enterprise-genui/protocol";
 import { createRuntimeState } from "@vira-enterprise-genui/runtime-core";
 import { createElement, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactElement } from "react";
@@ -56,14 +57,24 @@ const assistantCommandEvent = Object.freeze({
 const componentCatalog = Object.freeze({
   ...AIRLINE_STUDIO_CATALOG_INPUT,
   id: "airline.chat.studio.components",
-  components: AIRLINE_STUDIO_CATALOG_INPUT.components.map((component) =>
-    component.ref === AIRLINE_STUDIO_COMPONENTS.extrasSelector
-      || component.ref === AIRLINE_STUDIO_COMPONENTS.bookingReview
+  components: Object.freeze(AIRLINE_STUDIO_CATALOG_INPUT.components.map((component) => {
+    const withDeparture = component.ref === AIRLINE_STUDIO_COMPONENTS.flightResults
       ? Object.freeze({
           ...component,
-          events: Object.freeze([...component.events, assistantCommandEvent]),
+          props: Object.freeze([
+            ...component.props,
+            { key: "departure", type: "string", required: false, bindable: true },
+          ]),
         })
-      : component),
+      : component;
+    return withDeparture.ref === AIRLINE_STUDIO_COMPONENTS.extrasSelector
+      || withDeparture.ref === AIRLINE_STUDIO_COMPONENTS.bookingReview
+      ? Object.freeze({
+          ...withDeparture,
+          events: Object.freeze([...withDeparture.events, assistantCommandEvent]),
+        })
+      : withDeparture;
+  })),
 });
 
 const actionAdapter = {
@@ -88,6 +99,7 @@ const bindingSourceCatalog = {
   sources: [
     { kind: "domain", path: "results.origin", label: "Results origin", valueType: "string" },
     { kind: "domain", path: "results.destination", label: "Results destination", valueType: "string" },
+    { kind: "domain", path: "results.departure", label: "Results departure", valueType: "string" },
     { kind: "domain", path: "results.passengers", label: "Results passengers", valueType: "number" },
     { kind: "domain", path: "results.base-price", label: "Results base price", valueType: "number" },
     { kind: "domain", path: "results.currency", label: "Results currency", valueType: "string" },
@@ -130,6 +142,7 @@ const bindingsByStep: Readonly<Record<string, Readonly<Record<string, string>>>>
   "flight-results": Object.freeze({
     origin: "results.origin",
     destination: "results.destination",
+    departure: "results.departure",
     passengers: "results.passengers",
     "base-price": "results.base-price",
     currency: "results.currency",
@@ -158,15 +171,14 @@ function documentFor(result: ViraFlightExperienceResult): StudioAuthoringDocumen
   const bindings: AuthoredBinding[] = [];
   const interactions: AuthoredInteraction[] = [];
 
-  for (let index = 0; index < STEPS.length; index += 1) {
-    const step = STEPS[index];
+  for (const [index, step] of STEPS.entries()) {
     const source = createAirlineStarterDocument(`chat.segment.${step}`, step);
     const view = source.views[0];
     const node = view?.nodes[0];
     if (!view || !node) throw new Error(`Missing airline Studio starter: ${step}`);
     const next = STEPS[index + 1] ?? "confirmation";
     const id = `${step}-root`;
-    const props: Record<string, unknown> = { ...node.props };
+    const props: Record<string, JsonValue> = { ...node.props };
     if (step === "flight-search") {
       props.origin = result.input.origin;
       props.destination = result.input.destination;
@@ -176,6 +188,7 @@ function documentFor(result: ViraFlightExperienceResult): StudioAuthoringDocumen
       const first = result.data.offers[0];
       props.origin = result.input.origin;
       props.destination = result.input.destination;
+      props.departure = result.input.departureDate;
       props.passengers = result.input.passengers;
       props["base-price"] = first?.price ?? 0;
       props.currency = first?.currency ?? "EUR";
@@ -296,6 +309,7 @@ function createRuntime(result: ViraFlightExperienceResult): CanonicalChatRuntime
         results: {
           origin: searchInput.origin,
           destination: searchInput.destination,
+          departure: searchInput.departureDate,
           passengers: searchInput.passengers,
           "base-price": price,
           currency,
