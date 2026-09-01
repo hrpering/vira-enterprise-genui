@@ -1,0 +1,17 @@
+{
+  "name": "@vira-enterprise-genui/recipe-brand-kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/experience-packs": "workspace:*",
+    "@vira-enterprise-genui/genui": "workspace:*",
+    "@vira-enterprise-genui/genui-resolver": "workspace:*",
+    "@vira-enterprise-genui/protocol": "workspace:*",
+    "@vira-enterprise-genui/runtime-core": "workspace:*",
+    "react": "19.2.8"
+  }
+}
