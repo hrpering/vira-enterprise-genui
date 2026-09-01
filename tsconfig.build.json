@@ -7,6 +7,6 @@
     "sourceMap": true,
     "outDir": ".build"
   },
-  "include": ["packages/**/*.ts", "examples/**/*.ts"],
+  "include": ["packages/**/*.ts", "packages/**/*.tsx", "examples/**/*.ts"],
   "exclude": ["examples/pegasus-chat-demo/**"]
 }

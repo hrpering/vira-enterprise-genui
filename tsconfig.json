@@ -10,8 +10,9 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "types": ["node"],
+    "jsx": "react-jsx",
     "noEmit": true
   },
-  "include": ["packages/**/*.ts", "examples/**/*.ts", "tests/**/*.ts"],
+  "include": ["packages/**/*.ts", "packages/**/*.tsx", "examples/**/*.ts", "tests/**/*.ts"],
   "exclude": ["examples/pegasus-chat-demo/**"]
 }
