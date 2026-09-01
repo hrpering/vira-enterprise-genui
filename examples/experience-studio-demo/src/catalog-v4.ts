@@ -1,6 +1,8 @@
 import type { StudioComponentCatalog } from "@vira-enterprise-genui/studio-catalog";
 import { createStudioDesignCatalog } from "@vira-enterprise-genui/studio-design";
 import type { StudioRuntimeReactRenderer } from "@vira-enterprise-genui/studio-runtime-react";
+import type { StudioExperienceDocument } from "@vira-enterprise-genui/studio-schema";
+import type { ReactElement } from "react";
 import {
   actionAdapter,
   bindingSourceCatalog,
@@ -39,13 +41,16 @@ export const starterTemplates = Object.freeze([
   }),
 ] as const);
 
-export function createStarterDocument(experienceId: string, template: StarterTemplateId) {
+export function createStarterDocument(
+  experienceId: string,
+  template: StarterTemplateId,
+): StudioExperienceDocument {
   return template === BOOKING_JOURNEY_TEMPLATE_ID
     ? createGoldenAirlineExperience(experienceId)
     : createBaseStarterDocument(experienceId, template);
 }
 
-export function starterPreview(template: StarterTemplateId) {
+export function starterPreview(template: StarterTemplateId): ReactElement {
   return baseStarterPreview(template === BOOKING_JOURNEY_TEMPLATE_ID ? "flight-search" : template);
 }
 
