@@ -7,13 +7,15 @@ bounded Registry JSON text
       ↓
 JSON.parse()
       ↓
+iterative null-prototype detach
+      ↓
 existing Experience Pack parser
       ↓
 canonical ExperiencePackManifest values
       ↓
 identity-marked immutable Registry snapshot
       ↓
-exact primitive id + version lookup
+exact id + version lookup
 ```
 
 ## Canonical ownership
@@ -34,9 +36,11 @@ Lookup is exact only. A miss returns `null`; there is no mutable `latest` tag or
 
 ## Untrusted-data boundary
 
-Arbitrary in-process JavaScript objects cannot be safely inspected for Proxy traps in a provider-neutral way. REG-001 therefore accepts untrusted Registry snapshots only as bounded JSON text. The input length is capped before `JSON.parse()`, and the resulting ordinary data is then delegated to the canonical Pack parser.
+Arbitrary in-process JavaScript objects cannot be safely inspected for Proxy traps in a provider-neutral way. REG-001 therefore accepts untrusted Registry snapshots only as bounded JSON text. The input length is capped before `JSON.parse()`.
 
-This removes accessor, Proxy, symbol, sparse/custom-array, and unbounded pre-reflection concerns from the Registry ingress boundary without creating a second Pack validator.
+The parsed JSON graph is then iteratively detached: every ordinary JSON object is copied into a null-prototype object before Pack validation. This prevents polluted `Object.prototype` properties/getters from satisfying or observing missing Pack fields. Arrays are rebuilt as dense arrays from JSON data. The detached graph is then delegated to the canonical Pack parser.
+
+This removes accessor, Proxy, symbol, sparse/custom-array, inherited-object-state, and unbounded pre-reflection concerns from the Registry ingress boundary without creating a second Pack validator.
 
 Successfully parsed snapshots are recorded in a module-private identity set. Exact lookup accepts only one of those canonical snapshot objects, so an arbitrary object or Proxy is rejected before any of its properties are read.
 
