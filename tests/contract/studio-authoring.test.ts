@@ -57,7 +57,7 @@ function document(): StudioAuthoringDocumentInput {
 }
 
 describe("manual Studio authoring", () => {
-  it("adds only canonical defaults and returns the parsed immutable Studio document", () => {
+  it("adds only absent canonical defaults and returns the parsed immutable Studio document", () => {
     const result = defineStudioExperience(document());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -75,6 +75,32 @@ describe("manual Studio authoring", () => {
     expect(defineStudioExperience(input)).toMatchObject({
       ok: false,
       issue: { code: "UNKNOWN_FIELD", path: "$.backendUrl" },
+    });
+  });
+
+  it("does not sanitize explicit malformed version/list fields into valid defaults", () => {
+    expect(defineStudioExperience({
+      ...document(),
+      version: "999",
+    } as unknown as StudioAuthoringDocumentInput)).toMatchObject({
+      ok: false,
+      issue: { path: "$.version" },
+    });
+
+    expect(defineStudioExperience({
+      ...document(),
+      bindings: null,
+    } as unknown as StudioAuthoringDocumentInput)).toMatchObject({
+      ok: false,
+      issue: { path: "$.bindings" },
+    });
+
+    expect(defineStudioExperience({
+      ...document(),
+      interactions: null,
+    } as unknown as StudioAuthoringDocumentInput)).toMatchObject({
+      ok: false,
+      issue: { path: "$.interactions" },
     });
   });
 
