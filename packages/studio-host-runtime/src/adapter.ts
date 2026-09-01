@@ -122,6 +122,7 @@ export function createStudioHostRuntimeAdapter(hostInput: unknown): StudioHostRu
     },
     connect(session: StudioRuntimeSession): StudioHostedRuntimeController {
       let controllerDisposed = false;
+      const forwardedActionIds = new Set<string>();
 
       const forward = async (runtime: StudioRuntimeDispatchResult): Promise<StudioHostedDispatchResult> => {
         if (disposed || controllerDisposed) return { ok: false, issue: issue("DISPOSED", "$", "hosted Studio runtime is disposed") };
@@ -135,6 +136,16 @@ export function createStudioHostRuntimeAdapter(hostInput: unknown): StudioHostRu
         }
 
         const actionId = runtime.value.action.id;
+        if (forwardedActionIds.has(actionId)) {
+          return {
+            ok: false,
+            issue: issue("DUPLICATE_FORWARD", "$.runtime.action.id", "Studio action was already forwarded to the host"),
+          };
+        }
+        // Mark before crossing the host boundary. A transport error cannot prove that the
+        // external side effect did not happen, so replaying the same action id is unsafe.
+        forwardedActionIds.add(actionId);
+
         let hostRaw: unknown;
         try {
           hostRaw = await host.dispatch({
@@ -187,6 +198,7 @@ export function createStudioHostRuntimeAdapter(hostInput: unknown): StudioHostRu
         dispose() {
           if (controllerDisposed) return;
           controllerDisposed = true;
+          forwardedActionIds.clear();
           session.dispose();
         },
       };
