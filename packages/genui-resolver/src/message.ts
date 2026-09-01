@@ -70,8 +70,9 @@ function freezeJson(value: JsonValue): JsonValue {
     for (let index = 0; index < value.length; index += 1) freezeJson(value[index] as JsonValue);
     return Object.freeze(value);
   }
-  for (const key of Object.keys(value)) freezeJson(value[key] as JsonValue);
-  return Object.freeze(value);
+  const object = value as JsonObject;
+  for (const key of Object.keys(object)) freezeJson(object[key] as JsonValue);
+  return Object.freeze(object);
 }
 
 export function parseViraExperienceMessage(input: unknown): ViraExperienceMessageResult {
