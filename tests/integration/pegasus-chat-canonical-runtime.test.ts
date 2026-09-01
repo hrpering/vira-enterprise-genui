@@ -1,47 +1,68 @@
 import { describe, expect, it } from "vitest";
 import { SEAT_OPTIONS } from "../../examples/airline-brand-kit/src/index.js";
 import {
-  applyCanonicalViraCommand,
-  registerCanonicalChatCommandTarget,
-} from "../../examples/pegasus-chat-demo/components/canonical-chat-command.js";
-import { createCanonicalChatRuntime } from "../../examples/pegasus-chat-demo/components/canonical-chat-runtime.js";
-import type { ViraFlightExperienceResult } from "../../examples/pegasus-chat-demo/lib/vira-chat-contract.js";
+  FLIGHT_BOOKING_ENTRYPOINT,
+  FLIGHT_BOOKING_PACK_ID,
+  FLIGHT_BOOKING_PACK_VERSION,
+} from "../../examples/airline-brand-kit/src/chat-publication.js";
+import { createFlightChatBridge } from "../../examples/pegasus-chat-demo/lib/flight-genui.js";
 import { searchFlights } from "../../examples/mock-airline-domain/src/index.js";
+import type { ViraResolvedExperience } from "../../packages/genui-resolver/src/index.js";
 
-function resultFor(date = "2026-09-03"): ViraFlightExperienceResult {
+function presentMessage(instanceId: string, date = "2026-09-03") {
   const search = searchFlights({ origin: "SAW", destination: "BER", departureDate: date, passengers: 2 });
   return {
-    version: "1",
-    kind: "vira.experience",
-    experience: "travel.flight.search",
-    input: {
-      origin: search.origin,
-      destination: search.destination,
-      departureDate: search.departureDate,
-      passengers: search.passengers,
+    version: "1" as const,
+    op: "present" as const,
+    instanceId,
+    pack: {
+      id: FLIGHT_BOOKING_PACK_ID,
+      version: FLIGHT_BOOKING_PACK_VERSION,
+      entrypoint: FLIGHT_BOOKING_ENTRYPOINT,
     },
-    data: { offers: search.offers },
+    payload: {
+      input: {
+        origin: search.origin,
+        destination: search.destination,
+        departureDate: search.departureDate,
+        passengers: search.passengers,
+      },
+      data: { offers: search.offers },
+    },
   };
 }
 
-function currentProps(bundle: NonNullable<ReturnType<typeof createCanonicalChatRuntime>>) {
-  const current = bundle.runtime.controller.currentView();
+function currentProps(runtime: ViraResolvedExperience["runtime"]) {
+  const current = runtime.controller.currentView();
   expect(current.ok).toBe(true);
   if (!current.ok) throw new Error(current.issue.message);
   const root = current.value.nodes[0];
-  if (!root) throw new Error("canonical Chat view must include a root node");
+  if (!root) throw new Error("Flight Pack view must include a root node");
   return root.props;
 }
 
-describe("Pegasus Chat canonical Studio runtime", () => {
-  it("carries search, multi-passenger booking state and assistant commands through the canonical host boundary", async () => {
-    const bundle = createCanonicalChatRuntime(resultFor());
-    expect(bundle).toBeDefined();
-    if (!bundle) return;
+function command(instanceId: string, name: string, value?: string) {
+  return {
+    version: "1" as const,
+    op: "command" as const,
+    instanceId,
+    command: name,
+    args: value === undefined ? {} : { value },
+  };
+}
 
-    expect(bundle.runtime.controller.currentViewId()).toBe("flight-search");
+describe("Pegasus Chat Flight Experience Pack runtime", () => {
+  it("carries the complete booking journey through the generic exact-instance bridge", async () => {
+    const instanceId = "flight-full-journey";
+    const bridge = createFlightChatBridge();
+    const presented = await bridge.present(presentMessage(instanceId));
+    expect(presented.ok).toBe(true);
+    if (!presented.ok) return;
+    const runtime = presented.value.runtime;
 
-    const searched = await bundle.runtime.controller.dispatch({
+    expect(runtime.controller.currentViewId()).toBe("flight-search");
+
+    const searched = await runtime.controller.dispatch({
       nodeId: "flight-search-root",
       event: "submit",
       payload: {
@@ -52,39 +73,39 @@ describe("Pegasus Chat canonical Studio runtime", () => {
       },
     });
     expect(searched.ok).toBe(true);
-    expect(bundle.runtime.controller.currentViewId()).toBe("flight-results");
-    expect(currentProps(bundle)).toMatchObject({
+    expect(runtime.controller.currentViewId()).toBe("flight-results");
+    expect(currentProps(runtime)).toMatchObject({
       origin: "SAW",
       destination: "BER",
       departure: "2026-10-20",
       passengers: 2,
     });
 
-    const offers = bundle.offers();
-    const selected = offers[1] ?? offers[0];
-    if (!selected) throw new Error("canonical Chat search must return an offer");
-    const offerResult = await bundle.runtime.controller.dispatch({
+    const refreshed = searchFlights({ origin: "SAW", destination: "BER", departureDate: "2026-10-20", passengers: 2 });
+    const selected = refreshed.offers[1] ?? refreshed.offers[0];
+    if (!selected) throw new Error("Flight fixture must include an offer");
+    const offerResult = await runtime.controller.dispatch({
       nodeId: "flight-results-root",
       event: "select",
       payload: { offerId: selected.id },
     });
     expect(offerResult.ok).toBe(true);
-    expect(bundle.runtime.controller.currentViewId()).toBe("fare-comparison");
-    expect(currentProps(bundle)).toMatchObject({
+    expect(runtime.controller.currentViewId()).toBe("fare-comparison");
+    expect(currentProps(runtime)).toMatchObject({
       "base-price": selected.price,
       currency: selected.currency,
       passengers: 2,
     });
 
-    const fareResult = await bundle.runtime.controller.dispatch({
+    const fareResult = await runtime.controller.dispatch({
       nodeId: "fare-comparison-root",
       event: "select",
       payload: { fareId: "flex" },
     });
     expect(fareResult.ok).toBe(true);
-    expect(bundle.runtime.controller.currentViewId()).toBe("traveller-details");
+    expect(runtime.controller.currentViewId()).toBe("traveller-details");
 
-    const travellers = await bundle.runtime.controller.dispatch({
+    const travellers = await runtime.controller.dispatch({
       nodeId: "traveller-details-root",
       event: "submit",
       payload: {
@@ -96,109 +117,86 @@ describe("Pegasus Chat canonical Studio runtime", () => {
       },
     });
     expect(travellers.ok).toBe(true);
-    expect(bundle.runtime.controller.currentViewId()).toBe("seat-selection");
-    expect(currentProps(bundle)).toMatchObject({ passengers: 2, fare: "flex" });
+    expect(runtime.controller.currentViewId()).toBe("seat-selection");
+    expect(currentProps(runtime)).toMatchObject({ passengers: 2, fare: "flex" });
 
     const availableSeats = SEAT_OPTIONS.filter((candidate) => candidate.occupied !== true).slice(0, 2);
     const firstSeat = availableSeats[0];
     const secondSeat = availableSeats[1];
-    if (!firstSeat || !secondSeat) throw new Error("airline fixture must include two available seats");
+    if (!firstSeat || !secondSeat) throw new Error("Airline fixture must include two available seats");
 
-    const partialSeat = await bundle.runtime.controller.dispatch({
+    const partialSeat = await runtime.controller.dispatch({
       nodeId: "seat-selection-root",
       event: "select",
       payload: { passengerIndex: 0, seat: firstSeat.id },
     });
     expect(partialSeat).toMatchObject({ ok: true, value: { outcome: "empty" } });
-    expect(bundle.runtime.controller.currentViewId()).toBe("seat-selection");
+    expect(runtime.controller.currentViewId()).toBe("seat-selection");
 
-    const finalSeat = await bundle.runtime.controller.dispatch({
+    const finalSeat = await runtime.controller.dispatch({
       nodeId: "seat-selection-root",
       event: "select",
       payload: { passengerIndex: 1, seat: secondSeat.id },
     });
     expect(finalSeat).toMatchObject({ ok: true, value: { outcome: "success" } });
-    expect(bundle.runtime.controller.currentViewId()).toBe("baggage");
+    expect(runtime.controller.currentViewId()).toBe("baggage");
 
-    const baggage = await bundle.runtime.controller.dispatch({
+    const baggage = await runtime.controller.dispatch({
       nodeId: "baggage-root",
       event: "select",
       payload: { applyToAll: true, optionId: "20kg" },
     });
     expect(baggage).toMatchObject({ ok: true, value: { outcome: "success" } });
-    expect(bundle.runtime.controller.currentViewId()).toBe("extras");
+    expect(runtime.controller.currentViewId()).toBe("extras");
 
-    const unregister = registerCanonicalChatCommandTarget({
-      runtime: bundle.runtime,
-      offers: bundle.offers,
+    await expect(bridge.command(command(instanceId, "set-insurance", "flex-plus"))).resolves.toEqual({ ok: true });
+    expect(runtime.controller.currentViewId()).toBe("extras");
+    expect(currentProps(runtime)).toMatchObject({ "insurance-id": "flex-plus" });
+
+    await expect(bridge.command(command(instanceId, "add-extra", "meal"))).resolves.toEqual({ ok: true });
+    expect(currentProps(runtime)).toMatchObject({ "selected-extras": "meal" });
+
+    const extrasResult = await runtime.controller.dispatch({
+      nodeId: "extras-root",
+      event: "submit",
+      payload: { insuranceId: "flex-plus", extras: ["meal"] },
     });
-    try {
-      await expect(applyCanonicalViraCommand({
-        version: "1",
-        kind: "vira.command",
-        command: "set-insurance",
-        value: "flex-plus",
-      })).resolves.toEqual({ ok: true });
-      expect(bundle.runtime.controller.currentViewId()).toBe("extras");
-      expect(currentProps(bundle)).toMatchObject({ "insurance-id": "flex-plus" });
+    expect(extrasResult.ok).toBe(true);
+    expect(runtime.controller.currentViewId()).toBe("booking-review");
+    const review = currentProps(runtime);
+    expect(review).toMatchObject({
+      origin: "SAW",
+      destination: "BER",
+      passengers: 2,
+      fare: "flex",
+      "base-price": selected.price,
+      currency: selected.currency,
+      "flight-number": selected.flightNumber,
+    });
+    expect(String(review["seat-summary"])).toContain(firstSeat.id);
+    expect(String(review["seat-summary"])).toContain(secondSeat.id);
+    expect(String(review["baggage-summary"])).toContain("P1:");
+    expect(String(review["insurance-label"])).not.toBe("None");
+    expect(String(review["extras-summary"])).toContain("Meal");
+    expect(typeof review.total).toBe("number");
+    expect(Number(review.total)).toBeGreaterThan(selected.price);
 
-      await expect(applyCanonicalViraCommand({
-        version: "1",
-        kind: "vira.command",
-        command: "add-extra",
-        value: "meal",
-      })).resolves.toEqual({ ok: true });
-      expect(currentProps(bundle)).toMatchObject({ "selected-extras": "meal" });
+    await expect(bridge.command(command(instanceId, "add-extra", "fast-track"))).resolves.toEqual({ ok: true });
+    expect(runtime.controller.currentViewId()).toBe("booking-review");
+    expect(String(currentProps(runtime)["extras-summary"])).toContain("Fast");
 
-      const extrasResult = await bundle.runtime.controller.dispatch({
-        nodeId: "extras-root",
-        event: "submit",
-        payload: { insuranceId: "flex-plus", extras: ["meal"] },
-      });
-      expect(extrasResult.ok).toBe(true);
-      expect(bundle.runtime.controller.currentViewId()).toBe("booking-review");
-      const review = currentProps(bundle);
-      expect(review).toMatchObject({
-        origin: "SAW",
-        destination: "BER",
-        passengers: 2,
-        fare: "flex",
-        "base-price": selected.price,
-        currency: selected.currency,
-        "flight-number": selected.flightNumber,
-      });
-      expect(String(review["seat-summary"])).toContain(firstSeat.id);
-      expect(String(review["seat-summary"])).toContain(secondSeat.id);
-      expect(String(review["baggage-summary"])).toContain("P1:");
-      expect(String(review["insurance-label"])).not.toBe("None");
-      expect(String(review["extras-summary"])).toContain("Meal");
-      expect(typeof review.total).toBe("number");
-      expect(Number(review.total)).toBeGreaterThan(selected.price);
-
-      await expect(applyCanonicalViraCommand({
-        version: "1",
-        kind: "vira.command",
-        command: "add-extra",
-        value: "fast-track",
-      })).resolves.toEqual({ ok: true });
-      expect(bundle.runtime.controller.currentViewId()).toBe("booking-review");
-      expect(String(currentProps(bundle)["extras-summary"])).toContain("Fast");
-    } finally {
-      unregister();
-    }
-
-    const handoff = await bundle.runtime.controller.dispatch({
+    const handoff = await runtime.controller.dispatch({
       nodeId: "booking-review-root",
       event: "continue",
       payload: {},
     });
     expect(handoff.ok).toBe(true);
-    expect(bundle.runtime.controller.currentViewId()).toBe("confirmation");
-    expect(currentProps(bundle)).toMatchObject({
+    expect(runtime.controller.currentViewId()).toBe("confirmation");
+    expect(currentProps(runtime)).toMatchObject({
       "flight-number": selected.flightNumber,
       fare: "flex",
     });
 
-    bundle.runtime.dispose();
+    bridge.dispose();
   });
 });
