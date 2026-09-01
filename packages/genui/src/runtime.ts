@@ -75,7 +75,7 @@ export function createViraExperienceRuntime(
     return { ok: false, stage: "runtime", issue: session.issue };
   }
 
-  const controller = host.value.connect(session.value);
+  const hostedController = host.value.connect(session.value);
   let disposed = false;
   let changeRevision = 0;
   const listeners = new Set<ViraExperienceRuntimeListener>();
@@ -91,6 +91,23 @@ export function createViraExperienceRuntime(
       }
     }
   };
+
+  const controller: StudioHostedRuntimeController = Object.freeze({
+    currentViewId: hostedController.currentViewId,
+    currentView: hostedController.currentView,
+    currentRuntimeState: hostedController.currentRuntimeState,
+    async dispatch(eventInput): Promise<StudioHostedDispatchResult> {
+      const result = await hostedController.dispatch(eventInput);
+      notify();
+      return result;
+    },
+    async forward(runtimeResult): Promise<StudioHostedDispatchResult> {
+      const result = await hostedController.forward(runtimeResult);
+      notify();
+      return result;
+    },
+    dispose: hostedController.dispose,
+  });
 
   const unsubscribeHost = host.value.subscribe(() => { notify(); });
 
@@ -117,7 +134,6 @@ export function createViraExperienceRuntime(
         onDispatch: (result) => {
           void controller.forward(result).then((hostResult) => {
             onHostResult?.(hostResult);
-            notify();
           });
         },
       });
