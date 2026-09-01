@@ -1,9 +1,12 @@
 import {
   baggageById,
+  baggageFeeForFare,
   extraById,
+  extraFeeForFare,
   fareById,
   insuranceById,
   seatById,
+  seatFeeForFare,
 } from "@vira-enterprise-genui/airline-brand-kit";
 import {
   createViraExperienceRuntime,
@@ -51,6 +54,19 @@ function record(value: unknown): Readonly<Record<string, unknown>> | undefined {
   }
 }
 
+function requiredText(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function passengerIndex(value: unknown, passengers: number): number | undefined {
+  return typeof value === "number"
+    && Number.isInteger(value)
+    && value >= 0
+    && value < passengers
+    ? value
+    : undefined;
+}
+
 export interface CanonicalChatRuntimeBundle {
   readonly runtime: ViraExperienceRuntime;
   readonly offers: () => readonly FlightOffer[];
@@ -76,21 +92,79 @@ export function createCanonicalChatRuntime(
   let selectedOfferId: string | undefined;
   let selectedFare = "smart";
   let selectedInsurance = "none";
+  let passengerDetails: readonly Readonly<Record<string, string>>[] = [];
+  let bookingContact: Readonly<Record<string, string>> | undefined;
+  const seatSelections = new Map<number, string>();
+  const baggageSelections = new Map<number, string>();
   const selectedExtras = new Set<string>();
 
   const selectedOffer = (): FlightOffer | undefined =>
     offers.find((offer) => offer.id === selectedOfferId) ?? offers[0];
 
+  const resetDownstream = (): void => {
+    passengerDetails = [];
+    bookingContact = undefined;
+    seatSelections.clear();
+    baggageSelections.clear();
+    selectedInsurance = "none";
+    selectedExtras.clear();
+  };
+
+  const fareTotal = (): number => {
+    const offer = selectedOffer();
+    const fare = fareById(selectedFare);
+    return (offer?.price ?? 0) + (fare?.perPassengerExtra ?? 0) * searchInput.passengers;
+  };
+
+  const seatTotal = (): number => [...seatSelections.values()].reduce((sum, seatId) => {
+    const seat = seatById(seatId);
+    return sum + (seat ? seatFeeForFare(seat, selectedFare) : 0);
+  }, 0);
+
+  const baggageTotal = (): number => [...baggageSelections.values()].reduce((sum, optionId) => {
+    const baggage = baggageById(optionId);
+    return sum + (baggage ? baggageFeeForFare(baggage, selectedFare) : 0);
+  }, 0);
+
+  const insuranceTotal = (): number => {
+    const insurance = insuranceById(selectedInsurance);
+    return (insurance?.feePerPassenger ?? 0) * searchInput.passengers;
+  };
+
+  const extrasTotal = (): number => [...selectedExtras].reduce((sum, id) => {
+    const extra = extraById(id);
+    return sum + (extra ? extraFeeForFare(extra, selectedFare) * searchInput.passengers : 0);
+  }, 0);
+
+  const total = (): number => Math.round((fareTotal() + seatTotal() + baggageTotal() + insuranceTotal() + extrasTotal()) * 100) / 100;
+
+  const seatSummary = (): string => Array.from({ length: searchInput.passengers }, (_, index) =>
+    `P${index + 1}: ${seatSelections.get(index) ?? "—"}`).join(" · ");
+
+  const baggageSummary = (): string => Array.from({ length: searchInput.passengers }, (_, index) => {
+    const baggage = baggageById(baggageSelections.get(index));
+    return `P${index + 1}: ${baggage?.label ?? "—"}`;
+  }).join(" · ");
+
   const snapshot = () => {
     const offer = selectedOffer();
     const price = offer?.price ?? 0;
     const currency = offer?.currency ?? "EUR";
+    const insurance = insuranceById(selectedInsurance);
+    const extraNames = [...selectedExtras].flatMap((id) => {
+      const option = extraById(id);
+      return option ? [option.name] : [];
+    });
     return {
       version: "1" as const,
       revision,
       state: {
         "selected-offer": selectedOfferId ?? null,
         "fare-bundle": selectedFare,
+        "passenger-details": passengerDetails,
+        contact: bookingContact ?? null,
+        "seat-selections": [...seatSelections.entries()].map(([index, seat]) => ({ passengerIndex: index, seat })),
+        "baggage-selections": [...baggageSelections.entries()].map(([index, optionId]) => ({ passengerIndex: index, optionId })),
         "insurance-id": selectedInsurance,
         extras: [...selectedExtras],
       },
@@ -107,6 +181,10 @@ export function createCanonicalChatRuntime(
           passengers: searchInput.passengers,
           fare: selectedFare,
         },
+        extras: {
+          "insurance-id": selectedInsurance,
+          selected: [...selectedExtras].join(","),
+        },
         review: {
           origin: searchInput.origin,
           destination: searchInput.destination,
@@ -114,14 +192,21 @@ export function createCanonicalChatRuntime(
           fare: selectedFare,
           "base-price": price,
           currency,
+          "flight-number": offer?.flightNumber ?? "Flight",
+          schedule: offer ? `${offer.departure}–${offer.arrival} · ${offer.duration}` : "—",
+          "seat-summary": seatSummary(),
+          "baggage-summary": baggageSummary(),
+          "insurance-label": insurance?.name ?? "None",
+          "extras-summary": extraNames.length > 0 ? extraNames.join(", ") : "None",
+          total: total(),
         },
       },
     };
   };
 
-  const success = () => {
+  const outcome = (value: "success" | "empty") => {
     revision += 1;
-    return { outcome: "success" as const, snapshot: snapshot() };
+    return { outcome: value, snapshot: snapshot() };
   };
   const error = () => ({ outcome: "error" as const });
 
@@ -139,7 +224,9 @@ export function createCanonicalChatRuntime(
           || typeof payload.destination !== "string"
           || typeof payload.departureDate !== "string"
           || typeof payload.passengers !== "number"
-          || !Number.isInteger(payload.passengers)) return error();
+          || !Number.isInteger(payload.passengers)
+          || payload.passengers < 1
+          || payload.passengers > 8) return error();
         try {
           const searched = searchFlights({
             origin: payload.origin,
@@ -156,36 +243,73 @@ export function createCanonicalChatRuntime(
           offers = searched.offers;
           selectedOfferId = undefined;
           selectedFare = "smart";
-          selectedInsurance = "none";
-          selectedExtras.clear();
-          return success();
+          resetDownstream();
+          return outcome("success");
         } catch {
           return error();
         }
       }
 
       if (type === "travel.flight.offer.select") {
-        const offerId = typeof payload.offerId === "string" ? payload.offerId : undefined;
+        const offerId = requiredText(payload.offerId);
         if (!offerId || !offers.some((offer) => offer.id === offerId)) return error();
         selectedOfferId = offerId;
-        return success();
+        selectedFare = "smart";
+        resetDownstream();
+        return outcome("success");
       }
 
       if (type === "travel.flight.fare.select") {
         const fare = fareById(payload.fareId);
         if (!fare) return error();
         selectedFare = fare.id;
-        return success();
+        resetDownstream();
+        return outcome("success");
+      }
+
+      if (type === "travel.flight.passenger.submit") {
+        if (!Array.isArray(payload.passengers) || payload.passengers.length !== searchInput.passengers) return error();
+        const parsedPassengers = payload.passengers.flatMap((entry) => {
+          const person = record(entry);
+          const firstName = requiredText(person?.firstName);
+          const lastName = requiredText(person?.lastName);
+          const birthDate = requiredText(person?.birthDate);
+          return firstName && lastName && birthDate ? [{ firstName, lastName, birthDate }] : [];
+        });
+        const contact = record(payload.contact);
+        const email = requiredText(contact?.email);
+        const phone = requiredText(contact?.phone);
+        if (parsedPassengers.length !== searchInput.passengers || !email || !phone) return error();
+        passengerDetails = parsedPassengers;
+        bookingContact = { email, phone };
+        seatSelections.clear();
+        baggageSelections.clear();
+        selectedInsurance = "none";
+        selectedExtras.clear();
+        return outcome("success");
       }
 
       if (type === "travel.flight.seat.select") {
-        if (!seatById(payload.seat)) return error();
-        return success();
+        const index = passengerIndex(payload.passengerIndex, searchInput.passengers);
+        const seat = seatById(payload.seat);
+        if (index === undefined || !seat || seat.occupied === true) return error();
+        if ([...seatSelections.entries()].some(([otherIndex, seatId]) => otherIndex !== index && seatId === seat.id)) return error();
+        seatSelections.set(index, seat.id);
+        return outcome(seatSelections.size >= searchInput.passengers ? "success" : "empty");
       }
 
       if (type === "travel.flight.baggage.select") {
-        if (!baggageById(payload.optionId)) return error();
-        return success();
+        const baggage = baggageById(payload.optionId);
+        if (!baggage) return error();
+        if (payload.applyToAll === true) {
+          baggageSelections.clear();
+          for (let index = 0; index < searchInput.passengers; index += 1) baggageSelections.set(index, baggage.id);
+          return outcome("success");
+        }
+        const index = passengerIndex(payload.passengerIndex, searchInput.passengers);
+        if (index === undefined) return error();
+        baggageSelections.set(index, baggage.id);
+        return outcome(baggageSelections.size >= searchInput.passengers ? "success" : "empty");
       }
 
       if (type === "travel.flight.extras.submit") {
@@ -197,7 +321,7 @@ export function createCanonicalChatRuntime(
         selectedInsurance = insurance.id;
         selectedExtras.clear();
         for (const id of extras) selectedExtras.add(id);
-        return success();
+        return outcome("success");
       }
 
       if (type === "travel.flight.assistant.command") {
@@ -205,22 +329,18 @@ export function createCanonicalChatRuntime(
           const insurance = insuranceById(payload.value);
           if (!insurance) return error();
           selectedInsurance = insurance.id;
-          return success();
+          return outcome("success");
         }
         if (payload.command === "add-extra") {
           const extra = extraById(payload.value);
           if (!extra) return error();
           selectedExtras.add(extra.id);
-          return success();
+          return outcome("success");
         }
         return error();
       }
 
-      if (type === "travel.flight.passenger.submit"
-        || type === "travel.flight.booking.handoff") {
-        return success();
-      }
-
+      if (type === "travel.flight.booking.handoff") return outcome("success");
       return error();
     },
     subscribe: () => () => {},
