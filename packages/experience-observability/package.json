@@ -1,0 +1,12 @@
+{
+  "name": "@vira-enterprise-genui/experience-observability",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/telemetry": "workspace:*"
+  }
+}
