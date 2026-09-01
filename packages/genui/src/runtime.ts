@@ -13,6 +13,7 @@ import type {
 } from "@vira-enterprise-genui/studio-runtime";
 import { renderStudioRuntimeReactView } from "@vira-enterprise-genui/studio-runtime-react";
 import type {
+  StudioRuntimeReactRenderer,
   StudioRuntimeReactRenderResult,
 } from "@vira-enterprise-genui/studio-runtime-react";
 
@@ -37,7 +38,7 @@ export interface ViraExperienceRuntime {
   /** Subscribe to runtime changes without introducing a second state store. */
   readonly subscribe: (listener: ViraExperienceRuntimeListener) => () => void;
   readonly renderReact: (input: {
-    readonly renderers: unknown;
+    readonly renderers: Readonly<Record<string, StudioRuntimeReactRenderer>>;
     readonly onHostResult?: (result: StudioHostedDispatchResult) => void;
   }) => StudioRuntimeReactRenderResult;
   readonly dispose: () => void;
