@@ -183,14 +183,44 @@ describe("Studio host/runtime integration", () => {
     expect(controller.currentViewId()).toBe("error");
   });
 
-  it("rejects stale subscription snapshots fail-closed", () => {
+  it("keeps a subscription revision fault sticky and ignores later snapshots", () => {
     const fixture = host();
     const adapter = createStudioHostRuntimeAdapter(fixture.bridge);
     expect(adapter.ok).toBe(true);
     if (!adapter.ok) return;
-    fixture.emit({ version: "1", revision: 2, state: {}, domain: {} });
+
+    fixture.emit({ version: "1", revision: 2, state: { cart: { count: 2 } }, domain: { product: { price: 80 } } });
     fixture.emit({ version: "1", revision: 1, state: {}, domain: {} });
+    fixture.emit({ version: "1", revision: 3, state: { cart: { count: 3 } }, domain: { product: { price: 999 } } });
+
+    expect(adapter.value.snapshot().revision).toBe(2);
     expect(() => adapter.value.data.read({ kind: "domain", path: "product.price" })).toThrow(/moved backwards/);
+  });
+
+  it("ignores a late host result after the controller is disposed", async () => {
+    let resolveHost: ((value: unknown) => void) | undefined;
+    const pendingHostResult = new Promise<unknown>((resolve) => { resolveHost = resolve; });
+    const adapter = createStudioHostRuntimeAdapter({
+      version: "1",
+      id: "vira.demo.delayed-host",
+      snapshot: () => ({ version: "1", revision: 1, state: {}, domain: {} }),
+      dispatch: () => pendingHostResult,
+      subscribe: () => () => {},
+    });
+    expect(adapter.ok).toBe(true);
+    if (!adapter.ok) return;
+
+    const controller = adapter.value.connect(runtime(adapter.value.data));
+    const pending = controller.dispatch({ nodeId: "submit", event: "press" });
+    controller.dispose();
+    resolveHost?.({
+      outcome: "success",
+      snapshot: { version: "1", revision: 9, state: {}, domain: { product: { price: 999 } } },
+    });
+
+    const result = await pending;
+    expect(result).toMatchObject({ ok: false, issue: { code: "DISPOSED" } });
+    expect(adapter.value.snapshot().revision).toBe(1);
   });
 
   it("routes host transport failures to the canonical error outcome without leaving an action pending", async () => {
