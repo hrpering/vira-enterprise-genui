@@ -17,9 +17,11 @@ import {
   SEGMENT,
   SHA256,
   TAG,
+  appendOwnArrayValue,
   artifactRole,
   boundedText,
   compareVersion,
+  denseOwnDataArray,
   exact,
   record,
   releaseVersion,
@@ -62,13 +64,16 @@ export function parseMetadata(value: unknown):
   if (Object.hasOwn(metadata, "description") && !boundedText(metadata.description, EXPERIENCE_PACK_MAX_DESCRIPTION_LENGTH)) {
     return { ok: false, result: { ok: false, issue: { code: "INVALID_METADATA", path: "$.metadata.description", message: "description is invalid or too long" } } };
   }
-  if (!Array.isArray(metadata.tags) || metadata.tags.length > EXPERIENCE_PACK_MAX_TAGS) {
-    return { ok: false, result: { ok: false, issue: { code: "INVALID_METADATA", path: "$.metadata.tags", message: `tags must contain at most ${EXPERIENCE_PACK_MAX_TAGS} entries` } } };
+
+  const tagValues = denseOwnDataArray(metadata.tags, EXPERIENCE_PACK_MAX_TAGS);
+  if (!tagValues.ok) {
+    return { ok: false, result: { ok: false, issue: { code: "INVALID_METADATA", path: "$.metadata.tags", message: `tags must be a dense own-data array with at most ${EXPERIENCE_PACK_MAX_TAGS} entries` } } };
   }
+
   const tags: string[] = [];
   const seen = new Set<string>();
-  for (let index = 0; index < metadata.tags.length; index += 1) {
-    const tag = metadata.tags[index];
+  for (let index = 0; index < tagValues.value.length; index += 1) {
+    const tag = tagValues.value[index];
     if (typeof tag !== "string" || !TAG.test(tag)) {
       return { ok: false, result: { ok: false, issue: { code: "INVALID_METADATA", path: `$.metadata.tags[${index}]`, message: "tag must be a lowercase registry token" } } };
     }
@@ -76,7 +81,7 @@ export function parseMetadata(value: unknown):
       return { ok: false, result: { ok: false, issue: { code: "INVALID_METADATA", path: `$.metadata.tags[${index}]`, message: "duplicate metadata tag" } } };
     }
     seen.add(tag);
-    tags.push(tag);
+    appendOwnArrayValue(tags, tag);
   }
   const result: ExperiencePackMetadata = Object.hasOwn(metadata, "description")
     ? { name: metadata.name, description: metadata.description as string, tags }

@@ -11,7 +11,16 @@ import type {
   ExperiencePackValidationCode,
 } from "./types.js";
 import { ARTIFACT_ID, parseArtifact, parseCompatibility, parseMetadata, parsePublisher } from "./fields.js";
-import { PACK_ID, exact, freeze, record, releaseVersion, stable } from "./internal.js";
+import {
+  PACK_ID,
+  appendOwnArrayValue,
+  denseOwnDataArray,
+  exact,
+  freeze,
+  record,
+  releaseVersion,
+  stable,
+} from "./internal.js";
 
 function failure(
   code: ExperiencePackValidationCode,
@@ -23,7 +32,7 @@ function failure(
 
 export function parseExperiencePackManifest(input: unknown): ExperiencePackManifestResult {
   const root = record(input);
-  if (!root) return failure("INVALID_TYPE", "$", "experience pack manifest must be a plain object");
+  if (!root) return failure("INVALID_TYPE", "$", "experience pack manifest must be a plain own-data object");
 
   const unknown = exact(root, [
     "schemaVersion",
@@ -58,36 +67,42 @@ export function parseExperiencePackManifest(input: unknown): ExperiencePackManif
   const compatibility = parseCompatibility(root.compatibility);
   if (!compatibility.ok) return compatibility.result;
 
-  if (!Array.isArray(root.artifacts) || root.artifacts.length === 0) {
-    return failure("INVALID_ARTIFACT", "$.artifacts", "artifacts must be a non-empty array");
+  const artifactValues = denseOwnDataArray(root.artifacts, EXPERIENCE_PACK_MAX_ARTIFACTS);
+  if (!artifactValues.ok) {
+    return artifactValues.reason === "limit-exceeded"
+      ? failure("ARTIFACT_LIMIT_EXCEEDED", "$.artifacts", `a pack may contain at most ${EXPERIENCE_PACK_MAX_ARTIFACTS} artifacts`)
+      : failure("INVALID_ARTIFACT", "$.artifacts", "artifacts must be a non-empty dense own-data array");
   }
-  if (root.artifacts.length > EXPERIENCE_PACK_MAX_ARTIFACTS) {
-    return failure("ARTIFACT_LIMIT_EXCEEDED", "$.artifacts", `a pack may contain at most ${EXPERIENCE_PACK_MAX_ARTIFACTS} artifacts`);
+  if (artifactValues.value.length === 0) {
+    return failure("INVALID_ARTIFACT", "$.artifacts", "artifacts must be a non-empty dense own-data array");
   }
 
   const artifacts: ExperiencePackArtifactDescriptor[] = [];
   const artifactById = new Map<string, ExperiencePackArtifactDescriptor>();
-  for (let index = 0; index < root.artifacts.length; index += 1) {
-    const artifact = parseArtifact(root.artifacts[index], index);
+  for (let index = 0; index < artifactValues.value.length; index += 1) {
+    const artifact = parseArtifact(artifactValues.value[index], index);
     if (!artifact.ok) return artifact.result;
     if (artifactById.has(artifact.value.id)) {
       return failure("DUPLICATE_ARTIFACT", `$.artifacts[${index}].id`, "artifact ids must be unique within a pack");
     }
     artifactById.set(artifact.value.id, artifact.value);
-    artifacts.push(artifact.value);
+    appendOwnArrayValue(artifacts, artifact.value);
   }
 
-  if (!Array.isArray(root.entrypoints) || root.entrypoints.length === 0) {
-    return failure("INVALID_ENTRYPOINT", "$.entrypoints", "entrypoints must be a non-empty array");
+  const entrypointValues = denseOwnDataArray(root.entrypoints, EXPERIENCE_PACK_MAX_ENTRYPOINTS);
+  if (!entrypointValues.ok) {
+    return entrypointValues.reason === "limit-exceeded"
+      ? failure("ENTRYPOINT_LIMIT_EXCEEDED", "$.entrypoints", `a pack may contain at most ${EXPERIENCE_PACK_MAX_ENTRYPOINTS} entrypoints`)
+      : failure("INVALID_ENTRYPOINT", "$.entrypoints", "entrypoints must be a non-empty dense own-data array");
   }
-  if (root.entrypoints.length > EXPERIENCE_PACK_MAX_ENTRYPOINTS) {
-    return failure("ENTRYPOINT_LIMIT_EXCEEDED", "$.entrypoints", `a pack may contain at most ${EXPERIENCE_PACK_MAX_ENTRYPOINTS} entrypoints`);
+  if (entrypointValues.value.length === 0) {
+    return failure("INVALID_ENTRYPOINT", "$.entrypoints", "entrypoints must be a non-empty dense own-data array");
   }
 
   const entrypoints: string[] = [];
   const seenEntrypoints = new Set<string>();
-  for (let index = 0; index < root.entrypoints.length; index += 1) {
-    const entrypoint = root.entrypoints[index];
+  for (let index = 0; index < entrypointValues.value.length; index += 1) {
+    const entrypoint = entrypointValues.value[index];
     if (typeof entrypoint !== "string" || !ARTIFACT_ID.test(entrypoint)) {
       return failure("INVALID_ENTRYPOINT", `$.entrypoints[${index}]`, "entrypoint must reference an artifact id");
     }
@@ -102,7 +117,7 @@ export function parseExperiencePackManifest(input: unknown): ExperiencePackManif
       return failure("INVALID_ENTRYPOINT", `$.entrypoints[${index}]`, "entrypoint must reference a Studio publication artifact");
     }
     seenEntrypoints.add(entrypoint);
-    entrypoints.push(entrypoint);
+    appendOwnArrayValue(entrypoints, entrypoint);
   }
 
   const manifest: ExperiencePackManifest = {
