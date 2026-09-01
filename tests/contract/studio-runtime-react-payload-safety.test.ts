@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { StudioRuntimeDispatchResult, StudioRuntimeSession } from "../../packages/studio-runtime/src/index.js";
-import { renderStudioRuntimeReactView } from "../../packages/studio-runtime-react/src/index.js";
+import {
+  renderStudioRuntimeReactView,
+  type StudioRuntimeReactRenderer,
+} from "../../packages/studio-runtime-react/src/index.js";
 
 function componentCatalog() {
   return {
@@ -76,15 +79,14 @@ describe("Studio runtime React event payload safety", () => {
       },
     });
 
+    const renderer: StudioRuntimeReactRenderer = ({ emit }) => {
+      emit("press", payload);
+      return null;
+    };
     const result = renderStudioRuntimeReactView({
       session: sessionWith({ offerId: "canonical" }, (value) => { captured = value; }),
       componentCatalog: componentCatalog(),
-      renderers: {
-        "runtime.react.payload.button": ({ emit }) => {
-          emit("press", payload);
-          return null;
-        },
-      },
+      renderers: { "runtime.react.payload.button": renderer },
     });
 
     expect(result.ok).toBe(true);
@@ -95,15 +97,14 @@ describe("Studio runtime React event payload safety", () => {
 
   it("merges safe renderer fields while canonical mapped payload fields stay authoritative", () => {
     let captured: unknown;
+    const renderer: StudioRuntimeReactRenderer = ({ emit }) => {
+      emit("press", { offerId: "forged", clientNote: "keep" });
+      return null;
+    };
     const result = renderStudioRuntimeReactView({
       session: sessionWith({ offerId: "canonical" }, (value) => { captured = value; }),
       componentCatalog: componentCatalog(),
-      renderers: {
-        "runtime.react.payload.button": ({ emit }) => {
-          emit("press", { offerId: "forged", clientNote: "keep" });
-          return null;
-        },
-      },
+      renderers: { "runtime.react.payload.button": renderer },
     });
 
     expect(result.ok).toBe(true);
