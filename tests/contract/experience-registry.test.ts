@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseExperiencePackManifest } from "../../packages/experience-packs/src/index.js";
 import {
   createExperienceRegistrySnapshot,
+  EXPERIENCE_REGISTRY_MAX_DEPTH,
   EXPERIENCE_REGISTRY_MAX_MANIFESTS,
   lookupExperienceRegistryManifest,
 } from "../../packages/experience-registry/src/index.js";
@@ -132,6 +133,20 @@ describe("Experience Registry v1", () => {
     expect(createExperienceRegistrySnapshot(snapshot(manifests))).toMatchObject({
       ok: false,
       issue: { code: "MANIFEST_LIMIT_EXCEEDED", path: "$.manifests" },
+    });
+  });
+
+  it("enforces the generic plain-data depth budget before delegating to Pack parsing", () => {
+    const input = manifest();
+    let nested: Record<string, unknown> = { leaf: true };
+    for (let index = 0; index <= EXPERIENCE_REGISTRY_MAX_DEPTH; index += 1) {
+      nested = { child: nested };
+    }
+    (input as Record<string, unknown>)["unexpectedDeepGraph"] = nested;
+
+    expect(createExperienceRegistrySnapshot(snapshot([input]))).toMatchObject({
+      ok: false,
+      issue: { code: "UNSAFE_MANIFEST", path: "$.manifests" },
     });
   });
 
