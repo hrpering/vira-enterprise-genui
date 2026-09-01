@@ -113,6 +113,13 @@ describe("public GenUI runtime", () => {
       observedRevisions.push(runtime.value.revision());
     });
 
+    const rejectedRevision = runtime.value.revision();
+    const rejected = await runtime.value.controller.dispatch({ nodeId: "missing", event: "press" });
+    expect(rejected.ok).toBe(false);
+    expect(runtime.value.revision()).toBe(rejectedRevision);
+    expect(observedRevisions).toEqual([]);
+    expect(actionsSeen).toEqual([]);
+
     let resolveHost: ((value: unknown) => void) | undefined;
     const hostResult = new Promise((resolve) => { resolveHost = resolve; });
     const renderers = {
