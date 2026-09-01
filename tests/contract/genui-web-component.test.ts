@@ -1,8 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ViraExperienceRuntime } from "../../packages/genui/src/index.js";
-import { createViraGenUIElementClass } from "../../packages/genui-web-component/src/index.js";
+import {
+  VIRA_GENUI_EXPERIENCE_TAG_NAME,
+  createViraGenUIElementClass,
+  defineViraGenUIElement,
+} from "../../packages/genui-web-component/src/index.js";
 
 class FakeHTMLElement {}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function createElementForContractTest() {
   const ElementClass = createViraGenUIElementClass(
@@ -12,6 +20,44 @@ function createElementForContractTest() {
 }
 
 describe("GenUI web component lifecycle contract", () => {
+  it("fails closed instead of reading missing browser globals during SSR", () => {
+    vi.stubGlobal("HTMLElement", undefined);
+    vi.stubGlobal("customElements", undefined);
+
+    expect(defineViraGenUIElement()).toEqual({
+      ok: false,
+      issue: {
+        code: "PLATFORM_UNAVAILABLE",
+        message: "GenUI custom elements platform is unavailable",
+      },
+    });
+  });
+
+  it("registers once through an explicit platform and rejects duplicate ownership", () => {
+    const definitions = new Map<string, CustomElementConstructor>();
+    const platform = {
+      HTMLElementBase: FakeHTMLElement as unknown as typeof HTMLElement,
+      registry: {
+        get: (name: string) => definitions.get(name),
+        define: (name: string, constructor: CustomElementConstructor) => {
+          definitions.set(name, constructor);
+        },
+      },
+    };
+
+    const first = defineViraGenUIElement(platform);
+    expect(first.ok).toBe(true);
+    expect(definitions.has(VIRA_GENUI_EXPERIENCE_TAG_NAME)).toBe(true);
+
+    expect(defineViraGenUIElement(platform)).toEqual({
+      ok: false,
+      issue: {
+        code: "ALREADY_DEFINED",
+        message: `${VIRA_GENUI_EXPERIENCE_TAG_NAME} is already defined`,
+      },
+    });
+  });
+
   it("starts unmounted and dispose is idempotent", () => {
     const element = createElementForContractTest();
     expect(element.isMounted()).toBe(false);
