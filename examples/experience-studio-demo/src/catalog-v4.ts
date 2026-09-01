@@ -1,3 +1,5 @@
+import type { StudioComponentCatalog } from "@vira-enterprise-genui/studio-catalog";
+import type { StudioRuntimeReactRenderer } from "@vira-enterprise-genui/studio-runtime-react";
 import {
   actionAdapter,
   bindingSourceCatalog,
@@ -26,7 +28,7 @@ export {
 };
 export type { StarterTemplateId };
 
-export const componentCatalog = Object.freeze({
+export const componentCatalog: StudioComponentCatalog = Object.freeze({
   ...baseComponentCatalog,
   components: Object.freeze([
     ...baseComponentCatalog.components,
@@ -34,12 +36,12 @@ export const componentCatalog = Object.freeze({
   ]),
 });
 
-export const workbenchRenderers = Object.freeze({
+export const workbenchRenderers: Readonly<Record<string, unknown>> = Object.freeze({
   ...baseWorkbenchRenderers,
   ...FORM_PRIMITIVE_WORKBENCH_RENDERERS,
 });
 
-export const runtimeRenderers = Object.freeze({
+export const runtimeRenderers: Readonly<Record<string, StudioRuntimeReactRenderer>> = Object.freeze({
   ...baseRuntimeRenderers,
   ...FORM_PRIMITIVE_RUNTIME_RENDERERS,
 });
