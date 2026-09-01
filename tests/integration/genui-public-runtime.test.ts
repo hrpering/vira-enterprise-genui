@@ -106,6 +106,8 @@ describe("public GenUI runtime", () => {
     });
     expect(runtime.ok).toBe(true);
     if (!runtime.ok) return;
+    expect("session" in runtime.value).toBe(false);
+    expect("forward" in runtime.value.controller).toBe(false);
     expect("dispose" in runtime.value.controller).toBe(false);
 
     const observedRevisions: number[] = [];
