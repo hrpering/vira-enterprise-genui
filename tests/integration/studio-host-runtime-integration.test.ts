@@ -137,6 +137,52 @@ describe("Studio host/runtime integration", () => {
     expect(fixture.actionsSeen).toEqual([{ type: "demo.order.submit", payload: { sku: "SKU-1" } }]);
   });
 
+  it("forwards one canonical runtime action id to the host at most once", async () => {
+    const fixture = host();
+    const adapter = createStudioHostRuntimeAdapter(fixture.bridge);
+    expect(adapter.ok).toBe(true);
+    if (!adapter.ok) return;
+
+    const session = runtime(adapter.value.data);
+    const controller = adapter.value.connect(session);
+    const dispatched = session.dispatch({ nodeId: "submit", event: "press", payload: { sku: "SKU-ONCE" } });
+    expect(dispatched.ok).toBe(true);
+    if (!dispatched.ok) return;
+
+    const first = await controller.forward(dispatched);
+    const second = await controller.forward(dispatched);
+
+    expect(first.ok).toBe(true);
+    expect(second).toMatchObject({ ok: false, issue: { code: "DUPLICATE_FORWARD" } });
+    expect(fixture.actionsSeen).toEqual([{ type: "demo.order.submit", payload: { sku: "SKU-ONCE" } }]);
+  });
+
+  it("does not replay an uncertain host transport failure for the same action id", async () => {
+    const fixture = host();
+    let hostAttempts = 0;
+    fixture.bridge.dispatch = async () => {
+      hostAttempts += 1;
+      throw new Error("transport failed after side-effect status became unknown");
+    };
+    const adapter = createStudioHostRuntimeAdapter(fixture.bridge);
+    expect(adapter.ok).toBe(true);
+    if (!adapter.ok) return;
+
+    const session = runtime(adapter.value.data);
+    const controller = adapter.value.connect(session);
+    const dispatched = session.dispatch({ nodeId: "submit", event: "press" });
+    expect(dispatched.ok).toBe(true);
+    if (!dispatched.ok) return;
+
+    const first = await controller.forward(dispatched);
+    const second = await controller.forward(dispatched);
+
+    expect(first).toMatchObject({ ok: false, issue: { code: "HOST_DISPATCH_FAILED" } });
+    expect(second).toMatchObject({ ok: false, issue: { code: "DUPLICATE_FORWARD" } });
+    expect(hostAttempts).toBe(1);
+    expect(controller.currentViewId()).toBe("error");
+  });
+
   it("rejects stale subscription snapshots fail-closed", () => {
     const fixture = host();
     const adapter = createStudioHostRuntimeAdapter(fixture.bridge);
