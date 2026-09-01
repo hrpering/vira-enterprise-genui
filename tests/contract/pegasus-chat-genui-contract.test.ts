@@ -1,76 +1,60 @@
 import { describe, expect, it } from "vitest";
+import {
+  FLIGHT_BOOKING_COMPONENT_CATALOG,
+  FLIGHT_BOOKING_ENTRYPOINT,
+  FLIGHT_BOOKING_PACK_ID,
+  FLIGHT_BOOKING_PACK_VERSION,
+} from "../../examples/airline-brand-kit/src/chat-publication.js";
 import { CANONICAL_CHAT_RENDERERS } from "../../examples/pegasus-chat-demo/components/canonical-chat-renderers.js";
-import { CANONICAL_CHAT_COMPONENT_CATALOG } from "../../examples/pegasus-chat-demo/components/canonical-chat-studio-contracts.js";
-import { isViraFlightExperienceResult } from "../../examples/pegasus-chat-demo/lib/vira-chat-contract.js";
+import { createFlightChatBridge } from "../../examples/pegasus-chat-demo/lib/flight-genui.js";
 
-function validResult() {
-  return {
-    version: "1",
-    kind: "vira.experience",
-    experience: "travel.flight.search",
-    input: {
-      origin: "SAW",
-      destination: "BER",
-      departureDate: "2026-09-03",
-      passengers: 2,
-    },
-    data: {
-      offers: [{
-        id: "offer-vx979",
-        carrier: "Vira Demo Air",
-        flightNumber: "VX 979",
-        origin: "SAW",
-        destination: "BER",
-        departure: "09:10",
-        arrival: "11:15",
-        duration: "2h 05m",
-        price: 138,
-        currency: "EUR",
-      }],
-    },
-  };
-}
-
-function firstOffer() {
-  const offer = validResult().data.offers[0];
-  if (!offer) throw new Error("valid Chat contract fixture must include one offer");
-  return offer;
-}
-
-describe("Pegasus Chat approved GenUI result contract", () => {
-  it("accepts only the approved flight-experience discriminator with a valid offer payload", () => {
-    expect(isViraFlightExperienceResult(validResult())).toBe(true);
-  });
-
-  it("keeps the trusted runtime renderer registry in exact parity with the approved Chat catalog", () => {
-    const componentRefs = CANONICAL_CHAT_COMPONENT_CATALOG.components
+describe("Pegasus Chat Flight Experience Pack contract", () => {
+  it("keeps the trusted renderer registry in exact parity with the Flight Pack catalog", () => {
+    const componentRefs = FLIGHT_BOOKING_COMPONENT_CATALOG.components
       .map((component) => component.ref)
       .sort();
     expect(Object.keys(CANONICAL_CHAT_RENDERERS).sort()).toEqual(componentRefs);
   });
 
-  it("rejects a different experience before the Chat renderer can construct a Studio publication", () => {
-    expect(isViraFlightExperienceResult({
-      ...validResult(),
-      experience: "travel.hotel.search",
-    })).toBe(false);
+  it("fails closed when the registered Flight Pack receives malformed domain payload", async () => {
+    const bridge = createFlightChatBridge();
+    const result = await bridge.present({
+      version: "1",
+      op: "present",
+      instanceId: "flight-malformed",
+      pack: {
+        id: FLIGHT_BOOKING_PACK_ID,
+        version: FLIGHT_BOOKING_PACK_VERSION,
+        entrypoint: FLIGHT_BOOKING_ENTRYPOINT,
+      },
+      payload: {
+        input: {
+          origin: "SAW",
+          destination: "BER",
+          departureDate: "2026-09-03",
+          passengers: 1.5,
+        },
+        data: { offers: [] },
+      },
+    });
+    expect(result).toMatchObject({ ok: false, issue: { code: "RESOLUTION_FAILED" } });
+    bridge.dispose();
   });
 
-  it("rejects malformed passenger and offer data fail closed", () => {
-    const base = validResult();
-    expect(isViraFlightExperienceResult({
-      ...base,
-      input: { ...base.input, passengers: 1.5 },
-    })).toBe(false);
-    expect(isViraFlightExperienceResult({
-      ...base,
-      data: {
-        offers: [{ ...firstOffer(), price: Number.NaN }],
+  it("fails closed when an unregistered Pack identity is requested", async () => {
+    const bridge = createFlightChatBridge();
+    const result = await bridge.present({
+      version: "1",
+      op: "present",
+      instanceId: "not-flight",
+      pack: {
+        id: "vira/not-registered",
+        version: "1.0.0",
+        entrypoint: "main",
       },
-    })).toBe(false);
-    expect(isViraFlightExperienceResult({
-      ...base,
-      data: { offers: "not-an-array" },
-    })).toBe(false);
+      payload: {},
+    });
+    expect(result).toMatchObject({ ok: false, issue: { code: "RESOLUTION_FAILED" } });
+    bridge.dispose();
   });
 });
