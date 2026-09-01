@@ -104,6 +104,26 @@ describe("manual Studio authoring", () => {
     });
   });
 
+  it("never evaluates accessor properties while applying authoring defaults", () => {
+    let getterCalls = 0;
+    const input = { ...document() } as Record<string, unknown>;
+    Object.defineProperty(input, "version", {
+      enumerable: true,
+      get() {
+        getterCalls += 1;
+        return "1";
+      },
+    });
+
+    const result = defineStudioExperience(input as unknown as StudioAuthoringDocumentInput);
+    expect(getterCalls).toBe(0);
+    expect(result).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_TYPE", path: "$.version" },
+    });
+    expect(getterCalls).toBe(0);
+  });
+
   it("uses the existing publication gate after canonical document parsing", () => {
     const result = prepareAuthoredStudioPublication({
       document: document(),
