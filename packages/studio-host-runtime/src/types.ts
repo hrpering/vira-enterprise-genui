@@ -9,6 +9,7 @@ export type StudioHostRuntimeValidationCode =
   | "HOST_DISPATCH_FAILED"
   | "INVALID_HOST_RESULT"
   | "RUNTIME_COMPLETION_FAILED"
+  | "DUPLICATE_FORWARD"
   | "DISPOSED";
 
 export interface StudioHostRuntimeIssue {
@@ -51,7 +52,8 @@ export interface StudioHostedRuntimeController {
   readonly dispatch: (input: Parameters<StudioRuntimeSession["dispatch"]>[0]) => Promise<StudioHostedDispatchResult>;
   /**
    * Forwards a successful action that was already dispatched by the canonical Studio runtime.
-   * This is used by UI renderers so an interaction is never dispatched twice just to reach the host.
+   * Each action id is forwarded to the host at most once for this controller, including when
+   * the first host attempt returns or throws an error whose side-effect status is uncertain.
    */
   readonly forward: (runtime: StudioRuntimeDispatchResult) => Promise<StudioHostedDispatchResult>;
   readonly dispose: () => void;
