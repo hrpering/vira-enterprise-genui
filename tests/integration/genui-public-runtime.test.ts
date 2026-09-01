@@ -65,16 +65,20 @@ function runtimeState() {
   return result.value;
 }
 
+function publication() {
+  return prepareAuthoredStudioPublication({
+    document: document(),
+    componentCatalog: componentCatalog(),
+    bindingSourceCatalog: bindingSourceCatalog(),
+    actionAdapter: actionAdapter(),
+  });
+}
+
 describe("public GenUI runtime", () => {
   it("wires authored publication, React dispatch, host completion and external snapshot changes without double dispatch", async () => {
-    const publication = prepareAuthoredStudioPublication({
-      document: document(),
-      componentCatalog: componentCatalog(),
-      bindingSourceCatalog: bindingSourceCatalog(),
-      actionAdapter: actionAdapter(),
-    });
-    expect(publication.ok).toBe(true);
-    if (!publication.ok) return;
+    const prepared = publication();
+    expect(prepared.ok).toBe(true);
+    if (!prepared.ok) return;
 
     const actionsSeen: unknown[] = [];
     let hostListener: ((snapshot: unknown) => void) | undefined;
@@ -93,7 +97,7 @@ describe("public GenUI runtime", () => {
     };
 
     const runtime = createViraExperienceRuntime({
-      publication: publication.value,
+      publication: prepared.value,
       componentCatalog: componentCatalog(),
       bindingSourceCatalog: bindingSourceCatalog(),
       actionAdapter: actionAdapter(),
@@ -160,5 +164,58 @@ describe("public GenUI runtime", () => {
     runtime.value.dispose();
     runtime.value.dispose();
     expect(hostListener).toBeUndefined();
+  });
+
+  it("isolates a throwing onHostResult consumer callback after canonical host completion", async () => {
+    const prepared = publication();
+    expect(prepared.ok).toBe(true);
+    if (!prepared.ok) return;
+
+    const actionsSeen: unknown[] = [];
+    const runtime = createViraExperienceRuntime({
+      publication: prepared.value,
+      componentCatalog: componentCatalog(),
+      bindingSourceCatalog: bindingSourceCatalog(),
+      actionAdapter: actionAdapter(),
+      runtimeState: runtimeState(),
+      permissionPolicy: {
+        version: "1",
+        rules: [{ subject: "action", id: "public.order.submit", effect: "allow" }],
+      },
+      host: {
+        version: "1",
+        id: "public.genui.throwing-callback-host",
+        snapshot: () => ({ version: "1", revision: 1, state: {}, domain: {} }),
+        dispatch: async (action: unknown) => {
+          actionsSeen.push(action);
+          return { outcome: "success" };
+        },
+        subscribe: () => () => {},
+      },
+    });
+    expect(runtime.ok).toBe(true);
+    if (!runtime.ok) return;
+
+    const rendered = runtime.value.renderReact({
+      renderers: {
+        "public.component.button": ({ nodeId, emit }: { nodeId: string; emit: (event: string, payload?: unknown) => unknown }) => {
+          if (nodeId === "submit") emit("press", { sku: "SKU-2" });
+          return null;
+        },
+      },
+      onHostResult: () => {
+        throw new Error("consumer callback must be isolated");
+      },
+    });
+    expect(rendered.ok).toBe(true);
+
+    await new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+    expect(actionsSeen).toEqual([{
+      type: "public.order.submit",
+      payload: { sku: "SKU-2" },
+    }]);
+    expect(runtime.value.controller.currentViewId()).toBe("done");
+
+    runtime.value.dispose();
   });
 });
