@@ -5,6 +5,7 @@ export {
 export type {
   ViraExperienceRuntime,
   ViraExperienceRuntimeInput,
+  ViraExperienceRuntimeListener,
   ViraExperienceRuntimeResult,
 } from "./runtime.js";
 export * from "@vira-enterprise-genui/studio-authoring";
