@@ -7,11 +7,16 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@vira-enterprise-genui/genui": "workspace:*",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "@vira-enterprise-genui/genui": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18.2.0 <20",
+    "react-dom": ">=18.2.0 <20"
   },
   "devDependencies": {
-    "@types/react-dom": "19.2.3"
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   }
 }
