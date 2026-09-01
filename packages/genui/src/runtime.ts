@@ -8,6 +8,7 @@ import type {
 } from "@vira-enterprise-genui/studio-host-runtime";
 import { createStudioRuntimeSession } from "@vira-enterprise-genui/studio-runtime";
 import type {
+  StudioRuntimeDispatchResult,
   StudioRuntimeIssue,
 } from "@vira-enterprise-genui/studio-runtime";
 import { renderStudioRuntimeReactView } from "@vira-enterprise-genui/studio-runtime-react";
@@ -104,7 +105,7 @@ export function createViraExperienceRuntime(
   };
 
   const forwardRendererDispatch = async (
-    runtimeResult: ReturnType<typeof session.value.dispatch>,
+    runtimeResult: StudioRuntimeDispatchResult,
   ): Promise<StudioHostedDispatchResult> => {
     const result = await hostedController.forward(runtimeResult);
     notifyAfterHostedResult(result);
