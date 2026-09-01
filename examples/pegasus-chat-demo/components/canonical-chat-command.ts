@@ -18,7 +18,6 @@ export type CanonicalChatCommandResult =
 interface CanonicalChatCommandTarget {
   readonly runtime: ViraExperienceRuntime;
   readonly offers: () => readonly FlightOffer[];
-  readonly passengers: () => number;
 }
 
 let nextTargetId = 0;
@@ -55,6 +54,19 @@ async function dispatch(
     : { ok: false, reason: "DISPATCH_REJECTED" };
 }
 
+function activePassengerCount(target: CanonicalChatCommandTarget): number | undefined {
+  const current = target.runtime.controller.currentView();
+  if (!current.ok) return undefined;
+  const root = current.value.nodes.find((node) => node.sourceNodeId === "seat-selection-root");
+  const passengers = root?.props.passengers;
+  return typeof passengers === "number"
+    && Number.isInteger(passengers)
+    && passengers >= 1
+    && passengers <= 8
+    ? passengers
+    : undefined;
+}
+
 export async function applyCanonicalViraCommand(
   command: ViraCommandResult,
 ): Promise<CanonicalChatCommandResult> {
@@ -85,10 +97,8 @@ export async function applyCanonicalViraCommand(
     if (zone !== "front" && zone !== "extra-legroom" && zone !== "standard") {
       return { ok: false, reason: "INVALID_VALUE" };
     }
-    const passengerCount = target.passengers();
-    if (!Number.isInteger(passengerCount) || passengerCount < 1 || passengerCount > 8) {
-      return { ok: false, reason: "INVALID_VALUE" };
-    }
+    const passengerCount = activePassengerCount(target);
+    if (passengerCount === undefined) return { ok: false, reason: "INVALID_VALUE" };
     const seats = SEAT_OPTIONS
       .filter((candidate) => candidate.zone === zone && candidate.occupied !== true)
       .slice(0, passengerCount);
