@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
     "check:boundaries": "node tooling/check-package-boundaries.mjs",
-    "genui": "node packages/genui-cli/src/cli.ts",
+    "genui": "node packages/genui-cli/bin/vira-genui.mjs",
     "verify": "pnpm check:boundaries && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm build:experience-studio && pnpm demo:pegasus-chat:check",
     "verify:browser": "pnpm --filter @vira-enterprise-genui/experience-studio-demo test:e2e",
     "verify:all": "pnpm verify && pnpm verify:browser",
