@@ -28,14 +28,19 @@ export interface ViraExperienceRuntimeInput {
 }
 
 export type ViraExperienceRuntimeListener = () => void;
+export type ViraExperienceController = Pick<
+  StudioHostedRuntimeController,
+  "currentViewId" | "currentView" | "currentRuntimeState" | "dispatch" | "forward"
+>;
 
 export interface ViraExperienceRuntime {
   readonly hostId: string;
   readonly session: StudioRuntimeSession;
-  readonly controller: StudioHostedRuntimeController;
-  /** Monotonic consumer-visible revision for route completions and accepted host snapshots. */
+  /** Public controller intentionally excludes dispose; the outer runtime owns the full host/session lifecycle. */
+  readonly controller: ViraExperienceController;
+  /** Monotonic render-invalidation token for accepted host snapshots and completed runtime transitions. */
   readonly revision: () => number;
-  /** Subscribe to runtime changes without introducing a second state store. */
+  /** Subscribe to render-invalidating runtime changes without introducing a second state store. */
   readonly subscribe: (listener: ViraExperienceRuntimeListener) => () => void;
   readonly renderReact: (input: {
     readonly renderers: Readonly<Record<string, StudioRuntimeReactRenderer>>;
@@ -93,7 +98,7 @@ export function createViraExperienceRuntime(
     }
   };
 
-  const controller: StudioHostedRuntimeController = Object.freeze({
+  const controller: ViraExperienceController = Object.freeze({
     currentViewId: hostedController.currentViewId,
     currentView: hostedController.currentView,
     currentRuntimeState: hostedController.currentRuntimeState,
@@ -107,7 +112,6 @@ export function createViraExperienceRuntime(
       notify();
       return result;
     },
-    dispose: hostedController.dispose,
   });
 
   const unsubscribeHost = host.value.subscribe(() => { notify(); });
@@ -144,7 +148,7 @@ export function createViraExperienceRuntime(
       disposed = true;
       unsubscribeHost();
       listeners.clear();
-      controller.dispose();
+      hostedController.dispose();
       host.value.dispose();
     },
   };
