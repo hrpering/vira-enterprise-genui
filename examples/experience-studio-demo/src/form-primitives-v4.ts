@@ -238,6 +238,13 @@ function choiceOptions(props: Readonly<Record<string, unknown>>): readonly strin
   ];
 }
 
+function choiceValue(props: Readonly<Record<string, unknown>>): string {
+  const options = choiceOptions(props);
+  const fallback = options[0] ?? "";
+  const requested = textProp(props, "value", fallback);
+  return options.includes(requested) ? requested : fallback;
+}
+
 function selectControl(
   props: Readonly<Record<string, unknown>>,
   value: string,
@@ -405,7 +412,7 @@ function RuntimeTextarea({ props, emit }: { readonly props: Readonly<Record<stri
 }
 
 function RuntimeSelect({ props, emit }: { readonly props: Readonly<Record<string, unknown>>; readonly emit: RuntimeEmit }): ReactNode {
-  const external = textProp(props, "value", choiceOptions(props)[0] ?? "");
+  const external = choiceValue(props);
   const [value, setValue] = useState(external);
   useEffect(() => { setValue(external); }, [external]);
   return selectControl(props, value, (next) => {
@@ -425,7 +432,7 @@ function RuntimeCheckbox({ props, emit }: { readonly props: Readonly<Record<stri
 }
 
 function RuntimeRadio({ props, emit, nodeId }: { readonly props: Readonly<Record<string, unknown>>; readonly emit: RuntimeEmit; readonly nodeId: string }): ReactNode {
-  const external = textProp(props, "value", choiceOptions(props)[0] ?? "");
+  const external = choiceValue(props);
   const [value, setValue] = useState(external);
   useEffect(() => { setValue(external); }, [external]);
   return radioControl(props, `vira-radio-${nodeId}`, value, (next) => {
@@ -437,9 +444,9 @@ function RuntimeRadio({ props, emit, nodeId }: { readonly props: Readonly<Record
 export const FORM_PRIMITIVE_WORKBENCH_RENDERERS = Object.freeze({
   "airline.form.input": ({ props }: { props: Readonly<Record<string, unknown>> }) => inputControl(props, textProp(props, "value", ""), undefined, true),
   "airline.form.textarea": ({ props }: { props: Readonly<Record<string, unknown>> }) => textareaControl(props, textProp(props, "value", ""), undefined, true),
-  "airline.form.select": ({ props }: { props: Readonly<Record<string, unknown>> }) => selectControl(props, textProp(props, "value", choiceOptions(props)[0] ?? ""), undefined, true),
+  "airline.form.select": ({ props }: { props: Readonly<Record<string, unknown>> }) => selectControl(props, choiceValue(props), undefined, true),
   "airline.form.checkbox": ({ props }: { props: Readonly<Record<string, unknown>> }) => checkboxControl(props, booleanProp(props, "checked", false), undefined, true),
-  "airline.form.radio": ({ props }: { props: Readonly<Record<string, unknown>> }) => radioControl(props, "vira-radio-workbench", textProp(props, "value", choiceOptions(props)[0] ?? ""), undefined, true),
+  "airline.form.radio": ({ props }: { props: Readonly<Record<string, unknown>> }) => radioControl(props, "vira-radio-workbench", choiceValue(props), undefined, true),
   "airline.form.field-group": ({ props }: { props: Readonly<Record<string, unknown>> }) => fieldGroupControl(props, [workbenchSlot(props)]),
   "airline.status.alert": ({ props }: { props: Readonly<Record<string, unknown>> }) => alertControl(props),
   "airline.status.progress": ({ props }: { props: Readonly<Record<string, unknown>> }) => progressControl(props),
