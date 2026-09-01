@@ -1,4 +1,5 @@
 import type { StudioComponentCatalog } from "@vira-enterprise-genui/studio-catalog";
+import { createStudioDesignCatalog } from "@vira-enterprise-genui/studio-design";
 import type { StudioRuntimeReactRenderer } from "@vira-enterprise-genui/studio-runtime-react";
 import {
   actionAdapter,
@@ -28,13 +29,23 @@ export {
 };
 export type { StarterTemplateId };
 
-export const componentCatalog: StudioComponentCatalog = Object.freeze({
-  ...baseComponentCatalog,
-  components: Object.freeze([
+const v4Catalog = createStudioDesignCatalog({
+  version: baseComponentCatalog.version,
+  id: baseComponentCatalog.id,
+  brandId: baseComponentCatalog.brandId,
+  components: [
     ...baseComponentCatalog.components,
     ...FORM_PRIMITIVE_COMPONENTS,
-  ]),
+  ],
+}, {
+  colorMode: "any",
+  fonts: ["Inter", "Arial", "Georgia"],
+  allowGradient: true,
+  shadows: ["none", "sm", "md", "lg", "xl"],
+  layouts: ["block", "row", "column", "grid2", "grid3"],
 });
+if (!v4Catalog.ok) throw new Error(v4Catalog.issue.message);
+export const componentCatalog: StudioComponentCatalog = v4Catalog.value;
 
 export const workbenchRenderers: Readonly<Record<string, unknown>> = Object.freeze({
   ...baseWorkbenchRenderers,
