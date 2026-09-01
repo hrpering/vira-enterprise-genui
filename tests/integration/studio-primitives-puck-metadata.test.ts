@@ -44,6 +44,15 @@ describe("Studio v4 primitive Puck metadata", () => {
       text: "",
       tone: "info",
     });
+
+    const selectDefaults = byRef.get("airline.form.select")?.defaultProps ?? {};
+    const radioDefaults = byRef.get("airline.form.radio")?.defaultProps ?? {};
+    for (const defaults of [selectDefaults, radioDefaults]) {
+      expect(defaults).not.toHaveProperty("value");
+      expect(defaults).not.toHaveProperty("option-a");
+      expect(defaults).not.toHaveProperty("option-b");
+      expect(defaults).not.toHaveProperty("option-c");
+    }
   });
 
   it("maps the composable field-group slot and input controls to Puck-native field definitions", () => {
