@@ -27,6 +27,7 @@ import type {
 } from "@vira-enterprise-genui/studio-publish";
 
 export interface StudioAuthoringDocumentInput {
+  readonly version?: typeof STUDIO_DOCUMENT_VERSION;
   readonly id: string;
   readonly recipeId: string;
   readonly entryView: string;
@@ -71,11 +72,12 @@ export type StudioAuthoringBundleResult =
 export function defineStudioExperience(
   input: StudioAuthoringDocumentInput,
 ): StudioExperienceDocumentResult {
+  const raw = input as unknown as Readonly<Record<string, unknown>>;
   return parseStudioExperienceDocument({
     ...input,
-    version: STUDIO_DOCUMENT_VERSION,
-    bindings: input.bindings ?? [],
-    interactions: input.interactions ?? [],
+    ...(Object.hasOwn(raw, "version") ? {} : { version: STUDIO_DOCUMENT_VERSION }),
+    ...(Object.hasOwn(raw, "bindings") ? {} : { bindings: [] }),
+    ...(Object.hasOwn(raw, "interactions") ? {} : { interactions: [] }),
   });
 }
 
