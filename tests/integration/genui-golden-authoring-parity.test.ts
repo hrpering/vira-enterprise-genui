@@ -14,7 +14,9 @@ import {
   actionAdapter,
   bindingSourceCatalog,
   componentCatalog,
+  createStarterDocument,
   runtimePermissionPolicy,
+  starterTemplates,
 } from "../../examples/experience-studio-demo/src/catalog.js";
 import {
   GOLDEN_AIRLINE_BOOKING_STEPS,
@@ -36,6 +38,18 @@ function runtimeState() {
 }
 
 describe("GenUI golden manual/Canvas parity", () => {
+  it("exposes the full booking journey as an editable Studio starter", () => {
+    expect(starterTemplates).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: "booking-journey",
+        label: "Full booking journey",
+      }),
+    ]));
+    const document = createStarterDocument("airline.gallery.booking-journey", "booking-journey");
+    expect(document.views.map((view) => view.id)).toEqual(GOLDEN_AIRLINE_BOOKING_STEPS);
+    expect(document.entryView).toBe("flight-search");
+  });
+
   it("publishes the complete booking journey from the manual authoring surface", () => {
     const document = createGoldenAirlineExperience();
     expect(document.views.map((view) => view.id)).toEqual(GOLDEN_AIRLINE_BOOKING_STEPS);
