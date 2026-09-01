@@ -52,36 +52,58 @@ export function createViraGenUIElementClass(
     #renderCurrent(): ViraGenUIElementMountResult {
       if (this.#disposed) return { ok: false, issue: { code: "DISPOSED", message: "GenUI element is disposed" } };
       if (!this.#input) return { ok: true };
-      const rendered = this.#input.runtime.renderReact({
-        renderers: this.#input.renderers,
-        onHostResult: (result) => {
-          this.#input?.onHostResult?.(result);
-        },
-      });
-      if (!rendered.ok) return { ok: false, issue: { code: "RENDER_FAILED", message: rendered.issue.message } };
-      this.#root ??= createRoot(this);
-      this.#root.render(createElement("div", { "data-vira-genui-root": "true" }, rendered.value));
-      return { ok: true };
+
+      try {
+        const rendered = this.#input.runtime.renderReact({
+          renderers: this.#input.renderers,
+          onHostResult: (result) => {
+            this.#input?.onHostResult?.(result);
+          },
+        });
+        if (!rendered.ok) return { ok: false, issue: { code: "RENDER_FAILED", message: rendered.issue.message } };
+        this.#root ??= createRoot(this);
+        this.#root.render(createElement("div", { "data-vira-genui-root": "true" }, rendered.value));
+        return { ok: true };
+      } catch {
+        return { ok: false, issue: { code: "RENDER_FAILED", message: "GenUI element render failed safely" } };
+      }
     }
 
     mount(input: ViraGenUIElementMountInput): ViraGenUIElementMountResult {
       if (this.#disposed) return { ok: false, issue: { code: "DISPOSED", message: "GenUI element is disposed" } };
       this.unmount();
       this.#input = input;
-      this.#unsubscribeRuntime = input.runtime.subscribe(() => {
-        if (!this.#disposed && this.#input?.runtime === input.runtime) this.#renderCurrent();
-      });
+      try {
+        this.#unsubscribeRuntime = input.runtime.subscribe(() => {
+          if (this.#disposed || this.#input?.runtime !== input.runtime) return;
+          const rerendered = this.#renderCurrent();
+          if (!rerendered.ok) this.unmount();
+        });
+      } catch {
+        this.unmount();
+        return { ok: false, issue: { code: "RENDER_FAILED", message: "GenUI runtime subscription failed safely" } };
+      }
       const result = this.#renderCurrent();
       if (!result.ok) this.unmount();
       return result;
     }
 
     unmount(): void {
-      this.#unsubscribeRuntime?.();
+      const unsubscribe = this.#unsubscribeRuntime;
+      const root = this.#root;
       this.#unsubscribeRuntime = undefined;
-      this.#root?.unmount();
       this.#root = undefined;
       this.#input = undefined;
+      try {
+        unsubscribe?.();
+      } catch {
+        // Runtime subscription cleanup cannot keep the element in a half-mounted state.
+      }
+      try {
+        root?.unmount();
+      } catch {
+        // React cleanup failures are outside the canonical runtime boundary.
+      }
     }
 
     disconnectedCallback(): void {
