@@ -6,6 +6,8 @@ export {
 export type {
   ViraGenUIElementApi,
   ViraGenUIElementConstructor,
+  ViraGenUIElementDefineResult,
   ViraGenUIElementMountInput,
   ViraGenUIElementMountResult,
+  ViraGenUIElementPlatform,
 } from "./element.js";
