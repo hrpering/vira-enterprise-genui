@@ -37,6 +37,7 @@ export function createViraGenUIElementClass(
   return class ViraGenUIExperienceElement extends HTMLElementBase implements ViraGenUIElementApi {
     #root: Root | undefined;
     #input: ViraGenUIElementMountInput | undefined;
+    #unsubscribeRuntime: (() => void) | undefined;
     #disposed = false;
 
     #renderCurrent(): ViraGenUIElementMountResult {
@@ -46,7 +47,6 @@ export function createViraGenUIElementClass(
         renderers: this.#input.renderers,
         onHostResult: (result) => {
           this.#input?.onHostResult?.(result);
-          if (!this.#disposed && this.#input) this.#renderCurrent();
         },
       });
       if (!rendered.ok) return { ok: false, issue: { code: "RENDER_FAILED", message: rendered.issue.message } };
@@ -57,11 +57,19 @@ export function createViraGenUIElementClass(
 
     mount(input: ViraGenUIElementMountInput): ViraGenUIElementMountResult {
       if (this.#disposed) return { ok: false, issue: { code: "DISPOSED", message: "GenUI element is disposed" } };
+      this.unmount();
       this.#input = input;
-      return this.#renderCurrent();
+      this.#unsubscribeRuntime = input.runtime.subscribe(() => {
+        if (!this.#disposed && this.#input?.runtime === input.runtime) this.#renderCurrent();
+      });
+      const result = this.#renderCurrent();
+      if (!result.ok) this.unmount();
+      return result;
     }
 
     unmount(): void {
+      this.#unsubscribeRuntime?.();
+      this.#unsubscribeRuntime = undefined;
       this.#root?.unmount();
       this.#root = undefined;
       this.#input = undefined;
