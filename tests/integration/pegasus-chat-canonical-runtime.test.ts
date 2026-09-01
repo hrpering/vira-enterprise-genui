@@ -34,7 +34,7 @@ function currentProps(bundle: NonNullable<ReturnType<typeof createCanonicalChatR
 }
 
 describe("Pegasus Chat canonical Studio runtime", () => {
-  it("carries search, selected offer, fare and assistant commands through the canonical host boundary", async () => {
+  it("carries search, multi-passenger booking state and assistant commands through the canonical host boundary", async () => {
     const bundle = createCanonicalChatRuntime(resultFor());
     expect(bundle).toBeDefined();
     if (!bundle) return;
@@ -84,7 +84,7 @@ describe("Pegasus Chat canonical Studio runtime", () => {
     expect(fareResult.ok).toBe(true);
     expect(bundle.runtime.controller.currentViewId()).toBe("traveller-details");
 
-    await bundle.runtime.controller.dispatch({
+    const travellers = await bundle.runtime.controller.dispatch({
       nodeId: "traveller-details-root",
       event: "submit",
       payload: {
@@ -95,23 +95,37 @@ describe("Pegasus Chat canonical Studio runtime", () => {
         contact: { email: "alex@example.test", phone: "+900000000" },
       },
     });
+    expect(travellers.ok).toBe(true);
     expect(bundle.runtime.controller.currentViewId()).toBe("seat-selection");
     expect(currentProps(bundle)).toMatchObject({ passengers: 2, fare: "flex" });
 
-    const seat = SEAT_OPTIONS.find((candidate) => candidate.occupied !== true);
-    if (!seat) throw new Error("airline fixture must include an available seat");
-    await bundle.runtime.controller.dispatch({
+    const availableSeats = SEAT_OPTIONS.filter((candidate) => candidate.occupied !== true).slice(0, 2);
+    const firstSeat = availableSeats[0];
+    const secondSeat = availableSeats[1];
+    if (!firstSeat || !secondSeat) throw new Error("airline fixture must include two available seats");
+
+    const partialSeat = await bundle.runtime.controller.dispatch({
       nodeId: "seat-selection-root",
       event: "select",
-      payload: { passengerIndex: 0, seat: seat.id },
+      payload: { passengerIndex: 0, seat: firstSeat.id },
     });
+    expect(partialSeat).toMatchObject({ ok: true, value: { outcome: "empty" } });
+    expect(bundle.runtime.controller.currentViewId()).toBe("seat-selection");
+
+    const finalSeat = await bundle.runtime.controller.dispatch({
+      nodeId: "seat-selection-root",
+      event: "select",
+      payload: { passengerIndex: 1, seat: secondSeat.id },
+    });
+    expect(finalSeat).toMatchObject({ ok: true, value: { outcome: "success" } });
     expect(bundle.runtime.controller.currentViewId()).toBe("baggage");
 
-    await bundle.runtime.controller.dispatch({
+    const baggage = await bundle.runtime.controller.dispatch({
       nodeId: "baggage-root",
       event: "select",
       payload: { applyToAll: true, optionId: "20kg" },
     });
+    expect(baggage).toMatchObject({ ok: true, value: { outcome: "success" } });
     expect(bundle.runtime.controller.currentViewId()).toBe("extras");
 
     const unregister = registerCanonicalChatCommandTarget({
@@ -126,6 +140,7 @@ describe("Pegasus Chat canonical Studio runtime", () => {
         value: "flex-plus",
       })).resolves.toEqual({ ok: true });
       expect(bundle.runtime.controller.currentViewId()).toBe("extras");
+      expect(currentProps(bundle)).toMatchObject({ "insurance-id": "flex-plus" });
 
       await expect(applyCanonicalViraCommand({
         version: "1",
@@ -133,7 +148,7 @@ describe("Pegasus Chat canonical Studio runtime", () => {
         command: "add-extra",
         value: "meal",
       })).resolves.toEqual({ ok: true });
-      expect(bundle.runtime.controller.currentViewId()).toBe("extras");
+      expect(currentProps(bundle)).toMatchObject({ "selected-extras": "meal" });
 
       const extrasResult = await bundle.runtime.controller.dispatch({
         nodeId: "extras-root",
@@ -142,14 +157,23 @@ describe("Pegasus Chat canonical Studio runtime", () => {
       });
       expect(extrasResult.ok).toBe(true);
       expect(bundle.runtime.controller.currentViewId()).toBe("booking-review");
-      expect(currentProps(bundle)).toMatchObject({
+      const review = currentProps(bundle);
+      expect(review).toMatchObject({
         origin: "SAW",
         destination: "BER",
         passengers: 2,
         fare: "flex",
         "base-price": selected.price,
         currency: selected.currency,
+        "flight-number": selected.flightNumber,
       });
+      expect(String(review["seat-summary"])).toContain(firstSeat.id);
+      expect(String(review["seat-summary"])).toContain(secondSeat.id);
+      expect(String(review["baggage-summary"])).toContain("P1:");
+      expect(String(review["insurance-label"])).not.toBe("None");
+      expect(String(review["extras-summary"])).toContain("Meal");
+      expect(typeof review.total).toBe("number");
+      expect(Number(review.total)).toBeGreaterThan(selected.price);
 
       await expect(applyCanonicalViraCommand({
         version: "1",
@@ -158,6 +182,7 @@ describe("Pegasus Chat canonical Studio runtime", () => {
         value: "fast-track",
       })).resolves.toEqual({ ok: true });
       expect(bundle.runtime.controller.currentViewId()).toBe("booking-review");
+      expect(String(currentProps(bundle)["extras-summary"])).toContain("Fast");
     } finally {
       unregister();
     }
@@ -169,6 +194,10 @@ describe("Pegasus Chat canonical Studio runtime", () => {
     });
     expect(handoff.ok).toBe(true);
     expect(bundle.runtime.controller.currentViewId()).toBe("confirmation");
+    expect(currentProps(bundle)).toMatchObject({
+      "flight-number": selected.flightNumber,
+      fare: "flex",
+    });
 
     bundle.runtime.dispose();
   });
