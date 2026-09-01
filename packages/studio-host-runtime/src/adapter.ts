@@ -86,8 +86,9 @@ export function createStudioHostRuntimeAdapter(hostInput: unknown): StudioHostRu
   let unsubscribe: (() => void) | undefined;
   try {
     unsubscribe = host.subscribe((snapshot) => {
-      if (disposed) return;
-      subscriptionFault = acceptSnapshot(snapshot);
+      if (disposed || subscriptionFault) return;
+      const snapshotIssue = acceptSnapshot(snapshot);
+      if (snapshotIssue) subscriptionFault = snapshotIssue;
     });
   } catch {
     return { ok: false, issue: issue("INVALID_HOST", "$.host.subscribe", "Studio host subscription failed") };
@@ -153,12 +154,20 @@ export function createStudioHostRuntimeAdapter(hostInput: unknown): StudioHostRu
             payload: runtime.value.action.payload,
           });
         } catch {
+          if (disposed || controllerDisposed) {
+            return { ok: false, issue: issue("DISPOSED", "$", "hosted Studio runtime was disposed during host dispatch") };
+          }
           const completion = session.complete({ actionId, outcome: "error" });
           return {
             ok: false,
             issue: issue("HOST_DISPATCH_FAILED", "$.host.dispatch", completion.ok ? "Studio host dispatch failed" : "Studio host dispatch failed and runtime error completion failed"),
           };
         }
+
+        if (disposed || controllerDisposed) {
+          return { ok: false, issue: issue("DISPOSED", "$", "hosted Studio runtime was disposed during host dispatch") };
+        }
+        if (subscriptionFault) return { ok: false, issue: subscriptionFault };
 
         const hostResult = createStudioHostActionResult(hostRaw);
         if (!hostResult.ok) {
