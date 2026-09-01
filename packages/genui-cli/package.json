@@ -4,9 +4,10 @@
   "private": true,
   "type": "module",
   "bin": {
-    "vira-genui": "./src/cli.ts"
+    "vira-genui": "./bin/vira-genui.mjs"
   },
   "dependencies": {
-    "@vira-enterprise-genui/studio-authoring": "workspace:*"
+    "@vira-enterprise-genui/studio-authoring": "workspace:*",
+    "tsx": "4.23.12"
   }
 }
