@@ -98,9 +98,9 @@ export function createViraExperienceRuntime(
   };
 
   const notifyAfterHostedResult = (result: StudioHostedDispatchResult): void => {
-    // A pure Studio dispatch rejection cannot have changed host data or completed a route.
-    // Host/transport failures may still complete the canonical error route and must invalidate.
-    if (!result.ok && result.issue.code === "RUNTIME_COMPLETION_FAILED") return;
+    // Only a Studio event rejected before host dispatch is a true no-op. Other hosted
+    // failures may have completed an error route, accepted host data, or performed a host effect.
+    if (!result.ok && result.runtime !== undefined && !result.runtime.ok) return;
     notify();
   };
 
