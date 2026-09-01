@@ -5,11 +5,10 @@ import { createExperienceObservation } from "../../packages/experience-observabi
 
 describe("Experience Observability telemetry channel integration", () => {
   it("emits the canonical mapped event through the existing telemetry channel without an observability-specific transport", async () => {
-    const batches: readonly TelemetryEvent[][] = [];
-    const mutableBatches = batches as TelemetryEvent[][];
+    const batches: TelemetryEvent[][] = [];
     const created = createTelemetryChannel({
       async exportBatch(events: readonly TelemetryEvent[]) {
-        mutableBatches.push([...events]);
+        batches.push([...events]);
       },
       async flush() {},
       async shutdown() {},
@@ -27,7 +26,7 @@ describe("Experience Observability telemetry channel integration", () => {
     if (!observation.ok) return;
 
     await expect(created.value.emit(observation.value)).resolves.toEqual({ ok: true });
-    expect(mutableBatches).toEqual([[observation.value]]);
+    expect(batches).toEqual([[observation.value]]);
     await expect(created.value.shutdown()).resolves.toEqual({ ok: true });
   });
 });
