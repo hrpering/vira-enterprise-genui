@@ -2,6 +2,9 @@ packages:
   - "packages/*"
   - "examples/*"
 
+allowBuilds:
+  "esbuild@0.28.2": true
+
 overrides:
   "@ai-sdk/gateway": "4.0.62"
   "@ai-sdk/mcp": "2.0.36"
