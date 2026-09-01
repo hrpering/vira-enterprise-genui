@@ -26,6 +26,7 @@
     "@vira-enterprise-genui/planner": "workspace:*",
     "@vira-enterprise-genui/protocol": "workspace:*",
     "@vira-enterprise-genui/react": "workspace:*",
+    "@vira-enterprise-genui/recipe-brand-kit": "workspace:*",
     "@vira-enterprise-genui/runtime-core": "workspace:*",
     "@vira-enterprise-genui/runtime-web": "workspace:*",
     "ai": "7.0.77",
