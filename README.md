@@ -56,6 +56,8 @@ Brand catalog + approved data/actions
 
 Puck is an editor implementation detail. `StudioDocument` and `StudioPublication` are the canonical Vira artifacts.
 
+Experience Studio's reference airline package includes composable layout/content primitives, a safe form/feedback kit (`Input`, `Textarea`, `Select`, `Checkbox`, `Radio group`, `Field group`, `Alert`, `Progress`, `Spinner`, `Empty state`), editable repeated flight-result cards, and trusted business-critical widgets where airline rules must remain locked. The **Full booking journey** starter composes nine canonical views from flight search through confirmation instead of exposing one opaque template block.
+
 ## Manual authoring
 
 Developers can author the same canonical Studio document without opening Experience Studio. `@vira-enterprise-genui/studio-authoring` adds typed helpers around the existing Studio schema, preview, publication and portable-bundle gates; it does not introduce a second document or compiler format.
@@ -70,6 +72,22 @@ pnpm genui preview ./experience.config.ts --view main
 
 Manual documents and Canvas documents round-trip through the same portable bundle and produce the same `StudioPublication` semantics.
 
+```text
+Manual TypeScript ─┐
+                   ├─> StudioExperienceDocument -> validation -> StudioPublication
+Experience Studio ─┘                                      |
+                                                          v
+                                             React / Web Component / Chat
+```
+
+## Public GenUI host runtime
+
+`@vira-enterprise-genui/genui` composes an approved `StudioPublication`, the Studio host bridge, the canonical runtime session and the React renderer behind one consumer surface. The public controller accepts complete user actions; raw runtime-session and host-forward internals stay private so a consumer cannot bypass canonical completion or duplicate a host side effect.
+
+Host snapshots use a monotonic revision as a change token: forward revisions are accepted, duplicate revisions are ignored, and backwards revisions fail closed. `runtime.subscribe()` exposes render invalidation without introducing a second state store. React renderers receive the same canonical runtime state and trusted renderer registry used by other consumers.
+
+`@vira-enterprise-genui/genui-web-component` exposes the Studio publication runtime as `<vira-genui-experience>`. Registration is platform-injectable and fails closed when the Custom Elements platform is unavailable, so importing the package does not require browser globals during SSR.
+
 ## Core packages
 
 - `protocol` — framework-neutral contracts.
@@ -81,7 +99,7 @@ Manual documents and Canvas documents round-trip through the same portable bundl
 - `web-component` — thin `<vira-experience>` wrapper for the original runtime-web surface.
 - `react` — thin React wrapper over the same runtime.
 - `genui` — public Studio publication + host + React integration surface.
-- `genui-web-component` — Studio publication Web Component adapter without changing the legacy wrapper.
+- `genui-web-component` — SSR-safe Studio publication Web Component adapter without changing the legacy wrapper.
 - `studio-authoring` — canonical code-first/manual Studio authoring surface.
 - `genui-cli` — validate/build/preview CLI over the same Studio gates.
 - `security` — sanitization, allowlists, CSP and network policy.
@@ -111,7 +129,7 @@ Pegasus Chat demo:
 pnpm demo:pegasus-chat
 ```
 
-The approved flight flow in Pegasus Chat is rendered through the canonical Studio publication/runtime path rather than a chat-specific UI schema.
+The approved flight flow in Pegasus Chat is rendered through the canonical Studio publication/runtime path rather than a chat-specific UI schema. The Chat bridge only accepts the approved flight-experience result contract before constructing the publication.
 
 See `examples/flight-search-demo/README.md` and `examples/experience-studio-demo/README.md`.
 
@@ -119,7 +137,7 @@ See `examples/flight-search-demo/README.md` and `examples/experience-studio-demo
 
 Neither the runtime nor Experience Studio provides arbitrary HTML, JavaScript, JSX, raw CSS, unrestricted API calls, a general workflow engine, a message queue, authentication, billing, model hosting or a replacement application backend.
 
-Studio authors work only with components, properties, data sources and action aliases explicitly registered by the host integration.
+Studio authors work only with components, properties, data sources and action aliases explicitly registered by the host integration. Runtime renderer event payloads are inspected as safe own-data objects before entering canonical action validation; accessor properties and malformed payload objects are not evaluated or trusted.
 
 ## Development rule
 
