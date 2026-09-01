@@ -6,11 +6,14 @@
   "exports": {
     ".": "./src/index.ts",
     "./studio": "./src/studio.ts",
+    "./chat-publication": "./src/chat-publication.ts",
     "./base.css": "./styles/base.css",
     "./booking-flow.css": "./styles/booking-flow.css",
     "./guidance.css": "./styles/guidance.css"
   },
   "dependencies": {
+    "@vira-enterprise-genui/experience-packs": "workspace:*",
+    "@vira-enterprise-genui/genui": "workspace:*",
     "@vira-enterprise-genui/mock-airline-domain": "workspace:*",
     "@vira-enterprise-genui/protocol": "workspace:*",
     "@vira-enterprise-genui/runtime-web": "workspace:*",
