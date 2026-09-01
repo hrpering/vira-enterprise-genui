@@ -15,6 +15,7 @@ import {
 
 const SNAPSHOT_FIELDS = new Set(["schemaVersion", "manifests"]);
 const CANONICAL_SNAPSHOTS = new WeakSet<object>();
+const EXPERIENCE_REGISTRY_MAX_DETACHED_CONTAINERS = 100_000;
 
 type JsonContainer = Record<string, unknown> | unknown[];
 interface DetachWorkItem {
@@ -34,11 +35,20 @@ function parsedObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function ownData(object: object, key: PropertyKey): PropertyDescriptor | undefined {
+  const descriptor = Object.getOwnPropertyDescriptor(object, key);
+  return descriptor && "value" in descriptor ? descriptor : undefined;
+}
+
 function detachedContainer(source: JsonContainer): JsonContainer {
   if (!Array.isArray(source)) {
     return Object.create(null) as Record<string, unknown>;
   }
-  const target = new Array<unknown>(source.length);
+  const length = ownData(source, "length")?.value;
+  if (typeof length !== "number" || !Number.isSafeInteger(length) || length < 0) {
+    throw new Error("parsed JSON array must have an own integer length");
+  }
+  const target = new Array<unknown>(length);
   Object.setPrototypeOf(target, null);
   return target;
 }
@@ -56,15 +66,12 @@ function appendOwnArrayValue<T>(array: T[], value: T): void {
   defineOwnData(array, String(array.length), value);
 }
 
-function detachParsedJson(input: unknown): unknown {
-  if (input === null || typeof input !== "object") return input;
-
-  const rootSource = input as JsonContainer;
-  const rootTarget = detachedContainer(rootSource);
+function detachParsedJson(input: JsonContainer): JsonContainer | undefined {
+  const rootTarget = detachedContainer(input);
   const worklist = Object.create(null) as Record<number, DetachWorkItem | undefined>;
   let readIndex = 0;
   let writeIndex = 1;
-  worklist[0] = { source: rootSource, target: rootTarget };
+  worklist[0] = { source: input, target: rootTarget };
 
   while (readIndex < writeIndex) {
     const current = worklist[readIndex];
@@ -73,10 +80,17 @@ function detachParsedJson(input: unknown): unknown {
     if (!current) continue;
 
     if (Array.isArray(current.source)) {
+      const sourceLength = ownData(current.source, "length")?.value;
+      if (typeof sourceLength !== "number" || !Number.isSafeInteger(sourceLength) || sourceLength < 0) {
+        return undefined;
+      }
       const target = current.target as unknown[];
-      for (let index = 0; index < current.source.length; index += 1) {
-        const child = current.source[index];
+      for (let index = 0; index < sourceLength; index += 1) {
+        const childDescriptor = ownData(current.source, String(index));
+        if (!childDescriptor) return undefined;
+        const child = childDescriptor.value;
         if (child !== null && typeof child === "object") {
+          if (writeIndex >= EXPERIENCE_REGISTRY_MAX_DETACHED_CONTAINERS) return undefined;
           const childSource = child as JsonContainer;
           const childTarget = detachedContainer(childSource);
           defineOwnData(target, String(index), childTarget);
@@ -91,8 +105,11 @@ function detachParsedJson(input: unknown): unknown {
 
     const target = current.target as Record<string, unknown>;
     for (const key of Object.keys(current.source)) {
-      const child = current.source[key];
+      const childDescriptor = ownData(current.source, key);
+      if (!childDescriptor) return undefined;
+      const child = childDescriptor.value;
       if (child !== null && typeof child === "object") {
+        if (writeIndex >= EXPERIENCE_REGISTRY_MAX_DETACHED_CONTAINERS) return undefined;
         const childSource = child as JsonContainer;
         const childTarget = detachedContainer(childSource);
         defineOwnData(target, key, childTarget);
@@ -132,7 +149,7 @@ export function parseExperienceRegistrySnapshot(input: unknown): ExperienceRegis
 
   let parsed: unknown;
   try {
-    parsed = detachParsedJson(JSON.parse(input) as unknown);
+    parsed = JSON.parse(input) as unknown;
   } catch {
     return snapshotFailure("INVALID_JSON", "$", "experience registry input must be valid JSON");
   }
@@ -146,7 +163,8 @@ export function parseExperienceRegistrySnapshot(input: unknown): ExperienceRegis
     return snapshotFailure("UNKNOWN_FIELD", "$", "experience registry snapshot contains an unsupported field");
   }
 
-  if (parsed.schemaVersion !== EXPERIENCE_REGISTRY_SCHEMA_VERSION) {
+  const schemaVersion = ownData(parsed, "schemaVersion")?.value;
+  if (schemaVersion !== EXPERIENCE_REGISTRY_SCHEMA_VERSION) {
     return snapshotFailure(
       "INVALID_SCHEMA_VERSION",
       "$.schemaVersion",
@@ -154,10 +172,15 @@ export function parseExperienceRegistrySnapshot(input: unknown): ExperienceRegis
     );
   }
 
-  if (!Array.isArray(parsed.manifests)) {
+  const manifestsDescriptor = ownData(parsed, "manifests");
+  if (!manifestsDescriptor || !Array.isArray(manifestsDescriptor.value)) {
     return snapshotFailure("INVALID_MANIFESTS", "$.manifests", "manifests must be an array");
   }
-  if (parsed.manifests.length > EXPERIENCE_REGISTRY_MAX_MANIFESTS) {
+  const manifestLength = ownData(manifestsDescriptor.value, "length")?.value;
+  if (typeof manifestLength !== "number" || !Number.isSafeInteger(manifestLength) || manifestLength < 0) {
+    return snapshotFailure("INVALID_MANIFESTS", "$.manifests", "manifests must have an own integer length");
+  }
+  if (manifestLength > EXPERIENCE_REGISTRY_MAX_MANIFESTS) {
     return snapshotFailure(
       "MANIFEST_LIMIT_EXCEEDED",
       "$.manifests",
@@ -165,10 +188,28 @@ export function parseExperienceRegistrySnapshot(input: unknown): ExperienceRegis
     );
   }
 
+  let detachedManifests: JsonContainer | undefined;
+  try {
+    detachedManifests = detachParsedJson(manifestsDescriptor.value);
+  } catch {
+    detachedManifests = undefined;
+  }
+  if (!detachedManifests || !Array.isArray(detachedManifests)) {
+    return snapshotFailure(
+      "INVALID_MANIFESTS",
+      "$.manifests",
+      "registry manifests exceed the bounded plain-data detachment budget",
+    );
+  }
+
   const canonical: ExperiencePackManifest[] = [];
   const versionsById = new Map<string, Set<string>>();
-  for (let index = 0; index < parsed.manifests.length; index += 1) {
-    const pack = parseExperiencePackManifest(parsed.manifests[index]);
+  for (let index = 0; index < manifestLength; index += 1) {
+    const manifestDescriptor = ownData(detachedManifests, String(index));
+    if (!manifestDescriptor) {
+      return snapshotFailure("INVALID_MANIFEST", `$.manifests[${index}]`, "registry manifest is missing");
+    }
+    const pack = parseExperiencePackManifest(manifestDescriptor.value);
     if (!pack.ok) {
       return snapshotFailure(
         "INVALID_MANIFEST",
