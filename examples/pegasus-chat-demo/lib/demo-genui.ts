@@ -28,12 +28,14 @@ const registry = parseExperienceRegistrySnapshot(JSON.stringify({
   manifests: [FLIGHT_BOOKING_PACK_MANIFEST, RECIPE_CARD_PACK_MANIFEST],
 }));
 if (!registry.ok) throw new Error(`Invalid demo Experience Registry: ${registry.issue.message}`);
+const registrySnapshot = registry.value;
 
 const capabilities = createViraRuntimeCapabilityRegistry([
   FLIGHT_BOOKING_RUNTIME_PROFILE,
   RECIPE_RUNTIME_PROFILE,
 ]);
 if (!capabilities.ok) throw new Error(`Invalid demo runtime capability registry: ${capabilities.issue.message}`);
+const capabilityRegistry = capabilities.value;
 
 const publicationArtifacts = new Map<string, Readonly<{ digest: string; publication: unknown }>>([
   [
@@ -48,8 +50,8 @@ const publicationArtifacts = new Map<string, Readonly<{ digest: string; publicat
 
 export function createDemoChatBridge(): ViraChatBridge {
   const resolver = createViraExperienceResolver({
-    registry: registry.value,
-    capabilities: capabilities.value,
+    registry: registrySnapshot,
+    capabilities: capabilityRegistry,
     artifactResolver: {
       async resolveStudioPublication({ packId, version, artifactId, digest }) {
         const artifact = publicationArtifacts.get(`${packId}@${version}:${artifactId}`);
