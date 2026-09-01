@@ -52,6 +52,10 @@ function defineOwnData(target: object, key: PropertyKey, value: unknown): void {
   });
 }
 
+function appendOwnArrayValue<T>(array: T[], value: T): void {
+  defineOwnData(array, String(array.length), value);
+}
+
 function detachParsedJson(input: unknown): unknown {
   if (input === null || typeof input !== "object") return input;
 
@@ -186,7 +190,7 @@ export function parseExperienceRegistrySnapshot(input: unknown): ExperienceRegis
       );
     }
     versions.add(pack.value.version);
-    canonical.push(pack.value);
+    appendOwnArrayValue(canonical, pack.value);
   }
 
   canonical.sort(compareManifest);
