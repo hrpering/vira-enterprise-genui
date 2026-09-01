@@ -29,6 +29,12 @@ function validResult() {
   };
 }
 
+function firstOffer() {
+  const offer = validResult().data.offers[0];
+  if (!offer) throw new Error("valid Chat contract fixture must include one offer");
+  return offer;
+}
+
 describe("Pegasus Chat approved GenUI result contract", () => {
   it("accepts only the approved flight-experience discriminator with a valid offer payload", () => {
     expect(isViraFlightExperienceResult(validResult())).toBe(true);
@@ -42,18 +48,19 @@ describe("Pegasus Chat approved GenUI result contract", () => {
   });
 
   it("rejects malformed passenger and offer data fail closed", () => {
+    const base = validResult();
     expect(isViraFlightExperienceResult({
-      ...validResult(),
-      input: { ...validResult().input, passengers: 1.5 },
+      ...base,
+      input: { ...base.input, passengers: 1.5 },
     })).toBe(false);
     expect(isViraFlightExperienceResult({
-      ...validResult(),
+      ...base,
       data: {
-        offers: [{ ...validResult().data.offers[0], price: Number.NaN }],
+        offers: [{ ...firstOffer(), price: Number.NaN }],
       },
     })).toBe(false);
     expect(isViraFlightExperienceResult({
-      ...validResult(),
+      ...base,
       data: { offers: "not-an-array" },
     })).toBe(false);
   });
