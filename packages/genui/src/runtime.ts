@@ -98,18 +98,25 @@ export function createViraExperienceRuntime(
     }
   };
 
+  const notifyAfterHostedResult = (result: StudioHostedDispatchResult): void => {
+    // A pure Studio dispatch rejection cannot have changed host data or completed a route.
+    // Host/transport failures may still complete the canonical error route and must invalidate.
+    if (!result.ok && result.issue.code === "RUNTIME_COMPLETION_FAILED") return;
+    notify();
+  };
+
   const controller: ViraExperienceController = Object.freeze({
     currentViewId: hostedController.currentViewId,
     currentView: hostedController.currentView,
     currentRuntimeState: hostedController.currentRuntimeState,
     async dispatch(eventInput): Promise<StudioHostedDispatchResult> {
       const result = await hostedController.dispatch(eventInput);
-      notify();
+      notifyAfterHostedResult(result);
       return result;
     },
     async forward(runtimeResult): Promise<StudioHostedDispatchResult> {
       const result = await hostedController.forward(runtimeResult);
-      notify();
+      notifyAfterHostedResult(result);
       return result;
     },
   });
