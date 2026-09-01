@@ -9,7 +9,7 @@ import type { ViraExperienceRuntime } from "@vira-enterprise-genui/genui";
 import type {
   FlightOffer,
   ViraCommandResult,
-} from "../lib/vira-chat-contract";
+} from "../lib/vira-chat-contract.js";
 
 export type CanonicalChatCommandResult =
   | { readonly ok: true }
