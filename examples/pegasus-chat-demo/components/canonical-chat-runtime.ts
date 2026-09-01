@@ -15,14 +15,14 @@ import {
 } from "@vira-enterprise-genui/genui";
 import { searchFlights } from "@vira-enterprise-genui/mock-airline-domain";
 import { createRuntimeState } from "@vira-enterprise-genui/runtime-core";
-import type { FlightOffer, ViraFlightExperienceResult } from "../lib/vira-chat-contract";
+import type { FlightOffer, ViraFlightExperienceResult } from "../lib/vira-chat-contract.js";
 import {
   CANONICAL_CHAT_ACTION_ADAPTER,
   CANONICAL_CHAT_BINDING_SOURCE_CATALOG,
   CANONICAL_CHAT_COMPONENT_CATALOG,
   CANONICAL_CHAT_PERMISSION_POLICY,
   createCanonicalChatDocument,
-} from "./canonical-chat-studio-contracts";
+} from "./canonical-chat-studio-contracts.js";
 
 function runtimeState() {
   const result = createRuntimeState("pegasus-chat-studio", {
