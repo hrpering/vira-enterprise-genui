@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createOpenAI } from "@ai-sdk/openai";
 import {
   convertToModelMessages,
@@ -7,6 +8,11 @@ import {
   zodSchema,
   type UIMessage,
 } from "ai";
+import {
+  FLIGHT_BOOKING_ENTRYPOINT,
+  FLIGHT_BOOKING_PACK_ID,
+  FLIGHT_BOOKING_PACK_VERSION,
+} from "@vira-enterprise-genui/airline-brand-kit/chat-publication";
 import {
   getMissedFlightGuidance,
   getSpecialAssistanceGuidance,
@@ -22,10 +28,38 @@ const flightSearchSchema = z.object({
   passengers: z.number().int().min(1).max(8).default(1),
 });
 
-const viraExperienceSchema = z.object({
-  experience: z.literal("travel.flight.search"),
-  input: flightSearchSchema,
+const flightPackSchema = z.object({
+  id: z.literal(FLIGHT_BOOKING_PACK_ID),
+  version: z.literal(FLIGHT_BOOKING_PACK_VERSION),
+  entrypoint: z.literal(FLIGHT_BOOKING_ENTRYPOINT),
 });
+
+const flightCommandSchema = z.enum([
+  "select-cheapest",
+  "select-fare",
+  "set-baggage-all",
+  "set-insurance",
+  "add-extra",
+  "set-seat-zone",
+]);
+
+const viraExperienceSchema = z.discriminatedUnion("op", [
+  z.object({
+    op: z.literal("present"),
+    pack: flightPackSchema,
+    input: flightSearchSchema,
+  }),
+  z.object({
+    op: z.literal("command"),
+    instanceId: z.string().min(1).max(4_096),
+    command: flightCommandSchema,
+    args: z.object({
+      value: z.string().optional().describe(
+        "Command value when required: fare light|smart|flex, baggage none|15kg|20kg|25kg, insurance none|travel|flex-plus, extra priority|fast-track|meal|sms, or seat zone front|extra-legroom|standard",
+      ),
+    }).default({}),
+  }),
+]);
 
 const viraGuidanceSchema = z.object({
   experience: z.enum([
@@ -40,20 +74,6 @@ const viraGuidanceSchema = z.object({
     passportIssuer: z.string().optional(),
     residence: z.string().optional(),
   }).default({}),
-});
-
-const viraCommandSchema = z.object({
-  command: z.enum([
-    "select-cheapest",
-    "select-fare",
-    "set-baggage-all",
-    "set-insurance",
-    "add-extra",
-    "set-seat-zone",
-  ]),
-  value: z.string().optional().describe(
-    "Command value when required: fare light|smart|flex, baggage none|15kg|20kg|25kg, insurance none|travel|flex-plus, extra priority|fast-track|meal|sms, or seat zone front|extra-legroom|standard",
-  ),
 });
 
 type GuidanceExperience = z.infer<typeof viraGuidanceSchema>["experience"];
@@ -96,37 +116,51 @@ export async function POST(request: Request) {
       "For visa, entry-requirement, or travel-document questions, call vira_present_guidance with experience compliance.visa-check. Pass originCountry and destinationCountry when the user supplied them. Pass nationality, passportIssuer, or residence only when the user explicitly supplied them; never guess those identity details.",
       "After presenting a guidance experience, add at most one short sentence telling the user to use the interactive card below.",
       "For other ordinary airline questions, answer naturally in chat unless another Vira experience is available.",
-      "When the user wants to search or compare flights and you know origin, destination, departure date, and passenger count, call vira_present_experience with experience travel.flight.search.",
+      `When the user wants to search or compare flights and you know origin, destination, departure date, and passenger count, call vira_experience with op present and pack ${FLIGHT_BOOKING_PACK_ID}@${FLIGHT_BOOKING_PACK_VERSION} entrypoint ${FLIGHT_BOOKING_ENTRYPOINT}.`,
       "If a required flight-search field is missing, ask one short follow-up question instead of guessing.",
-      "When an interactive flight booking experience is already present in the conversation and the user asks to act on it, call vira_interact instead of only describing what they should click.",
+      "A successful vira_experience present result contains an instanceId. Treat that instanceId as the exact identity of that mounted experience.",
+      "When the user asks to change a mounted booking experience, call vira_experience with op command and the instanceId belonging to that exact experience. Never guess, omit, or substitute an instanceId.",
       "Map 'cheapest' to select-cheapest.",
-      "Map Light, Smart, or Flex fare requests to select-fare with value light, smart, or flex.",
-      "Map baggage requests for everyone to set-baggage-all with one of none, 15kg, 20kg, or 25kg.",
-      "Map insurance requests to set-insurance with none, travel, or flex-plus.",
-      "Map priority boarding, fast track, meal, or SMS requests to add-extra with priority, fast-track, meal, or sms.",
-      "Map front, extra-legroom, or standard seat preferences to set-seat-zone with front, extra-legroom, or standard.",
-      "After calling vira_interact, acknowledge the change briefly. Do not tell the user to click the option you just applied and do not guess or restate a price; the mounted Vira experience is the source of truth for the current total.",
+      "Map Light, Smart, or Flex fare requests to select-fare with args.value light, smart, or flex.",
+      "Map baggage requests for everyone to set-baggage-all with args.value none, 15kg, 20kg, or 25kg.",
+      "Map insurance requests to set-insurance with args.value none, travel, or flex-plus.",
+      "Map priority boarding, fast track, meal, or SMS requests to add-extra with args.value priority, fast-track, meal, or sms.",
+      "Map front, extra-legroom, or standard seat preferences to set-seat-zone with args.value front, extra-legroom, or standard.",
+      "After a vira_experience command, acknowledge the change briefly. Do not tell the user to click the option you just applied and do not guess or restate a price; the targeted Vira experience is the source of truth for its current total.",
       "After presenting a new booking experience, briefly tell the user that the interactive booking flow is available below.",
     ].join("\n"),
     messages: await convertToModelMessages(body.messages),
     stopWhen: stepCountIs(5),
     tools: {
-      vira_present_experience: tool({
-        description: "Search the airline domain and present a Vira interactive airline booking experience inside the chat.",
+      vira_experience: tool({
+        description: "Present or command a registered Vira Experience Pack inside the chat.",
         inputSchema: zodSchema(viraExperienceSchema),
-        execute: async ({ experience, input }) => {
-          const result = searchFlights(input);
+        execute: async (input) => {
+          if (input.op === "command") {
+            return {
+              version: "1" as const,
+              op: "command" as const,
+              instanceId: input.instanceId,
+              command: input.command,
+              args: input.args,
+            };
+          }
+
+          const searched = searchFlights(input.input);
           return {
             version: "1" as const,
-            kind: "vira.experience" as const,
-            experience,
-            input: {
-              origin: result.origin,
-              destination: result.destination,
-              departureDate: result.departureDate,
-              passengers: result.passengers,
+            op: "present" as const,
+            instanceId: `flight-${randomUUID()}`,
+            pack: input.pack,
+            payload: {
+              input: {
+                origin: searched.origin,
+                destination: searched.destination,
+                departureDate: searched.departureDate,
+                passengers: searched.passengers,
+              },
+              data: { offers: searched.offers },
             },
-            data: { offers: result.offers },
           };
         },
       }),
@@ -141,16 +175,6 @@ export async function POST(request: Request) {
             Object.entries(input).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
           ),
           data: guidanceData(experience, input),
-        }),
-      }),
-      vira_interact: tool({
-        description: "Send an action to the currently mounted Vira airline booking experience in the chat.",
-        inputSchema: zodSchema(viraCommandSchema),
-        execute: async ({ command, value }) => ({
-          version: "1" as const,
-          kind: "vira.command" as const,
-          command,
-          ...(value === undefined ? {} : { value }),
         }),
       }),
     },
