@@ -36,15 +36,23 @@ export interface ViraGenUIElementPlatform {
   readonly registry: Pick<CustomElementRegistry, "define" | "get">;
 }
 
+export interface ViraGenUIReactRoot {
+  render(node: Parameters<Root["render"]>[0]): void;
+  unmount(): void;
+}
+
+export type ViraGenUIReactRootFactory = (container: HTMLElement) => ViraGenUIReactRoot;
+
 export type ViraGenUIElementDefineResult =
   | { readonly ok: true; readonly value: ViraGenUIElementConstructor }
   | { readonly ok: false; readonly issue: { readonly code: "PLATFORM_UNAVAILABLE" | "ALREADY_DEFINED" | "REGISTRATION_FAILED"; readonly message: string } };
 
 export function createViraGenUIElementClass(
   HTMLElementBase: typeof HTMLElement,
+  rootFactory: ViraGenUIReactRootFactory = (container) => createRoot(container),
 ): ViraGenUIElementConstructor {
   return class ViraGenUIExperienceElement extends HTMLElementBase implements ViraGenUIElementApi {
-    #root: Root | undefined;
+    #root: ViraGenUIReactRoot | undefined;
     #input: ViraGenUIElementMountInput | undefined;
     #unsubscribeRuntime: (() => void) | undefined;
     #disposed = false;
@@ -61,7 +69,7 @@ export function createViraGenUIElementClass(
           },
         });
         if (!rendered.ok) return { ok: false, issue: { code: "RENDER_FAILED", message: rendered.issue.message } };
-        this.#root ??= createRoot(this);
+        this.#root ??= rootFactory(this);
         this.#root.render(createElement("div", { "data-vira-genui-root": "true" }, rendered.value));
         return { ok: true };
       } catch {
