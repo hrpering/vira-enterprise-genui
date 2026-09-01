@@ -124,6 +124,34 @@ describe("manual Studio authoring", () => {
     expect(getterCalls).toBe(0);
   });
 
+  it("never evaluates nested accessor properties before canonical JSON validation", () => {
+    let getterCalls = 0;
+    const base = document();
+    const props: Record<string, unknown> = {};
+    Object.defineProperty(props, "secret", {
+      enumerable: true,
+      get() {
+        getterCalls += 1;
+        return "should-not-run";
+      },
+    });
+    const input = {
+      ...base,
+      views: [{
+        ...base.views[0],
+        nodes: [{ ...base.views[0]?.nodes[0], props }],
+      }],
+    } as unknown as StudioAuthoringDocumentInput;
+
+    const result = defineStudioExperience(input);
+    expect(getterCalls).toBe(0);
+    expect(result).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_TYPE", path: "$.views[0].nodes[0].props.secret" },
+    });
+    expect(getterCalls).toBe(0);
+  });
+
   it("uses the existing publication gate after canonical document parsing", () => {
     const result = prepareAuthoredStudioPublication({
       document: document(),
