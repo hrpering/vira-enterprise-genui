@@ -145,9 +145,18 @@ export function createViraExperienceRuntime(
         componentCatalog: input.componentCatalog,
         renderers,
         onDispatch: (result) => {
-          void forwardRendererDispatch(result).then((hostResult) => {
-            onHostResult?.(hostResult);
-          });
+          void forwardRendererDispatch(result)
+            .then((hostResult) => {
+              try {
+                onHostResult?.(hostResult);
+              } catch {
+                // Consumer callbacks are outside the canonical runtime boundary.
+              }
+            })
+            .catch(() => {
+              // The hosted bridge is expected to return typed failures, but an unexpected
+              // promise rejection must never become an unhandled consumer/runtime fault.
+            });
         },
       });
     },
