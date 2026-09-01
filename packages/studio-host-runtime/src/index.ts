@@ -7,5 +7,6 @@ export type {
   StudioHostRuntimeAdapterResult,
   StudioHostRuntimeDataPort,
   StudioHostRuntimeIssue,
+  StudioHostRuntimeSnapshotListener,
   StudioHostRuntimeValidationCode,
 } from "./types.js";
