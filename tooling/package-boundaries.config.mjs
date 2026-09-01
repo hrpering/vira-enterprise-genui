@@ -8,6 +8,7 @@ export const allowedDependencies = Object.freeze({
   "adapter-sdk": ["protocol"],
   "experience-packs": [],
   "design-system-compiler": ["studio-design"],
+  "experience-observability": ["telemetry"],
   "runtime-web": ["protocol", "runtime-core", "composer", "adapter-sdk", "security"],
   "web-component": ["runtime-web"],
   react: ["runtime-web"],
