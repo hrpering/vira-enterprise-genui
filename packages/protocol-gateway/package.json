@@ -1,0 +1,12 @@
+{
+  "name": "@vira-enterprise-genui/protocol-gateway",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/tool-bridge": "workspace:*"
+  }
+}
