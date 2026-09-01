@@ -29,8 +29,11 @@ import type {
 
 const GROUP_RESERVED_FIELDS = new Set(["$type", "$description", "$deprecated", "$root"]);
 const TOKEN_RESERVED_FIELDS = new Set(["$value", "$type", "$description", "$deprecated"]);
-const SAFE_FONT_FAMILY = /^[A-Za-z0-9][A-Za-z0-9 _-]{0,63}$/;
+const GROUP_METADATA_FIELDS = new Set(["$type", "$description", "$deprecated"]);
+const SAFE_FONT_FAMILY_PART = /^-?[A-Za-z_][A-Za-z0-9_-]*$/;
+const CSS_WIDE_FONT_KEYWORDS = new Set(["inherit", "initial", "revert", "revert-layer", "unset"]);
 const MAX_FONT_FALLBACKS = 8;
+const MAX_TOKEN_PROPERTIES = 16;
 
 type NodeKind = "group" | "token";
 
@@ -54,6 +57,10 @@ interface GroupChild {
   readonly isToken: boolean;
 }
 
+type BoundedKeysResult =
+  | { readonly ok: true; readonly value: readonly string[] }
+  | { readonly ok: false; readonly issue: DesignSystemCompileIssue };
+
 function failure(issueValue: DesignSystemCompileIssue): DesignSystemCompileResult {
   return { ok: false, issue: issueValue };
 }
@@ -72,11 +79,36 @@ function enterNode(state: CompileState, path: string, token: boolean): DesignSys
   return undefined;
 }
 
+function boundedSortedKeys(
+  node: Record<string, unknown>,
+  path: string,
+  maxProperties: number,
+): BoundedKeysResult {
+  const keys: string[] = [];
+  for (const key in node) {
+    if (!Object.hasOwn(node, key)) continue;
+    if (keys.length >= maxProperties) {
+      return {
+        ok: false,
+        issue: issue(
+          "RESOURCE_LIMIT_EXCEEDED",
+          path,
+          `DTCG node exceeds the bounded property budget of ${maxProperties}`,
+        ),
+      };
+    }
+    keys.push(key);
+  }
+  keys.sort();
+  return { ok: true, value: keys };
+}
+
 function validateMetadata(
   node: Record<string, unknown>,
   path: string,
   allowed: ReadonlySet<string>,
   kind: NodeKind,
+  keys: readonly string[],
 ): DesignSystemCompileIssue | undefined {
   if (Object.hasOwn(node, "$extends")) {
     return issue("UNSUPPORTED_EXTENDS", `${path}.$extends`, "DTCG $extends resolution is outside compiler v1");
@@ -84,7 +116,7 @@ function validateMetadata(
   if (Object.hasOwn(node, "$ref")) {
     return issue("UNSUPPORTED_REFERENCE", `${path}.$ref`, "DTCG JSON Pointer references are outside compiler v1");
   }
-  const unknown = Object.keys(node).sort().find((key) => key.startsWith("$") && !allowed.has(key));
+  const unknown = keys.find((key) => key.startsWith("$") && !allowed.has(key));
   if (unknown) {
     return issue("UNKNOWN_RESERVED_FIELD", childPath(path, unknown), `unsupported DTCG reserved field: ${unknown}`);
   }
@@ -104,14 +136,27 @@ function validateMetadata(
   return undefined;
 }
 
+function validUnquotedFontFamily(value: string): boolean {
+  if (value.length === 0 || value.length > 64 || CSS_WIDE_FONT_KEYWORDS.has(value.toLowerCase())) return false;
+  const parts = value.split(" ");
+  return parts.length > 0 && parts.every((part) => SAFE_FONT_FAMILY_PART.test(part));
+}
+
 function validateFontName(value: unknown, path: string):
   | { readonly ok: true; readonly value: string }
   | { readonly ok: false; readonly issue: DesignSystemCompileIssue } {
   if (curlyReference(value) || objectReference(value)) {
     return { ok: false, issue: issue("UNSUPPORTED_REFERENCE", path, "font family references are not resolved by compiler v1") };
   }
-  if (typeof value !== "string" || value !== value.trim() || !SAFE_FONT_FAMILY.test(value)) {
-    return { ok: false, issue: issue("INVALID_FONT_FAMILY", path, "font family names must use the safe compiler v1 grammar") };
+  if (typeof value !== "string" || value !== value.trim() || !validUnquotedFontFamily(value)) {
+    return {
+      ok: false,
+      issue: issue(
+        "INVALID_FONT_FAMILY",
+        path,
+        "font family names must be safe unquoted CSS family identifiers and must not use CSS-wide keywords",
+      ),
+    };
   }
   return { ok: true, value };
 }
@@ -158,9 +203,11 @@ function visitToken(
   const resourceIssue = enterNode(state, path, true);
   if (resourceIssue) return resourceIssue;
 
-  const metadataIssue = validateMetadata(token, path, TOKEN_RESERVED_FIELDS, "token");
+  const keyResult = boundedSortedKeys(token, path, MAX_TOKEN_PROPERTIES);
+  if (!keyResult.ok) return keyResult.issue;
+  const metadataIssue = validateMetadata(token, path, TOKEN_RESERVED_FIELDS, "token", keyResult.value);
   if (metadataIssue) return metadataIssue;
-  const nonReserved = Object.keys(token).sort().find((key) => !key.startsWith("$"));
+  const nonReserved = keyResult.value.find((key) => !key.startsWith("$"));
   if (nonReserved) {
     return issue("INVALID_TOKEN", childPath(path, nonReserved), "DTCG token objects may contain only reserved token properties");
   }
@@ -235,14 +282,16 @@ function visitGroup(
     return issue("INVALID_GROUP", path, "root and nested groups must not contain $value");
   }
 
-  const metadataIssue = validateMetadata(group, path, GROUP_RESERVED_FIELDS, "group");
+  const remainingNodeCapacity = DESIGN_SYSTEM_COMPILER_MAX_NODES - state.visitedNodeCount;
+  const keyResult = boundedSortedKeys(group, path, remainingNodeCapacity + GROUP_METADATA_FIELDS.size);
+  if (!keyResult.ok) return keyResult.issue;
+  const metadataIssue = validateMetadata(group, path, GROUP_RESERVED_FIELDS, "group", keyResult.value);
   if (metadataIssue) return metadataIssue;
   const groupType = Object.hasOwn(group, "$type") ? group.$type as string : inheritedType;
 
-  const metadataKeys = new Set(["$type", "$description", "$deprecated"]);
   const children: GroupChild[] = [];
-  for (const key of Object.keys(group).sort()) {
-    if (metadataKeys.has(key)) continue;
+  for (const key of keyResult.value) {
+    if (GROUP_METADATA_FIELDS.has(key)) continue;
     if (key.startsWith("$") && key !== "$root") {
       return issue("UNKNOWN_RESERVED_FIELD", childPath(path, key), `unsupported DTCG reserved field: ${key}`);
     }
@@ -260,6 +309,14 @@ function visitGroup(
       return issue("INVALID_GROUP", nextPath, "$root must be a token");
     }
     children.push({ key, path: nextPath, value: child, isToken });
+  }
+
+  if (state.visitedNodeCount + children.length > DESIGN_SYSTEM_COMPILER_MAX_NODES) {
+    return issue(
+      "RESOURCE_LIMIT_EXCEEDED",
+      path,
+      `DTCG source may contain at most ${DESIGN_SYSTEM_COMPILER_MAX_NODES} groups and tokens`,
+    );
   }
 
   // DTCG 2025.10 group processing order: local tokens, root token,
