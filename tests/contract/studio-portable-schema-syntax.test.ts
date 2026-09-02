@@ -15,7 +15,7 @@ interface StringSchema {
 
 interface ObjectSchema {
   readonly properties: Record<string, StringSchema>;
-  readonly allOf?: readonly Array<{
+  readonly allOf?: ReadonlyArray<{
     readonly if?: { readonly properties?: { readonly kind?: { readonly const?: string; readonly enum?: readonly string[] } } };
     readonly then?: { readonly properties?: { readonly path?: StringSchema } };
   }>;
