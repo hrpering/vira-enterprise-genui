@@ -14,6 +14,41 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  capture-generated:
+    # Temporary MASTER-02 diagnostic job. It captures the exact regenerated
+    # artifacts from the pinned CI environment without weakening the verify job.
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install pnpm
+        run: npm install --global pnpm@11.24.0
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Regenerate portable artifacts for capture
+        run: pnpm generate:studio-interop
+
+      - name: Upload regenerated portable artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: master-02-regenerated-interop
+          retention-days: 1
+          if-no-files-found: error
+          path: |
+            interop/studio-experience/v1/schema/studio-experience-document.schema.json
+            interop/studio-experience/v1/swift/StudioExperienceModels.swift
+            interop/studio-experience/v1/kotlin/StudioExperienceModels.kt
+            interop/studio-experience/v1/SOURCE_DIGEST
+
   verify:
     # MASTER-02 relies on the hosted Ubuntu 24.04 image's Swift/Kotlin toolchains.
     # Pin the image so native conformance does not silently move with ubuntu-latest.
