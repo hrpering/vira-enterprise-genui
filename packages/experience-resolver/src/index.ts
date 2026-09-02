@@ -2,6 +2,7 @@ export {
   createExperienceResolver,
   EXPERIENCE_RESOLUTION_REQUEST_VERSION,
   EXPERIENCE_RESOLVER_MAX_ID_LENGTH,
+  EXPERIENCE_RESOLVER_MAX_INSTANCES,
 } from "./resolver.js";
 export type {
   ExperienceArtifactResolutionContext,
