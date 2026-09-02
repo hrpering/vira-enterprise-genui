@@ -3,6 +3,7 @@ import {
   createStudioBrandPackage,
   defineViraBrand,
   VIRA_BRAND_PLATFORM_KEYS,
+  type ViraBrandDefinitionInput,
 } from "../../packages/studio-brand/src/index.js";
 import { jsonRoundTrip } from "../helpers/index.js";
 
@@ -115,11 +116,15 @@ function brandDefinition(brandId = "alpha.catalog", displayName = "Alpha Catalog
         }],
       },
     }],
-  };
+  } satisfies ViraBrandDefinitionInput;
 }
 
 function clone<T>(value: T): T {
   return structuredClone(value);
+}
+
+function asUntrusted(value: unknown): ViraBrandDefinitionInput {
+  return value as ViraBrandDefinitionInput;
 }
 
 describe("MASTER-03 brand integration SDK", () => {
@@ -245,32 +250,32 @@ describe("MASTER-03 brand integration SDK", () => {
     }
 
     const missingPlatform = clone(brandDefinition()) as unknown as Record<string, unknown>;
-    const components = (missingPlatform.components as { implementations: Array<Record<string, unknown>> });
+    const components = missingPlatform.components as { implementations: Array<Record<string, unknown>> };
     delete components.implementations[0]!.ios;
-    expect(defineViraBrand(missingPlatform)).toMatchObject({
+    expect(defineViraBrand(asUntrusted(missingPlatform))).toMatchObject({
       ok: false,
       issue: { stage: "implementations", code: "MISSING_FIELD" },
     });
 
     const unknownPlatform = clone(brandDefinition()) as unknown as Record<string, unknown>;
-    const unknownComponents = (unknownPlatform.components as { implementations: Array<Record<string, unknown>> });
+    const unknownComponents = unknownPlatform.components as { implementations: Array<Record<string, unknown>> };
     unknownComponents.implementations[0]!.windows = "alpha.catalog.windows.card.v1";
-    expect(defineViraBrand(unknownPlatform)).toMatchObject({
+    expect(defineViraBrand(asUntrusted(unknownPlatform))).toMatchObject({
       ok: false,
       issue: { stage: "implementations", code: "UNKNOWN_FIELD" },
     });
   });
 
   it("fails closed on unknown top-level/backend fields, executable metadata, and unsafe object shapes", () => {
-    expect(defineViraBrand({ ...brandDefinition(), endpoint: "https://customer.example/api" })).toMatchObject({
+    expect(defineViraBrand(asUntrusted({ ...brandDefinition(), endpoint: "https://customer.example/api" }))).toMatchObject({
       ok: false,
       issue: { stage: "input", code: "UNKNOWN_FIELD", path: "$.endpoint" },
     });
-    expect(defineViraBrand({ ...brandDefinition(), apiKey: "secret" })).toMatchObject({
+    expect(defineViraBrand(asUntrusted({ ...brandDefinition(), apiKey: "secret" }))).toMatchObject({
       ok: false,
       issue: { stage: "input", code: "UNKNOWN_FIELD", path: "$.apiKey" },
     });
-    expect(defineViraBrand({ ...brandDefinition(), renderer: () => undefined })).toMatchObject({
+    expect(defineViraBrand(asUntrusted({ ...brandDefinition(), renderer: () => undefined }))).toMatchObject({
       ok: false,
       issue: { stage: "input", code: "INVALID_INPUT" },
     });
@@ -286,14 +291,14 @@ describe("MASTER-03 brand integration SDK", () => {
   it("delegates design, policy, data-source, and catalog errors to their canonical validators", () => {
     const badDesign = clone(brandDefinition()) as unknown as Record<string, unknown>;
     badDesign.design = { font: { $type: "fontFamily", $value: "Inter;url(https://evil.example)" } };
-    expect(defineViraBrand(badDesign)).toMatchObject({
+    expect(defineViraBrand(asUntrusted(badDesign))).toMatchObject({
       ok: false,
       issue: { stage: "design", code: "INVALID_FONT_FAMILY" },
     });
 
     const badPolicy = clone(brandDefinition()) as unknown as Record<string, unknown>;
     (badPolicy.policies as Record<string, unknown>).endpoint = "https://policy.example";
-    expect(defineViraBrand(badPolicy)).toMatchObject({
+    expect(defineViraBrand(asUntrusted(badPolicy))).toMatchObject({
       ok: false,
       issue: { stage: "policies", code: "UNKNOWN_FIELD" },
     });
