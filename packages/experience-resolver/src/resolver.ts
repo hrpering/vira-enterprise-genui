@@ -21,6 +21,7 @@ import {
 
 export const EXPERIENCE_RESOLUTION_REQUEST_VERSION = "1" as const;
 export const EXPERIENCE_RESOLVER_MAX_ID_LENGTH = 4_096 as const;
+export const EXPERIENCE_RESOLVER_MAX_INSTANCES = 256 as const;
 
 export interface ExperienceResolutionRequest {
   readonly version: typeof EXPERIENCE_RESOLUTION_REQUEST_VERSION;
@@ -112,6 +113,7 @@ export type ExperienceResolutionCode =
   | "INVALID_REQUEST"
   | "RESOLVER_DISPOSED"
   | "INSTANCE_ALREADY_RESERVED"
+  | "INSTANCE_LIMIT_EXCEEDED"
   | "DEPLOYMENT_RESOLUTION_FAILED"
   | "INVALID_DEPLOYMENT_TARGET"
   | "DEPLOYMENT_ID_MISMATCH"
@@ -451,6 +453,13 @@ export function createExperienceResolver(input: unknown): ExperienceResolverFact
           "INSTANCE_ALREADY_RESERVED",
           "$.instanceId",
           "instanceId is already mounted or resolving in this resolver",
+        );
+      }
+      if (mounted.size + pending.size >= EXPERIENCE_RESOLVER_MAX_INSTANCES) {
+        return resolutionFailure(
+          "INSTANCE_LIMIT_EXCEEDED",
+          "$.instanceId",
+          `experience resolver may retain at most ${EXPERIENCE_RESOLVER_MAX_INSTANCES} mounted or resolving instances`,
         );
       }
 
