@@ -1,0 +1,25 @@
+{
+  "version": "1",
+  "id": "demo.catalog",
+  "recipeId": "demo.catalog.browse",
+  "entryView": "main",
+  "views": [
+    {
+      "id": "main",
+      "nodes": [
+        {"id":"root","component":"demo.layout.stack","order":0,"props":{}},
+        {"id":"item","component":"demo.component.item","order":0,"props":{"emphasis":true},"parentId":"root","slot":"content","repeat":{"source":{"kind":"domain","path":"catalog.items"}}}
+      ]
+    },
+    {"id":"result","nodes":[{"id":"message","component":"demo.component.text","order":0,"props":{"text":"Selected"}}]}
+  ],
+  "bindings": [
+    {"viewId":"main","nodeId":"item","prop":"title","source":{"kind":"scope","path":"currentItem.title"}}
+  ],
+  "interactions": [
+    {"viewId":"main","nodeId":"item","event":"press","actionEvent":"catalog.item.select","routes":[{"outcome":"success","viewId":"result"}],"payloadBindings":[
+      {"key":"itemId","source":{"kind":"scope","path":"currentItem.id"}},
+      {"key":"source","source":{"kind":"literal","value":"catalog"}}
+    ]}
+  ]
+}
