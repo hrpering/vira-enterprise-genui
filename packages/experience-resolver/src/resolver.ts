@@ -193,53 +193,64 @@ function isPlainObject(value: unknown): value is object {
 function readConfiguration(input: unknown):
   | { readonly ok: true; readonly value: Readonly<Record<string, unknown>> }
   | { readonly ok: false; readonly result: ExperienceResolverFactoryResult } {
-  if (!isPlainObject(input) || Object.getOwnPropertySymbols(input).length > 0) {
-    return {
-      ok: false,
-      result: configurationFailure(
-        "INVALID_CONFIGURATION",
-        "$",
-        "experience resolver configuration must be a plain own-data object",
-      ),
-    };
-  }
-  const keys = Object.keys(input);
-  if (Object.getOwnPropertyNames(input).length !== keys.length) {
-    return {
-      ok: false,
-      result: configurationFailure(
-        "INVALID_CONFIGURATION",
-        "$",
-        "experience resolver configuration must use enumerable string fields only",
-      ),
-    };
-  }
-  const output: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
-  for (const key of keys) {
-    if (!configurationFields.has(key)) {
-      return {
-        ok: false,
-        result: configurationFailure(
-          "UNKNOWN_CONFIGURATION_FIELD",
-          "$",
-          "experience resolver configuration contains an unsupported field",
-        ),
-      };
-    }
-    const descriptor = Object.getOwnPropertyDescriptor(input, key);
-    if (!descriptor || !("value" in descriptor)) {
+  try {
+    if (!isPlainObject(input) || Object.getOwnPropertySymbols(input).length > 0) {
       return {
         ok: false,
         result: configurationFailure(
           "INVALID_CONFIGURATION",
-          `$.${key}`,
-          "experience resolver configuration must not contain accessors",
+          "$",
+          "experience resolver configuration must be a plain own-data object",
         ),
       };
     }
-    output[key] = descriptor.value;
+    const keys = Object.keys(input);
+    if (Object.getOwnPropertyNames(input).length !== keys.length) {
+      return {
+        ok: false,
+        result: configurationFailure(
+          "INVALID_CONFIGURATION",
+          "$",
+          "experience resolver configuration must use enumerable string fields only",
+        ),
+      };
+    }
+    const output: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+    for (const key of keys) {
+      if (!configurationFields.has(key)) {
+        return {
+          ok: false,
+          result: configurationFailure(
+            "UNKNOWN_CONFIGURATION_FIELD",
+            "$",
+            "experience resolver configuration contains an unsupported field",
+          ),
+        };
+      }
+      const descriptor = Object.getOwnPropertyDescriptor(input, key);
+      if (!descriptor || !("value" in descriptor)) {
+        return {
+          ok: false,
+          result: configurationFailure(
+            "INVALID_CONFIGURATION",
+            `$.${key}`,
+            "experience resolver configuration must not contain accessors",
+          ),
+        };
+      }
+      output[key] = descriptor.value;
+    }
+    return { ok: true, value: output };
+  } catch {
+    return {
+      ok: false,
+      result: configurationFailure(
+        "INVALID_CONFIGURATION",
+        "$",
+        "experience resolver configuration could not be inspected safely",
+      ),
+    };
   }
-  return { ok: true, value: output };
 }
 
 function isJsonObject(value: JsonValue | undefined): value is JsonObject {
@@ -263,14 +274,26 @@ function isBoundedExactId(value: JsonValue | undefined): value is string {
     && value.length <= EXPERIENCE_RESOLVER_MAX_ID_LENGTH;
 }
 
-function exactFields(value: JsonObject, allowed: ReadonlySet<string>): boolean {
+function hasUnknownFields(value: JsonObject, allowed: ReadonlySet<string>): boolean {
   return Object.keys(value).some((key) => !allowed.has(key));
 }
 
 function parseRequest(input: unknown):
   | { readonly ok: true; readonly value: ExperienceResolutionRequest }
   | { readonly ok: false; readonly result: ExperienceResolutionResult } {
-  const parsed = parseJsonValue(input);
+  let parsed: ReturnType<typeof parseJsonValue>;
+  try {
+    parsed = parseJsonValue(input);
+  } catch {
+    return {
+      ok: false,
+      result: resolutionFailure(
+        "INVALID_REQUEST",
+        "$",
+        "experience resolution request could not be inspected safely",
+      ),
+    };
+  }
   if (!parsed.ok || !isJsonObject(parsed.value)) {
     return {
       ok: false,
@@ -282,7 +305,7 @@ function parseRequest(input: unknown):
     };
   }
   const fields = parsed.value;
-  if (exactFields(fields, requestFields)) {
+  if (hasUnknownFields(fields, requestFields)) {
     return {
       ok: false,
       result: resolutionFailure(
@@ -327,7 +350,19 @@ function parseRequest(input: unknown):
 function parseDeploymentTarget(input: unknown):
   | { readonly ok: true; readonly value: ExperienceExactDeploymentTarget }
   | { readonly ok: false; readonly result: ExperienceResolutionResult } {
-  const parsed = parseJsonValue(input);
+  let parsed: ReturnType<typeof parseJsonValue>;
+  try {
+    parsed = parseJsonValue(input);
+  } catch {
+    return {
+      ok: false,
+      result: resolutionFailure(
+        "INVALID_DEPLOYMENT_TARGET",
+        "$.deployment",
+        "exact deployment target could not be inspected safely",
+      ),
+    };
+  }
   if (!parsed.ok || !isJsonObject(parsed.value)) {
     return {
       ok: false,
@@ -339,7 +374,7 @@ function parseDeploymentTarget(input: unknown):
     };
   }
   const fields = parsed.value;
-  if (exactFields(fields, deploymentFields)) {
+  if (hasUnknownFields(fields, deploymentFields)) {
     return {
       ok: false,
       result: resolutionFailure(
@@ -397,14 +432,30 @@ export function createExperienceResolver(input: unknown): ExperienceResolverFact
   if (!configuration.ok) return configuration.result;
   const fields = configuration.value;
 
-  if (!isCanonicalExperienceRegistrySnapshot(fields.registry)) {
+  let canonicalRegistry = false;
+  try {
+    canonicalRegistry = isCanonicalExperienceRegistrySnapshot(fields.registry);
+  } catch {
+    canonicalRegistry = false;
+  }
+  if (!canonicalRegistry) {
     return configurationFailure(
       "INVALID_REGISTRY",
       "$.registry",
       "experience resolver requires a canonical parsed Experience Registry snapshot",
     );
   }
-  const hostManifest = createStudioHostCapabilityManifest(fields.hostManifest);
+
+  let hostManifest: ReturnType<typeof createStudioHostCapabilityManifest>;
+  try {
+    hostManifest = createStudioHostCapabilityManifest(fields.hostManifest);
+  } catch {
+    return configurationFailure(
+      "INVALID_HOST_MANIFEST",
+      "$.hostManifest",
+      "experience resolver host capability manifest could not be inspected safely",
+    );
+  }
   if (!hostManifest.ok) {
     return configurationFailure(
       "INVALID_HOST_MANIFEST",
@@ -544,7 +595,16 @@ export function createExperienceResolver(input: unknown): ExperienceResolverFact
             "trusted publication artifact resolver failed",
           );
         }
-        const publicationParsed = parseJsonValue(publicationRaw, "$.publication");
+        let publicationParsed: ReturnType<typeof parseJsonValue>;
+        try {
+          publicationParsed = parseJsonValue(publicationRaw, "$.publication");
+        } catch {
+          return resolutionFailure(
+            "INVALID_PUBLICATION_ARTIFACT",
+            "$.publication",
+            "publication artifact could not be inspected safely",
+          );
+        }
         if (!publicationParsed.ok || !isJsonObject(publicationParsed.value)) {
           return resolutionFailure(
             "INVALID_PUBLICATION_ARTIFACT",
@@ -575,7 +635,16 @@ export function createExperienceResolver(input: unknown): ExperienceResolverFact
             "trusted host requirement derivation failed",
           );
         }
-        const compatibility = evaluateStudioHostCompatibility(hostManifest.value, requirementRaw);
+        let compatibility: ReturnType<typeof evaluateStudioHostCompatibility>;
+        try {
+          compatibility = evaluateStudioHostCompatibility(hostManifest.value, requirementRaw);
+        } catch {
+          return resolutionFailure(
+            "INVALID_HOST_REQUIREMENT",
+            "$.compatibility",
+            "derived host compatibility requirement could not be inspected safely",
+          );
+        }
         if (!compatibility.ok) {
           return resolutionFailure(
             "INVALID_HOST_REQUIREMENT",
