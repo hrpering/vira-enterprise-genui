@@ -236,6 +236,24 @@ function normalizeImplementations(
   };
 }
 
+function validatePolicyCoverage(
+  policies: PolicyAdapterContract,
+  brandPackage: StudioBrandPackage,
+): ViraBrandDefinitionFailure | undefined {
+  const mappedRecipes = new Set(policies.mappings.map((mapping) => mapping.recipe));
+  for (let index = 0; index < brandPackage.templates.length; index += 1) {
+    if (!mappedRecipes.has(brandPackage.templates[index]!.document.recipeId)) {
+      return failure(
+        "policies",
+        "UNMAPPED_RECIPE",
+        `$.experiences[${index}].document.recipeId`,
+        "experience recipe has no exact composition-policy mapping",
+      );
+    }
+  }
+  return undefined;
+}
+
 export function defineViraBrand(input: ViraBrandDefinitionInput): ViraBrandDefinitionResult {
   const parsed = parseJsonValue(input);
   if (!parsed.ok) {
@@ -287,6 +305,9 @@ export function defineViraBrand(input: ViraBrandDefinitionInput): ViraBrandDefin
     templates: root.experiences,
   });
   if (!brandPackage.ok) return forwardIssue("package", brandPackage.issue);
+
+  const policyCoverageIssue = validatePolicyCoverage(policies.value, brandPackage.value);
+  if (policyCoverageIssue) return policyCoverageIssue;
 
   return {
     ok: true,
