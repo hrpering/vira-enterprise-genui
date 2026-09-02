@@ -4,7 +4,17 @@ import {
   FLIGHT_BOOKING_PACK_ID,
   FLIGHT_BOOKING_PACK_VERSION,
 } from "@vira-enterprise-genui/airline-brand-kit/chat-publication";
-import { searchFlights } from "@vira-enterprise-genui/mock-airline-domain";
+import {
+  AIRLINE_GUIDANCE_ENTRYPOINT,
+  AIRLINE_GUIDANCE_PACK_ID,
+  AIRLINE_GUIDANCE_PACK_VERSION,
+} from "@vira-enterprise-genui/airline-brand-kit/guidance-publication";
+import {
+  getMissedFlightGuidance,
+  getSpecialAssistanceGuidance,
+  getVisaGuidance,
+  searchFlights,
+} from "@vira-enterprise-genui/mock-airline-domain";
 import {
   RECIPE_CARD_ENTRYPOINT,
   RECIPE_CARD_PACK_ID,
@@ -31,6 +41,19 @@ const recipeInputSchema = z.object({
   servings: z.number().int().min(1).max(12).default(4),
 });
 
+const guidanceInputSchema = z.object({
+  experience: z.enum([
+    "advisory.special-assistance",
+    "policy.missed-flight",
+    "compliance.visa-check",
+  ]),
+  originCountry: z.string().optional(),
+  destinationCountry: z.string().optional(),
+  nationality: z.string().optional(),
+  passportIssuer: z.string().optional(),
+  residence: z.string().optional(),
+});
+
 export const viraExperienceSchema = z.discriminatedUnion("op", [
   z.object({
     op: z.literal("present"),
@@ -54,6 +77,23 @@ type Presenter = Readonly<{
 
 function packKey(pack: { readonly id: string; readonly version: string; readonly entrypoint: string }): string {
   return `${pack.id}@${pack.version}:${pack.entrypoint}`;
+}
+
+function guidancePayload(input: unknown): Readonly<Record<string, unknown>> {
+  const parsed = guidanceInputSchema.parse(input);
+  const identity = Object.freeze(Object.fromEntries(
+    Object.entries(parsed).filter((entry): entry is [string, string] => entry[0] !== "experience" && typeof entry[1] === "string"),
+  ));
+  const data = parsed.experience === "advisory.special-assistance"
+    ? getSpecialAssistanceGuidance()
+    : parsed.experience === "policy.missed-flight"
+      ? getMissedFlightGuidance()
+      : getVisaGuidance(identity);
+  return Object.freeze({
+    experience: parsed.experience,
+    input: identity,
+    data,
+  });
 }
 
 const registrations = Object.freeze([
@@ -96,6 +136,21 @@ const registrations = Object.freeze([
       instructions: Object.freeze([
         `For an interactive Shakshuka, One-Pan Tomato Pasta, or Fluffy Breakfast Pancakes recipe, use pack ${RECIPE_CARD_PACK_ID}@${RECIPE_CARD_PACK_VERSION} entrypoint ${RECIPE_CARD_ENTRYPOINT}.`,
         "For that experience: increase servings → increase-servings; reduce servings → decrease-servings; save/favorite/unsave → toggle-favorite.",
+      ]),
+    } satisfies Presenter),
+  }),
+  Object.freeze({
+    pack: Object.freeze({
+      id: AIRLINE_GUIDANCE_PACK_ID,
+      version: AIRLINE_GUIDANCE_PACK_VERSION,
+      entrypoint: AIRLINE_GUIDANCE_ENTRYPOINT,
+    }),
+    presenter: Object.freeze({
+      present: guidancePayload,
+      instructions: Object.freeze([
+        `For wheelchair, reduced-mobility, or airport special-assistance questions, present pack ${AIRLINE_GUIDANCE_PACK_ID}@${AIRLINE_GUIDANCE_PACK_VERSION} entrypoint ${AIRLINE_GUIDANCE_ENTRYPOINT} with input experience advisory.special-assistance.`,
+        `For missed-flight, no-show, or missed-connection questions, present pack ${AIRLINE_GUIDANCE_PACK_ID}@${AIRLINE_GUIDANCE_PACK_VERSION} entrypoint ${AIRLINE_GUIDANCE_ENTRYPOINT} with input experience policy.missed-flight.`,
+        `For visa, entry-requirement, or travel-document questions, present pack ${AIRLINE_GUIDANCE_PACK_ID}@${AIRLINE_GUIDANCE_PACK_VERSION} entrypoint ${AIRLINE_GUIDANCE_ENTRYPOINT} with input experience compliance.visa-check. Pass identity details only when explicitly supplied by the user.`,
       ]),
     } satisfies Presenter),
   }),
