@@ -74,19 +74,26 @@ if (swiftOutput === swiftInput && swiftInput.includes(", case ")) {
 }
 fs.writeFileSync(swiftPath, swiftOutput);
 
-// Kotlin's Double.toLong() saturates outside Int64 range. The generated writer
-// must not route integral-looking canonical JSON numbers through Long or a
-// finite value such as 1e20 will be corrupted during round-trip.
+// Kotlin's Double.toLong() saturates outside Int64 range. Integral-looking
+// canonical JSON numbers must remain Double-backed during serialization.
 const kotlinInput = read(kotlinPath);
 const lossyNumberWriter = "is ViraJson.Num->{ val number=value.value; if(number%1.0==0.0) number.toLong().toString() else number.toString() }";
-const safeNumberWriter = "is ViraJson.Num->{ val number=value.value; if(!number.isFinite() || number == -0.0) error(\"non-canonical number\"); number.toString() }";
+const safeNumberWriter = "is ViraJson.Num->{ val number=value.value; if(!number.isFinite() || number.toRawBits() == (-0.0).toRawBits()) error(\"non-canonical number\"); number.toString() }";
 if (!kotlinInput.includes(lossyNumberWriter)) {
   throw new Error("generated Kotlin number writer shape changed; update the finalizer intentionally");
 }
-const kotlinOutput = kotlinInput.replace(lossyNumberWriter, safeNumberWriter);
-if (kotlinOutput.includes(lossyNumberWriter)) {
-  throw new Error("Kotlin number writer normalization was incomplete");
+const kotlinAfterWriter = kotlinInput.replace(lossyNumberWriter, safeNumberWriter);
+
+// IEEE equality cannot distinguish +0.0 from -0.0. The generated parser used
+// `number == -0.0`, which rejects ordinary JSON zero as well. Match the raw
+// sign bit so only canonical-invalid negative zero is rejected.
+const lossyNegativeZeroCheck = "number == -0.0";
+const strictNegativeZeroCheck = "number.toRawBits() == (-0.0).toRawBits()";
+const negativeZeroOccurrences = kotlinAfterWriter.split(lossyNegativeZeroCheck).length - 1;
+if (negativeZeroOccurrences !== 1) {
+  throw new Error(`expected one generated Kotlin negative-zero parser check, found ${negativeZeroOccurrences}`);
 }
+const kotlinOutput = kotlinAfterWriter.replace(lossyNegativeZeroCheck, strictNegativeZeroCheck);
 fs.writeFileSync(kotlinPath, kotlinOutput);
 
 // Structural schema constraints are finalized from canonical syntax sources,
