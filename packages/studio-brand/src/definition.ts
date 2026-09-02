@@ -236,9 +236,7 @@ function normalizeImplementations(
   };
 }
 
-export function defineViraBrand(input: ViraBrandDefinitionInput): ViraBrandDefinitionResult;
-export function defineViraBrand(input: unknown): ViraBrandDefinitionResult;
-export function defineViraBrand(input: unknown): ViraBrandDefinitionResult {
+export function defineViraBrand(input: ViraBrandDefinitionInput): ViraBrandDefinitionResult {
   const parsed = parseJsonValue(input);
   if (!parsed.ok) {
     return failure("input", "INVALID_INPUT", parsed.issue.path, parsed.issue.reason);
