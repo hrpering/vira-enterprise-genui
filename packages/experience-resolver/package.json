@@ -1,0 +1,15 @@
+{
+  "name": "@vira-enterprise-genui/experience-resolver",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/experience-packs": "workspace:*",
+    "@vira-enterprise-genui/experience-registry": "workspace:*",
+    "@vira-enterprise-genui/protocol": "workspace:*",
+    "@vira-enterprise-genui/studio-host": "workspace:*"
+  }
+}
