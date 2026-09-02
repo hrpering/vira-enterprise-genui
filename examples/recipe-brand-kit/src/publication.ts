@@ -4,7 +4,7 @@ import {
   type StudioAuthoringDocumentInput,
 } from "@vira-enterprise-genui/genui";
 
-export const RECIPE_CARD_PACK_ID = "vira/recipe-card" as const;
+export const RECIPE_CARD_PACK_ID = "vira/recipe" as const;
 export const RECIPE_CARD_PACK_VERSION = "1.0.0" as const;
 export const RECIPE_CARD_ENTRYPOINT = "card" as const;
 export const RECIPE_CARD_ARTIFACT_DIGEST = "sha256:535b105275e9986ae15a6b59f532a92fd43bf50ef8f8772af95fe17ca84938ab" as const;
