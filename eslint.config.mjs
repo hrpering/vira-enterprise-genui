@@ -26,4 +26,18 @@ export default tseslint.config(
       "no-control-regex": "off",
     },
   },
+  {
+    files: [
+      "tooling/check-studio-interop.mjs",
+      "tooling/check-studio-native-conformance.mjs",
+      "tooling/finalize-studio-interop.mjs",
+      "tooling/generate-studio-interop.mjs",
+    ],
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        process: "readonly",
+      },
+    },
+  },
 );
