@@ -12,13 +12,7 @@ import type { StudioHostPlatform } from "../../packages/studio-host/src/index.js
 
 const digest = `sha256:${"c".repeat(64)}`;
 
-function packManifest({
-  id = "alpha/catalog",
-  version = "1.2.3",
-  entrypoint = "main",
-  role = "studio-publication" as "studio-publication" | "asset",
-  mediaType = role === "studio-publication" ? "application/json" : "image/png",
-} = {}) {
+function packManifest(id = "alpha/catalog", version = "1.2.3", entrypoint = "main") {
   return {
     schemaVersion: "1",
     id,
@@ -27,14 +21,20 @@ function packManifest({
     metadata: { name: "Synthetic Catalog", tags: ["synthetic"] },
     compatibility: { minViraVersion: "0.0.0" },
     entrypoints: [entrypoint],
-    artifacts: [{ id: entrypoint, role, mediaType, digest, size: 256 }],
+    artifacts: [{
+      id: entrypoint,
+      role: "studio-publication",
+      mediaType: "application/json",
+      digest,
+      size: 256,
+    }],
   };
 }
 
 function registry(manifests: readonly unknown[] = [packManifest()]): ExperienceRegistrySnapshot {
   const result = parseExperienceRegistrySnapshot(JSON.stringify({ schemaVersion: "1", manifests }));
   expect(result.ok).toBe(true);
-  if (!result.ok) throw new Error("fixture registry must be canonical");
+  if (!result.ok) throw new Error("fixture Registry must be canonical");
   return result.value;
 }
 
@@ -170,68 +170,92 @@ describe("MASTER-05 exact Experience resolver", () => {
     }
   });
 
-  it("treats publication payload as canonical JSON data without duplicating Studio semantic compilation", async () => {
+  it("snapshots publication as canonical JSON without duplicating Studio semantic compilation", async () => {
     const resolver = createResolver({
       resolvePublicationArtifact: vi.fn(async () => ({
         version: "definitely-not-canonical-studio-version",
-        endpoint: "still-just-data-at-this-boundary",
+        nonsense: { value: true },
       })),
     });
-    const result = await resolver.resolve(request());
-    expect(result).toMatchObject({
+    await expect(resolver.resolve(request())).resolves.toMatchObject({
       ok: true,
       value: {
         publication: {
           version: "definitely-not-canonical-studio-version",
-          endpoint: "still-just-data-at-this-boundary",
+          nonsense: { value: true },
         },
       },
     });
   });
 
-  it("fails closed if the exact deployment port returns a different deployment identity", async () => {
-    const resolver = createResolver({
+  it("fails closed when the deployment port returns a different or malformed exact target", async () => {
+    const mismatch = createResolver({
       resolveExactDeployment: vi.fn(async () => deploymentTarget({ deploymentId: "deployment-other" })),
     });
-    await expect(resolver.resolve(request())).resolves.toMatchObject({
+    await expect(mismatch.resolve(request())).resolves.toMatchObject({
       ok: false,
       issue: { code: "DEPLOYMENT_ID_MISMATCH", path: "$.deployment.deploymentId" },
     });
+
+    const malformed = createResolver({
+      resolveExactDeployment: vi.fn(async () => ({ ...deploymentTarget(), latest: true })),
+    });
+    await expect(malformed.resolve(request())).resolves.toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_DEPLOYMENT_TARGET", path: "$.deployment.latest" },
+    });
   });
 
-  it("requires the exact Pack version and never selects a near or latest version", async () => {
-    const resolver = createResolver({
+  it("requires exact Pack version and entrypoint with no nearest/latest selection", async () => {
+    const wrongVersion = createResolver({
       registrySnapshot: registry([
-        packManifest({ version: "1.2.3" }),
-        packManifest({ version: "2.0.0" }),
+        packManifest("alpha/catalog", "1.2.3"),
+        packManifest("alpha/catalog", "2.0.0"),
       ]),
       resolveExactDeployment: vi.fn(async () => deploymentTarget({ packVersion: "1.2.2" })),
     });
-    await expect(resolver.resolve(request())).resolves.toMatchObject({
+    await expect(wrongVersion.resolve(request())).resolves.toMatchObject({
       ok: false,
       issue: { code: "PACK_NOT_FOUND" },
     });
-  });
 
-  it("rejects unknown entrypoints and non-publication entrypoint artifacts", async () => {
-    const missingEntrypoint = createResolver({
+    const unknownEntrypoint = createResolver({
       resolveExactDeployment: vi.fn(async () => deploymentTarget({ entrypoint: "unknown" })),
     });
-    await expect(missingEntrypoint.resolve(request())).resolves.toMatchObject({
+    await expect(unknownEntrypoint.resolve(request())).resolves.toMatchObject({
       ok: false,
       issue: { code: "ENTRYPOINT_NOT_FOUND", path: "$.deployment.entrypoint" },
     });
+  });
 
-    const assetEntrypoint = createResolver({
-      registrySnapshot: registry([packManifest({ role: "asset", mediaType: "image/png" })]),
-    });
-    await expect(assetEntrypoint.resolve(request())).resolves.toMatchObject({
+  it("requires a canonical Registry instead of re-validating Pack artifact semantics", () => {
+    const invalidRegistry = {
+      schemaVersion: "1",
+      manifests: [{
+        ...packManifest(),
+        entrypoints: ["asset"],
+        artifacts: [{
+          id: "asset",
+          role: "asset",
+          mediaType: "image/png",
+          digest,
+          size: 20,
+        }],
+      }],
+    };
+    expect(createExperienceResolver({
+      registry: invalidRegistry,
+      hostManifest: hostManifest(),
+      resolveExactDeployment: async () => deploymentTarget(),
+      resolvePublicationArtifact: async () => publication(),
+      deriveHostRequirement: async () => requirement(),
+    })).toMatchObject({
       ok: false,
-      issue: { code: "WRONG_ARTIFACT_ROLE", path: "$.deployment.entrypoint" },
+      issue: { code: "INVALID_REGISTRY", path: "$.registry" },
     });
   });
 
-  it("types trusted port failures and rejects non-JSON publication artifacts", async () => {
+  it("types trusted port failures and rejects executable/non-object publication artifacts", async () => {
     const deploymentFailure = createResolver({
       resolveExactDeployment: vi.fn(async () => { throw new Error("secret deployment failure"); }),
     });
@@ -297,7 +321,7 @@ describe("MASTER-05 exact Experience resolver", () => {
     expect((await resolver.resolve(request())).ok).toBe(true);
   });
 
-  it("reserves pending instance IDs before awaiting deployment resolution", async () => {
+  it("reserves pending instance IDs before awaiting trusted resolution", async () => {
     const gate = deferred<ReturnType<typeof deploymentTarget>>();
     const resolveExactDeployment = vi.fn(async () => gate.promise);
     const resolver = createResolver({ resolveExactDeployment });
@@ -314,7 +338,7 @@ describe("MASTER-05 exact Experience resolver", () => {
     await expect(first).resolves.toMatchObject({ ok: true });
   });
 
-  it("releases pending reservation after failure so an exact retry can succeed", async () => {
+  it("releases pending reservation after failure so the exact instance can retry", async () => {
     let attempts = 0;
     const resolver = createResolver({
       resolveExactDeployment: vi.fn(async () => {
@@ -340,7 +364,7 @@ describe("MASTER-05 exact Experience resolver", () => {
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
 
-  it("dispose clears local metadata, blocks future resolution, and prevents a pending result from mounting", async () => {
+  it("dispose clears local metadata, blocks future work, and prevents pending results from mounting", async () => {
     const gate = deferred<ReturnType<typeof deploymentTarget>>();
     const resolver = createResolver({ resolveExactDeployment: vi.fn(async () => gate.promise) });
     const pending = resolver.resolve(request("instance-dispose-pending"));
@@ -359,7 +383,7 @@ describe("MASTER-05 exact Experience resolver", () => {
     });
   });
 
-  it("fails closed on unknown request/backend/credential/fallback/executable fields", async () => {
+  it("fails closed on unknown request backend, credential, fallback, and executable fields", async () => {
     const resolver = createResolver();
     for (const extra of [
       { latest: true },
@@ -376,10 +400,20 @@ describe("MASTER-05 exact Experience resolver", () => {
     }
   });
 
-  it("rejects invalid configuration shapes and accessors without invoking getters", () => {
+  it("rejects invalid host/Registry configuration and accessors without evaluating getters", () => {
     expect(createExperienceResolver({})).toMatchObject({
       ok: false,
       issue: { code: "INVALID_REGISTRY" },
+    });
+    expect(createExperienceResolver({
+      registry: registry(),
+      hostManifest: { ...hostManifest(), endpoint: "https://customer.example" },
+      resolveExactDeployment: async () => deploymentTarget(),
+      resolvePublicationArtifact: async () => publication(),
+      deriveHostRequirement: async () => requirement(),
+    })).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_HOST_MANIFEST" },
     });
     expect(createExperienceResolver({
       registry: registry(),
