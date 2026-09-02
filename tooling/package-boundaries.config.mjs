@@ -37,7 +37,7 @@ export const allowedDependencies = Object.freeze({
   "studio-workbench": ["adapter-sdk", "studio-schema", "studio-catalog", "studio-puck-authoring", "studio-binding", "studio-flow", "studio-publish"],
   "studio-workbench-react": ["studio-schema", "studio-compiler", "studio-react", "studio-binding", "studio-catalog", "studio-design", "studio-flow", "studio-workbench"],
   "studio-lifecycle": ["studio-schema", "studio-compiler", "studio-binding", "studio-design", "studio-flow", "studio-publish"],
-  "studio-brand": ["protocol", "adapter-sdk", "studio-schema", "studio-catalog", "studio-binding", "studio-flow"],
+  "studio-brand": ["protocol", "adapter-sdk", "design-system-compiler", "studio-schema", "studio-catalog", "studio-binding", "studio-flow"],
   "studio-brand-loader": ["protocol", "studio-brand", "studio-schema"],
   "studio-host": ["protocol"],
   "studio-host-runtime": ["studio-host", "studio-runtime", "studio-schema"],
