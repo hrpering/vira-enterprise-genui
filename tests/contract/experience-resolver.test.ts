@@ -77,10 +77,7 @@ function request(instanceId = "instance-exact-001", deploymentId = "deployment-e
 }
 
 function publication() {
-  return {
-    version: "not-a-studio-publication-version",
-    arbitrary: { nested: [1, 2, 3] },
-  };
+  return { version: "not-a-studio-publication-version", arbitrary: { nested: [1, 2, 3] } };
 }
 
 function createResolver({
@@ -115,24 +112,19 @@ function deferred<T>() {
 }
 
 describe("MASTER-05 exact Experience resolver", () => {
-  it("resolves exact deployment, Pack, artifact digest, host compatibility, and immutable instance metadata", async () => {
+  it("resolves exact deployment, Pack, artifact digest, compatibility, and immutable instance metadata", async () => {
     const resolvePublicationArtifact = vi.fn(async () => publication());
     const deriveHostRequirement = vi.fn(async () => requirement("web"));
     const resolver = createResolver({ resolvePublicationArtifact, deriveHostRequirement });
-
     const result = await resolver.resolve(request());
+
     expect(result).toMatchObject({
       ok: true,
       value: {
         instanceId: "instance-exact-001",
         deploymentId: "deployment-exact-001",
         pack: { id: "alpha/catalog", version: "1.2.3", entrypoint: "main" },
-        artifact: {
-          id: "main",
-          role: "studio-publication",
-          mediaType: "application/json",
-          digest,
-        },
+        artifact: { id: "main", role: "studio-publication", mediaType: "application/json", digest },
         compatibility: { hostId: "vira.host.web.reference", platform: "web" },
       },
     });
@@ -159,10 +151,9 @@ describe("MASTER-05 exact Experience resolver", () => {
     expect(resolver.get("instance-exact-001")).toBe(result.value);
   });
 
-  it("uses the same resolver contract for web, iOS, and Android", async () => {
+  it("uses one resolver contract for web, iOS, and Android", async () => {
     for (const platform of ["web", "ios", "android"] as const) {
-      const resolver = createResolver({ platform });
-      const result = await resolver.resolve(request(`instance-${platform}`));
+      const result = await createResolver({ platform }).resolve(request(`instance-${platform}`));
       expect(result, platform).toMatchObject({
         ok: true,
         value: { compatibility: { platform, hostId: `vira.host.${platform}.reference` } },
@@ -170,7 +161,7 @@ describe("MASTER-05 exact Experience resolver", () => {
     }
   });
 
-  it("snapshots publication as canonical JSON without duplicating Studio semantic compilation", async () => {
+  it("snapshots publication JSON without duplicating Studio semantic compilation", async () => {
     const resolver = createResolver({
       resolvePublicationArtifact: vi.fn(async () => ({
         version: "definitely-not-canonical-studio-version",
@@ -179,16 +170,11 @@ describe("MASTER-05 exact Experience resolver", () => {
     });
     await expect(resolver.resolve(request())).resolves.toMatchObject({
       ok: true,
-      value: {
-        publication: {
-          version: "definitely-not-canonical-studio-version",
-          nonsense: { value: true },
-        },
-      },
+      value: { publication: { version: "definitely-not-canonical-studio-version" } },
     });
   });
 
-  it("fails closed when the deployment port returns a different or malformed exact target", async () => {
+  it("fails closed on mismatched or malformed exact deployment targets", async () => {
     const mismatch = createResolver({
       resolveExactDeployment: vi.fn(async () => deploymentTarget({ deploymentId: "deployment-other" })),
     });
@@ -202,11 +188,11 @@ describe("MASTER-05 exact Experience resolver", () => {
     });
     await expect(malformed.resolve(request())).resolves.toMatchObject({
       ok: false,
-      issue: { code: "INVALID_DEPLOYMENT_TARGET", path: "$.deployment.latest" },
+      issue: { code: "INVALID_DEPLOYMENT_TARGET", path: "$.deployment" },
     });
   });
 
-  it("requires exact Pack version and entrypoint with no nearest/latest selection", async () => {
+  it("requires exact Pack version and entrypoint with no near/latest selection", async () => {
     const wrongVersion = createResolver({
       registrySnapshot: registry([
         packManifest("alpha/catalog", "1.2.3"),
@@ -229,65 +215,46 @@ describe("MASTER-05 exact Experience resolver", () => {
   });
 
   it("requires a canonical Registry instead of re-validating Pack artifact semantics", () => {
-    const invalidRegistry = {
-      schemaVersion: "1",
-      manifests: [{
-        ...packManifest(),
-        entrypoints: ["asset"],
-        artifacts: [{
-          id: "asset",
-          role: "asset",
-          mediaType: "image/png",
-          digest,
-          size: 20,
-        }],
-      }],
-    };
     expect(createExperienceResolver({
-      registry: invalidRegistry,
+      registry: { schemaVersion: "1", manifests: [packManifest()] },
       hostManifest: hostManifest(),
       resolveExactDeployment: async () => deploymentTarget(),
       resolvePublicationArtifact: async () => publication(),
       deriveHostRequirement: async () => requirement(),
-    })).toMatchObject({
-      ok: false,
-      issue: { code: "INVALID_REGISTRY", path: "$.registry" },
-    });
+    })).toMatchObject({ ok: false, issue: { code: "INVALID_REGISTRY", path: "$.registry" } });
   });
 
-  it("types trusted port failures and rejects executable/non-object publication artifacts", async () => {
+  it("types trusted port failures and rejects executable publication artifacts", async () => {
     const deploymentFailure = createResolver({
       resolveExactDeployment: vi.fn(async () => { throw new Error("secret deployment failure"); }),
     });
-    await expect(deploymentFailure.resolve(request())).resolves.toMatchObject({
-      ok: false,
-      issue: { code: "DEPLOYMENT_RESOLUTION_FAILED" },
-    });
+    const deploymentResult = await deploymentFailure.resolve(request());
+    expect(deploymentResult).toMatchObject({ ok: false, issue: { code: "DEPLOYMENT_RESOLUTION_FAILED" } });
+    expect(JSON.stringify(deploymentResult)).not.toContain("secret deployment failure");
 
     const artifactFailure = createResolver({
       resolvePublicationArtifact: vi.fn(async () => { throw new Error("secret artifact failure"); }),
     });
-    await expect(artifactFailure.resolve(request())).resolves.toMatchObject({
-      ok: false,
-      issue: { code: "ARTIFACT_RESOLUTION_FAILED" },
-    });
+    const artifactResult = await artifactFailure.resolve(request());
+    expect(artifactResult).toMatchObject({ ok: false, issue: { code: "ARTIFACT_RESOLUTION_FAILED" } });
+    expect(JSON.stringify(artifactResult)).not.toContain("secret artifact failure");
 
     const executableArtifact = createResolver({
       resolvePublicationArtifact: vi.fn(async () => ({ render: () => undefined })),
     });
     await expect(executableArtifact.resolve(request())).resolves.toMatchObject({
       ok: false,
-      issue: { code: "INVALID_PUBLICATION_ARTIFACT" },
+      issue: { code: "INVALID_PUBLICATION_ARTIFACT", path: "$.publication" },
     });
   });
 
-  it("distinguishes malformed host requirements from valid incompatibility and never invents fallback", async () => {
+  it("distinguishes malformed Host requirements from valid incompatibility without fallback", async () => {
     const malformed = createResolver({
       deriveHostRequirement: vi.fn(async () => ({ ...requirement(), fallback: "invented" })),
     });
     await expect(malformed.resolve(request())).resolves.toMatchObject({
       ok: false,
-      issue: { code: "INVALID_HOST_REQUIREMENT" },
+      issue: { code: "INVALID_HOST_REQUIREMENT", path: "$.compatibility" },
     });
 
     const unsupported = createResolver({
@@ -299,12 +266,57 @@ describe("MASTER-05 exact Experience resolver", () => {
     const result = await unsupported.resolve(request());
     expect(result).toMatchObject({
       ok: false,
-      issue: {
-        code: "HOST_INCOMPATIBLE",
-        mismatches: [{ code: "MISSING_IMPLEMENTATION" }],
-      },
+      issue: { code: "HOST_INCOMPATIBLE", mismatches: [{ code: "MISSING_IMPLEMENTATION" }] },
     });
     expect(JSON.stringify(result)).not.toContain("fallback");
+  });
+
+  it("redacts arbitrary rejected field names across request, deployment, Host, publication, and configuration boundaries", async () => {
+    const sensitive = "customer@example.com";
+    const requestResult = await createResolver().resolve({ ...request(), [sensitive]: true });
+    expect(requestResult).toMatchObject({ ok: false, issue: { code: "INVALID_REQUEST", path: "$" } });
+    expect(JSON.stringify(requestResult)).not.toContain(sensitive);
+
+    const deploymentResult = await createResolver({
+      resolveExactDeployment: vi.fn(async () => ({ ...deploymentTarget(), [sensitive]: true })),
+    }).resolve(request());
+    expect(deploymentResult).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_DEPLOYMENT_TARGET", path: "$.deployment" },
+    });
+    expect(JSON.stringify(deploymentResult)).not.toContain(sensitive);
+
+    const hostResult = await createResolver({
+      deriveHostRequirement: vi.fn(async () => ({ ...requirement(), [sensitive]: true })),
+    }).resolve(request());
+    expect(hostResult).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_HOST_REQUIREMENT", path: "$.compatibility" },
+    });
+    expect(JSON.stringify(hostResult)).not.toContain(sensitive);
+
+    const publicationResult = await createResolver({
+      resolvePublicationArtifact: vi.fn(async () => ({ [sensitive]: () => undefined })),
+    }).resolve(request());
+    expect(publicationResult).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_PUBLICATION_ARTIFACT", path: "$.publication" },
+    });
+    expect(JSON.stringify(publicationResult)).not.toContain(sensitive);
+
+    const configurationResult = createExperienceResolver({
+      registry: registry(),
+      hostManifest: hostManifest(),
+      resolveExactDeployment: async () => deploymentTarget(),
+      resolvePublicationArtifact: async () => publication(),
+      deriveHostRequirement: async () => requirement(),
+      [sensitive]: true,
+    });
+    expect(configurationResult).toMatchObject({
+      ok: false,
+      issue: { code: "UNKNOWN_CONFIGURATION_FIELD", path: "$" },
+    });
+    expect(JSON.stringify(configurationResult)).not.toContain(sensitive);
   });
 
   it("rejects duplicate mounted instance IDs until exact release", async () => {
@@ -333,12 +345,11 @@ describe("MASTER-05 exact Experience resolver", () => {
       issue: { code: "INSTANCE_ALREADY_RESERVED" },
     });
     expect(resolveExactDeployment).toHaveBeenCalledTimes(1);
-
     gate.resolve(deploymentTarget());
     await expect(first).resolves.toMatchObject({ ok: true });
   });
 
-  it("releases pending reservation after failure so the exact instance can retry", async () => {
+  it("releases pending reservation after failure so the same exact instance can retry", async () => {
     let attempts = 0;
     const resolver = createResolver({
       resolveExactDeployment: vi.fn(async () => {
@@ -364,7 +375,7 @@ describe("MASTER-05 exact Experience resolver", () => {
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
 
-  it("dispose clears local metadata, blocks future work, and prevents pending results from mounting", async () => {
+  it("dispose clears metadata, blocks future work, and prevents pending results from mounting", async () => {
     const gate = deferred<ReturnType<typeof deploymentTarget>>();
     const resolver = createResolver({ resolveExactDeployment: vi.fn(async () => gate.promise) });
     const pending = resolver.resolve(request("instance-dispose-pending"));
@@ -372,10 +383,7 @@ describe("MASTER-05 exact Experience resolver", () => {
     resolver.dispose();
     gate.resolve(deploymentTarget());
 
-    await expect(pending).resolves.toMatchObject({
-      ok: false,
-      issue: { code: "RESOLVER_DISPOSED" },
-    });
+    await expect(pending).resolves.toMatchObject({ ok: false, issue: { code: "RESOLVER_DISPOSED" } });
     expect(resolver.get("instance-dispose-pending")).toBeUndefined();
     await expect(resolver.resolve(request("after-dispose"))).resolves.toMatchObject({
       ok: false,
@@ -383,7 +391,7 @@ describe("MASTER-05 exact Experience resolver", () => {
     });
   });
 
-  it("fails closed on unknown request backend, credential, fallback, and executable fields", async () => {
+  it("fails closed on latest/active/backend/credential/fallback/executable request fields", async () => {
     const resolver = createResolver();
     for (const extra of [
       { latest: true },
@@ -395,12 +403,12 @@ describe("MASTER-05 exact Experience resolver", () => {
     ]) {
       await expect(resolver.resolve({ ...request(), ...extra })).resolves.toMatchObject({
         ok: false,
-        issue: { code: "INVALID_REQUEST" },
+        issue: { code: "INVALID_REQUEST", path: "$" },
       });
     }
   });
 
-  it("rejects invalid host/Registry configuration and accessors without evaluating getters", () => {
+  it("rejects invalid Host/Registry configuration and accessors without evaluating getters", () => {
     expect(createExperienceResolver({})).toMatchObject({
       ok: false,
       issue: { code: "INVALID_REGISTRY" },
@@ -413,18 +421,7 @@ describe("MASTER-05 exact Experience resolver", () => {
       deriveHostRequirement: async () => requirement(),
     })).toMatchObject({
       ok: false,
-      issue: { code: "INVALID_HOST_MANIFEST" },
-    });
-    expect(createExperienceResolver({
-      registry: registry(),
-      hostManifest: hostManifest(),
-      resolveExactDeployment: async () => deploymentTarget(),
-      resolvePublicationArtifact: async () => publication(),
-      deriveHostRequirement: async () => requirement(),
-      endpoint: "https://customer.example",
-    })).toMatchObject({
-      ok: false,
-      issue: { code: "UNKNOWN_CONFIGURATION_FIELD", path: "$.endpoint" },
+      issue: { code: "INVALID_HOST_MANIFEST", path: "$.hostManifest" },
     });
 
     let calls = 0;
