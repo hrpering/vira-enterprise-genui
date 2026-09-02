@@ -1,7 +1,7 @@
 import java.io.File
 
 fun main(args:Array<String>) {
-  require(args.size >= 3) { "valid, invalid-version and missing-required fixture paths required" }
+  require(args.size >= 4) { "valid and three invalid fixture paths required" }
   val input = File(args[0]).readText()
   val first = ViraStudioCodec.decodeDocument(input)
   val output = ViraStudioCodec.encodeDocument(first)
