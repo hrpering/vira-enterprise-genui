@@ -270,6 +270,6 @@ private class JsonParser(private val source:String) {
 
 private object JsonWriter {
   fun write(value:ViraJson):String=when(value){
-    ViraJson.Null->"null"; is ViraJson.Bool->if(value.value)"true" else "false"; is ViraJson.Num->{ val number=value.value; if(number%1.0==0.0) number.toLong().toString() else number.toString() }; is ViraJson.Str->quote(value.value); is ViraJson.Arr->value.value.joinToString(prefix="[",postfix="]",separator=","){write(it)}; is ViraJson.Obj->value.value.entries.joinToString(prefix="{",postfix="}",separator=","){quote(it.key)+":"+write(it.value)} }
+    ViraJson.Null->"null"; is ViraJson.Bool->if(value.value)"true" else "false"; is ViraJson.Num->{ val number=value.value; if(!number.isFinite() || number == -0.0) error("non-canonical number"); number.toString() }; is ViraJson.Str->quote(value.value); is ViraJson.Arr->value.value.joinToString(prefix="[",postfix="]",separator=","){write(it)}; is ViraJson.Obj->value.value.entries.joinToString(prefix="{",postfix="}",separator=","){quote(it.key)+":"+write(it.value)} }
   private fun quote(value:String):String { val result=StringBuilder("\""); for(character in value){ when(character){ '"'->result.append("\\\""); '\\'->result.append("\\\\"); '\b'->result.append("\\b"); '\u000C'->result.append("\\f"); '\n'->result.append("\\n"); '\r'->result.append("\\r"); '\t'->result.append("\\t"); else->if(character.code<0x20)result.append("\\u%04x".format(character.code)) else result.append(character) } }; return result.append('"').toString() }
 }
