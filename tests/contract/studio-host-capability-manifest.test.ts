@@ -209,6 +209,22 @@ describe("MASTER-04 Studio Host Capability Manifest", () => {
     });
   });
 
+  it("rejects duplicate implementation and capability requirements explicitly", () => {
+    const duplicateImplementation = clone(requirement());
+    duplicateImplementation.implementationIds.push(duplicateImplementation.implementationIds[0]!);
+    expect(createStudioHostCompatibilityRequirement(duplicateImplementation)).toMatchObject({
+      ok: false,
+      issue: { code: "DUPLICATE_IMPLEMENTATION_ID", path: "$.implementationIds[1]" },
+    });
+
+    const duplicateCapability = clone(requirement());
+    duplicateCapability.capabilities.push(clone(duplicateCapability.capabilities[0]!));
+    expect(createStudioHostCompatibilityRequirement(duplicateCapability)).toMatchObject({
+      ok: false,
+      issue: { code: "DUPLICATE_CAPABILITY", path: "$.capabilities[1]" },
+    });
+  });
+
   it("accepts exact support and requirement subsets while ignoring extra host support", () => {
     expect(evaluateStudioHostCompatibility(manifest(), requirement())).toEqual({
       ok: true,
