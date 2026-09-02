@@ -175,6 +175,27 @@ describe("MASTER-03 brand integration SDK", () => {
     });
   });
 
+  it("requires policy coverage for every included experience while allowing unrelated extra mappings", () => {
+    const missing = clone(brandDefinition());
+    missing.policies.mappings[0]!.recipe = "alpha.catalog.recipe.other";
+    expect(defineViraBrand(missing)).toMatchObject({
+      ok: false,
+      issue: {
+        stage: "policies",
+        code: "UNMAPPED_RECIPE",
+        path: "$.experiences[0].document.recipeId",
+      },
+    });
+
+    const extra = clone(brandDefinition());
+    extra.policies.mappings.push({
+      recipe: "alpha.catalog.recipe.unused",
+      layoutPolicy: "alpha.catalog.policy.layout.unused",
+      disclosurePolicy: "alpha.catalog.policy.disclosure.unused",
+    });
+    expect(defineViraBrand(extra)).toMatchObject({ ok: true });
+  });
+
   it("preserves canonical brand/package failures instead of bypassing them", () => {
     const mismatched = clone(brandDefinition());
     mismatched.components.catalog.brandId = "other.brand";
@@ -227,10 +248,14 @@ describe("MASTER-03 brand integration SDK", () => {
       ios: "other.ios.card.v1",
       android: "other.android.card.v1",
     });
-    expect(defineViraBrand(extra)).toMatchObject({
+    const extraResult = defineViraBrand(extra);
+    expect(extraResult).toMatchObject({
       ok: false,
       issue: { stage: "implementations", code: "UNREGISTERED_COMPONENT" },
     });
+    if (!extraResult.ok) {
+      expect(extraResult.issue.message).not.toContain("other.component.card");
+    }
   });
 
   it("rejects URL, path, script, missing-platform and unknown-platform implementation metadata", () => {
