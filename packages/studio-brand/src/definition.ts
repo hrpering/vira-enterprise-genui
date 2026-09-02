@@ -187,10 +187,10 @@ function normalizeImplementations(
       return failure("implementations", "INVALID_COMPONENT_REFERENCE", `${path}.component`, "component must be a string");
     }
     if (!catalogRefs.has(component)) {
-      return failure("implementations", "UNREGISTERED_COMPONENT", `${path}.component`, `component ${JSON.stringify(component)} is not in the active catalog`);
+      return failure("implementations", "UNREGISTERED_COMPONENT", `${path}.component`, "component is not in the active catalog");
     }
     if (byComponent.has(component)) {
-      return failure("implementations", "DUPLICATE_COMPONENT", `${path}.component`, `component ${JSON.stringify(component)} has more than one implementation mapping`);
+      return failure("implementations", "DUPLICATE_COMPONENT", `${path}.component`, "component has more than one implementation mapping");
     }
 
     const platformValues: Record<ViraBrandPlatform, string> = { web: "", ios: "", android: "" };
@@ -216,7 +216,7 @@ function normalizeImplementations(
         "implementations",
         "MISSING_COMPONENT",
         "$.components.implementations",
-        `component ${JSON.stringify(component.ref)} is missing a platform implementation mapping`,
+        "a catalog component is missing a platform implementation mapping",
       );
     }
   }
