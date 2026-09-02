@@ -128,8 +128,8 @@ function forwardIssue(
   return failure(stage, issue.code, issue.path, issue.message);
 }
 
-function isJsonObject(value: JsonValue): value is JsonObject {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+function isJsonObject(value: JsonValue | undefined): value is JsonObject {
+  return value !== undefined && value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function propertyPath(base: string, key: string): string {
@@ -163,7 +163,7 @@ function implementationIdIsSafe(value: string): boolean {
 }
 
 function normalizeImplementations(
-  value: JsonValue,
+  value: JsonValue | undefined,
   catalog: StudioComponentCatalog,
 ): ViraBrandDefinitionFailure | { readonly ok: true; readonly value: readonly ViraBrandComponentImplementation[] } {
   if (!Array.isArray(value)) {
