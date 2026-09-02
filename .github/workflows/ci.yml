@@ -15,7 +15,9 @@ concurrency:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # MASTER-02 relies on the hosted Ubuntu 24.04 image's Swift/Kotlin toolchains.
+    # Pin the image so native conformance does not silently move with ubuntu-latest.
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -33,19 +35,11 @@ jobs:
         # A frozen install becomes mandatory once the real workspace lockfile is generated and committed.
         run: pnpm install --no-frozen-lockfile
 
-      - name: Diagnose generated portable artifacts
-        run: |
-          pnpm generate:studio-interop
-          for file in \
-            interop/studio-experience/v1/schema/studio-experience-document.schema.json \
-            interop/studio-experience/v1/swift/StudioExperienceModels.swift \
-            interop/studio-experience/v1/kotlin/StudioExperienceModels.kt \
-            interop/studio-experience/v1/SOURCE_DIGEST; do
-            echo "VIRA_GENERATED_BEGIN:$file"
-            base64 -w0 "$file"
-            echo
-            echo "VIRA_GENERATED_END:$file"
-          done
+      # CI verifies committed generated artifacts before any generation step can
+      # mutate the checkout. Stale interop output must fail rather than repair
+      # itself in-place and hide drift from the gate.
+      - name: Verify portable artifact drift
+        run: pnpm check:studio-interop
 
       - name: Verify native portable conformance
         run: pnpm check:studio-native
