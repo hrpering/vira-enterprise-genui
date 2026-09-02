@@ -1,0 +1,385 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.vira.dev/studio-experience/v1/studio-experience-document.schema.json",
+  "title": "Vira Studio Experience Document v1",
+  "description": "Generated structural/wire schema from the canonical TypeScript StudioExperienceDocument. Cross-field graph, uniqueness, scope-path and publication validity remain enforced by parseStudioExperienceDocument and conformance fixtures.",
+  "$ref": "#/$defs/StudioExperienceDocument",
+  "$defs": {
+    "JsonValue": {
+      "description": "Canonical JSON value. Aggregate depth/node/string budgets (64/100000/4194304) remain semantic-validator constraints.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string",
+          "maxLength": 1048576
+        },
+        {
+          "type": "array",
+          "maxItems": 50000,
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        {
+          "$ref": "#/$defs/JsonObject"
+        }
+      ]
+    },
+    "JsonObject": {
+      "type": "object",
+      "maxProperties": 50000,
+      "propertyNames": {
+        "maxLength": 4096
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      }
+    },
+    "StudioBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "viewId": {
+          "type": "string"
+        },
+        "nodeId": {
+          "type": "string"
+        },
+        "prop": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "source": {
+          "$ref": "#/$defs/StudioBindingSource"
+        }
+      },
+      "required": [
+        "viewId",
+        "nodeId",
+        "prop",
+        "source"
+      ]
+    },
+    "StudioBindingSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/StudioBindingSourceKind"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "path"
+      ]
+    },
+    "StudioBindingSourceKind": {
+      "oneOf": [
+        {
+          "const": "state"
+        },
+        {
+          "const": "domain"
+        },
+        {
+          "const": "scope"
+        }
+      ]
+    },
+    "StudioExperienceDocument": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "1"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "recipeId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "entryView": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+          "minLength": 1,
+          "maxLength": 63
+        },
+        "views": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StudioView"
+          },
+          "maxItems": 32,
+          "minItems": 1
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StudioBinding"
+          },
+          "maxItems": 512
+        },
+        "interactions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StudioInteraction"
+          },
+          "maxItems": 512
+        }
+      },
+      "required": [
+        "version",
+        "id",
+        "recipeId",
+        "entryView",
+        "views",
+        "bindings",
+        "interactions"
+      ]
+    },
+    "StudioInteraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "viewId": {
+          "type": "string"
+        },
+        "nodeId": {
+          "type": "string"
+        },
+        "event": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[^\\u0000-\\u001F\\u007F].*$"
+        },
+        "actionEvent": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[^\\u0000-\\u001F\\u007F].*$"
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StudioInteractionRoute"
+          }
+        },
+        "payloadBindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StudioInteractionPayloadBinding"
+          },
+          "maxItems": 64
+        }
+      },
+      "required": [
+        "viewId",
+        "nodeId",
+        "event",
+        "actionEvent",
+        "routes"
+      ]
+    },
+    "StudioInteractionOutcome": {
+      "oneOf": [
+        {
+          "const": "success"
+        },
+        {
+          "const": "empty"
+        },
+        {
+          "const": "error"
+        }
+      ]
+    },
+    "StudioInteractionPayloadBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^[a-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*$",
+          "minLength": 1,
+          "maxLength": 63
+        },
+        "source": {
+          "$ref": "#/$defs/StudioInteractionPayloadSource"
+        }
+      },
+      "required": [
+        "key",
+        "source"
+      ]
+    },
+    "StudioInteractionPayloadSource": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/StudioBindingSource"
+        },
+        {
+          "$ref": "#/$defs/StudioInteractionPayloadSourceValue1"
+        }
+      ]
+    },
+    "StudioInteractionPayloadSourceValue1": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "literal"
+        },
+        "value": {
+          "$ref": "#/$defs/JsonValue"
+        }
+      },
+      "required": [
+        "kind",
+        "value"
+      ]
+    },
+    "StudioInteractionRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {
+          "$ref": "#/$defs/StudioInteractionOutcome"
+        },
+        "viewId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "outcome",
+        "viewId"
+      ]
+    },
+    "StudioNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+          "minLength": 1,
+          "maxLength": 63
+        },
+        "component": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "props": {
+          "$ref": "#/$defs/JsonObject"
+        },
+        "parentId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+          "minLength": 1,
+          "maxLength": 63
+        },
+        "slot": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+          "minLength": 1,
+          "maxLength": 63
+        },
+        "repeat": {
+          "$ref": "#/$defs/StudioRepeat"
+        }
+      },
+      "required": [
+        "id",
+        "component",
+        "order",
+        "props"
+      ]
+    },
+    "StudioRepeat": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/StudioRepeatSource"
+        }
+      },
+      "required": [
+        "source"
+      ]
+    },
+    "StudioRepeatSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "oneOf": [
+            {
+              "const": "state"
+            },
+            {
+              "const": "domain"
+            }
+          ]
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "path"
+      ]
+    },
+    "StudioView": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+          "minLength": 1,
+          "maxLength": 63
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StudioNode"
+          },
+          "maxItems": 256,
+          "minItems": 1
+        }
+      },
+      "required": [
+        "id",
+        "nodes"
+      ]
+    }
+  }
+}

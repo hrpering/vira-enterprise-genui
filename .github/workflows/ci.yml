@@ -33,6 +33,9 @@ jobs:
         # A frozen install becomes mandatory once the real workspace lockfile is generated and committed.
         run: pnpm install --no-frozen-lockfile
 
+      - name: Verify native portable conformance
+        run: pnpm check:studio-native
+
       - name: Install Studio browser
         run: pnpm --filter @vira-enterprise-genui/experience-studio-demo exec playwright install --with-deps chromium
 

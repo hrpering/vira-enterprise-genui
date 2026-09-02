@@ -1,0 +1,8 @@
+[
+  {"name":"unknown-field","issueCode":"UNKNOWN_FIELD","mutation":{"kind":"root-field","field":"html","value":"<script>"}},
+  {"name":"orphan-parent","issueCode":"INVALID_PARENT","mutation":{"kind":"node-parent","view":0,"node":1,"parentId":"missing"}},
+  {"name":"node-cycle","issueCode":"NODE_CYCLE","mutation":{"kind":"node-parent","view":0,"node":0,"parentId":"item","slot":"content"}},
+  {"name":"duplicate-order","issueCode":"DUPLICATE_NODE_ORDER","mutation":{"kind":"append-root-node","view":0,"node":{"id":"sibling","component":"demo.component.text","order":0,"props":{}}}},
+  {"name":"duplicate-binding","issueCode":"DUPLICATE_BINDING","mutation":{"kind":"duplicate-binding","index":0}},
+  {"name":"dangling-route","issueCode":"INVALID_ROUTE","mutation":{"kind":"route-target","interaction":0,"route":0,"viewId":"missing"}}
+]
