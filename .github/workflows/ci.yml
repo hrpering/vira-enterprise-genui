@@ -33,6 +33,20 @@ jobs:
         # A frozen install becomes mandatory once the real workspace lockfile is generated and committed.
         run: pnpm install --no-frozen-lockfile
 
+      - name: Diagnose generated portable artifacts
+        run: |
+          pnpm generate:studio-interop
+          for file in \
+            interop/studio-experience/v1/schema/studio-experience-document.schema.json \
+            interop/studio-experience/v1/swift/StudioExperienceModels.swift \
+            interop/studio-experience/v1/kotlin/StudioExperienceModels.kt \
+            interop/studio-experience/v1/SOURCE_DIGEST; do
+            echo "VIRA_GENERATED_BEGIN:$file"
+            base64 -w0 "$file"
+            echo
+            echo "VIRA_GENERATED_END:$file"
+          done
+
       - name: Verify native portable conformance
         run: pnpm check:studio-native
 
