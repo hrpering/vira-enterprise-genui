@@ -1,0 +1,14 @@
+{
+  "name": "@vira-enterprise-genui/genui-resolver",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/experience-registry": "workspace:*",
+    "@vira-enterprise-genui/genui": "workspace:*",
+    "@vira-enterprise-genui/protocol": "workspace:*"
+  }
+}

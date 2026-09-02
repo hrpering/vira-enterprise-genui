@@ -8,6 +8,8 @@ export const allowedDependencies = Object.freeze({
   "adapter-sdk": ["protocol"],
   "experience-packs": [],
   "experience-registry": ["experience-packs"],
+  "genui-resolver": ["protocol", "experience-registry", "genui"],
+  "genui-chat": ["genui-resolver"],
   "design-system-compiler": ["studio-design"],
   "runtime-web": ["protocol", "runtime-core", "composer", "adapter-sdk", "security"],
   "web-component": ["runtime-web"],
