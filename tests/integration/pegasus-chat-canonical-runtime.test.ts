@@ -5,7 +5,7 @@ import {
   FLIGHT_BOOKING_PACK_ID,
   FLIGHT_BOOKING_PACK_VERSION,
 } from "../../examples/airline-brand-kit/src/chat-publication.js";
-import { createFlightChatBridge } from "../../examples/pegasus-chat-demo/lib/flight-genui.js";
+import { createDemoChatBridge } from "../../examples/pegasus-chat-demo/lib/demo-genui.js";
 import { searchFlights } from "../../examples/mock-airline-domain/src/index.js";
 import type { ViraResolvedExperience } from "../../packages/genui-resolver/src/index.js";
 
@@ -54,7 +54,7 @@ function command(instanceId: string, name: string, value?: string) {
 describe("Pegasus Chat Flight Experience Pack runtime", () => {
   it("carries the complete booking journey through the generic exact-instance bridge", async () => {
     const instanceId = "flight-full-journey";
-    const bridge = createFlightChatBridge();
+    const bridge = createDemoChatBridge();
     const presented = await bridge.present(presentMessage(instanceId));
     expect(presented.ok).toBe(true);
     if (!presented.ok) return;
