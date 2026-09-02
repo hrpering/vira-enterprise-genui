@@ -14,55 +14,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  capture-generated:
-    # Temporary MASTER-02 bridge. It is restricted to this same-repository PR
-    # branch and may write only the four deterministic generated artifacts.
-    if: >-
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'master/02-portable-experience-contract'
-    permissions:
-      contents: write
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-        with:
-          ref: master/02-portable-experience-contract
-
-      - name: Setup Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: 24
-          package-manager-cache: false
-
-      - name: Install pnpm
-        run: npm install --global pnpm@11.24.0
-
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Regenerate portable artifacts
-        run: pnpm generate:studio-interop
-
-      - name: Commit regenerated portable artifacts once
-        shell: bash
-        run: |
-          set -euo pipefail
-          git add -- \
-            interop/studio-experience/v1/schema/studio-experience-document.schema.json \
-            interop/studio-experience/v1/swift/StudioExperienceModels.swift \
-            interop/studio-experience/v1/kotlin/StudioExperienceModels.kt \
-            interop/studio-experience/v1/SOURCE_DIGEST
-          if git diff --cached --quiet; then
-            echo "Generated portable artifacts are already current."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "MASTER-02: refresh generated portable artifacts"
-          git push origin HEAD:master/02-portable-experience-contract
-
   verify:
     # MASTER-02 relies on the hosted Ubuntu 24.04 image's Swift/Kotlin toolchains.
     # Pin the image so native conformance does not silently move with ubuntu-latest.
@@ -84,9 +35,8 @@ jobs:
         # A frozen install becomes mandatory once the real workspace lockfile is generated and committed.
         run: pnpm install --no-frozen-lockfile
 
-      # CI verifies committed generated artifacts before any generation step can
-      # mutate the checkout. Stale interop output must fail rather than repair
-      # itself in-place and hide drift from the gate.
+      # CI verifies committed generated artifacts before any generator invocation.
+      # Stale interop output must fail rather than being repaired in-place.
       - name: Verify portable artifact drift
         run: pnpm check:studio-interop
 
