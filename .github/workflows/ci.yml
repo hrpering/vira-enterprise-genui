@@ -15,12 +15,20 @@ concurrency:
 
 jobs:
   capture-generated:
-    # Temporary MASTER-02 diagnostic job. It captures the exact regenerated
-    # artifacts from the pinned CI environment without weakening the verify job.
+    # Temporary MASTER-02 bridge. It is restricted to this same-repository PR
+    # branch and may write only the four deterministic generated artifacts.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'master/02-portable-experience-contract'
+    permissions:
+      contents: write
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: master/02-portable-experience-contract
 
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
@@ -34,20 +42,26 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Regenerate portable artifacts for capture
+      - name: Regenerate portable artifacts
         run: pnpm generate:studio-interop
 
-      - name: Upload regenerated portable artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: master-02-regenerated-interop
-          retention-days: 1
-          if-no-files-found: error
-          path: |
-            interop/studio-experience/v1/schema/studio-experience-document.schema.json
-            interop/studio-experience/v1/swift/StudioExperienceModels.swift
-            interop/studio-experience/v1/kotlin/StudioExperienceModels.kt
+      - name: Commit regenerated portable artifacts once
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -- \
+            interop/studio-experience/v1/schema/studio-experience-document.schema.json \
+            interop/studio-experience/v1/swift/StudioExperienceModels.swift \
+            interop/studio-experience/v1/kotlin/StudioExperienceModels.kt \
             interop/studio-experience/v1/SOURCE_DIGEST
+          if git diff --cached --quiet; then
+            echo "Generated portable artifacts are already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "MASTER-02: refresh generated portable artifacts"
+          git push origin HEAD:master/02-portable-experience-contract
 
   verify:
     # MASTER-02 relies on the hosted Ubuntu 24.04 image's Swift/Kotlin toolchains.
