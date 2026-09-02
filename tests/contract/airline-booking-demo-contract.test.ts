@@ -7,11 +7,13 @@ import {
   FARE_OPTIONS,
   SEAT_OPTIONS,
   seatFeeForFare,
-} from "../../examples/pegasus-chat-demo/lib/booking-catalog.js";
+} from "../../examples/airline-brand-kit/src/index.js";
 import {
-  isViraCommandResult,
-  isViraFlightExperienceResult,
-} from "../../examples/pegasus-chat-demo/lib/vira-chat-contract.js";
+  FLIGHT_BOOKING_ENTRYPOINT,
+  FLIGHT_BOOKING_PACK_ID,
+  FLIGHT_BOOKING_PACK_VERSION,
+} from "../../examples/airline-brand-kit/src/chat-publication.js";
+import { parseViraExperienceMessage } from "../../packages/genui-resolver/src/index.js";
 
 describe("airline booking demo contracts", () => {
   it("keeps fare-aware baggage and seat pricing deterministic", () => {
@@ -45,45 +47,44 @@ describe("airline booking demo contracts", () => {
     expect(SEAT_OPTIONS.some((seat) => seat.zone === "extra-legroom")).toBe(true);
   });
 
-  it("accepts only explicit Vira chat command results", () => {
-    expect(isViraCommandResult({
+  it("accepts only the generic exact-instance command envelope", () => {
+    expect(parseViraExperienceMessage({
       version: "1",
-      kind: "vira.command",
+      op: "command",
+      instanceId: "flight-a",
       command: "set-baggage-all",
-      value: "20kg",
-    })).toBe(true);
-    expect(isViraCommandResult({
+      args: { value: "20kg" },
+    }).ok).toBe(true);
+
+    expect(parseViraExperienceMessage({
       version: "1",
-      kind: "vira.command",
-      command: "book-it-now",
-    })).toBe(false);
+      op: "command",
+      instanceId: "",
+      command: "set-baggage-all",
+      args: { value: "20kg" },
+    }).ok).toBe(false);
   });
 
-  it("validates the Vira flight experience result boundary", () => {
-    expect(isViraFlightExperienceResult({
+  it("accepts the Flight Pack through the generic present envelope", () => {
+    const parsed = parseViraExperienceMessage({
       version: "1",
-      kind: "vira.experience",
-      experience: "travel.flight.search",
-      input: {
-        origin: "SAW",
-        destination: "BER",
-        departureDate: "2026-09-03",
-        passengers: 2,
+      op: "present",
+      instanceId: "flight-a",
+      pack: {
+        id: FLIGHT_BOOKING_PACK_ID,
+        version: FLIGHT_BOOKING_PACK_VERSION,
+        entrypoint: FLIGHT_BOOKING_ENTRYPOINT,
       },
-      data: {
-        offers: [{
-          id: "PC-981",
-          carrier: "Pegasus",
-          flightNumber: "PC 981",
+      payload: {
+        input: {
           origin: "SAW",
           destination: "BER",
-          departure: "09:20",
-          arrival: "11:10",
-          duration: "2h 50m",
-          price: 178,
-          currency: "EUR",
-        }],
+          departureDate: "2026-09-03",
+          passengers: 2,
+        },
+        data: { offers: [] },
       },
-    })).toBe(true);
+    });
+    expect(parsed.ok).toBe(true);
   });
 });
