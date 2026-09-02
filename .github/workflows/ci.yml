@@ -15,7 +15,9 @@ concurrency:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # MASTER-02 native interop conformance relies on the pinned Ubuntu 24.04
+    # hosted image rather than the moving ubuntu-latest alias.
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -32,6 +34,14 @@ jobs:
       - name: Install dependencies
         # A frozen install becomes mandatory once the real workspace lockfile is generated and committed.
         run: pnpm install --no-frozen-lockfile
+
+      # Verify committed generated artifacts before any generator invocation.
+      # CI is a verifier, not a repair step.
+      - name: Verify portable artifact drift
+        run: pnpm check:studio-interop
+
+      - name: Verify native portable conformance
+        run: pnpm check:studio-native
 
       - name: Install Studio browser
         run: pnpm --filter @vira-enterprise-genui/experience-studio-demo exec playwright install --with-deps chromium

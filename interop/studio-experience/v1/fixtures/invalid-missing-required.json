@@ -1,0 +1,1 @@
+{"version":"1","id":"demo.catalog","recipeId":"demo.catalog.browse","entryView":"main","views":[{"id":"main","nodes":[{"id":"root","component":"demo.layout.stack","order":0,"props":{}}]}],"bindings":[]}
