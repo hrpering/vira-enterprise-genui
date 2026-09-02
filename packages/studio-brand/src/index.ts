@@ -9,6 +9,7 @@ export type {
   ViraBrandComponentImplementationInput,
   ViraBrandComponentsInput,
   ViraBrandDefinition,
+  ViraBrandDefinitionFailure,
   ViraBrandDefinitionInput,
   ViraBrandDefinitionIssue,
   ViraBrandDefinitionResult,
