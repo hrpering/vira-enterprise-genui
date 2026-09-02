@@ -221,8 +221,8 @@ function readConfiguration(input: unknown):
         ok: false,
         result: configurationFailure(
           "UNKNOWN_CONFIGURATION_FIELD",
-          `$.${key}`,
-          "unknown experience resolver configuration field",
+          "$",
+          "experience resolver configuration contains an unsupported field",
         ),
       };
     }
@@ -263,8 +263,8 @@ function isBoundedExactId(value: JsonValue | undefined): value is string {
     && value.length <= EXPERIENCE_RESOLVER_MAX_ID_LENGTH;
 }
 
-function exactFields(value: JsonObject, allowed: ReadonlySet<string>): string | undefined {
-  return Object.keys(value).sort().find((key) => !allowed.has(key));
+function exactFields(value: JsonObject, allowed: ReadonlySet<string>): boolean {
+  return Object.keys(value).some((key) => !allowed.has(key));
 }
 
 function parseRequest(input: unknown):
@@ -276,17 +276,20 @@ function parseRequest(input: unknown):
       ok: false,
       result: resolutionFailure(
         "INVALID_REQUEST",
-        parsed.ok ? "$" : parsed.issue.path,
+        "$",
         "experience resolution request must be canonical JSON object data",
       ),
     };
   }
   const fields = parsed.value;
-  const unknown = exactFields(fields, requestFields);
-  if (unknown) {
+  if (exactFields(fields, requestFields)) {
     return {
       ok: false,
-      result: resolutionFailure("INVALID_REQUEST", `$.${unknown}`, "unknown experience resolution request field"),
+      result: resolutionFailure(
+        "INVALID_REQUEST",
+        "$",
+        "experience resolution request contains an unsupported field",
+      ),
     };
   }
   if (fields.version !== EXPERIENCE_RESOLUTION_REQUEST_VERSION) {
@@ -330,20 +333,19 @@ function parseDeploymentTarget(input: unknown):
       ok: false,
       result: resolutionFailure(
         "INVALID_DEPLOYMENT_TARGET",
-        parsed.ok ? "$.deployment" : `$.deployment${parsed.issue.path.slice(1)}`,
+        "$.deployment",
         "exact deployment resolver must return canonical JSON object data",
       ),
     };
   }
   const fields = parsed.value;
-  const unknown = exactFields(fields, deploymentFields);
-  if (unknown) {
+  if (exactFields(fields, deploymentFields)) {
     return {
       ok: false,
       result: resolutionFailure(
         "INVALID_DEPLOYMENT_TARGET",
-        `$.deployment.${unknown}`,
-        "unknown exact deployment target field",
+        "$.deployment",
+        "exact deployment target contains an unsupported field",
       ),
     };
   }
@@ -406,8 +408,8 @@ export function createExperienceResolver(input: unknown): ExperienceResolverFact
   if (!hostManifest.ok) {
     return configurationFailure(
       "INVALID_HOST_MANIFEST",
-      `$.hostManifest${hostManifest.issue.path.slice(1)}`,
-      hostManifest.issue.message,
+      "$.hostManifest",
+      "experience resolver host capability manifest is invalid",
     );
   }
   if (typeof fields.resolveExactDeployment !== "function") {
@@ -546,7 +548,7 @@ export function createExperienceResolver(input: unknown): ExperienceResolverFact
         if (!publicationParsed.ok || !isJsonObject(publicationParsed.value)) {
           return resolutionFailure(
             "INVALID_PUBLICATION_ARTIFACT",
-            publicationParsed.ok ? "$.publication" : publicationParsed.issue.path,
+            "$.publication",
             "publication artifact must be bounded canonical JSON object data",
           );
         }
@@ -578,7 +580,7 @@ export function createExperienceResolver(input: unknown): ExperienceResolverFact
           return resolutionFailure(
             "INVALID_HOST_REQUIREMENT",
             "$.compatibility",
-            compatibility.issue.message,
+            "derived host compatibility requirement is invalid",
           );
         }
         if (!compatibility.value.compatible) {
