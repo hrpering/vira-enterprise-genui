@@ -7,7 +7,6 @@ import {
 } from "@vira-enterprise-genui/genui-chat";
 import { parseViraExperienceMessage } from "@vira-enterprise-genui/genui-resolver";
 import { createDemoChatBridge } from "../lib/demo-genui.js";
-import guidanceToolkit from "./vira-guidance-toolkit";
 
 const experienceBridge = createDemoChatBridge();
 const feedbackStyle = Object.freeze({
@@ -37,7 +36,6 @@ function loading(message: string) {
 }
 
 export const viraChatToolkit = defineToolkit({
-  ...guidanceToolkit,
   vira_experience: {
     type: "backend",
     display: "standalone",
