@@ -6,7 +6,7 @@ import {
   FLIGHT_BOOKING_PACK_VERSION,
 } from "../../examples/airline-brand-kit/src/chat-publication.js";
 import { CANONICAL_CHAT_RENDERERS } from "../../examples/pegasus-chat-demo/components/canonical-chat-renderers.js";
-import { createFlightChatBridge } from "../../examples/pegasus-chat-demo/lib/flight-genui.js";
+import { createDemoChatBridge } from "../../examples/pegasus-chat-demo/lib/demo-genui.js";
 
 describe("Pegasus Chat Flight Experience Pack contract", () => {
   it("keeps the trusted renderer registry in exact parity with the Flight Pack catalog", () => {
@@ -17,7 +17,7 @@ describe("Pegasus Chat Flight Experience Pack contract", () => {
   });
 
   it("fails closed when the registered Flight Pack receives malformed domain payload", async () => {
-    const bridge = createFlightChatBridge();
+    const bridge = createDemoChatBridge();
     const result = await bridge.present({
       version: "1",
       op: "present",
@@ -42,7 +42,7 @@ describe("Pegasus Chat Flight Experience Pack contract", () => {
   });
 
   it("fails closed when an unregistered Pack identity is requested", async () => {
-    const bridge = createFlightChatBridge();
+    const bridge = createDemoChatBridge();
     const result = await bridge.present({
       version: "1",
       op: "present",
