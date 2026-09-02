@@ -84,6 +84,15 @@ export type StudioHostCompatibilityEvaluationResult =
   | { readonly ok: true; readonly value: StudioHostCompatibilityEvaluation }
   | { readonly ok: false; readonly issue: StudioHostCompatibilityInputIssue };
 
+type StudioHostCapabilityValidationFailure = {
+  readonly ok: false;
+  readonly issue: StudioHostCapabilityValidationIssue;
+};
+
+type ParsedValueResult<T> =
+  | { readonly ok: true; readonly value: T }
+  | StudioHostCapabilityValidationFailure;
+
 const manifestFields = new Set(["version", "id", "platform", "implementationIds", "capabilities"]);
 const requirementFields = new Set(["version", "platform", "implementationIds", "capabilities"]);
 const platforms = new Set<StudioHostPlatform>(STUDIO_HOST_PLATFORMS);
@@ -92,7 +101,7 @@ function failure(
   code: StudioHostCapabilityValidationCode,
   path: string,
   message: string,
-): { readonly ok: false; readonly issue: StudioHostCapabilityValidationIssue } {
+): StudioHostCapabilityValidationFailure {
   return { ok: false, issue: { code, path, message } };
 }
 
@@ -110,7 +119,7 @@ function preflightArrayLimit(
   maximum: number,
   code: "IMPLEMENTATION_LIMIT_EXCEEDED" | "CAPABILITY_LIMIT_EXCEEDED",
   path: string,
-): { readonly ok: false; readonly issue: StudioHostCapabilityValidationIssue } | undefined {
+): StudioHostCapabilityValidationFailure | undefined {
   if (input === null || typeof input !== "object" || Array.isArray(input)) return undefined;
   try {
     const descriptor = Object.getOwnPropertyDescriptor(input, key);
@@ -127,17 +136,17 @@ function preflightArrayLimit(
 function parsePlatform(
   value: JsonValue | undefined,
   path: string,
-): StudioHostPlatform | { readonly ok: false; readonly issue: StudioHostCapabilityValidationIssue } {
+): ParsedValueResult<StudioHostPlatform> {
   if (typeof value !== "string" || !platforms.has(value as StudioHostPlatform)) {
     return failure("INVALID_PLATFORM", path, "Studio host platform must be web, ios, or android");
   }
-  return value as StudioHostPlatform;
+  return { ok: true, value: value as StudioHostPlatform };
 }
 
 function parseImplementationIds(
   value: JsonValue | undefined,
   path: string,
-): readonly string[] | { readonly ok: false; readonly issue: StudioHostCapabilityValidationIssue } {
+): ParsedValueResult<readonly string[]> {
   if (!Array.isArray(value)) {
     return failure("INVALID_IMPLEMENTATION_IDS", path, "implementationIds must be an array");
   }
@@ -162,7 +171,7 @@ function parseImplementationIds(
     seen.add(candidate);
     output.push(candidate);
   }
-  return Object.freeze(output);
+  return { ok: true, value: Object.freeze(output) };
 }
 
 function capabilityIdentity(capability: Capability): string {
@@ -172,7 +181,7 @@ function capabilityIdentity(capability: Capability): string {
 function parseCapabilities(
   value: JsonValue | undefined,
   path: string,
-): readonly Capability[] | { readonly ok: false; readonly issue: StudioHostCapabilityValidationIssue } {
+): ParsedValueResult<readonly Capability[]> {
   if (!Array.isArray(value)) {
     return failure("INVALID_CAPABILITIES", path, "capabilities must be an array");
   }
@@ -198,7 +207,7 @@ function parseCapabilities(
     seen.add(identity);
     output.push(Object.freeze({ version: parsed.value.version, id: parsed.value.id }));
   }
-  return Object.freeze(output);
+  return { ok: true, value: Object.freeze(output) };
 }
 
 export function createStudioHostCapabilityManifest(input: unknown): StudioHostCapabilityManifestResult {
@@ -233,20 +242,20 @@ export function createStudioHostCapabilityManifest(input: unknown): StudioHostCa
   }
 
   const platform = parsePlatform(fields.platform, "$.platform");
-  if (typeof platform !== "string") return platform;
+  if (!platform.ok) return platform;
   const implementationIds = parseImplementationIds(fields.implementationIds, "$.implementationIds");
-  if (!Array.isArray(implementationIds)) return implementationIds;
+  if (!implementationIds.ok) return implementationIds;
   const capabilities = parseCapabilities(fields.capabilities, "$.capabilities");
-  if (!Array.isArray(capabilities)) return capabilities;
+  if (!capabilities.ok) return capabilities;
 
   return {
     ok: true,
     value: Object.freeze({
       version: STUDIO_HOST_CAPABILITY_MANIFEST_VERSION,
       id: fields.id,
-      platform,
-      implementationIds,
-      capabilities,
+      platform: platform.value,
+      implementationIds: implementationIds.value,
+      capabilities: capabilities.value,
     }),
   };
 }
@@ -280,19 +289,19 @@ export function createStudioHostCompatibilityRequirement(input: unknown): Studio
   }
 
   const platform = parsePlatform(fields.platform, "$.platform");
-  if (typeof platform !== "string") return platform;
+  if (!platform.ok) return platform;
   const implementationIds = parseImplementationIds(fields.implementationIds, "$.implementationIds");
-  if (!Array.isArray(implementationIds)) return implementationIds;
+  if (!implementationIds.ok) return implementationIds;
   const capabilities = parseCapabilities(fields.capabilities, "$.capabilities");
-  if (!Array.isArray(capabilities)) return capabilities;
+  if (!capabilities.ok) return capabilities;
 
   return {
     ok: true,
     value: Object.freeze({
       version: STUDIO_HOST_COMPATIBILITY_REQUIREMENT_VERSION,
-      platform,
-      implementationIds,
-      capabilities,
+      platform: platform.value,
+      implementationIds: implementationIds.value,
+      capabilities: capabilities.value,
     }),
   };
 }
