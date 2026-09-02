@@ -107,16 +107,21 @@ const RECIPE_LIBRARY: Readonly<Record<RecipeDishId, Omit<RecipeSeed, "baseServin
 export function createRecipePayload(input: RecipeToolInput): JsonObject {
   const definition = RECIPE_LIBRARY[input.dish];
   const servings = Number.isInteger(input.servings) ? Math.max(1, Math.min(12, input.servings)) : 4;
-  return Object.freeze({
-    recipe: Object.freeze({
-      title: definition.title,
-      baseServings: servings,
-      cookTime: definition.cookTime,
-      difficulty: definition.difficulty,
-      ingredients: definition.ingredients,
-      steps: definition.steps,
-    }),
+  const ingredients: JsonValue[] = definition.ingredients.map((ingredient) => Object.freeze({
+    quantity: ingredient.quantity,
+    unit: ingredient.unit,
+    name: ingredient.name,
+  }));
+  const steps: JsonValue[] = definition.steps.map((step) => step);
+  const recipe: JsonObject = Object.freeze({
+    title: definition.title,
+    baseServings: servings,
+    cookTime: definition.cookTime,
+    difficulty: definition.difficulty,
+    ingredients: Object.freeze(ingredients),
+    steps: Object.freeze(steps),
   });
+  return Object.freeze({ recipe });
 }
 
 function object(value: JsonValue | undefined): JsonObject | undefined {
