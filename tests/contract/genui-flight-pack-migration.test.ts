@@ -8,7 +8,7 @@ import {
   FLIGHT_BOOKING_PACK_MANIFEST,
   FLIGHT_BOOKING_PUBLICATION,
 } from "../../examples/airline-brand-kit/src/chat-publication.js";
-import { createFlightChatBridge } from "../../examples/pegasus-chat-demo/lib/flight-genui.js";
+import { createDemoChatBridge } from "../../examples/pegasus-chat-demo/lib/demo-genui.js";
 import { searchFlights } from "../../examples/mock-airline-domain/src/index.js";
 
 function presentMessage(instanceId: string, destination: string) {
@@ -59,7 +59,7 @@ describe("Flight Experience Pack migration", () => {
   });
 
   it("targets commands by exact instanceId instead of the latest mounted experience", async () => {
-    const bridge = createFlightChatBridge();
+    const bridge = createDemoChatBridge();
     const first = await bridge.present(presentMessage("flight-a", "BER"));
     const second = await bridge.present(presentMessage("flight-b", "FCO"));
     expect(first.ok).toBe(true);

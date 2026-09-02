@@ -13,6 +13,7 @@ const nextConfig = {
     "@vira-enterprise-genui/planner",
     "@vira-enterprise-genui/protocol",
     "@vira-enterprise-genui/react",
+    "@vira-enterprise-genui/recipe-brand-kit",
     "@vira-enterprise-genui/runtime-core",
     "@vira-enterprise-genui/runtime-web",
   ],

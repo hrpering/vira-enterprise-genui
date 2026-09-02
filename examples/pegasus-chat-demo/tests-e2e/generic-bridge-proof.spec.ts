@@ -1,0 +1,40 @@
+import { expect, test } from "@playwright/test";
+
+test("mounts Flight and Recipe together without cross-instance state bleed", async ({ page }) => {
+  const fatalErrors: string[] = [];
+  page.on("pageerror", (error) => fatalErrors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") fatalErrors.push(message.text());
+  });
+
+  await page.goto("/proof");
+
+  const recipe = page.getByTestId("recipe-experience");
+  const recipeServings = recipe.locator("strong").filter({ hasText: /^\d+ servings$/ });
+  const flightView = page.getByTestId("flight-view");
+
+  await expect(flightView).toHaveText("flight-search");
+  await expect(recipeServings).toHaveText("4 servings");
+  await expect(recipe.getByRole("button", { name: "♡ Save recipe" })).toHaveAttribute("aria-pressed", "false");
+
+  await page.getByTestId("recipe-increase").click();
+  await expect(recipeServings).toHaveText("5 servings");
+  await expect(flightView).toHaveText("flight-search");
+
+  await page.getByTestId("recipe-favorite").click();
+  await expect(recipe.getByRole("button", { name: "♥ Saved" })).toHaveAttribute("aria-pressed", "true");
+  await expect(flightView).toHaveText("flight-search");
+
+  await page.getByTestId("flight-advance").click();
+  await expect(flightView).toHaveText("flight-results");
+  await expect(recipeServings).toHaveText("5 servings");
+  await expect(recipe.getByRole("button", { name: "♥ Saved" })).toHaveAttribute("aria-pressed", "true");
+
+  await page.getByTestId("flight-cheapest").click();
+  await expect(flightView).toHaveText("fare-comparison");
+  await expect(recipeServings).toHaveText("5 servings");
+  await expect(recipe.getByRole("button", { name: "♥ Saved" })).toHaveAttribute("aria-pressed", "true");
+
+  await expect(page.locator("main [role='alert']")).toHaveCount(0);
+  expect(fatalErrors).toEqual([]);
+});

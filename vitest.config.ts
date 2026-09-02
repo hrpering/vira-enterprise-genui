@@ -5,6 +5,7 @@ export default defineConfig({
     exclude: [
       ...configDefaults.exclude,
       "examples/experience-studio-demo/tests/**",
+      "examples/pegasus-chat-demo/tests-e2e/**",
       "**/.build/**",
     ],
   },

@@ -7,7 +7,8 @@
     "dev": "next dev --webpack --hostname 127.0.0.1 --port 4180",
     "build": "next build --webpack",
     "start": "next start --hostname 127.0.0.1 --port 4180",
-    "typecheck": "tsc6 --noEmit"
+    "typecheck": "tsc6 --noEmit",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@ai-sdk/openai": "4.0.46",
@@ -26,6 +27,7 @@
     "@vira-enterprise-genui/planner": "workspace:*",
     "@vira-enterprise-genui/protocol": "workspace:*",
     "@vira-enterprise-genui/react": "workspace:*",
+    "@vira-enterprise-genui/recipe-brand-kit": "workspace:*",
     "@vira-enterprise-genui/runtime-core": "workspace:*",
     "@vira-enterprise-genui/runtime-web": "workspace:*",
     "ai": "7.0.77",
@@ -37,6 +39,7 @@
     "zod": "^4.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@typescript/typescript6": "6.0.2",
