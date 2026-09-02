@@ -11,10 +11,11 @@ sealed interface ViraJson {
 }
 
 private fun ViraJson.obj(): Map<String,ViraJson> = (this as? ViraJson.Obj)?.value ?: error("expected object")
-private fun Map<String,ViraJson>.req(k:String): ViraJson = this[k] ?: error("missing $k")
+private fun Map<String,ViraJson>.req(key:String): ViraJson = this[key] ?: error("missing $key")
 private fun ViraJson.str(): String = (this as? ViraJson.Str)?.value ?: error("expected string")
 private fun ViraJson.num(): Double = (this as? ViraJson.Num)?.value ?: error("expected number")
 private fun ViraJson.arr(): List<ViraJson> = (this as? ViraJson.Arr)?.value ?: error("expected array")
+private fun strict(value:Map<String,ViraJson>, allowed:Set<String>) { val unknown=value.keys.firstOrNull { it !in allowed }; if (unknown != null) error("unknown field $unknown") }
 
 data class StudioBinding(
   val viewId: String,
@@ -32,7 +33,7 @@ enum class StudioBindingSourceKind(val wire:String) {
   STATE("state"),
   DOMAIN("domain"),
   SCOPE("scope")
-; companion object { fun fromWire(v:String)=entries.firstOrNull{it.wire==v}?:error("invalid StudioBindingSourceKind") }
+; companion object { fun fromWire(value:String)=entries.firstOrNull { it.wire == value } ?: error("invalid StudioBindingSourceKind") }
 }
 
 data class StudioExperienceDocument(
@@ -58,7 +59,7 @@ enum class StudioInteractionOutcome(val wire:String) {
   SUCCESS("success"),
   EMPTY("empty"),
   ERROR("error")
-; companion object { fun fromWire(v:String)=entries.firstOrNull{it.wire==v}?:error("invalid StudioInteractionOutcome") }
+; companion object { fun fromWire(value:String)=entries.firstOrNull { it.wire == value } ?: error("invalid StudioInteractionOutcome") }
 }
 
 data class StudioInteractionPayloadBinding(
@@ -96,9 +97,15 @@ data class StudioRepeat(
 )
 
 data class StudioRepeatSource(
-  val kind: String,
+  val kind: StudioRepeatSourceKind,
   val path: String
 )
+
+enum class StudioRepeatSourceKind(val wire:String) {
+  STATE("state"),
+  DOMAIN("domain")
+; companion object { fun fromWire(value:String)=entries.firstOrNull { it.wire == value } ?: error("invalid StudioRepeatSourceKind") }
+}
 
 data class StudioView(
   val id: String,
@@ -106,164 +113,163 @@ data class StudioView(
 )
 
 object ViraStudioCodec {
-  fun decodeDocument(text:String): StudioExperienceDocument { val j=JsonParser(text).parse(); return decodeStudioExperienceDocument(j) }
-  fun encodeDocument(v:StudioExperienceDocument): String = JsonWriter.write(encodeStudioExperienceDocument(v))
-
-  private fun decodeStudioInteractionPayloadSource(j:ViraJson): StudioInteractionPayloadSource { val o=j.obj(); val kind=o.req("kind").str();
-    if (kind=="state" || kind=="domain" || kind=="scope") return StudioInteractionPayloadSource.Variant0(decodeStudioBindingSource(j))
-    if (kind=="literal") return StudioInteractionPayloadSource.Variant1(decodeStudioInteractionPayloadSourceValue1(j))
+  fun decodeDocument(text:String): StudioExperienceDocument = decodeStudioExperienceDocument(JsonParser(text).parse())
+  fun encodeDocument(value:StudioExperienceDocument): String = JsonWriter.write(encodeStudioExperienceDocument(value))
+  private fun decodeStudioInteractionPayloadSource(json:ViraJson): StudioInteractionPayloadSource { val objectValue=json.obj(); val kind=objectValue.req("kind").str()
+    if (kind == "state" || kind == "domain" || kind == "scope") return StudioInteractionPayloadSource.Variant0(decodeStudioBindingSource(json))
+    if (kind == "literal") return StudioInteractionPayloadSource.Variant1(decodeStudioInteractionPayloadSourceValue1(json))
     error("unsupported StudioInteractionPayloadSource discriminator: $kind")
   }
-  private fun encodeStudioInteractionPayloadSource(v:StudioInteractionPayloadSource): ViraJson = when(v) {
-    is StudioInteractionPayloadSource.Variant0 -> encodeStudioBindingSource(v.value)
-    is StudioInteractionPayloadSource.Variant1 -> encodeStudioInteractionPayloadSourceValue1(v.value)
+  private fun encodeStudioInteractionPayloadSource(value:StudioInteractionPayloadSource): ViraJson = when(value) {
+    is StudioInteractionPayloadSource.Variant0 -> encodeStudioBindingSource(value.value)
+    is StudioInteractionPayloadSource.Variant1 -> encodeStudioInteractionPayloadSourceValue1(value.value)
   }
-  private fun decodeStudioBinding(j:ViraJson): StudioBinding { val o=j.obj(); return StudioBinding(
-    viewId = o.req("viewId").str(),
-    nodeId = o.req("nodeId").str(),
-    prop = o.req("prop").str(),
-    source = decodeStudioBindingSource(o.req("source"))
+  private fun decodeStudioBinding(json:ViraJson): StudioBinding { val objectValue=json.obj(); strict(objectValue, setOf("viewId", "nodeId", "prop", "source")); return StudioBinding(
+    viewId = objectValue.req("viewId").str(),
+    nodeId = objectValue.req("nodeId").str(),
+    prop = objectValue.req("prop").str(),
+    source = decodeStudioBindingSource(objectValue.req("source"))
   ) }
-  private fun encodeStudioBinding(v:StudioBinding): ViraJson.Obj { val m=linkedMapOf<String,ViraJson>()
-    m["viewId"] = ViraJson.Str(v.viewId)
-    m["nodeId"] = ViraJson.Str(v.nodeId)
-    m["prop"] = ViraJson.Str(v.prop)
-    m["source"] = encodeStudioBindingSource(v.source)
-    return ViraJson.Obj(m)
+  private fun encodeStudioBinding(value:StudioBinding): ViraJson.Obj { val result=linkedMapOf<String,ViraJson>()
+    result["viewId"] = ViraJson.Str(value.viewId)
+    result["nodeId"] = ViraJson.Str(value.nodeId)
+    result["prop"] = ViraJson.Str(value.prop)
+    result["source"] = encodeStudioBindingSource(value.source)
+    return ViraJson.Obj(result)
   }
-  private fun decodeStudioBindingSource(j:ViraJson): StudioBindingSource { val o=j.obj(); return StudioBindingSource(
-    kind = StudioBindingSourceKind.fromWire(o.req("kind").str()),
-    path = o.req("path").str()
+  private fun decodeStudioBindingSource(json:ViraJson): StudioBindingSource { val objectValue=json.obj(); strict(objectValue, setOf("kind", "path")); return StudioBindingSource(
+    kind = StudioBindingSourceKind.fromWire(objectValue.req("kind").str()),
+    path = objectValue.req("path").str()
   ) }
-  private fun encodeStudioBindingSource(v:StudioBindingSource): ViraJson.Obj { val m=linkedMapOf<String,ViraJson>()
-    m["kind"] = ViraJson.Str(v.kind.wire)
-    m["path"] = ViraJson.Str(v.path)
-    return ViraJson.Obj(m)
+  private fun encodeStudioBindingSource(value:StudioBindingSource): ViraJson.Obj { val result=linkedMapOf<String,ViraJson>()
+    result["kind"] = ViraJson.Str(value.kind.wire)
+    result["path"] = ViraJson.Str(value.path)
+    return ViraJson.Obj(result)
   }
-  private fun decodeStudioExperienceDocument(j:ViraJson): StudioExperienceDocument { val o=j.obj(); val version=o.req("version").str(); if(version!="1") error("invalid StudioExperienceDocument version: $version"); return StudioExperienceDocument(
-    version = version,
-    id = o.req("id").str(),
-    recipeId = o.req("recipeId").str(),
-    entryView = o.req("entryView").str(),
-    views = o.req("views").arr().map { decodeStudioView(it) },
-    bindings = o.req("bindings").arr().map { decodeStudioBinding(it) },
-    interactions = o.req("interactions").arr().map { decodeStudioInteraction(it) }
+  private fun decodeStudioExperienceDocument(json:ViraJson): StudioExperienceDocument { val objectValue=json.obj(); strict(objectValue, setOf("version", "id", "recipeId", "entryView", "views", "bindings", "interactions")); return StudioExperienceDocument(
+    version = objectValue.req("version").str().also { if (it != "1") error("expected literal 1") },
+    id = objectValue.req("id").str(),
+    recipeId = objectValue.req("recipeId").str(),
+    entryView = objectValue.req("entryView").str(),
+    views = objectValue.req("views").arr().map { decodeStudioView(it) },
+    bindings = objectValue.req("bindings").arr().map { decodeStudioBinding(it) },
+    interactions = objectValue.req("interactions").arr().map { decodeStudioInteraction(it) }
   ) }
-  private fun encodeStudioExperienceDocument(v:StudioExperienceDocument): ViraJson.Obj { val m=linkedMapOf<String,ViraJson>()
-    m["version"] = ViraJson.Str(v.version)
-    m["id"] = ViraJson.Str(v.id)
-    m["recipeId"] = ViraJson.Str(v.recipeId)
-    m["entryView"] = ViraJson.Str(v.entryView)
-    m["views"] = ViraJson.Arr(v.views.map { encodeStudioView(it) })
-    m["bindings"] = ViraJson.Arr(v.bindings.map { encodeStudioBinding(it) })
-    m["interactions"] = ViraJson.Arr(v.interactions.map { encodeStudioInteraction(it) })
-    return ViraJson.Obj(m)
+  private fun encodeStudioExperienceDocument(value:StudioExperienceDocument): ViraJson.Obj { val result=linkedMapOf<String,ViraJson>()
+    result["version"] = ViraJson.Str(value.version)
+    result["id"] = ViraJson.Str(value.id)
+    result["recipeId"] = ViraJson.Str(value.recipeId)
+    result["entryView"] = ViraJson.Str(value.entryView)
+    result["views"] = ViraJson.Arr(value.views.map { encodeStudioView(it) })
+    result["bindings"] = ViraJson.Arr(value.bindings.map { encodeStudioBinding(it) })
+    result["interactions"] = ViraJson.Arr(value.interactions.map { encodeStudioInteraction(it) })
+    return ViraJson.Obj(result)
   }
-  private fun decodeStudioInteraction(j:ViraJson): StudioInteraction { val o=j.obj(); return StudioInteraction(
-    viewId = o.req("viewId").str(),
-    nodeId = o.req("nodeId").str(),
-    event = o.req("event").str(),
-    actionEvent = o.req("actionEvent").str(),
-    routes = o.req("routes").arr().map { decodeStudioInteractionRoute(it) },
-    payloadBindings = o["payloadBindings"]?.let { it.arr().map { decodeStudioInteractionPayloadBinding(it) } }
+  private fun decodeStudioInteraction(json:ViraJson): StudioInteraction { val objectValue=json.obj(); strict(objectValue, setOf("viewId", "nodeId", "event", "actionEvent", "routes", "payloadBindings")); return StudioInteraction(
+    viewId = objectValue.req("viewId").str(),
+    nodeId = objectValue.req("nodeId").str(),
+    event = objectValue.req("event").str(),
+    actionEvent = objectValue.req("actionEvent").str(),
+    routes = objectValue.req("routes").arr().map { decodeStudioInteractionRoute(it) },
+    payloadBindings = objectValue["payloadBindings"]?.let { it.arr().map { decodeStudioInteractionPayloadBinding(it) } }
   ) }
-  private fun encodeStudioInteraction(v:StudioInteraction): ViraJson.Obj { val m=linkedMapOf<String,ViraJson>()
-    m["viewId"] = ViraJson.Str(v.viewId)
-    m["nodeId"] = ViraJson.Str(v.nodeId)
-    m["event"] = ViraJson.Str(v.event)
-    m["actionEvent"] = ViraJson.Str(v.actionEvent)
-    m["routes"] = ViraJson.Arr(v.routes.map { encodeStudioInteractionRoute(it) })
-    v.payloadBindings?.let { m["payloadBindings"] = ViraJson.Arr(it.map { encodeStudioInteractionPayloadBinding(it) }) }
-    return ViraJson.Obj(m)
+  private fun encodeStudioInteraction(value:StudioInteraction): ViraJson.Obj { val result=linkedMapOf<String,ViraJson>()
+    result["viewId"] = ViraJson.Str(value.viewId)
+    result["nodeId"] = ViraJson.Str(value.nodeId)
+    result["event"] = ViraJson.Str(value.event)
+    result["actionEvent"] = ViraJson.Str(value.actionEvent)
+    result["routes"] = ViraJson.Arr(value.routes.map { encodeStudioInteractionRoute(it) })
+    value.payloadBindings?.let { result["payloadBindings"] = ViraJson.Arr(it.map { encodeStudioInteractionPayloadBinding(it) }) }
+    return ViraJson.Obj(result)
   }
-  private fun decodeStudioInteractionPayloadBinding(j:ViraJson): StudioInteractionPayloadBinding { val o=j.obj(); return StudioInteractionPayloadBinding(
-    key = o.req("key").str(),
-    source = decodeStudioInteractionPayloadSource(o.req("source"))
+  private fun decodeStudioInteractionPayloadBinding(json:ViraJson): StudioInteractionPayloadBinding { val objectValue=json.obj(); strict(objectValue, setOf("key", "source")); return StudioInteractionPayloadBinding(
+    key = objectValue.req("key").str(),
+    source = decodeStudioInteractionPayloadSource(objectValue.req("source"))
   ) }
-  private fun encodeStudioInteractionPayloadBinding(v:StudioInteractionPayloadBinding): ViraJson.Obj { val m=linkedMapOf<String,ViraJson>()
-    m["key"] = ViraJson.Str(v.key)
-    m["source"] = encodeStudioInteractionPayloadSource(v.source)
-    return ViraJson.Obj(m)
+  private fun encodeStudioInteractionPayloadBinding(value:StudioInteractionPayloadBinding): ViraJson.Obj { val result=linkedMapOf<String,ViraJson>()
+    result["key"] = ViraJson.Str(value.key)
+    result["source"] = encodeStudioInteractionPayloadSource(value.source)
+    return ViraJson.Obj(result)
   }
-  private fun decodeStudioInteractionPayloadSourceValue1(j:ViraJson): StudioInteractionPayloadSourceValue1 { val o=j.obj(); return StudioInteractionPayloadSourceValue1(
-    kind = o.req("kind").str(),
-    value = o.req("value")
+  private fun decodeStudioInteractionPayloadSourceValue1(json:ViraJson): StudioInteractionPayloadSourceValue1 { val objectValue=json.obj(); strict(objectValue, setOf("kind", "value")); return StudioInteractionPayloadSourceValue1(
+    kind = objectValue.req("kind").str().also { if (it != "literal") error("expected literal literal") },
+    value = objectValue.req("value")
   ) }
-  private fun encodeStudioInteractionPayloadSourceValue1(v:StudioInteractionPayloadSourceValue1): ViraJson.Obj { val m=linkedMapOf<String,ViraJson>()
-    m["kind"] = ViraJson.Str(v.kind)
-    m["value"] = v.value
-    return ViraJson.Obj(m)
+  private fun encodeStudioInteractionPayloadSourceValue1(value:StudioInteractionPayloadSourceValue1): ViraJson.Obj { val result=linkedMapOf<String,ViraJson>()
+    result["kind"] = ViraJson.Str(value.kind)
+    result["value"] = value.value
+    return ViraJson.Obj(result)
   }
-  private fun decodeStudioInteractionRoute(j:ViraJson): StudioInteractionRoute { val o=j.obj(); return StudioInteractionRoute(
-    outcome = StudioInteractionOutcome.fromWire(o.req("outcome").str()),
-    viewId = o.req("viewId").str()
+  private fun decodeStudioInteractionRoute(json:ViraJson): StudioInteractionRoute { val objectValue=json.obj(); strict(objectValue, setOf("outcome", "viewId")); return StudioInteractionRoute(
+    outcome = StudioInteractionOutcome.fromWire(objectValue.req("outcome").str()),
+    viewId = objectValue.req("viewId").str()
   ) }
-  private fun encodeStudioInteractionRoute(v:StudioInteractionRoute): ViraJson.Obj { val m=linkedMapOf<String,ViraJson>()
-    m["outcome"] = ViraJson.Str(v.outcome.wire)
-    m["viewId"] = ViraJson.Str(v.viewId)
-    return ViraJson.Obj(m)
+  private fun encodeStudioInteractionRoute(value:StudioInteractionRoute): ViraJson.Obj { val result=linkedMapOf<String,ViraJson>()
+    result["outcome"] = ViraJson.Str(value.outcome.wire)
+    result["viewId"] = ViraJson.Str(value.viewId)
+    return ViraJson.Obj(result)
   }
-  private fun decodeStudioNode(j:ViraJson): StudioNode { val o=j.obj(); return StudioNode(
-    id = o.req("id").str(),
-    component = o.req("component").str(),
-    order = o.req("order").num(),
-    props = o.req("props").obj(),
-    parentId = o["parentId"]?.let { it.str() },
-    slot = o["slot"]?.let { it.str() },
-    repeat = o["repeat"]?.let { decodeStudioRepeat(it) }
+  private fun decodeStudioNode(json:ViraJson): StudioNode { val objectValue=json.obj(); strict(objectValue, setOf("id", "component", "order", "props", "parentId", "slot", "repeat")); return StudioNode(
+    id = objectValue.req("id").str(),
+    component = objectValue.req("component").str(),
+    order = objectValue.req("order").num(),
+    props = objectValue.req("props").obj(),
+    parentId = objectValue["parentId"]?.let { it.str() },
+    slot = objectValue["slot"]?.let { it.str() },
+    repeat = objectValue["repeat"]?.let { decodeStudioRepeat(it) }
   ) }
-  private fun encodeStudioNode(v:StudioNode): ViraJson.Obj { val m=linkedMapOf<String,ViraJson>()
-    m["id"] = ViraJson.Str(v.id)
-    m["component"] = ViraJson.Str(v.component)
-    m["order"] = ViraJson.Num(v.order)
-    m["props"] = ViraJson.Obj(v.props)
-    v.parentId?.let { m["parentId"] = ViraJson.Str(it) }
-    v.slot?.let { m["slot"] = ViraJson.Str(it) }
-    v.repeat?.let { m["repeat"] = encodeStudioRepeat(it) }
-    return ViraJson.Obj(m)
+  private fun encodeStudioNode(value:StudioNode): ViraJson.Obj { val result=linkedMapOf<String,ViraJson>()
+    result["id"] = ViraJson.Str(value.id)
+    result["component"] = ViraJson.Str(value.component)
+    result["order"] = ViraJson.Num(value.order)
+    result["props"] = ViraJson.Obj(value.props)
+    value.parentId?.let { result["parentId"] = ViraJson.Str(it) }
+    value.slot?.let { result["slot"] = ViraJson.Str(it) }
+    value.repeat?.let { result["repeat"] = encodeStudioRepeat(it) }
+    return ViraJson.Obj(result)
   }
-  private fun decodeStudioRepeat(j:ViraJson): StudioRepeat { val o=j.obj(); return StudioRepeat(
-    source = decodeStudioRepeatSource(o.req("source"))
+  private fun decodeStudioRepeat(json:ViraJson): StudioRepeat { val objectValue=json.obj(); strict(objectValue, setOf("source")); return StudioRepeat(
+    source = decodeStudioRepeatSource(objectValue.req("source"))
   ) }
-  private fun encodeStudioRepeat(v:StudioRepeat): ViraJson.Obj { val m=linkedMapOf<String,ViraJson>()
-    m["source"] = encodeStudioRepeatSource(v.source)
-    return ViraJson.Obj(m)
+  private fun encodeStudioRepeat(value:StudioRepeat): ViraJson.Obj { val result=linkedMapOf<String,ViraJson>()
+    result["source"] = encodeStudioRepeatSource(value.source)
+    return ViraJson.Obj(result)
   }
-  private fun decodeStudioRepeatSource(j:ViraJson): StudioRepeatSource { val o=j.obj(); return StudioRepeatSource(
-    kind = o.req("kind").str(),
-    path = o.req("path").str()
+  private fun decodeStudioRepeatSource(json:ViraJson): StudioRepeatSource { val objectValue=json.obj(); strict(objectValue, setOf("kind", "path")); return StudioRepeatSource(
+    kind = StudioRepeatSourceKind.fromWire(objectValue.req("kind").str()),
+    path = objectValue.req("path").str()
   ) }
-  private fun encodeStudioRepeatSource(v:StudioRepeatSource): ViraJson.Obj { val m=linkedMapOf<String,ViraJson>()
-    m["kind"] = ViraJson.Str(v.kind)
-    m["path"] = ViraJson.Str(v.path)
-    return ViraJson.Obj(m)
+  private fun encodeStudioRepeatSource(value:StudioRepeatSource): ViraJson.Obj { val result=linkedMapOf<String,ViraJson>()
+    result["kind"] = ViraJson.Str(value.kind.wire)
+    result["path"] = ViraJson.Str(value.path)
+    return ViraJson.Obj(result)
   }
-  private fun decodeStudioView(j:ViraJson): StudioView { val o=j.obj(); return StudioView(
-    id = o.req("id").str(),
-    nodes = o.req("nodes").arr().map { decodeStudioNode(it) }
+  private fun decodeStudioView(json:ViraJson): StudioView { val objectValue=json.obj(); strict(objectValue, setOf("id", "nodes")); return StudioView(
+    id = objectValue.req("id").str(),
+    nodes = objectValue.req("nodes").arr().map { decodeStudioNode(it) }
   ) }
-  private fun encodeStudioView(v:StudioView): ViraJson.Obj { val m=linkedMapOf<String,ViraJson>()
-    m["id"] = ViraJson.Str(v.id)
-    m["nodes"] = ViraJson.Arr(v.nodes.map { encodeStudioNode(it) })
-    return ViraJson.Obj(m)
+  private fun encodeStudioView(value:StudioView): ViraJson.Obj { val result=linkedMapOf<String,ViraJson>()
+    result["id"] = ViraJson.Str(value.id)
+    result["nodes"] = ViraJson.Arr(value.nodes.map { encodeStudioNode(it) })
+    return ViraJson.Obj(result)
   }
 }
 
-private class JsonParser(private val s:String) {
-  private var i=0
-  fun parse():ViraJson { val v=value(); ws(); if(i!=s.length) error("trailing json"); return v }
-  private fun ws(){ while(i<s.length && s[i].isWhitespace()) i++ }
-  private fun value():ViraJson { ws(); if(i>=s.length) error("eof"); return when(s[i]) {
-    '{'->obj(); '['->arr(); '"'->ViraJson.Str(str()); 't'->{lit("true");ViraJson.Bool(true)}; 'f'->{lit("false");ViraJson.Bool(false)}; 'n'->{lit("null");ViraJson.Null}; else->num() } }
-  private fun lit(x:String){ if(!s.startsWith(x,i)) error("bad literal"); i+=x.length }
-  private fun obj():ViraJson.Obj { i++; ws(); val m=linkedMapOf<String,ViraJson>(); if(i<s.length&&s[i]=='}'){i++;return ViraJson.Obj(m)}; while(true){ ws(); val k=str(); ws(); if(i>=s.length||s[i++]!=':')error("colon"); if(m.put(k,value())!=null)error("duplicate key"); ws(); if(i<s.length&&s[i]=='}'){i++;break}; if(i>=s.length||s[i++]!=',')error("comma")}; return ViraJson.Obj(m) }
-  private fun arr():ViraJson.Arr { i++; ws(); val a=mutableListOf<ViraJson>(); if(i<s.length&&s[i]==']'){i++;return ViraJson.Arr(a)}; while(true){a+=value();ws();if(i<s.length&&s[i]==']'){i++;break};if(i>=s.length||s[i++]!=',')error("comma")};return ViraJson.Arr(a)}
-  private fun str():String { if(i>=s.length||s[i++]!='"')error("quote"); val b=StringBuilder(); while(i<s.length){ val c=s[i++]; if(c=='"') return b.toString(); if(c=='\\'){ if(i>=s.length)error("escape"); when(val e=s[i++]){'"'->b.append('"');'\\'->b.append('\\');'/'->b.append('/');'b'->b.append('\b');'f'->b.append('\u000C');'n'->b.append('\n');'r'->b.append('\r');'t'->b.append('\t');'u'->{ if(i+4>s.length)error("unicode");b.append(s.substring(i,i+4).toInt(16).toChar());i+=4};else->error("escape $e") } } else b.append(c)};error("unterminated") }
-  private fun num():ViraJson.Num { val st=i; if(s[i]=='-')i++; while(i<s.length&&s[i].isDigit())i++; if(i<s.length&&s[i]=='.'){i++;while(i<s.length&&s[i].isDigit())i++}; if(i<s.length&&(s[i]=='e'||s[i]=='E')){i++;if(i<s.length&&(s[i]=='+'||s[i]=='-'))i++;while(i<s.length&&s[i].isDigit())i++}; return ViraJson.Num(s.substring(st,i).toDouble()) }
+private class JsonParser(private val source:String) {
+  private var index=0
+  fun parse():ViraJson { val value=parseValue(); whitespace(); if(index!=source.length) error("trailing json"); return value }
+  private fun whitespace(){ while(index<source.length && source[index].isWhitespace()) index++ }
+  private fun parseValue():ViraJson { whitespace(); if(index>=source.length) error("eof"); return when(source[index]) {
+    '{'->parseObject(); '['->parseArray(); '"'->ViraJson.Str(parseString()); 't'->{literal("true");ViraJson.Bool(true)}; 'f'->{literal("false");ViraJson.Bool(false)}; 'n'->{literal("null");ViraJson.Null}; else->parseNumber() } }
+  private fun literal(value:String){ if(!source.startsWith(value,index)) error("bad literal"); index+=value.length }
+  private fun parseObject():ViraJson.Obj { index++; whitespace(); val result=linkedMapOf<String,ViraJson>(); if(index<source.length&&source[index]=='}'){index++;return ViraJson.Obj(result)}; while(true){ whitespace(); val key=parseString(); whitespace(); if(index>=source.length||source[index++]!=':')error("colon"); if(result.put(key,parseValue())!=null)error("duplicate key"); whitespace(); if(index<source.length&&source[index]=='}'){index++;break}; if(index>=source.length||source[index++]!=',')error("comma")}; return ViraJson.Obj(result) }
+  private fun parseArray():ViraJson.Arr { index++; whitespace(); val result=mutableListOf<ViraJson>(); if(index<source.length&&source[index]==']'){index++;return ViraJson.Arr(result)}; while(true){result+=parseValue();whitespace();if(index<source.length&&source[index]==']'){index++;break};if(index>=source.length||source[index++]!=',')error("comma")};return ViraJson.Arr(result)}
+  private fun parseString():String { if(index>=source.length||source[index++]!='"')error("quote"); val result=StringBuilder(); while(index<source.length){ val character=source[index++]; if(character=='"') return result.toString(); if(character.code<0x20) error("raw control character"); if(character=='\\'){ if(index>=source.length)error("escape"); when(val escaped=source[index++]){'"'->result.append('"');'\\'->result.append('\\');'/'->result.append('/');'b'->result.append('\b');'f'->result.append('\u000C');'n'->result.append('\n');'r'->result.append('\r');'t'->result.append('\t');'u'->{ if(index+4>source.length)error("unicode");result.append(source.substring(index,index+4).toInt(16).toChar());index+=4};else->error("escape $escaped") } } else result.append(character)};error("unterminated") }
+  private fun parseNumber():ViraJson.Num { val start=index; if(source[index]=='-')index++; if(index>=source.length)error("number"); if(source[index]=='0'){index++; if(index<source.length&&source[index].isDigit())error("leading zero")} else { if(!source[index].isDigit())error("number"); while(index<source.length&&source[index].isDigit())index++ }; if(index<source.length&&source[index]=='.'){index++; val fractionStart=index; while(index<source.length&&source[index].isDigit())index++; if(index==fractionStart)error("fraction")}; if(index<source.length&&(source[index]=='e'||source[index]=='E')){index++;if(index<source.length&&(source[index]=='+'||source[index]=='-'))index++;val exponentStart=index;while(index<source.length&&source[index].isDigit())index++;if(index==exponentStart)error("exponent")}; val number=source.substring(start,index).toDouble(); if(!number.isFinite() || number == -0.0) error("non-canonical number"); return ViraJson.Num(number) }
 }
 
 private object JsonWriter {
-  fun write(v:ViraJson):String=when(v){
-    ViraJson.Null->"null"; is ViraJson.Bool->if(v.value)"true" else "false"; is ViraJson.Num->{ val x=v.value; if(x%1.0==0.0) x.toLong().toString() else x.toString() }; is ViraJson.Str->q(v.value); is ViraJson.Arr->v.value.joinToString(prefix="[",postfix="]",separator=","){write(it)}; is ViraJson.Obj->v.value.entries.joinToString(prefix="{",postfix="}",separator=","){q(it.key)+":"+write(it.value)} }
-  private fun q(s:String):String { val b=StringBuilder("\""); for(c in s){ when(c){ '"'->b.append("\\\""); '\\'->b.append("\\\\"); '\b'->b.append("\\b"); '\u000C'->b.append("\\f"); '\n'->b.append("\\n"); '\r'->b.append("\\r"); '\t'->b.append("\\t"); else->if(c.code<0x20)b.append("\\u%04x".format(c.code)) else b.append(c) } }; return b.append('"').toString() }
+  fun write(value:ViraJson):String=when(value){
+    ViraJson.Null->"null"; is ViraJson.Bool->if(value.value)"true" else "false"; is ViraJson.Num->{ val number=value.value; if(number%1.0==0.0) number.toLong().toString() else number.toString() }; is ViraJson.Str->quote(value.value); is ViraJson.Arr->value.value.joinToString(prefix="[",postfix="]",separator=","){write(it)}; is ViraJson.Obj->value.value.entries.joinToString(prefix="{",postfix="}",separator=","){quote(it.key)+":"+write(it.value)} }
+  private fun quote(value:String):String { val result=StringBuilder("\""); for(character in value){ when(character){ '"'->result.append("\\\""); '\\'->result.append("\\\\"); '\b'->result.append("\\b"); '\u000C'->result.append("\\f"); '\n'->result.append("\\n"); '\r'->result.append("\\r"); '\t'->result.append("\\t"); else->if(character.code<0x20)result.append("\\u%04x".format(character.code)) else result.append(character) } }; return result.append('"').toString() }
 }

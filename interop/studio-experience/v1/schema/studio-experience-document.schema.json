@@ -48,10 +48,16 @@
       "additionalProperties": false,
       "properties": {
         "viewId": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+          "minLength": 1,
+          "maxLength": 63
         },
         "nodeId": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+          "minLength": 1,
+          "maxLength": 63
         },
         "prop": {
           "type": "string",
@@ -78,12 +84,63 @@
           "$ref": "#/$defs/StudioBindingSourceKind"
         },
         "path": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 267
         }
       },
       "required": [
         "kind",
         "path"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "scope"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^currentItem\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$",
+                "minLength": 13,
+                "maxLength": 267
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "state",
+                  "domain"
+                ]
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$",
+                "minLength": 1,
+                "maxLength": 255
+              }
+            }
+          }
+        }
       ]
     },
     "StudioBindingSourceKind": {
@@ -162,22 +219,28 @@
       "additionalProperties": false,
       "properties": {
         "viewId": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+          "minLength": 1,
+          "maxLength": 63
         },
         "nodeId": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+          "minLength": 1,
+          "maxLength": 63
         },
         "event": {
           "type": "string",
           "minLength": 1,
           "maxLength": 128,
-          "pattern": "^[^\\u0000-\\u001F\\u007F].*$"
+          "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
         },
         "actionEvent": {
           "type": "string",
           "minLength": 1,
           "maxLength": 128,
-          "pattern": "^[^\\u0000-\\u001F\\u007F].*$"
+          "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
         },
         "routes": {
           "type": "array",
@@ -267,7 +330,10 @@
           "$ref": "#/$defs/StudioInteractionOutcome"
         },
         "viewId": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+          "minLength": 1,
+          "maxLength": 63
         }
       },
       "required": [
@@ -287,7 +353,7 @@
         },
         "component": {
           "type": "string",
-          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)+$",
           "minLength": 1,
           "maxLength": 255
         },
@@ -339,22 +405,28 @@
       "additionalProperties": false,
       "properties": {
         "kind": {
-          "oneOf": [
-            {
-              "const": "state"
-            },
-            {
-              "const": "domain"
-            }
-          ]
+          "$ref": "#/$defs/StudioRepeatSourceKind"
         },
         "path": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?:\\.[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$",
+          "minLength": 1,
+          "maxLength": 255
         }
       },
       "required": [
         "kind",
         "path"
+      ]
+    },
+    "StudioRepeatSourceKind": {
+      "oneOf": [
+        {
+          "const": "state"
+        },
+        {
+          "const": "domain"
+        }
       ]
     },
     "StudioView": {
