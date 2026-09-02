@@ -1,0 +1,12 @@
+{
+  "name": "@vira-enterprise-genui/experience-marketplace",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/experience-registry": "workspace:*"
+  }
+}
