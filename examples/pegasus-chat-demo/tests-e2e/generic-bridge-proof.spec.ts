@@ -9,7 +9,6 @@ test("mounts Flight and Recipe together without cross-instance state bleed", asy
 
   await page.goto("/proof");
 
-  const flight = page.getByTestId("flight-experience");
   const recipe = page.getByTestId("recipe-experience");
   const flightView = page.getByTestId("flight-view");
 
