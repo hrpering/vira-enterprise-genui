@@ -8,7 +8,7 @@
       "id": "main",
       "nodes": [
         {"id":"root","component":"demo.layout.stack","order":0,"props":{}},
-        {"id":"item","component":"demo.component.item","order":0,"props":{"emphasis":true},"parentId":"root","slot":"content","repeat":{"source":{"kind":"domain","path":"catalog.items"}}}
+        {"id":"item","component":"demo.component.item","order":0,"props":{"emphasis":true,"largeFiniteNumber":1e20},"parentId":"root","slot":"content","repeat":{"source":{"kind":"domain","path":"catalog.items"}}}
       ]
     },
     {"id":"result","nodes":[{"id":"message","component":"demo.component.text","order":0,"props":{"text":"Selected"}}]}
