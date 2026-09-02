@@ -4,7 +4,7 @@ import Foundation
 struct Conformance {
   static func main() throws {
     let args = CommandLine.arguments
-    guard args.count >= 4 else { fatalError("valid, invalid-version and missing-required fixture paths required") }
+    guard args.count >= 5 else { fatalError("valid and three invalid fixture paths required") }
     let validData = try Data(contentsOf: URL(fileURLWithPath: args[1]))
     let decoder = JSONDecoder()
     let document = try decoder.decode(StudioExperienceDocument.self, from: validData)
@@ -14,7 +14,7 @@ struct Conformance {
     let rhs = try JSONSerialization.jsonObject(with: encoded) as! NSObject
     guard lhs.isEqual(rhs) else { fatalError("semantic JSON mismatch") }
 
-    for path in [args[2], args[3]] {
+    for path in [args[2], args[3], args[4]] {
       let invalid = try Data(contentsOf: URL(fileURLWithPath: path))
       do {
         _ = try decoder.decode(StudioExperienceDocument.self, from: invalid)
