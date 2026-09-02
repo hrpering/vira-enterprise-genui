@@ -6,6 +6,7 @@ const root = process.cwd();
 const interopRoot = path.join(root, "interop/studio-experience/v1");
 const schemaPath = path.join(interopRoot, "schema/studio-experience-document.schema.json");
 const swiftPath = path.join(interopRoot, "swift/StudioExperienceModels.swift");
+const kotlinPath = path.join(interopRoot, "kotlin/StudioExperienceModels.kt");
 const digestPath = path.join(interopRoot, "SOURCE_DIGEST");
 const typesPath = path.join(root, "packages/studio-schema/src/types.ts");
 const syntaxPath = path.join(root, "packages/studio-schema/src/syntax.ts");
@@ -72,6 +73,21 @@ if (swiftOutput === swiftInput && swiftInput.includes(", case ")) {
   throw new Error("Swift CodingKeys normalization did not match generated output");
 }
 fs.writeFileSync(swiftPath, swiftOutput);
+
+// Kotlin's Double.toLong() saturates outside Int64 range. The generated writer
+// must not route integral-looking canonical JSON numbers through Long or a
+// finite value such as 1e20 will be corrupted during round-trip.
+const kotlinInput = read(kotlinPath);
+const lossyNumberWriter = "is ViraJson.Num->{ val number=value.value; if(number%1.0==0.0) number.toLong().toString() else number.toString() }";
+const safeNumberWriter = "is ViraJson.Num->{ val number=value.value; if(!number.isFinite() || number == -0.0) error(\"non-canonical number\"); number.toString() }";
+if (!kotlinInput.includes(lossyNumberWriter)) {
+  throw new Error("generated Kotlin number writer shape changed; update the finalizer intentionally");
+}
+const kotlinOutput = kotlinInput.replace(lossyNumberWriter, safeNumberWriter);
+if (kotlinOutput.includes(lossyNumberWriter)) {
+  throw new Error("Kotlin number writer normalization was incomplete");
+}
+fs.writeFileSync(kotlinPath, kotlinOutput);
 
 // Structural schema constraints are finalized from canonical syntax sources,
 // not from duplicated regex literals. Cross-field graph/uniqueness semantics
