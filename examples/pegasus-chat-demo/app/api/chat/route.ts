@@ -12,11 +12,6 @@ import {
   executeDemoViraExperience,
   viraExperienceSchema,
 } from "../../../lib/demo-experience-tool.js";
-import {
-  DEMO_GUIDANCE_SYSTEM_INSTRUCTIONS,
-  executeDemoGuidance,
-  viraGuidanceSchema,
-} from "../../../lib/demo-guidance-tool.js";
 
 export async function POST(request: Request) {
   if (!process.env.OPENAI_API_KEY) {
@@ -48,7 +43,6 @@ export async function POST(request: Request) {
       "After a vira_experience command, acknowledge the change briefly. The targeted interactive experience is the source of truth for its current state.",
       "After presenting a new experience, briefly tell the user that the interactive experience is available below.",
       ...DEMO_EXPERIENCE_SYSTEM_INSTRUCTIONS,
-      ...DEMO_GUIDANCE_SYSTEM_INSTRUCTIONS,
     ].join("\n"),
     messages: await convertToModelMessages(body.messages),
     stopWhen: stepCountIs(5),
@@ -57,11 +51,6 @@ export async function POST(request: Request) {
         description: "Present or command a registered Vira Experience Pack inside the chat.",
         inputSchema: zodSchema(viraExperienceSchema),
         execute: executeDemoViraExperience,
-      }),
-      vira_present_guidance: tool({
-        description: "Present registered guidance data as an interactive Vira guidance surface.",
-        inputSchema: zodSchema(viraGuidanceSchema),
-        execute: executeDemoGuidance,
       }),
     },
   });
