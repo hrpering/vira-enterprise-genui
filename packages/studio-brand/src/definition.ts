@@ -91,9 +91,14 @@ export interface ViraBrandDefinitionIssue {
   readonly message: string;
 }
 
+export interface ViraBrandDefinitionFailure {
+  readonly ok: false;
+  readonly issue: ViraBrandDefinitionIssue;
+}
+
 export type ViraBrandDefinitionResult =
   | { readonly ok: true; readonly value: ViraBrandDefinition }
-  | { readonly ok: false; readonly issue: ViraBrandDefinitionIssue };
+  | ViraBrandDefinitionFailure;
 
 const TOP_LEVEL_FIELDS = Object.freeze([
   "identity",
@@ -112,14 +117,14 @@ function failure(
   code: string,
   path: string,
   message: string,
-): ViraBrandDefinitionResult {
+): ViraBrandDefinitionFailure {
   return { ok: false, issue: { stage, code, path, message } };
 }
 
 function forwardIssue(
   stage: ViraBrandDefinitionStage,
   issue: { readonly code: string; readonly path: string; readonly message: string },
-): ViraBrandDefinitionResult {
+): ViraBrandDefinitionFailure {
   return failure(stage, issue.code, issue.path, issue.message);
 }
 
@@ -138,7 +143,7 @@ function requireExactFields(
   fields: readonly string[],
   stage: ViraBrandDefinitionStage,
   path: string,
-): ViraBrandDefinitionResult | undefined {
+): ViraBrandDefinitionFailure | undefined {
   const allowed = new Set(fields);
   for (const key of Object.keys(value)) {
     if (!allowed.has(key)) {
@@ -160,7 +165,7 @@ function implementationIdIsSafe(value: string): boolean {
 function normalizeImplementations(
   value: JsonValue,
   catalog: StudioComponentCatalog,
-): ViraBrandDefinitionResult | { readonly ok: true; readonly value: readonly ViraBrandComponentImplementation[] } {
+): ViraBrandDefinitionFailure | { readonly ok: true; readonly value: readonly ViraBrandComponentImplementation[] } {
   if (!Array.isArray(value)) {
     return failure("implementations", "INVALID_IMPLEMENTATIONS", "$.components.implementations", "implementations must be an array");
   }
@@ -231,6 +236,8 @@ function normalizeImplementations(
   };
 }
 
+export function defineViraBrand(input: ViraBrandDefinitionInput): ViraBrandDefinitionResult;
+export function defineViraBrand(input: unknown): ViraBrandDefinitionResult;
 export function defineViraBrand(input: unknown): ViraBrandDefinitionResult {
   const parsed = parseJsonValue(input);
   if (!parsed.ok) {
