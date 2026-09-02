@@ -284,7 +284,7 @@ describe("MASTER-03 brand integration SDK", () => {
   });
 
   it("delegates design, policy, data-source, and catalog errors to their canonical validators", () => {
-    const badDesign = clone(brandDefinition());
+    const badDesign = clone(brandDefinition()) as unknown as Record<string, unknown>;
     badDesign.design = { font: { $type: "fontFamily", $value: "Inter;url(https://evil.example)" } };
     expect(defineViraBrand(badDesign)).toMatchObject({
       ok: false,
