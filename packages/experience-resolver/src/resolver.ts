@@ -15,7 +15,6 @@ import {
 import {
   createStudioHostCapabilityManifest,
   evaluateStudioHostCompatibility,
-  type StudioHostCapabilityManifest,
   type StudioHostCompatibilityMismatch,
   type StudioHostPlatform,
 } from "@vira-enterprise-genui/studio-host";
@@ -59,10 +58,7 @@ export interface ResolvedExperienceDescriptor {
   readonly deploymentId: string;
   readonly pack: ExperienceResolutionPackIdentity;
   readonly artifact: ExperienceResolutionArtifactIdentity;
-  /**
-   * Canonical JSON snapshot only. Studio semantic authenticity remains owned by
-   * the canonical Studio publication/runtime gate.
-   */
+  /** Canonical JSON snapshot only; Studio semantic authenticity is a later canonical runtime gate. */
   readonly publication: JsonObject;
   readonly compatibility: ExperienceResolutionCompatibilityIdentity;
 }
@@ -123,8 +119,6 @@ export type ExperienceResolutionCode =
   | "PACK_NOT_FOUND"
   | "ENTRYPOINT_NOT_FOUND"
   | "ARTIFACT_NOT_FOUND"
-  | "WRONG_ARTIFACT_ROLE"
-  | "WRONG_ARTIFACT_MEDIA_TYPE"
   | "ARTIFACT_RESOLUTION_FAILED"
   | "INVALID_PUBLICATION_ARTIFACT"
   | "HOST_REQUIREMENT_DERIVATION_FAILED"
@@ -366,11 +360,11 @@ function parseDeploymentTarget(input: unknown):
   return {
     ok: true,
     value: Object.freeze({
-      deploymentId: fields.deploymentId as string,
-      packId: fields.packId as string,
-      packVersion: fields.packVersion as string,
-      entrypoint: fields.entrypoint as string,
-    }),
+      deploymentId: fields.deploymentId,
+      packId: fields.packId,
+      packVersion: fields.packVersion,
+      entrypoint: fields.entrypoint,
+    } as ExperienceExactDeploymentTarget),
   };
 }
 
@@ -382,23 +376,10 @@ function findEntrypointArtifact(
   return manifest.artifacts.find((artifact) => artifact.id === entrypoint);
 }
 
-function artifactIdentity(
+function canonicalArtifactIdentity(
   artifact: ExperiencePackArtifactDescriptor,
-): ExperienceResolutionArtifactIdentity | ExperienceResolutionResult {
-  if (artifact.role !== "studio-publication") {
-    return resolutionFailure(
-      "WRONG_ARTIFACT_ROLE",
-      "$.deployment.entrypoint",
-      "exact Pack entrypoint must identify a Studio publication artifact",
-    );
-  }
-  if (artifact.mediaType !== "application/json") {
-    return resolutionFailure(
-      "WRONG_ARTIFACT_MEDIA_TYPE",
-      "$.deployment.entrypoint",
-      "Studio publication artifact must use application/json",
-    );
-  }
+): ExperienceResolutionArtifactIdentity {
+  /* Canonical Pack validation guarantees every entrypoint is a JSON Studio publication. */
   return Object.freeze({
     id: artifact.id,
     role: "studio-publication",
@@ -501,11 +482,7 @@ export function createExperienceResolver(input: unknown): ExperienceResolverFact
           deployment.value.packVersion,
         );
         if (!lookup.ok) {
-          return resolutionFailure(
-            "REGISTRY_LOOKUP_FAILED",
-            lookup.issue.path,
-            lookup.issue.message,
-          );
+          return resolutionFailure("REGISTRY_LOOKUP_FAILED", lookup.issue.path, lookup.issue.message);
         }
         if (lookup.value.manifest === null) {
           return resolutionFailure(
@@ -527,13 +504,11 @@ export function createExperienceResolver(input: unknown): ExperienceResolverFact
           return resolutionFailure(
             "ARTIFACT_NOT_FOUND",
             "$.deployment.entrypoint",
-            "exact Pack entrypoint artifact is missing",
+            "canonical Pack entrypoint artifact is unexpectedly unavailable",
           );
         }
-        const resolvedArtifact = artifactIdentity(artifact);
-        if ("ok" in resolvedArtifact) return resolvedArtifact;
-
-        const pack = Object.freeze({
+        const resolvedArtifact = canonicalArtifactIdentity(artifact);
+        const pack: ExperienceResolutionPackIdentity = Object.freeze({
           id: manifest.id,
           version: manifest.version,
           entrypoint: deployment.value.entrypoint,
@@ -567,7 +542,7 @@ export function createExperienceResolver(input: unknown): ExperienceResolverFact
           );
         }
         const publication = freezeJson(publicationParsed.value);
-        const compatibilityIdentity = Object.freeze({
+        const compatibilityIdentity: ExperienceResolutionCompatibilityIdentity = Object.freeze({
           hostId: hostManifest.value.id,
           platform: hostManifest.value.platform,
         });
@@ -593,7 +568,7 @@ export function createExperienceResolver(input: unknown): ExperienceResolverFact
         if (!compatibility.ok) {
           return resolutionFailure(
             "INVALID_HOST_REQUIREMENT",
-            `$.compatibility${compatibility.issue.path.slice("$.requirement".length)}`,
+            "$.compatibility",
             compatibility.issue.message,
           );
         }
