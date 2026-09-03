@@ -369,6 +369,31 @@ describe("MASTER-07B canonical iOS mount envelope", () => {
     });
   });
 
+  it("rejects hostile nested Brand data before native projection", async () => {
+    const activeBrand = brand();
+    const activeResolver = resolver(activeBrand);
+    const descriptor = await resolvedDescriptor(activeResolver);
+    const hostileDesign = {} as Record<string, unknown>;
+    Object.defineProperty(hostileDesign, "remoteCode", {
+      enumerable: true,
+      get() {
+        throw new Error("NESTED_BRAND_SECRET");
+      },
+    });
+
+    const result = createViraIOSMountEnvelope({
+      instanceId: descriptor.instanceId,
+      descriptor,
+      brand: { ...activeBrand, design: hostileDesign } as never,
+      hostManifest: hostManifest(),
+    });
+    expect(result).toMatchObject({
+      ok: false,
+      issue: { stage: "brand", code: "INVALID_BRAND", path: "$.brand" },
+    });
+    expect(JSON.stringify(result)).not.toContain("NESTED_BRAND_SECRET");
+  });
+
   it("normalizes hostile envelope inputs without reflecting thrown content", () => {
     const hostile = new Proxy({}, {
       getPrototypeOf() {
