@@ -407,6 +407,10 @@ public final class ViraIOSRuntimeSession {
     return true
   }
 
+  private func isRuntimeCoreBuiltIn(_ actionType: String) -> Bool {
+    actionType == "runtime.patch.apply" || actionType == "runtime.lifecycle.transition"
+  }
+
   public func dispatch(
     runtimeNodeId: String,
     event: String,
@@ -444,8 +448,10 @@ public final class ViraIOSRuntimeSession {
     for (key, value) in model.eventPayloads[event] ?? [:] {
       payload[key] = value
     }
-    guard validatePayload(component: component, event: event, payload: payload) else {
-      return .failure(.init(code: .invalidEventPayload, path: "$.event.payload", message: "native event payload violates the projected component contract"))
+    if !isRuntimeCoreBuiltIn(actionType) {
+      guard validatePayload(component: component, event: event, payload: payload) else {
+        return .failure(.init(code: .invalidEventPayload, path: "$.event.payload", message: "native event payload violates the projected component contract"))
+      }
     }
 
     let permission = permissionPolicy.effect(subject: .action, id: actionType)
