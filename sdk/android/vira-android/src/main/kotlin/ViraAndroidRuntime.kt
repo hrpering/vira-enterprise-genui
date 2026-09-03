@@ -73,6 +73,8 @@ class ViraAndroidRuntimeSession(
       .groupBy { it.nodeId }
     val output = mutableListOf<ViraAndroidRuntimeNodeModel>()
 
+    lateinit var expand: (StudioNode, String?, ViraJson?, String) -> Unit
+
     fun build(
       node: StudioNode,
       parentId: String?,
@@ -120,12 +122,7 @@ class ViraAndroidRuntimeSession(
       for (child in byParent[node.id].orEmpty()) expand(child, id, scope, suffix)
     }
 
-    fun expand(
-      node: StudioNode,
-      parentId: String?,
-      scope: ViraJson?,
-      parentSuffix: String,
-    ) {
+    expand = { node, parentId, scope, parentSuffix ->
       if (!node.order.isFinite() || node.order < 0 || node.order % 1.0 != 0.0 || node.order > VIRA_ANDROID_MAX_SAFE_INTEGER.toDouble()) {
         throw issue(ViraAndroidIssueCode.DATA_VALUE_INVALID, "$.node.order", "native node order is invalid")
       }
@@ -133,17 +130,17 @@ class ViraAndroidRuntimeSession(
       val repeat = node.repeat
       if (repeat == null) {
         build(node, parentId, scope, parentSuffix, baseOrder * VIRA_ANDROID_ORDER_STRIDE)
-        return
-      }
-      val collection = readRepeatSource(repeat.source).getOrThrow().asArrayOrNull()
-        ?: throw issue(ViraAndroidIssueCode.DATA_VALUE_INVALID, "$.repeat.${node.id}", "native repeat source must resolve to an array")
-      if (collection.size > VIRA_ANDROID_MAX_REPEAT_ITEMS) {
-        throw issue(ViraAndroidIssueCode.REPEAT_LIMIT_EXCEEDED, "$.repeat.${node.id}", "native repeat item limit is $VIRA_ANDROID_MAX_REPEAT_ITEMS")
-      }
-      for ((index, item) in collection.withIndex()) {
-        val segment = "${node.id}-$index"
-        val suffix = if (parentSuffix.isEmpty()) segment else "$parentSuffix.$segment"
-        build(node, parentId, item, suffix, baseOrder * VIRA_ANDROID_ORDER_STRIDE + index)
+      } else {
+        val collection = readRepeatSource(repeat.source).getOrThrow().asArrayOrNull()
+          ?: throw issue(ViraAndroidIssueCode.DATA_VALUE_INVALID, "$.repeat.${node.id}", "native repeat source must resolve to an array")
+        if (collection.size > VIRA_ANDROID_MAX_REPEAT_ITEMS) {
+          throw issue(ViraAndroidIssueCode.REPEAT_LIMIT_EXCEEDED, "$.repeat.${node.id}", "native repeat item limit is $VIRA_ANDROID_MAX_REPEAT_ITEMS")
+        }
+        for ((index, item) in collection.withIndex()) {
+          val segment = "${node.id}-$index"
+          val suffix = if (parentSuffix.isEmpty()) segment else "$parentSuffix.$segment"
+          build(node, parentId, item, suffix, baseOrder * VIRA_ANDROID_ORDER_STRIDE + index)
+        }
       }
     }
 
