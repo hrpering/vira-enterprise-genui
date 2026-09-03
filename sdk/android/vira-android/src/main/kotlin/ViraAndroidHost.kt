@@ -53,7 +53,7 @@ class ViraAndroidHostAdapter private constructor(
 
   private data class SnapshotAcceptance(
     val issue: ViraAndroidIssue? = null,
-    val changed: Boolean = false,
+    val callbacks: List<(ViraAndroidHostSnapshot) -> Unit> = emptyList(),
   )
 
   private fun acceptSnapshot(
@@ -86,11 +86,10 @@ class ViraAndroidHostAdapter private constructor(
       }
       if (snapshot.revision == current.revision) return@synchronized SnapshotAcceptance()
       current = snapshot
-      SnapshotAcceptance(changed = true)
+      SnapshotAcceptance(callbacks = listeners.toList())
     }
-    if (acceptance.issue == null && acceptance.changed) {
-      val callbacks = synchronized(lock) { listeners.toList() }
-      callbacks.forEach { it(snapshot) }
+    if (acceptance.issue == null) {
+      acceptance.callbacks.forEach { it(snapshot) }
     }
     return acceptance.issue
   }
