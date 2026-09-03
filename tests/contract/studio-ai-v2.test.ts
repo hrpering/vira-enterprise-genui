@@ -2,26 +2,26 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { generateStudioDraftV2, type StudioAiV2Request } from "../../packages/studio-ai/src/v2.js";
 
-const commonComponent = { ref: "pegasus.component.card", label: "Card", category: "content.card", kind: "content", props: [], slots: [], events: [] };
-const webOnlyComponent = { ref: "pegasus.component.web-only", label: "Web Only", category: "content.web", kind: "content", props: [], slots: [], events: [] };
+const commonComponent = { ref: "reference.component.card", label: "Card", category: "content.card", kind: "content", props: [], slots: [], events: [] };
+const webOnlyComponent = { ref: "reference.component.web-only", label: "Web Only", category: "content.web", kind: "content", props: [], slots: [], events: [] };
 function document(component = commonComponent.ref) {
-  return { version: "1", id: "pegasus.baggage-upgrade", recipeId: "pegasus.recipe.baggage-upgrade", entryView: "main", views: [{ id: "main", nodes: [{ id: "root", component, order: 0, props: {} }] }], bindings: [], interactions: [] };
+  return { version: "1", id: "reference.request", recipeId: "reference.recipe.request", entryView: "main", views: [{ id: "main", nodes: [{ id: "root", component, order: 0, props: {} }] }], bindings: [], interactions: [] };
 }
 function brand() {
   return {
-    identity: { version: "1", id: "pegasus.brand", displayName: "Pegasus", tokenRefs: {} },
+    identity: { version: "1", id: "reference.brand", displayName: "Reference", tokenRefs: {} },
     design: { palette: { primary: { $type: "color", $value: { colorSpace: "srgb", components: [0, 0, 0], hex: "#000000" } } } },
     components: {
-      catalog: { version: "1", id: "pegasus.studio.components", brandId: "pegasus.brand", components: [commonComponent, webOnlyComponent] },
+      catalog: { version: "1", id: "reference.studio.components", brandId: "reference.brand", components: [commonComponent, webOnlyComponent] },
       implementations: [
-        { component: commonComponent.ref, web: "pegasus.web.card", ios: "pegasus.ios.card", android: "pegasus.android.card" },
-        { component: webOnlyComponent.ref, web: "pegasus.web.web-only", ios: "pegasus.ios.web-only", android: "pegasus.android.web-only" },
+        { component: commonComponent.ref, web: "reference.web.card", ios: "reference.ios.card", android: "reference.android.card" },
+        { component: webOnlyComponent.ref, web: "reference.web.web-only", ios: "reference.ios.web-only", android: "reference.android.web-only" },
       ],
     },
-    actions: { version: "1", id: "pegasus.studio.actions", mappings: [{ event: "baggage.upgrade.submit", actionType: "travel.baggage.upgrade.submit" }] },
-    dataSources: { version: "1", id: "pegasus.studio.data", sources: [{ kind: "domain", path: "travel.baggage.options", label: "Baggage options", valueType: "string" }] },
-    policies: { version: "1", id: "pegasus.studio.policies", mappings: [{ recipe: "pegasus.recipe.baggage-upgrade", layoutPolicy: "pegasus.policy.layout", disclosurePolicy: "pegasus.policy.disclosure" }] },
-    experiences: [{ id: "baggage-upgrade", label: "Baggage upgrade", description: "Upgrade baggage", document: document() }],
+    actions: { version: "1", id: "reference.studio.actions", mappings: [{ event: "request.submit", actionType: "support.request.submit" }] },
+    dataSources: { version: "1", id: "reference.studio.data", sources: [{ kind: "domain", path: "support.request.options", label: "Request options", valueType: "string" }] },
+    policies: { version: "1", id: "reference.studio.policies", mappings: [{ recipe: "reference.recipe.request", layoutPolicy: "reference.policy.layout", disclosurePolicy: "reference.policy.disclosure" }] },
+    experiences: [{ id: "request", label: "Request", description: "Create request", document: document() }],
   };
 }
 type TestHostManifest = {
@@ -33,13 +33,14 @@ type TestHostManifest = {
 };
 function hosts(): [TestHostManifest, TestHostManifest, TestHostManifest] {
   return [
-    { version: "1", id: "pegasus.host.web", platform: "web", implementationIds: ["pegasus.web.card", "pegasus.web.web-only", "internal.web.secret"], capabilities: [{ version: "1", id: "capability.pointer" }] },
-    { version: "1", id: "pegasus.host.ios", platform: "ios", implementationIds: ["pegasus.ios.card", "pegasus.ios.web-only", "internal.ios.secret"], capabilities: [{ version: "1", id: "capability.touch" }] },
-    { version: "1", id: "pegasus.host.android", platform: "android", implementationIds: ["pegasus.android.card", "internal.android.secret"], capabilities: [{ version: "1", id: "capability.touch" }] },
+    { version: "1", id: "reference.host.web", platform: "web", implementationIds: ["reference.web.card", "reference.web.web-only", "internal.web.secret"], capabilities: [{ version: "1", id: "capability.pointer" }] },
+    { version: "1", id: "reference.host.ios", platform: "ios", implementationIds: ["reference.ios.card", "reference.ios.web-only", "internal.ios.secret"], capabilities: [{ version: "1", id: "capability.touch" }] },
+    { version: "1", id: "reference.host.android", platform: "android", implementationIds: ["reference.android.card", "internal.android.secret"], capabilities: [{ version: "1", id: "capability.touch" }] },
   ];
 }
 function input() {
-  return { prompt: "Create a baggage-upgrade experience that works on web, iOS and Android.", experienceId: "pegasus.baggage-upgrade", recipeId: "pegasus.recipe.baggage-upgrade", brand: brand(), requestedPlatforms: ["web", "ios", "android"], hostManifests: hosts() };
+  const hostManifests: TestHostManifest[] = [...hosts()];
+  return { prompt: "Create a request experience that works on web, iOS and Android.", experienceId: "reference.request", recipeId: "reference.recipe.request", brand: brand(), requestedPlatforms: ["web", "ios", "android"], hostManifests };
 }
 
 test("AI v2 exposes only the component surface common to web, iOS and Android", async () => {
@@ -48,11 +49,11 @@ test("AI v2 exposes only the component surface common to web, iOS and Android", 
   assert.equal(result.ok, true);
   assert.deepEqual(request?.requestedPlatforms, ["web", "ios", "android"]);
   assert.deepEqual(request?.components.map((component) => component.ref), [commonComponent.ref]);
-  assert.deepEqual(request?.platforms.map((platform) => platform.implementationIds), [["pegasus.web.card"], ["pegasus.ios.card"], ["pegasus.android.card"]]);
-  assert.deepEqual(request?.actions, [{ event: "baggage.upgrade.submit", actionType: "travel.baggage.upgrade.submit" }]);
+  assert.deepEqual(request?.platforms.map((platform) => platform.implementationIds), [["reference.web.card"], ["reference.ios.card"], ["reference.android.card"]]);
+  assert.deepEqual(request?.actions, [{ event: "request.submit", actionType: "support.request.submit" }]);
   assert.deepEqual(request?.platforms.map((platform) => platform.capabilityIds), [["capability.pointer@1"], ["capability.touch@1"], ["capability.touch@1"]]);
-  assert.equal(request?.policy.layoutPolicy, "pegasus.policy.layout");
-  assert.equal(request?.policy.disclosurePolicy, "pegasus.policy.disclosure");
+  assert.equal(request?.policy.layoutPolicy, "reference.policy.layout");
+  assert.equal(request?.policy.disclosurePolicy, "reference.policy.disclosure");
   assert.equal(Object.isFrozen(request), true);
   assert.equal(Object.isFrozen(request?.platforms), true);
   assert.equal(Object.isFrozen(request?.actions), true);
@@ -127,7 +128,7 @@ test("AI v2 rejects accessor-backed Host manifest arrays without invoking getter
   Object.defineProperty(manifests, "0", { enumerable: true, configurable: true, get() { reads += 1; return web; } });
   Object.defineProperty(manifests, "1", { enumerable: true, configurable: true, value: ios });
   Object.defineProperty(manifests, "2", { enumerable: true, configurable: true, value: android });
-  const value = input(); value.hostManifests = manifests as ReturnType<typeof hosts>;
+  const value = input(); value.hostManifests = manifests as TestHostManifest[];
   const result = await generateStudioDraftV2(value, { generate: () => document() });
   assert.equal(result.ok, false); assert.equal(reads, 0);
 });
