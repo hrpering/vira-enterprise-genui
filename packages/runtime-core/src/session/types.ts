@@ -99,4 +99,18 @@ export type RuntimeSessionTransitionResult =
   | { readonly ok: true; readonly value: RuntimeSessionTransition }
   | { readonly ok: false; readonly issue: RuntimeSessionTransitionIssue };
 
-export type RuntimeSessionRestoreResult = RuntimeSessionTransitionResult;
+export type RuntimeSessionRestoreCode =
+  | "INVALID_INSTANCE_ID"
+  | "INVALID_SESSION_STATE"
+  | "INSTANCE_MISMATCH"
+  | "REVISION_OVERFLOW";
+
+export interface RuntimeSessionRestoreIssue {
+  readonly code: RuntimeSessionRestoreCode;
+  readonly path: string;
+  readonly message: string;
+}
+
+export type RuntimeSessionRestoreResult =
+  | { readonly ok: true; readonly value: RuntimeSessionTransition }
+  | { readonly ok: false; readonly issue: RuntimeSessionRestoreIssue };
