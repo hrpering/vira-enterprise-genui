@@ -29,6 +29,8 @@ export type {
   RuntimeSessionEvent,
   RuntimeSessionEventType,
   RuntimeSessionParseResult,
+  RuntimeSessionRestoreCode,
+  RuntimeSessionRestoreIssue,
   RuntimeSessionRestoreResult,
   RuntimeSessionState,
   RuntimeSessionTransition,
