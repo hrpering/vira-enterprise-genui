@@ -1,8 +1,7 @@
 import type { ResolvedExperienceDescriptor } from "@vira-enterprise-genui/experience-resolver";
 import type { ViraBrandDefinition } from "@vira-enterprise-genui/studio-brand";
 import type { StudioHostCapabilityManifest } from "@vira-enterprise-genui/studio-host";
-import type { StudioPublication } from "@vira-enterprise-genui/studio-compiler";
-import type { StudioPreviewDescriptor } from "@vira-enterprise-genui/studio-publish";
+import type { StudioPreviewDescriptor, StudioPublishResult } from "@vira-enterprise-genui/studio-publish";
 import type { StudioWorkbenchSession } from "@vira-enterprise-genui/studio-workbench";
 import {
   createViraIOSMountEnvelope,
@@ -25,6 +24,7 @@ export const VIRA_MULTI_PLATFORM_PREVIEW_TARGETS = Object.freeze([
 
 export type ViraMultiPlatformPreviewTarget = (typeof VIRA_MULTI_PLATFORM_PREVIEW_TARGETS)[number];
 export type ViraNativePreviewTarget = "iphone" | "android";
+type StudioPublication = Extract<StudioPublishResult, { readonly ok: true }>["value"];
 
 export interface ViraFastPreviewViewport {
   readonly width: number;
@@ -133,7 +133,7 @@ function validPublisher(value: unknown): value is ViraPreviewPackPublisher {
 }
 
 function validTarget(value: unknown): value is ViraMultiPlatformPreviewTarget {
-  return typeof value === "string" && (VIRA_MULTI_PLATFORM_PREVIEW_TARGETS as readonly string[]).includes(value);
+  return value === "desktop" || value === "mobile-web" || value === "iphone" || value === "android";
 }
 
 export function createViraMultiPlatformPreview(input: {
