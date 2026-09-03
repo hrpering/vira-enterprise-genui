@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./action-ledger": "./src/action-ledger.ts",
-    "./conformance": "./src/conformance.ts"
+    "./conformance": "./src/conformance.ts",
+    "./native-ux": "./src/native-ux.ts"
   },
   "dependencies": {
     "@vira-enterprise-genui/action-boundary": "workspace:*",
@@ -16,6 +17,7 @@
     "@vira-enterprise-genui/enterprise-context": "workspace:*",
     "@vira-enterprise-genui/enterprise-governance": "workspace:*",
     "@vira-enterprise-genui/governance": "workspace:*",
+    "@vira-enterprise-genui/native-ux-gate": "workspace:*",
     "@vira-enterprise-genui/policy-simulation": "workspace:*",
     "@vira-enterprise-genui/experience-resolver": "workspace:*",
     "@vira-enterprise-genui/protocol": "workspace:*",
