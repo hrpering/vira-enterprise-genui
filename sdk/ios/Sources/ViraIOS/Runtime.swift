@@ -339,7 +339,7 @@ public final class ViraIOSRuntimeSession {
   }
 
   public func dispatch(
-    nodeId: String,
+    runtimeNodeId: String,
     event: String,
     payload externalPayload: [String: ViraJSONValue]? = nil
   ) async -> Result<ViraIOSHostedDispatchCompletion, ViraIOSIssue> {
@@ -349,7 +349,19 @@ public final class ViraIOSRuntimeSession {
     if pending != nil {
       return .failure(.init(code: .actionPending, path: "$.event", message: "one native Studio action is already awaiting a Host outcome"))
     }
-    guard let interaction = interaction(nodeId: nodeId, event: event) else {
+
+    let view = currentView()
+    let model: ViraIOSRuntimeNodeModel
+    switch view {
+    case .failure(let issue): return .failure(issue)
+    case .success(let value):
+      guard let node = value.nodes.first(where: { $0.id == runtimeNodeId }) else {
+        return .failure(.init(code: .interactionNotFound, path: "$.runtimeNodeId", message: "native runtime node is unavailable"))
+      }
+      model = node
+    }
+
+    guard let interaction = interaction(nodeId: model.sourceNodeId, event: event) else {
       return .failure(.init(code: .interactionNotFound, path: "$.event", message: "no published native Studio interaction matches this node event"))
     }
     guard let actionType = actionTypes[interaction.actionEvent] else {
@@ -370,17 +382,6 @@ public final class ViraIOSRuntimeSession {
       return .failure(.init(code: .confirmationRequired, path: "$.action.type", message: "native runtime confirmation is required before Host dispatch"))
     case .allow:
       break
-    }
-
-    let view = currentView()
-    let model: ViraIOSRuntimeNodeModel
-    switch view {
-    case .failure(let issue): return .failure(issue)
-    case .success(let value):
-      guard let node = value.nodes.first(where: { $0.sourceNodeId == nodeId }) else {
-        return .failure(.init(code: .interactionNotFound, path: "$.nodeId", message: "native runtime node is unavailable"))
-      }
-      model = node
     }
 
     var payload = externalPayload ?? [:]
