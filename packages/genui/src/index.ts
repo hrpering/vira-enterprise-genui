@@ -10,6 +10,30 @@ export type {
   ViraExperienceRuntimeResult,
 } from "./runtime.js";
 export {
+  createViraIOSMountEnvelope,
+  VIRA_IOS_MOUNT_ENVELOPE_VERSION,
+  VIRA_IOS_PLATFORM,
+} from "./ios-host-envelope.js";
+export type {
+  ViraIOSMountEnvelope,
+  ViraIOSMountEnvelopeActionMapping,
+  ViraIOSMountEnvelopeArtifactIdentity,
+  ViraIOSMountEnvelopeBrand,
+  ViraIOSMountEnvelopeCapability,
+  ViraIOSMountEnvelopeCompatibility,
+  ViraIOSMountEnvelopeComponent,
+  ViraIOSMountEnvelopeEvent,
+  ViraIOSMountEnvelopeEventPayloadField,
+  ViraIOSMountEnvelopeHost,
+  ViraIOSMountEnvelopeInput,
+  ViraIOSMountEnvelopeIssue,
+  ViraIOSMountEnvelopeIssueCode,
+  ViraIOSMountEnvelopePackIdentity,
+  ViraIOSMountEnvelopeProp,
+  ViraIOSMountEnvelopeResult,
+  ViraIOSMountEnvelopeStage,
+} from "./ios-host-envelope.js";
+export {
   createViraWebBrowserLifecycleSource,
   createViraWebHost,
   VIRA_WEB_HOST_VERSION,
