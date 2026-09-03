@@ -53,6 +53,7 @@ public struct ViraIOSHostActionResult: Equatable {
   }
 }
 
+@MainActor
 public protocol ViraIOSHostBridge: AnyObject {
   var version: String { get }
   var id: String { get }
@@ -66,6 +67,7 @@ public enum ViraIOSBindingRoot: Equatable, Sendable {
   case domain
 }
 
+@MainActor
 public final class ViraIOSHostAdapter {
   private let bridge: ViraIOSHostBridge
   private let lock = NSLock()
