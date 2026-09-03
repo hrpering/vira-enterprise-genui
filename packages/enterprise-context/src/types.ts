@@ -44,8 +44,18 @@ export interface ViraSecretRef {
   readonly versionRef?: string;
 }
 
-export interface ViraSecretResolver {
-  readonly resolve: (input: {
+export interface ViraSecretLease {
+  readonly version: typeof VIRA_ENTERPRISE_CONTEXT_VERSION;
+  readonly leaseRef: string;
+  readonly organizationId: string;
+  readonly projectId: string;
+  readonly environment: ViraEnterpriseEnvironmentName;
+  readonly provider: string;
+  readonly key: string;
+}
+
+export interface ViraSecretBroker {
+  readonly issueLease: (input: {
     readonly scope: ViraEnterpriseScope;
     readonly secret: ViraSecretRef;
   }) => Promise<unknown> | unknown;
@@ -65,8 +75,8 @@ export type ViraEnterpriseContextIssueCode =
   | "CROSS_ORGANIZATION"
   | "INVALID_SECRET_REF"
   | "CROSS_PROJECT_SECRET"
-  | "SECRET_RESOLUTION_FAILED"
-  | "INVALID_SECRET_VALUE";
+  | "SECRET_BROKER_FAILED"
+  | "INVALID_SECRET_LEASE";
 
 export interface ViraEnterpriseContextIssue {
   readonly code: ViraEnterpriseContextIssueCode;
@@ -85,10 +95,11 @@ export interface ViraEnterpriseContext {
   readonly scope: (environment: ViraEnterpriseEnvironmentName) => ViraEnterpriseContextResult<ViraEnterpriseScope>;
   readonly principal: (input: unknown) => ViraEnterpriseContextResult<ViraEnterprisePrincipal>;
   readonly secretRef: (input: unknown) => ViraEnterpriseContextResult<ViraSecretRef>;
-  readonly resolveSecret: (
+  readonly leaseSecret: (
+    scope: ViraEnterpriseScope,
     secret: ViraSecretRef,
-    resolver: ViraSecretResolver,
-  ) => Promise<ViraEnterpriseContextResult<unknown>>;
+    broker: ViraSecretBroker,
+  ) => Promise<ViraEnterpriseContextResult<ViraSecretLease>>;
 }
 
 export type ViraEnterpriseContextCreateResult =
