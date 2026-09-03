@@ -254,6 +254,25 @@ export type {
   ViraEnterpriseGovernanceProvider,
 } from "@vira-enterprise-genui/enterprise-governance";
 export {
+  createViraFastStudioPreview,
+  runViraRealNativePreview,
+  VIRA_FAST_PREVIEW_TARGETS,
+  VIRA_MULTIPLATFORM_PREVIEW_VERSION,
+  VIRA_REAL_PREVIEW_TARGETS,
+} from "@vira-enterprise-genui/multiplatform-preview";
+export type {
+  ViraFastPreviewDescriptor,
+  ViraFastPreviewResult,
+  ViraFastPreviewTarget,
+  ViraFastPreviewViewport,
+  ViraMultiplatformPreviewIssue,
+  ViraMultiplatformPreviewIssueCode,
+  ViraNativePreviewAttestation,
+  ViraNativePreviewRunner,
+  ViraRealPreviewResult,
+  ViraRealPreviewTarget,
+} from "@vira-enterprise-genui/multiplatform-preview";
+export {
   createViraStudioBrandConsole,
   VIRA_STUDIO_BRAND_CONSOLE_VERSION,
 } from "@vira-enterprise-genui/studio-brand-console";
