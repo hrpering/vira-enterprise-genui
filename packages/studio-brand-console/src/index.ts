@@ -3,6 +3,7 @@ import {
   VIRA_ENTERPRISE_ENVIRONMENTS,
   type ViraEnterpriseScope,
 } from "@vira-enterprise-genui/enterprise-context";
+import { parseJsonValue, type JsonObject, type JsonValue } from "@vira-enterprise-genui/protocol";
 import {
   createStudioBrandPackage,
   type StudioBrandPackage,
@@ -39,9 +40,11 @@ export type ViraStudioBrandConsoleWorkbenchResult = { readonly ok: true; readonl
 
 const idPattern = /^[a-z0-9][a-z0-9._-]{0,127}$/;
 function issue(code: ViraStudioBrandConsoleIssueCode, path: string, message: string): ViraStudioBrandConsoleIssue { return Object.freeze({ code, path, message }); }
+function isObject(value: JsonValue | undefined): value is JsonObject { return value !== undefined && value !== null && typeof value === "object" && !Array.isArray(value); }
 function parseScope(input: unknown): ViraEnterpriseScope | undefined {
-  if (input === null || typeof input !== "object" || Array.isArray(input)) return undefined;
-  const value = input as Record<string, unknown>;
+  const parsed = parseJsonValue(input, "$.scope");
+  if (!parsed.ok || !isObject(parsed.value)) return undefined;
+  const value = parsed.value;
   const keys = Object.keys(value);
   if (keys.length !== 4 || !["version", "organizationId", "projectId", "environment"].every((key) => Object.hasOwn(value, key))) return undefined;
   if (value.version !== VIRA_ENTERPRISE_CONTEXT_VERSION || typeof value.organizationId !== "string" || !idPattern.test(value.organizationId) || typeof value.projectId !== "string" || !idPattern.test(value.projectId) || typeof value.environment !== "string" || !VIRA_ENTERPRISE_ENVIRONMENTS.includes(value.environment as ViraEnterpriseScope["environment"])) return undefined;
