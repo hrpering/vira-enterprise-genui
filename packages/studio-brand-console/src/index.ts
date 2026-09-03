@@ -75,7 +75,7 @@ export function createViraStudioBrandConsole(input: { readonly scope: unknown; r
   if (!brand.ok) return { ok: false, issue: issue("INVALID_BRAND_PACKAGE", `$.brandPackage${brand.issue.path === "$" ? "" : brand.issue.path.slice(1)}`, brand.issue.message) };
   const brandPackage = brand.value;
   const templates = templateSummaries(brandPackage);
-  const session: ViraStudioBrandConsoleSession = Object.freeze({
+  const session: ViraStudioBrandConsoleSession = {
     version: VIRA_STUDIO_BRAND_CONSOLE_VERSION,
     scope,
     brandPackage,
@@ -95,6 +95,6 @@ export function createViraStudioBrandConsole(input: { readonly scope: unknown; r
       if (!opened.ok) return { ok: false, issue: issue("WORKBENCH_FAILED", opened.issue.path, opened.issue.message) };
       return { ok: true, value: opened.value };
     },
-  });
-  return { ok: true, value: session };
+  };
+  return { ok: true, value: Object.freeze(session) };
 }
