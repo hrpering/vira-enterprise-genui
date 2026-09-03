@@ -43,7 +43,6 @@ const CONFIRMATION_FIELDS = new Set([
   "expectedStateRevision",
   "idempotencyKey",
 ]);
-const ADAPTER_RESULT_FIELDS = new Set(["outcome", "stateRevision", "data"]);
 const EFFECTS = new Set(["read", "write", "irreversible"]);
 const IDEMPOTENCY = new Set(["none", "action-id"]);
 const OUTCOMES = new Set(["success", "empty", "error"]);
@@ -191,10 +190,7 @@ function parseIntent(input: unknown):
   };
 }
 
-function confirmationMatches(
-  input: unknown,
-  intent: ViraActionIntent,
-): boolean {
+function confirmationMatches(input: unknown, intent: ViraActionIntent): boolean {
   const parsed = parseJsonValue(input, "$.confirmation");
   if (!parsed.ok || !isJsonObject(parsed.value) || !exactFields(parsed.value, CONFIRMATION_FIELDS)) return false;
   return parsed.value.version === VIRA_ACTION_BOUNDARY_VERSION
@@ -316,11 +312,18 @@ export function createViraActionBoundary(input: unknown): ViraActionBoundaryCrea
   const revisionProvider = root.value.revisionProvider as () => number;
   const consumedActionIds = new Set<string>();
   const consumedIdempotencyKeys = new Set<string>();
+  const reservedEffectRevisions = new Set<number>();
+  let lastProviderRevision: number | undefined;
   let disposed = false;
 
   const readRevision = (): number => {
     const value = revisionProvider();
     if (!validRevision(value)) throw new Error("invalid revision");
+    if (lastProviderRevision !== undefined && value < lastProviderRevision) throw new Error("revision regressed");
+    lastProviderRevision = value;
+    for (const reserved of [...reservedEffectRevisions]) {
+      if (reserved < value) reservedEffectRevisions.delete(reserved);
+    }
     return value;
   };
 
@@ -384,7 +387,7 @@ export function createViraActionBoundary(input: unknown): ViraActionBoundaryCrea
       try {
         currentRevision = readRevision();
       } catch {
-        return { ok: false, issue: issue("INVALID_REVISION", "$.revisionProvider", "trusted revision provider returned an invalid revision") };
+        return { ok: false, issue: issue("INVALID_REVISION", "$.revisionProvider", "trusted revision provider returned an invalid or regressed revision") };
       }
       if (currentRevision !== intent.expectedStateRevision) {
         return { ok: false, issue: issue("STALE_REVISION", "$.intent.expectedStateRevision", "ActionIntent was created from a stale state revision") };
@@ -396,12 +399,17 @@ export function createViraActionBoundary(input: unknown): ViraActionBoundaryCrea
       if (consumedIdempotencyKeys.has(intent.idempotencyKey)) {
         return { ok: false, issue: issue("DUPLICATE_IDEMPOTENCY_KEY", "$.intent.idempotencyKey", "idempotency key has already crossed this protected boundary") };
       }
+      if (definition.effect !== "read" && reservedEffectRevisions.has(intent.expectedStateRevision)) {
+        return { ok: false, issue: issue("REVISION_CONFLICT", "$.intent.expectedStateRevision", "another effectful action already owns this state revision") };
+      }
 
-      // Reserve both identities synchronously before crossing/awaiting the enterprise effect boundary.
-      // Transport uncertainty can never prove that an external side effect did not happen, so neither
-      // reservation is rolled back after this point.
+      // Reserve all execution identities synchronously before crossing/awaiting the enterprise effect boundary.
+      // Transport uncertainty can never prove that an external side effect did not happen, so action/idempotency
+      // reservations are never rolled back. Effect-revision reservations are released only after a trusted,
+      // deterministic no-effect result at the same revision, or when the trusted revision provider advances.
       consumedActionIds.add(intent.action.id);
       consumedIdempotencyKeys.add(intent.idempotencyKey);
+      if (definition.effect !== "read") reservedEffectRevisions.add(intent.expectedStateRevision);
       const executionPermit = permit(intent, definition);
 
       let rawResult: unknown;
@@ -421,6 +429,14 @@ export function createViraActionBoundary(input: unknown): ViraActionBoundaryCrea
 
       const adapterResult = parseAdapterResult(rawResult, intent, definition);
       if (!adapterResult.ok) return adapterResult;
+      if (
+        definition.effect !== "read"
+        && adapterResult.value.outcome !== "success"
+        && adapterResult.value.stateRevision === intent.expectedStateRevision
+      ) {
+        reservedEffectRevisions.delete(intent.expectedStateRevision);
+      }
+
       const actionReceipt = receipt(intent, definition, adapterResult.value);
       return {
         ok: true,
