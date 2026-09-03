@@ -1,7 +1,7 @@
 import Foundation
 import ViraStudioExperienceWire
 
-public enum ViraIOSRuntimeCoreLifecycle: String, Codable, Equatable {
+public enum ViraIOSRuntimeCoreLifecycle: String, Codable, Equatable, Sendable {
   case created
   case mounting
   case active
