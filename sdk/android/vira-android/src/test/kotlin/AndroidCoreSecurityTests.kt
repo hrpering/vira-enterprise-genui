@@ -140,6 +140,17 @@ class AndroidCoreSecurityTests {
   }
 
   @Test
+  fun duplicateHostSnapshotRevisionIsDeterministicNoOp() {
+    val bridge = TestBridge(revision = 1)
+    val adapter = ViraAndroidHostAdapter.create(bridge).getOrThrow()
+    var callbacks = 0
+    adapter.subscribe { callbacks += 1 }
+    bridge.emit(ViraAndroidHostSnapshot(1, mapOf("ignored" to ViraJson.Bool(true)), emptyMap()))
+    assertEquals(0, callbacks)
+    assertEquals(emptyMap<String, ViraJson>(), adapter.snapshot().getOrThrow().state)
+  }
+
+  @Test
   fun staleDispatchSnapshotDoesNotPoisonNewerSubscriptionState() {
     val bridge = TestBridge(revision = 1)
     val adapter = ViraAndroidHostAdapter.create(bridge).getOrThrow()
