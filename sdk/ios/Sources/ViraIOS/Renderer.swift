@@ -49,18 +49,18 @@ public protocol ViraIOSNativeRenderer: AnyObject {
 
 @MainActor
 public final class ViraIOSRendererRegistry {
-  private let renderers: [String: ViraIOSNativeRenderer]
+  private let renderers: [String: any ViraIOSNativeRenderer]
 
-  private init(renderers: [String: ViraIOSNativeRenderer]) {
+  private init(renderers: [String: any ViraIOSNativeRenderer]) {
     self.renderers = renderers
   }
 
   public static func create(
     envelope: ViraIOSMountEnvelope,
-    renderers input: [ViraIOSNativeRenderer]
+    renderers input: [any ViraIOSNativeRenderer]
   ) -> Result<ViraIOSRendererRegistry, ViraIOSIssue> {
     let expected = Set(envelope.brand.components.map(\.implementationId))
-    var byId: [String: ViraIOSNativeRenderer] = [:]
+    var byId: [String: any ViraIOSNativeRenderer] = [:]
 
     for renderer in input {
       let id = renderer.implementationId
