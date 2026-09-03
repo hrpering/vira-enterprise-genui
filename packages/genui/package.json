@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@vira-enterprise-genui/action-boundary": "workspace:*",
+    "@vira-enterprise-genui/deployment-plane": "workspace:*",
     "@vira-enterprise-genui/governance": "workspace:*",
     "@vira-enterprise-genui/policy-simulation": "workspace:*",
     "@vira-enterprise-genui/experience-resolver": "workspace:*",
