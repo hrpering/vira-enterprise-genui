@@ -101,6 +101,27 @@ export type {
   ViraWebRendererRegistry,
 } from "./web-host.js";
 export {
+  createViraMultiPlatformPreview,
+  VIRA_MULTI_PLATFORM_PREVIEW_TARGETS,
+  VIRA_MULTI_PLATFORM_PREVIEW_VERSION,
+} from "./multi-platform-preview.js";
+export type {
+  ViraAndroidRealPreviewArtifact,
+  ViraFastPreviewArtifact,
+  ViraFastPreviewResult,
+  ViraFastPreviewViewport,
+  ViraIOSRealPreviewArtifact,
+  ViraMultiPlatformPreviewCreateResult,
+  ViraMultiPlatformPreviewIssue,
+  ViraMultiPlatformPreviewIssueCode,
+  ViraMultiPlatformPreviewSession,
+  ViraMultiPlatformPreviewTarget,
+  ViraNativePreviewTarget,
+  ViraPreviewPackPublisher,
+  ViraRealPreviewArtifact,
+  ViraRealPreviewResult,
+} from "./multi-platform-preview.js";
+export {
   createViraActionBoundary,
   VIRA_ACTION_BOUNDARY_MAX_CATALOG,
   VIRA_ACTION_BOUNDARY_MAX_IDEMPOTENCY_KEY_LENGTH,
