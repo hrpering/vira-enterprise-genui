@@ -3,7 +3,7 @@ import {
   createViraActionBoundary,
   type ViraActionBoundaryProposal,
   type ViraActionConfirmationGrant,
-} from "../../packages/action-boundary/src/index.js";
+} from "../../packages/genui/src/index.js";
 
 const instanceId = "instance-action-boundary";
 
