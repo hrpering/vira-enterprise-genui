@@ -422,7 +422,7 @@ public struct ViraIOSActionMapping: Codable, Equatable, Sendable {
     let c = try decoder.container(keyedBy: CodingKeys.self)
     event = try c.decode(String.self, forKey: .event)
     actionType = try c.decode(String.self, forKey: .actionType)
-    guard !event.isEmpty, ViraIOSSemanticIdentifier.isNamespace(actionType, requiresDot: true) else {
+    guard !event.isEmpty, ViraIOSSemanticIdentifier.isNamespace(actionType) else {
       throw DecodingError.dataCorrupted(
         .init(codingPath: decoder.codingPath, debugDescription: "invalid action mapping")
       )
