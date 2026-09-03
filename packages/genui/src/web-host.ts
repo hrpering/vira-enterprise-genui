@@ -199,6 +199,14 @@ function failure(code: ViraWebHostIssueCode, path: string, message: string): Vir
   return { ok: false, issue: issue(code, path, message) };
 }
 
+function disposeRuntimeSafely(runtime: { readonly dispose: () => void }): void {
+  try {
+    runtime.dispose();
+  } catch {
+    // Runtime/host cleanup failures cannot prevent Web Host ownership cleanup.
+  }
+}
+
 function readDataObject(input: unknown, fields?: ReadonlySet<string>): DataObjectResult {
   if (input === null || typeof input !== "object" || Array.isArray(input)) return { ok: false };
   try {
@@ -605,20 +613,25 @@ export function createViraWebHost(input: ViraWebHostConfiguration): CreateViraWe
           return failure("LIFECYCLE_SNAPSHOT_FAILED", "$.lifecycle", "web lifecycle source returned an invalid initial state");
         }
 
-        const runtime = createViraExperienceRuntime({
-          publication: resolution.value.publication,
-          componentCatalog: brand.brandPackage.components,
-          bindingSourceCatalog: brand.brandPackage.dataSources,
-          actionAdapter: brand.brandPackage.actions,
-          runtimeState: fields.value.runtimeState,
-          permissionPolicy: fields.value.permissionPolicy,
-          host: fields.value.host,
-        });
+        let runtime: ReturnType<typeof createViraExperienceRuntime>;
+        try {
+          runtime = createViraExperienceRuntime({
+            publication: resolution.value.publication,
+            componentCatalog: brand.brandPackage.components,
+            bindingSourceCatalog: brand.brandPackage.dataSources,
+            actionAdapter: brand.brandPackage.actions,
+            runtimeState: fields.value.runtimeState,
+            permissionPolicy: fields.value.permissionPolicy,
+            host: fields.value.host,
+          });
+        } catch {
+          return failure("RUNTIME_CREATION_FAILED", "$", "canonical GenUI runtime creation failed safely");
+        }
         if (!runtime.ok) {
           return failure("RUNTIME_CREATION_FAILED", "$", "canonical GenUI runtime could not be created for the resolved web Experience");
         }
         if (hostDisposed) {
-          runtime.value.dispose();
+          disposeRuntimeSafely(runtime.value);
           return failure("HOST_DISPOSED", "$", "Vira Web Host was disposed during Experience creation");
         }
 
@@ -645,19 +658,19 @@ export function createViraWebHost(input: ViraWebHostConfiguration): CreateViraWe
             notifySession();
           });
           if (typeof candidate !== "function") {
-            runtime.value.dispose();
+            disposeRuntimeSafely(runtime.value);
             return failure("LIFECYCLE_SUBSCRIBE_FAILED", "$.lifecycle", "web lifecycle source subscribe must return an unsubscribe function");
           }
           unsubscribeLifecycle = candidate as () => void;
         } catch {
-          runtime.value.dispose();
+          disposeRuntimeSafely(runtime.value);
           return failure("LIFECYCLE_SUBSCRIBE_FAILED", "$.lifecycle", "web lifecycle source subscription failed safely");
         }
         if (hostDisposed) {
           try { unsubscribeLifecycle(); } catch {
             // Lifecycle teardown is best-effort after Host disposal wins the race.
           }
-          runtime.value.dispose();
+          disposeRuntimeSafely(runtime.value);
           return failure("HOST_DISPOSED", "$", "Vira Web Host was disposed during Experience creation");
         }
 
@@ -694,7 +707,7 @@ export function createViraWebHost(input: ViraWebHostConfiguration): CreateViraWe
             }
             unsubscribeLifecycle = undefined;
             sessionListeners.clear();
-            runtime.value.dispose();
+            disposeRuntimeSafely(runtime.value);
             if (active.get(instanceId) === experience) active.delete(instanceId);
             try { resolverRelease.call(resolverInput, instanceId); } catch {
               // Resolver release is best-effort after this Web Experience is already disposed.
