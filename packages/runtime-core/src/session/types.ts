@@ -1,6 +1,6 @@
 export const RUNTIME_SESSION_STATE_VERSION = "1" as const;
 export const RUNTIME_SESSION_EVENT_VERSION = "1" as const;
-export const RUNTIME_SESSION_ID_MAX_LENGTH = 128 as const;
+export const RUNTIME_SESSION_INSTANCE_ID_MAX_LENGTH = 4_096 as const;
 export const RUNTIME_SESSION_INITIAL_REVISION = 0 as const;
 
 export const RUNTIME_SESSION_VISIBILITIES = Object.freeze([
@@ -35,7 +35,9 @@ export type RuntimeSessionEventType = (typeof RUNTIME_SESSION_EVENT_TYPES)[numbe
 
 export interface RuntimeSessionState {
   readonly version: typeof RUNTIME_SESSION_STATE_VERSION;
-  readonly sessionId: string;
+  /** Exact opaque mounted Experience instance identity. Resolution remains owned by MASTER-05. */
+  readonly instanceId: string;
+  /** Session-availability revision. Distinct from RuntimeState and StudioHostSnapshot revisions. */
   readonly revision: number;
   readonly visibility: RuntimeSessionVisibility;
   readonly connectivity: RuntimeSessionConnectivity;
@@ -57,7 +59,7 @@ export type RuntimeSessionValidationCode =
   | "INVALID_TYPE"
   | "UNKNOWN_FIELD"
   | "INVALID_VERSION"
-  | "INVALID_SESSION_ID"
+  | "INVALID_INSTANCE_ID"
   | "INVALID_REVISION"
   | "INVALID_VISIBILITY"
   | "INVALID_CONNECTIVITY"
