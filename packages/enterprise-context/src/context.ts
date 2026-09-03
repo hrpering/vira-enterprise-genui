@@ -24,40 +24,45 @@ function validId(value: unknown): value is string { return typeof value === "str
 function validEnvironment(value: unknown): value is ViraEnterpriseEnvironmentName { return typeof value === "string" && VIRA_ENTERPRISE_ENVIRONMENTS.includes(value as ViraEnterpriseEnvironmentName); }
 function parseScope(input: unknown): ViraEnterpriseScope | undefined {
   const parsed = parseJsonValue(input, "$.scope"); if (!parsed.ok || !object(parsed.value)) return undefined;
-  const keys = Object.keys(parsed.value); if (keys.length !== 4 || !["version", "organizationId", "projectId", "environment"].every((key) => Object.hasOwn(parsed.value, key))) return undefined;
-  if (parsed.value.version !== VIRA_ENTERPRISE_CONTEXT_VERSION || !validId(parsed.value.organizationId) || !validId(parsed.value.projectId) || !validEnvironment(parsed.value.environment)) return undefined;
-  return Object.freeze({ version: VIRA_ENTERPRISE_CONTEXT_VERSION, organizationId: parsed.value.organizationId, projectId: parsed.value.projectId, environment: parsed.value.environment });
+  const value = parsed.value;
+  const keys = Object.keys(value); if (keys.length !== 4 || !["version", "organizationId", "projectId", "environment"].every((key) => Object.hasOwn(value, key))) return undefined;
+  if (value.version !== VIRA_ENTERPRISE_CONTEXT_VERSION || !validId(value.organizationId) || !validId(value.projectId) || !validEnvironment(value.environment)) return undefined;
+  return Object.freeze({ version: VIRA_ENTERPRISE_CONTEXT_VERSION, organizationId: value.organizationId, projectId: value.projectId, environment: value.environment });
 }
 function parsePrincipal(input: unknown): ViraEnterprisePrincipal | undefined {
   const parsed = parseJsonValue(input, "$.principal"); if (!parsed.ok || !object(parsed.value)) return undefined;
-  const keys = Object.keys(parsed.value); if (keys.length !== 4 || !["version", "kind", "id", "organizationId"].every((key) => Object.hasOwn(parsed.value, key))) return undefined;
-  if (parsed.value.version !== VIRA_ENTERPRISE_CONTEXT_VERSION || typeof parsed.value.kind !== "string" || !VIRA_ENTERPRISE_PRINCIPAL_KINDS.includes(parsed.value.kind as ViraEnterprisePrincipal["kind"]) || typeof parsed.value.id !== "string" || !principalPattern.test(parsed.value.id) || !validId(parsed.value.organizationId)) return undefined;
-  return Object.freeze({ version: VIRA_ENTERPRISE_CONTEXT_VERSION, kind: parsed.value.kind as ViraEnterprisePrincipal["kind"], id: parsed.value.id, organizationId: parsed.value.organizationId });
+  const value = parsed.value;
+  const keys = Object.keys(value); if (keys.length !== 4 || !["version", "kind", "id", "organizationId"].every((key) => Object.hasOwn(value, key))) return undefined;
+  if (value.version !== VIRA_ENTERPRISE_CONTEXT_VERSION || typeof value.kind !== "string" || !VIRA_ENTERPRISE_PRINCIPAL_KINDS.includes(value.kind as ViraEnterprisePrincipal["kind"]) || typeof value.id !== "string" || !principalPattern.test(value.id) || !validId(value.organizationId)) return undefined;
+  return Object.freeze({ version: VIRA_ENTERPRISE_CONTEXT_VERSION, kind: value.kind as ViraEnterprisePrincipal["kind"], id: value.id, organizationId: value.organizationId });
 }
 function parseSecret(input: unknown): ViraSecretRef | undefined {
   const parsed = parseJsonValue(input, "$.secret"); if (!parsed.ok || !object(parsed.value)) return undefined;
-  const allowed = new Set(["version", "organizationId", "projectId", "environment", "provider", "key", "versionRef"]); const keys = Object.keys(parsed.value); if (keys.some((key) => !allowed.has(key))) return undefined;
-  for (const required of ["version", "organizationId", "projectId", "environment", "provider", "key"]) if (!Object.hasOwn(parsed.value, required)) return undefined;
-  if (parsed.value.version !== VIRA_ENTERPRISE_CONTEXT_VERSION || !validId(parsed.value.organizationId) || !validId(parsed.value.projectId) || !validEnvironment(parsed.value.environment) || typeof parsed.value.provider !== "string" || !isSemanticNamespace(parsed.value.provider) || typeof parsed.value.key !== "string" || !secretKeyPattern.test(parsed.value.key)) return undefined;
-  const versionRef = Object.hasOwn(parsed.value, "versionRef") ? parsed.value.versionRef : undefined; if (versionRef !== undefined && (typeof versionRef !== "string" || !secretKeyPattern.test(versionRef))) return undefined;
-  return Object.freeze({ version: VIRA_ENTERPRISE_CONTEXT_VERSION, organizationId: parsed.value.organizationId, projectId: parsed.value.projectId, environment: parsed.value.environment, provider: parsed.value.provider, key: parsed.value.key, ...(versionRef === undefined ? {} : { versionRef }) });
+  const value = parsed.value;
+  const allowed = new Set(["version", "organizationId", "projectId", "environment", "provider", "key", "versionRef"]); const keys = Object.keys(value); if (keys.some((key) => !allowed.has(key))) return undefined;
+  for (const required of ["version", "organizationId", "projectId", "environment", "provider", "key"]) if (!Object.hasOwn(value, required)) return undefined;
+  if (value.version !== VIRA_ENTERPRISE_CONTEXT_VERSION || !validId(value.organizationId) || !validId(value.projectId) || !validEnvironment(value.environment) || typeof value.provider !== "string" || !isSemanticNamespace(value.provider) || typeof value.key !== "string" || !secretKeyPattern.test(value.key)) return undefined;
+  const versionRef = Object.hasOwn(value, "versionRef") ? value.versionRef : undefined; if (versionRef !== undefined && (typeof versionRef !== "string" || !secretKeyPattern.test(versionRef))) return undefined;
+  return Object.freeze({ version: VIRA_ENTERPRISE_CONTEXT_VERSION, organizationId: value.organizationId, projectId: value.projectId, environment: value.environment, provider: value.provider, key: value.key, ...(versionRef === undefined ? {} : { versionRef }) });
 }
 function parseLease(input: unknown, scope: ViraEnterpriseScope, secret: ViraSecretRef): ViraSecretLease | undefined {
   const parsed = parseJsonValue(input, "$.lease"); if (!parsed.ok || !object(parsed.value)) return undefined;
+  const value = parsed.value;
   const required = ["version", "leaseRef", "organizationId", "projectId", "environment", "provider", "key"];
-  const allowed = new Set([...required, "versionRef"]); const keys = Object.keys(parsed.value);
-  if (keys.some((key) => !allowed.has(key)) || !required.every((key) => Object.hasOwn(parsed.value, key))) return undefined;
-  if (parsed.value.version !== VIRA_ENTERPRISE_CONTEXT_VERSION || typeof parsed.value.leaseRef !== "string" || !leasePattern.test(parsed.value.leaseRef) || parsed.value.organizationId !== scope.organizationId || parsed.value.projectId !== scope.projectId || parsed.value.environment !== scope.environment || parsed.value.provider !== secret.provider || parsed.value.key !== secret.key) return undefined;
-  const leaseVersionRef = Object.hasOwn(parsed.value, "versionRef") ? parsed.value.versionRef : undefined;
+  const allowed = new Set([...required, "versionRef"]); const keys = Object.keys(value);
+  if (keys.some((key) => !allowed.has(key)) || !required.every((key) => Object.hasOwn(value, key))) return undefined;
+  if (value.version !== VIRA_ENTERPRISE_CONTEXT_VERSION || typeof value.leaseRef !== "string" || !leasePattern.test(value.leaseRef) || value.organizationId !== scope.organizationId || value.projectId !== scope.projectId || value.environment !== scope.environment || value.provider !== secret.provider || value.key !== secret.key) return undefined;
+  const leaseVersionRef = Object.hasOwn(value, "versionRef") ? value.versionRef : undefined;
   if (secret.versionRef === undefined ? leaseVersionRef !== undefined : leaseVersionRef !== secret.versionRef) return undefined;
-  return Object.freeze({ version: VIRA_ENTERPRISE_CONTEXT_VERSION, leaseRef: parsed.value.leaseRef, organizationId: scope.organizationId, projectId: scope.projectId, environment: scope.environment, provider: secret.provider, key: secret.key, ...(secret.versionRef === undefined ? {} : { versionRef: secret.versionRef }) });
+  return Object.freeze({ version: VIRA_ENTERPRISE_CONTEXT_VERSION, leaseRef: value.leaseRef, organizationId: scope.organizationId, projectId: scope.projectId, environment: scope.environment, provider: secret.provider, key: secret.key, ...(secret.versionRef === undefined ? {} : { versionRef: secret.versionRef }) });
 }
 export function createViraEnterpriseContext(input: unknown): ViraEnterpriseContextCreateResult {
   const parsed = parseJsonValue(input, "$" ); if (!parsed.ok || !object(parsed.value)) return { ok: false, issue: issue("INVALID_CONTEXT", "$", "enterprise context input must be canonical JSON") };
-  const keys = Object.keys(parsed.value); if (keys.length !== 3 || !["organizationId", "projectId", "environments"].every((key) => Object.hasOwn(parsed.value, key))) return { ok: false, issue: issue("INVALID_CONTEXT", "$", "enterprise context input has invalid shape") };
-  if (!validId(parsed.value.organizationId) || !validId(parsed.value.projectId) || !Array.isArray(parsed.value.environments) || parsed.value.environments.length < 1 || parsed.value.environments.length > VIRA_ENTERPRISE_ENVIRONMENTS.length) return { ok: false, issue: issue("INVALID_CONTEXT", "$", "organization, project, or environment set is invalid") };
-  const environments = new Set<ViraEnterpriseEnvironmentName>(); for (const environment of parsed.value.environments) { if (!validEnvironment(environment) || environments.has(environment)) return { ok: false, issue: issue("INVALID_CONTEXT", "$.environments", "environment set contains invalid or duplicate entries") }; environments.add(environment); }
-  const organizationId = parsed.value.organizationId; const projectId = parsed.value.projectId;
+  const value = parsed.value;
+  const keys = Object.keys(value); if (keys.length !== 3 || !["organizationId", "projectId", "environments"].every((key) => Object.hasOwn(value, key))) return { ok: false, issue: issue("INVALID_CONTEXT", "$", "enterprise context input has invalid shape") };
+  if (!validId(value.organizationId) || !validId(value.projectId) || !Array.isArray(value.environments) || value.environments.length < 1 || value.environments.length > VIRA_ENTERPRISE_ENVIRONMENTS.length) return { ok: false, issue: issue("INVALID_CONTEXT", "$", "organization, project, or environment set is invalid") };
+  const environments = new Set<ViraEnterpriseEnvironmentName>(); for (const environment of value.environments) { if (!validEnvironment(environment) || environments.has(environment)) return { ok: false, issue: issue("INVALID_CONTEXT", "$.environments", "environment set contains invalid or duplicate entries") }; environments.add(environment); }
+  const organizationId = value.organizationId; const projectId = value.projectId;
   const context: ViraEnterpriseContext = {
     version: VIRA_ENTERPRISE_CONTEXT_VERSION, organizationId, projectId,
     scope(environment) { if (!validEnvironment(environment)) return { ok: false, issue: issue("INVALID_SCOPE", "$.environment", "environment is invalid") }; if (!environments.has(environment)) return { ok: false, issue: issue("ENVIRONMENT_NOT_REGISTERED", "$.environment", "environment is not registered for this project") }; return { ok: true, value: Object.freeze({ version: VIRA_ENTERPRISE_CONTEXT_VERSION, organizationId, projectId, environment }) }; },
