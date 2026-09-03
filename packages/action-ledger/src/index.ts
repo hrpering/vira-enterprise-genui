@@ -65,7 +65,7 @@ export function createViraActionLedger(input: { readonly instanceId: string; rea
   const challengeMatches = (challenge: ViraApprovalChallenge, current: { actionType: string; expectedStateRevision: number; idempotencyKey: string }): boolean => !!challenge && challenge.instanceId === session.instanceId && challenge.actionType === current.actionType && challenge.expectedStateRevision === current.expectedStateRevision && challenge.idempotencyKey === current.idempotencyKey && boundedText(challenge.challengeId) && boundedText(challenge.provider) && boundedText(challenge.reasonCode);
   const hasPendingChallenge = (actionId: string): boolean => { for (const pendingActionId of pendingChallenges.values()) if (pendingActionId === actionId) return true; return false; };
 
-  const ledger: ViraActionLedger = Object.freeze({
+  const ledger: ViraActionLedger = {
     version: "1", session, entries: () => Object.freeze(log.slice()),
     recordExperienceShown: (occurredAt, stateRevision) => append({ occurredAt, kind: "experience.shown", stateRevision }),
     recordViewChanged: (occurredAt, stateRevision, viewId) => boundedText(viewId) ? append({ occurredAt, kind: "view.changed", stateRevision, viewId }) : fail("INVALID_SESSION", "$.viewId", "viewId is invalid"),
@@ -146,6 +146,6 @@ export function createViraActionLedger(input: { readonly instanceId: string; rea
       }
       return { ok: true, value: Object.freeze(events) };
     },
-  });
-  return { ok: true, value: ledger };
+  };
+  return { ok: true, value: Object.freeze(ledger) };
 }
