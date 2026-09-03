@@ -103,6 +103,8 @@ export type {
 export {
   createViraActionBoundary,
   VIRA_ACTION_BOUNDARY_MAX_CATALOG,
+  VIRA_ACTION_BOUNDARY_MAX_IDEMPOTENCY_KEY_LENGTH,
+  VIRA_ACTION_BOUNDARY_MAX_SAFE_INTEGER,
   VIRA_ACTION_BOUNDARY_VERSION,
 } from "@vira-enterprise-genui/action-boundary";
 export type {
@@ -122,6 +124,10 @@ export type {
   ViraActionExecutor,
   ViraActionExecutorInput,
   ViraActionIdempotency,
+  ViraActionIntent,
+  ViraActionReceipt,
+  ViraActionReceiptOutcome,
+  ViraTrustedActionAdapterResult,
 } from "@vira-enterprise-genui/action-boundary";
 export * from "@vira-enterprise-genui/studio-authoring";
 export type {
