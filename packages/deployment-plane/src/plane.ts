@@ -249,7 +249,8 @@ export function createViraDeploymentPlane(input: {
         }
         const key = artifactKey(promotion.packId, promotion.packVersion, promotion.manifestDigest);
         const record = artifacts.get(key);
-        if (record === undefined) return { ok: false, issue: issue("ARTIFACT_NOT_FOUND", "$", "promotion artifact is not registered") };
+        const signed = signedArtifacts.get(key);
+        if (record === undefined || signed === undefined) return { ok: false, issue: issue("ARTIFACT_NOT_FOUND", "$", "promotion artifact is not registered") };
         if (record.status === "deprecated") return { ok: false, issue: issue("ARTIFACT_DEPRECATED", "$", "deprecated artifact cannot be promoted") };
         const source = deployments.get(promotion.from) ?? null;
         if (
@@ -260,6 +261,8 @@ export function createViraDeploymentPlane(input: {
         ) {
           return { ok: false, issue: issue("INVALID_PROMOTION", `$.deployments.${promotion.from}`, "source environment does not run the exact requested artifact") };
         }
+        const reverified = await verifyArtifact(signed, integrity);
+        if (!reverified.ok) return reverified;
         return deploy(promotion.to, record, "promote");
       });
     },
