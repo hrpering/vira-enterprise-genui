@@ -2,6 +2,7 @@ import type { JsonObject } from "@vira-enterprise-genui/protocol";
 import type { RuntimeWebActionIdFactory, StateBindingHostPatchResult, StateBindingProcessResult, StateBindingSession } from "@vira-enterprise-genui/runtime-web";
 import type { StudioBindingSource, StudioInteractionOutcome } from "@vira-enterprise-genui/studio-schema";
 export const STUDIO_RUNTIME_MAX_REPEAT_ITEMS = 256 as const;
+export const STUDIO_RUNTIME_MAX_EXPANDED_NODES = 4_096 as const;
 export interface StudioRuntimeDataPort { read(source: StudioBindingSource): unknown; }
 export interface StudioRuntimePorts { readonly data: StudioRuntimeDataPort; readonly actionIds: RuntimeWebActionIdFactory; }
 export interface StudioRuntimeNodeModel { readonly id: string; readonly sourceNodeId: string; readonly component: string; readonly order: number; readonly props: JsonObject; readonly eventPayloads: Readonly<Record<string, JsonObject>>; readonly parentId?: string; readonly slot?: string; }
