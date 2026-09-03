@@ -53,7 +53,10 @@ class ViraAndroidApplicationLifecycleSource private constructor(
 
   fun reportResume() {
     val delivery = synchronized(lock) {
-      if (disposed) return
+      if (disposed || startedActivities <= 0) return
+      if (current.visibility != ViraAndroidSessionVisibility.FOREGROUND) {
+        current = current.copy(visibility = ViraAndroidSessionVisibility.FOREGROUND)
+      }
       Delivery(ViraAndroidLifecycleEventType.RESUME, listeners.toList())
     }
     deliver(delivery)
@@ -93,7 +96,7 @@ class ViraAndroidApplicationLifecycleSource private constructor(
   }
 
   override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
-  override fun onActivityResumed(activity: Activity) = Unit
+  override fun onActivityResumed(activity: Activity) = reportResume()
   override fun onActivityPaused(activity: Activity) = Unit
   override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
   override fun onActivityDestroyed(activity: Activity) = Unit
