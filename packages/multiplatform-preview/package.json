@@ -1,0 +1,11 @@
+{
+  "name": "@vira-enterprise-genui/multiplatform-preview",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@vira-enterprise-genui/deployment-plane": "workspace:*",
+    "@vira-enterprise-genui/studio-publish": "workspace:*"
+  }
+}
