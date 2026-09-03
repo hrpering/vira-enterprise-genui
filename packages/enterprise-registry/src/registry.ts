@@ -40,31 +40,33 @@ function parseScopeResult(input: unknown): ViraEnterpriseScope | undefined {
   if (input === null || typeof input !== "object" || !("ok" in input) || (input as { ok?: unknown }).ok !== true || !("value" in input)) return undefined;
   const parsed = parseJsonValue((input as { value: unknown }).value, "$.scope");
   if (!parsed.ok || !object(parsed.value)) return undefined;
-  if (Object.keys(parsed.value).sort().join("\0") !== "environment\0organizationId\0projectId\0version") return undefined;
-  if (parsed.value.version !== "1" || typeof parsed.value.organizationId !== "string" || typeof parsed.value.projectId !== "string" || typeof parsed.value.environment !== "string") return undefined;
-  if (!(["dev", "staging", "production"] as const).includes(parsed.value.environment as "dev" | "staging" | "production")) return undefined;
+  const value = parsed.value;
+  if (Object.keys(value).sort().join("\0") !== "environment\0organizationId\0projectId\0version") return undefined;
+  if (value.version !== "1" || typeof value.organizationId !== "string" || typeof value.projectId !== "string" || typeof value.environment !== "string") return undefined;
+  if (!(["dev", "staging", "production"] as const).includes(value.environment as "dev" | "staging" | "production")) return undefined;
   return Object.freeze({
     version: "1",
-    organizationId: parsed.value.organizationId,
-    projectId: parsed.value.projectId,
-    environment: parsed.value.environment as ViraEnterpriseScope["environment"],
+    organizationId: value.organizationId,
+    projectId: value.projectId,
+    environment: value.environment as ViraEnterpriseScope["environment"],
   });
 }
 
 function parseEntry(input: unknown): ViraPrivateEnterpriseRegistryEntry | undefined {
   const parsed = parseJsonValue(input, "$.entry");
   if (!parsed.ok || !object(parsed.value)) return undefined;
+  const value = parsed.value;
   const allowed = new Set(["version", "kind", "id", "versionRef", "nativeCapabilityId"]);
-  const keys = Object.keys(parsed.value);
-  if (keys.some((field) => !allowed.has(field)) || !["version", "kind", "id", "versionRef"].every((field) => Object.hasOwn(parsed.value, field))) return undefined;
-  if (parsed.value.version !== VIRA_PRIVATE_ENTERPRISE_REGISTRY_VERSION || !validKind(parsed.value.kind) || !validResourceId(parsed.value.kind, parsed.value.id) || !validVersionRef(parsed.value.versionRef)) return undefined;
-  const nativeCapabilityId = Object.hasOwn(parsed.value, "nativeCapabilityId") ? parsed.value.nativeCapabilityId : undefined;
-  if (nativeCapabilityId !== undefined && (parsed.value.kind !== "component" || typeof nativeCapabilityId !== "string" || !isSemanticNamespace(nativeCapabilityId))) return undefined;
+  const keys = Object.keys(value);
+  if (keys.some((field) => !allowed.has(field)) || !["version", "kind", "id", "versionRef"].every((field) => Object.hasOwn(value, field))) return undefined;
+  if (value.version !== VIRA_PRIVATE_ENTERPRISE_REGISTRY_VERSION || !validKind(value.kind) || !validResourceId(value.kind, value.id) || !validVersionRef(value.versionRef)) return undefined;
+  const nativeCapabilityId = Object.hasOwn(value, "nativeCapabilityId") ? value.nativeCapabilityId : undefined;
+  if (nativeCapabilityId !== undefined && (value.kind !== "component" || typeof nativeCapabilityId !== "string" || !isSemanticNamespace(nativeCapabilityId))) return undefined;
   return Object.freeze({
     version: VIRA_PRIVATE_ENTERPRISE_REGISTRY_VERSION,
-    kind: parsed.value.kind,
-    id: parsed.value.id,
-    versionRef: parsed.value.versionRef,
+    kind: value.kind,
+    id: value.id,
+    versionRef: value.versionRef,
     ...(nativeCapabilityId === undefined ? {} : { nativeCapabilityId }),
   });
 }
