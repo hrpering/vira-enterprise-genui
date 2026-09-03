@@ -63,8 +63,15 @@ android {
   }
 
   sourceSets {
-    getByName("main").java.setSrcDirs(listOf(generatedMainDir.get().asFile))
-    getByName("test").java.setSrcDirs(listOf(generatedTestDir.get().asFile, file("src/test/java")))
+    getByName("main") {
+      kotlin.directories.clear()
+      kotlin.directories.add(generatedMainDir.get().asFile.path)
+    }
+    getByName("test") {
+      kotlin.directories.clear()
+      kotlin.directories.add(generatedTestDir.get().asFile.path)
+      java.setSrcDirs(listOf(file("src/test/java")))
+    }
   }
 
   testOptions {
