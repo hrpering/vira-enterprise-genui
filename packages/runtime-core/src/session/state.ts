@@ -16,6 +16,7 @@ import {
   type RuntimeSessionContinuity,
   type RuntimeSessionCreateResult,
   type RuntimeSessionParseResult,
+  type RuntimeSessionRestoreCode,
   type RuntimeSessionRestoreResult,
   type RuntimeSessionState,
   type RuntimeSessionValidationCode,
@@ -46,7 +47,7 @@ function validationFailure(
 }
 
 function restoreFailure(
-  code: "INVALID_SESSION_STATE" | "REVISION_OVERFLOW",
+  code: RuntimeSessionRestoreCode,
   path: string,
   message: string,
 ): RuntimeSessionRestoreResult {
@@ -212,16 +213,33 @@ export function parseRuntimeSessionState(input: unknown): RuntimeSessionParseRes
   };
 }
 
-export function restoreRuntimeSessionState(input: unknown): RuntimeSessionRestoreResult {
+export function restoreRuntimeSessionState(
+  expectedInstanceId: unknown,
+  input: unknown,
+): RuntimeSessionRestoreResult {
+  if (!isRuntimeSessionInstanceId(expectedInstanceId)) {
+    return restoreFailure(
+      "INVALID_INSTANCE_ID",
+      "$.expectedInstanceId",
+      "expected runtime session instanceId is invalid",
+    );
+  }
   const parsed = parseRuntimeSessionState(input);
   if (!parsed.ok) {
     return restoreFailure("INVALID_SESSION_STATE", "$", "persisted runtime session state is invalid");
+  }
+  if (parsed.value.instanceId !== expectedInstanceId) {
+    return restoreFailure(
+      "INSTANCE_MISMATCH",
+      "$.instanceId",
+      "persisted runtime session belongs to a different instance",
+    );
   }
   if (parsed.value.revision === Number.MAX_SAFE_INTEGER) {
     return restoreFailure("REVISION_OVERFLOW", "$.revision", "runtime session revision cannot be incremented safely");
   }
   const state = canonicalState(
-    parsed.value.instanceId,
+    expectedInstanceId,
     parsed.value.revision + 1,
     parsed.value.visibility,
     parsed.value.connectivity,
