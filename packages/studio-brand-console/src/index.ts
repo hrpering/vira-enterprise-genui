@@ -33,7 +33,7 @@ export interface ViraStudioBrandConsoleSession {
     readonly initialViewId?: string;
   }) => ViraStudioBrandConsoleWorkbenchResult;
 }
-export type ViraStudioBrandConsoleIssueCode = "INVALID_SCOPE" | "INVALID_BRAND_PACKAGE" | "TEMPLATE_NOT_FOUND" | "WORKBENCH_FAILED";
+export type ViraStudioBrandConsoleIssueCode = "INVALID_SCOPE" | "INVALID_BRAND_PACKAGE" | "INVALID_TEMPLATE_INPUT" | "TEMPLATE_NOT_FOUND" | "WORKBENCH_FAILED";
 export interface ViraStudioBrandConsoleIssue { readonly code: ViraStudioBrandConsoleIssueCode; readonly path: string; readonly message: string; }
 export type ViraStudioBrandConsoleCreateResult = { readonly ok: true; readonly value: ViraStudioBrandConsoleSession } | { readonly ok: false; readonly issue: ViraStudioBrandConsoleIssue };
 export type ViraStudioBrandConsoleWorkbenchResult = { readonly ok: true; readonly value: StudioWorkbenchSession } | { readonly ok: false; readonly issue: ViraStudioBrandConsoleIssue };
@@ -50,7 +50,22 @@ function parseScope(input: unknown): ViraEnterpriseScope | undefined {
   if (value.version !== VIRA_ENTERPRISE_CONTEXT_VERSION || typeof value.organizationId !== "string" || !idPattern.test(value.organizationId) || typeof value.projectId !== "string" || !idPattern.test(value.projectId) || typeof value.environment !== "string" || !VIRA_ENTERPRISE_ENVIRONMENTS.includes(value.environment as ViraEnterpriseScope["environment"])) return undefined;
   return Object.freeze({ version: VIRA_ENTERPRISE_CONTEXT_VERSION, organizationId: value.organizationId, projectId: value.projectId, environment: value.environment as ViraEnterpriseScope["environment"] });
 }
-function templateById(brand: StudioBrandPackage, id: string): StudioBrandTemplate | undefined { return brand.templates.find((template) => template.id === id); }
+function templateById(brand: StudioBrandPackage, id: string): StudioBrandTemplate | undefined {
+  for (let index = 0; index < brand.templates.length; index += 1) {
+    const template = brand.templates[index];
+    if (template?.id === id) return template;
+  }
+  return undefined;
+}
+function templateSummaries(brand: StudioBrandPackage): readonly ViraStudioBrandConsoleTemplateSummary[] {
+  const summaries: ViraStudioBrandConsoleTemplateSummary[] = [];
+  for (let index = 0; index < brand.templates.length; index += 1) {
+    const template = brand.templates[index];
+    if (template === undefined) continue;
+    summaries.push(Object.freeze({ id: template.id, label: template.label, description: template.description }));
+  }
+  return Object.freeze(summaries);
+}
 
 export function createViraStudioBrandConsole(input: { readonly scope: unknown; readonly brandPackage: unknown }): ViraStudioBrandConsoleCreateResult {
   if (input === null || typeof input !== "object") return { ok: false, issue: issue("INVALID_SCOPE", "$", "Studio Brand Console input is invalid") };
@@ -59,14 +74,14 @@ export function createViraStudioBrandConsole(input: { readonly scope: unknown; r
   const brand = createStudioBrandPackage(input.brandPackage);
   if (!brand.ok) return { ok: false, issue: issue("INVALID_BRAND_PACKAGE", `$.brandPackage${brand.issue.path === "$" ? "" : brand.issue.path.slice(1)}`, brand.issue.message) };
   const brandPackage = brand.value;
-  const templates = Object.freeze(brandPackage.templates.map((template) => Object.freeze({ id: template.id, label: template.label, description: template.description })));
+  const templates = templateSummaries(brandPackage);
   const session: ViraStudioBrandConsoleSession = Object.freeze({
     version: VIRA_STUDIO_BRAND_CONSOLE_VERSION,
     scope,
     brandPackage,
     listTemplates: () => templates,
     openTemplate(workbenchInput) {
-      if (workbenchInput === null || typeof workbenchInput !== "object" || typeof workbenchInput.templateId !== "string" || typeof workbenchInput.allocateNodeId !== "function") return { ok: false, issue: issue("WORKBENCH_FAILED", "$.openTemplate", "workbench template input is invalid") };
+      if (workbenchInput === null || typeof workbenchInput !== "object" || typeof workbenchInput.templateId !== "string" || typeof workbenchInput.allocateNodeId !== "function") return { ok: false, issue: issue("INVALID_TEMPLATE_INPUT", "$.openTemplate", "workbench template input is invalid") };
       const template = templateById(brandPackage, workbenchInput.templateId);
       if (!template) return { ok: false, issue: issue("TEMPLATE_NOT_FOUND", "$.templateId", "brand template does not exist in the active package") };
       const opened = createStudioWorkbenchSession({
