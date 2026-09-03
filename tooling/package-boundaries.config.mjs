@@ -5,6 +5,8 @@ export const allowedDependencies = Object.freeze({
   "runtime-core": ["protocol"],
   "action-boundary": ["protocol", "runtime-core"],
   governance: ["action-boundary", "protocol", "runtime-core"],
+  "enterprise-context": ["protocol"],
+  "enterprise-governance": ["enterprise-context", "governance"],
   "policy-simulation": ["protocol"],
   "deployment-plane": ["experience-packs", "protocol"],
   planner: ["protocol"],
@@ -47,7 +49,7 @@ export const allowedDependencies = Object.freeze({
   "studio-host": ["protocol"],
   "studio-host-runtime": ["studio-host", "studio-runtime", "studio-schema"],
   "studio-enterprise": ["protocol", "studio-schema"],
-  genui: ["action-boundary", "deployment-plane", "governance", "policy-simulation", "experience-resolver", "protocol", "runtime-core", "studio-authoring", "studio-brand", "studio-host", "studio-host-runtime", "studio-publish", "studio-runtime", "studio-runtime-react"],
+  genui: ["action-boundary", "deployment-plane", "enterprise-context", "enterprise-governance", "governance", "policy-simulation", "experience-resolver", "protocol", "runtime-core", "studio-authoring", "studio-brand", "studio-host", "studio-host-runtime", "studio-publish", "studio-runtime", "studio-runtime-react"],
   "genui-cli": ["studio-authoring"],
   "genui-web-component": ["genui"],
 });
