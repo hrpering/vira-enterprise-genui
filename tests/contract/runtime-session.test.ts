@@ -98,7 +98,7 @@ describe("MASTER-06 platform-neutral runtime session kernel", () => {
       expect(result.value.state.instanceId).toBe("instance-exact-1");
       state = result.value.state;
     }
-    const restored = restoreRuntimeSessionState(state);
+    const restored = restoreRuntimeSessionState("instance-exact-1", state);
     expect(restored).toMatchObject({
       ok: true,
       value: { state: { instanceId: "instance-exact-1" } },
@@ -185,7 +185,7 @@ describe("MASTER-06 platform-neutral runtime session kernel", () => {
 
   it("restores persisted instance-bound session state and requires external cache verification", () => {
     const live = createSession("background", "disconnected");
-    const restored = restoreRuntimeSessionState(live);
+    const restored = restoreRuntimeSessionState("instance-exact-1", live);
     expect(restored).toEqual({
       ok: true,
       value: {
@@ -220,6 +220,34 @@ describe("MASTER-06 platform-neutral runtime session kernel", () => {
           cacheStatus: "verification-required",
         },
       },
+    });
+  });
+
+  it("requires trusted expected instance identity and rejects cross-instance restore", () => {
+    const persisted = createSession("background", "disconnected");
+
+    const mismatch = restoreRuntimeSessionState("instance-exact-2", persisted);
+    expect(mismatch).toEqual({
+      ok: false,
+      issue: {
+        code: "INSTANCE_MISMATCH",
+        path: "$.instanceId",
+        message: "persisted runtime session belongs to a different instance",
+      },
+    });
+    expect(JSON.stringify(mismatch)).not.toContain("instance-exact-1");
+    expect(JSON.stringify(mismatch)).not.toContain("instance-exact-2");
+
+    expect(restoreRuntimeSessionState("", persisted)).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_INSTANCE_ID", path: "$.expectedInstanceId" },
+    });
+    expect(restoreRuntimeSessionState(
+      "a".repeat(RUNTIME_SESSION_INSTANCE_ID_MAX_LENGTH + 1),
+      persisted,
+    )).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_INSTANCE_ID", path: "$.expectedInstanceId" },
     });
   });
 
@@ -320,7 +348,7 @@ describe("MASTER-06 platform-neutral runtime session kernel", () => {
       ok: false,
       issue: { code: "REVISION_OVERFLOW", path: "$.revision" },
     });
-    expect(restoreRuntimeSessionState(max)).toMatchObject({
+    expect(restoreRuntimeSessionState("instance-exact-1", max)).toMatchObject({
       ok: false,
       issue: { code: "REVISION_OVERFLOW", path: "$.revision" },
     });
@@ -351,7 +379,7 @@ describe("MASTER-06 platform-neutral runtime session kernel", () => {
 
       let restored: ReturnType<typeof restoreRuntimeSessionState> | undefined;
       expect(() => {
-        restored = restoreRuntimeSessionState(hostile);
+        restored = restoreRuntimeSessionState("instance-exact-1", hostile);
       }).not.toThrow();
       expect(restored).toMatchObject({ ok: false, issue: { code: "INVALID_SESSION_STATE", path: "$" } });
       expect(JSON.stringify(restored)).not.toContain("SESSION_SECRET");
