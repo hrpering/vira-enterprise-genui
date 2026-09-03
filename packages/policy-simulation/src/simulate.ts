@@ -33,13 +33,23 @@ function isObject(value: JsonValue | undefined): value is JsonObject {
   return value !== undefined && value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function freezeJson<T extends JsonValue>(value: T): T {
+  if (value === null || typeof value !== "object" || Object.isFrozen(value)) return value;
+  if (Array.isArray(value)) {
+    for (const item of value) freezeJson(item);
+    return Object.freeze(value) as T;
+  }
+  for (const child of Object.values(value)) freezeJson(child);
+  return Object.freeze(value) as T;
+}
+
 function normalizeFixture(input: unknown, path: string): ViraPolicySimulationFixture | undefined {
   const parsed = parseJsonValue(input, path);
   if (!parsed.ok || !isObject(parsed.value)) return undefined;
   const keys = Object.keys(parsed.value);
   if (keys.length !== 2 || !Object.hasOwn(parsed.value, "id") || !Object.hasOwn(parsed.value, "input")) return undefined;
   if (!boundedId(parsed.value.id) || !isObject(parsed.value.input)) return undefined;
-  return Object.freeze({ id: parsed.value.id, input: Object.freeze({ ...parsed.value.input }) });
+  return Object.freeze({ id: parsed.value.id, input: freezeJson(parsed.value.input) });
 }
 
 function validEvaluator(value: unknown): value is ViraPolicySimulationEvaluator {
@@ -77,8 +87,65 @@ function emptyCounts(): Record<ViraPolicySimulationEffect, number> {
   return { allow: 0, deny: 0, challenge: 0, transform: 0 };
 }
 
-function reportId(input: ViraPolicySimulationInput): string {
-  return `simulation:${input.fixtureSetId}:${input.current.policyRef}:${input.candidate.policyRef}`;
+function expectedReportId(fixtureSetId: string, currentPolicyRef: string, candidatePolicyRef: string): string {
+  return `simulation:${fixtureSetId}:${currentPolicyRef}:${candidatePolicyRef}`;
+}
+
+function validReport(report: ViraPolicySimulationReport): boolean {
+  if (
+    report === null
+    || typeof report !== "object"
+    || report.version !== VIRA_POLICY_SIMULATION_VERSION
+    || !boundedId(report.fixtureSetId)
+    || !boundedId(report.currentPolicyRef)
+    || !boundedId(report.candidatePolicyRef)
+    || report.currentPolicyRef === report.candidatePolicyRef
+    || !isSemanticNamespace(report.currentEvaluatorId)
+    || !isSemanticNamespace(report.candidateEvaluatorId)
+    || report.reportId !== expectedReportId(report.fixtureSetId, report.currentPolicyRef, report.candidatePolicyRef)
+    || !Array.isArray(report.cases)
+    || report.cases.length < 1
+    || report.cases.length > VIRA_POLICY_SIMULATION_MAX_FIXTURES
+    || !Array.isArray(report.newDenyFixtureIds)
+  ) return false;
+
+  const fixtureIds = new Set<string>();
+  const currentCounts = emptyCounts();
+  const candidateCounts = emptyCounts();
+  const expectedNewDenies: string[] = [];
+  let unchanged = 0;
+  let newDenies = 0;
+  let newAllows = 0;
+  let changedEffects = 0;
+
+  for (const entry of report.cases) {
+    if (!boundedId(entry.fixtureId) || fixtureIds.has(entry.fixtureId)) return false;
+    fixtureIds.add(entry.fixtureId);
+    const current = normalizeDecision(entry.current);
+    const candidate = normalizeDecision(entry.candidate);
+    if (!current || !candidate) return false;
+    const kind = diffKind(current.effect, candidate.effect);
+    if (entry.kind !== kind) return false;
+    currentCounts[current.effect] += 1;
+    candidateCounts[candidate.effect] += 1;
+    if (kind === "unchanged") unchanged += 1;
+    else if (kind === "new-deny") { newDenies += 1; expectedNewDenies.push(entry.fixtureId); }
+    else if (kind === "new-allow") newAllows += 1;
+    else changedEffects += 1;
+  }
+
+  if (
+    report.summary.fixtures !== report.cases.length
+    || report.summary.unchanged !== unchanged
+    || report.summary.newDenies !== newDenies
+    || report.summary.newAllows !== newAllows
+    || report.summary.changedEffects !== changedEffects
+  ) return false;
+  for (const effect of EFFECTS) {
+    if (report.summary.current[effect] !== currentCounts[effect] || report.summary.candidate[effect] !== candidateCounts[effect]) return false;
+  }
+  return expectedNewDenies.length === report.newDenyFixtureIds.length
+    && expectedNewDenies.every((id, index) => report.newDenyFixtureIds[index] === id);
 }
 
 export async function simulateViraPolicyChange(input: ViraPolicySimulationInput): Promise<ViraPolicySimulationResult> {
@@ -142,7 +209,7 @@ export async function simulateViraPolicyChange(input: ViraPolicySimulationInput)
 
   const report: ViraPolicySimulationReport = Object.freeze({
     version: VIRA_POLICY_SIMULATION_VERSION,
-    reportId: reportId(input),
+    reportId: expectedReportId(input.fixtureSetId, input.current.policyRef, input.candidate.policyRef),
     currentEvaluatorId: input.current.id,
     candidateEvaluatorId: input.candidate.id,
     currentPolicyRef: input.current.policyRef,
@@ -167,8 +234,8 @@ export function reviewViraPolicySimulation(
   report: ViraPolicySimulationReport,
   input: ViraPolicySimulationReviewInput,
 ): ViraPolicySimulationReviewResult {
-  if (report === null || typeof report !== "object" || report.version !== VIRA_POLICY_SIMULATION_VERSION || !boundedId(report.reportId)) {
-    return { ok: false, issue: issue("INVALID_REVIEW", "$.report", "simulation report is invalid") };
+  if (!validReport(report)) {
+    return { ok: false, issue: issue("INVALID_REVIEW", "$.report", "simulation report is internally inconsistent") };
   }
   if (input === null || typeof input !== "object" || !boundedId(input.reviewerId) || (input.decision !== "approved" && input.decision !== "rejected") || !Array.isArray(input.acknowledgedNewDenyFixtureIds)) {
     return { ok: false, issue: issue("INVALID_REVIEW", "$.review", "simulation review input is invalid") };
