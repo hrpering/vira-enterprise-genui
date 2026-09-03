@@ -8,6 +8,15 @@ function bounded(value: unknown, max = 4_096): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= max;
 }
 function providerId(value: string): boolean { return isSemanticNamespace(value); }
+function oidcIssuer(value: unknown): value is string {
+  if (!bounded(value)) return false;
+  try {
+    const url = new URL(value);
+    return (url.protocol === "https:" || url.protocol === "http:") && url.username === "" && url.password === "";
+  } catch {
+    return false;
+  }
+}
 
 export interface ViraAgtClient {
   readonly evaluate: (context: ViraGovernanceContext) => Promise<unknown> | unknown;
@@ -33,8 +42,8 @@ export function createViraAgtGovernanceProvider(id: string, client: ViraAgtClien
         ...(evidence === undefined ? {} : { evidenceRef: evidence }),
       };
       switch (root.verdict) {
-        case "allow":
-        case "warn": return { ...base, effect: "allow" as const };
+        case "allow": return { ...base, effect: "allow" as const };
+        case "warn": return { ...base, effect: "allow" as const, reasonCode: bounded(root.reason, 256) ? root.reason : "agt-warn" };
         case "deny": return { ...base, effect: "deny" as const };
         case "escalate": return { ...base, effect: "challenge" as const };
         case "transform": {
@@ -115,7 +124,7 @@ export function createViraOidcAgentIdentityProvider(id: string, client: ViraOidc
       const raw = await client.resolveClaims(request.credentialRef);
       const parsed = parseJsonValue(raw, "$.oidcClaims");
       const claims = parsed.ok ? object(parsed.value) : undefined;
-      if (!claims || !bounded(claims.sub) || !bounded(claims.iss) || !isSemanticNamespace(claims.iss)) throw new Error("OIDC claims require bounded sub and semantic issuer");
+      if (!claims || !bounded(claims.sub) || !oidcIssuer(claims.iss)) throw new Error("OIDC claims require bounded sub and URL issuer");
       return {
         version: "1",
         kind: "agent",
