@@ -7,6 +7,7 @@ export const allowedDependencies = Object.freeze({
   governance: ["action-boundary", "protocol", "runtime-core"],
   "enterprise-context": ["protocol"],
   "enterprise-governance": ["enterprise-context", "governance"],
+  "enterprise-registry": ["enterprise-context", "experience-registry", "protocol"],
   "policy-simulation": ["protocol"],
   "deployment-plane": ["experience-packs", "protocol"],
   planner: ["protocol"],
@@ -54,7 +55,7 @@ export const allowedDependencies = Object.freeze({
   "studio-host": ["protocol"],
   "studio-host-runtime": ["studio-host", "studio-runtime", "studio-schema"],
   "studio-enterprise": ["protocol", "studio-schema"],
-  genui: ["action-boundary", "action-ledger", "cross-platform-conformance", "deployment-plane", "enterprise-context", "enterprise-governance", "governance", "native-ux-gate", "policy-simulation", "experience-resolver", "protocol", "runtime-core", "studio-ai", "studio-authoring", "studio-brand", "studio-brand-console", "studio-host", "studio-host-runtime", "studio-publish", "studio-runtime", "studio-runtime-react", "studio-workbench"],
+  genui: ["action-boundary", "action-ledger", "cross-platform-conformance", "deployment-plane", "enterprise-context", "enterprise-governance", "enterprise-registry", "governance", "native-ux-gate", "policy-simulation", "experience-resolver", "protocol", "runtime-core", "studio-ai", "studio-authoring", "studio-brand", "studio-brand-console", "studio-host", "studio-host-runtime", "studio-publish", "studio-runtime", "studio-runtime-react", "studio-workbench"],
   "genui-cli": ["studio-authoring"],
   "genui-web-component": ["genui"],
 });
