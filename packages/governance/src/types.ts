@@ -1,5 +1,6 @@
 import type { JsonObject } from "@vira-enterprise-genui/protocol";
 import type { ViraActionIntent } from "@vira-enterprise-genui/action-boundary";
+import type { ViraEnterpriseScope } from "@vira-enterprise-genui/enterprise-context";
 
 export const VIRA_GOVERNANCE_VERSION = "1" as const;
 export const VIRA_GOVERNANCE_MAX_PROVIDERS = 32 as const;
@@ -24,6 +25,7 @@ export interface ViraGovernanceContext {
   readonly experienceId: string;
   readonly experienceVersion: string;
   readonly platform: ViraGovernancePlatform;
+  readonly enterpriseScope?: ViraEnterpriseScope;
   readonly userPrincipal?: ViraPrincipal;
   readonly agentPrincipal?: ViraPrincipal;
   readonly actionIntent: ViraActionIntent;
