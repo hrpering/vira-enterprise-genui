@@ -18,10 +18,7 @@ function ledger() {
   return result.value;
 }
 const intent = {
-  version: "1",
-  instanceId: "instance-17",
-  expectedStateRevision: 39,
-  idempotencyKey: "idem-17",
+  version: "1", instanceId: "instance-17", expectedStateRevision: 39, idempotencyKey: "idem-17",
   action: { version: "1", id: "action-17", type: "refund.submit", source: "user", payload: { secret: "must-not-enter-ledger", amount: 50 } },
 } as const;
 const verdict = { version: "1", effect: "challenge", reasonCode: "manager-required", obligations: [], provider: "acme.policy" } as const;
@@ -43,6 +40,7 @@ test("MASTER-17 records a deterministic action chain without replay execution au
   assert.deepEqual(replay.entries.map((entry) => entry.kind), ["experience.shown", "action.proposed", "policy.evaluated", "approval.requested", "approval.granted", "action.executed"]);
   assert.deepEqual(replay.entries.map((entry) => entry.sequence), [0, 1, 2, 3, 4, 5]);
   assert.equal(replay.entries.at(-1)?.stateRevision, 40);
+  assert.equal(replay.entries.at(-1)?.actionEffect, "write");
   const serialized = JSON.stringify(replay);
   for (const forbidden of ["must-not-enter-ledger", "backendSecret", "claims", "payload"]) assert.equal(serialized.includes(forbidden), false);
 });
@@ -54,13 +52,27 @@ test("later action stages fail closed until an exact proposal exists", () => {
   if (!policy.ok) assert.equal(policy.issue.code, "ACTION_NOT_PROPOSED");
 });
 
+test("failed proposal validation does not reserve action identity", () => {
+  const value = ledger();
+  const rejected = value.recordActionProposed("not-a-time", intent as never);
+  assert.equal(rejected.ok, false);
+  if (!rejected.ok) assert.equal(rejected.issue.code, "INVALID_TIMESTAMP");
+  const later = value.recordPolicyEvaluated(t(2), "action-17", verdict as never);
+  assert.equal(later.ok, false);
+  if (!later.ok) assert.equal(later.issue.code, "ACTION_NOT_PROPOSED");
+  assert.equal(value.entries().length, 0);
+});
+
 test("cross-instance approval and receipt identities are rejected", () => {
   const value = ledger();
   assert.equal(value.recordActionProposed(t(1), intent as never).ok, true);
   const badChallenge = value.recordApprovalRequested(t(2), { ...challenge, instanceId: "other-instance" } as never);
   assert.equal(badChallenge.ok, false);
   if (!badChallenge.ok) assert.equal(badChallenge.issue.code, "INVALID_APPROVAL");
-  const badReceipt = value.recordActionExecuted(t(3), { ...receipt, idempotencyKey: "other-key" } as never);
+  const forgedGrant = value.recordApprovalGranted(t(3), { ...challenge, idempotencyKey: "other-key" } as never, decision as never);
+  assert.equal(forgedGrant.ok, false);
+  if (!forgedGrant.ok) assert.equal(forgedGrant.issue.code, "INVALID_APPROVAL");
+  const badReceipt = value.recordActionExecuted(t(4), { ...receipt, idempotencyKey: "other-key" } as never);
   assert.equal(badReceipt.ok, false);
   if (!badReceipt.ok) assert.equal(badReceipt.issue.code, "INVALID_RECEIPT");
 });
