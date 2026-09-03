@@ -114,7 +114,12 @@ export function createViraEnterpriseGovernancePipeline(input: ViraEnterpriseGove
     allowedObligations: input.allowedObligations,
   });
   if (!core.ok) return invalid(core.issue.message);
-  return { ok: true, value: Object.freeze({ version: "1", scope, evaluate: (evaluation) => core.value.evaluate(evaluation) }) };
+  const pipeline: ViraEnterpriseGovernancePipeline = {
+    version: "1",
+    scope,
+    evaluate: (evaluation) => core.value.evaluate(evaluation),
+  };
+  return { ok: true, value: Object.freeze(pipeline) };
 }
 
 export type { ViraEnterprisePrincipal, ViraEnterpriseScope, ViraApprovalChallenge, ViraApprovalDecision, ViraCoreSafetyVerdict, ViraGovernanceContext, ViraGovernanceEvaluationResult };
