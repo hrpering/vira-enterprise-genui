@@ -42,6 +42,7 @@ public final class ViraIOSRuntimeSession {
 
   private let components: [String: ViraIOSComponentDefinition]
   private let actionTypes: [String: String]
+  private let runtimeCore: ViraIOSRuntimeCoreSession
   private var currentViewIdValue: String
   private var currentViewGenerationValue: Int64 = 0
   private var pending: PendingAction?
@@ -50,6 +51,7 @@ public final class ViraIOSRuntimeSession {
   public init(
     envelope: ViraIOSMountEnvelope,
     host: ViraIOSHostAdapter,
+    runtimeState: ViraIOSRuntimeCoreState,
     permissionPolicy: ViraIOSPermissionPolicy
   ) throws {
     guard host.hostId == envelope.compatibility.hostId else {
@@ -64,11 +66,16 @@ public final class ViraIOSRuntimeSession {
     self.permissionPolicy = permissionPolicy
     self.components = Dictionary(uniqueKeysWithValues: envelope.brand.components.map { ($0.ref, $0) })
     self.actionTypes = Dictionary(uniqueKeysWithValues: envelope.brand.actions.map { ($0.event, $0.actionType) })
+    self.runtimeCore = ViraIOSRuntimeCoreSession(state: runtimeState)
     self.currentViewIdValue = envelope.document.entryView
   }
 
   public func currentViewId() -> String {
     currentViewIdValue
+  }
+
+  public func currentRuntimeState() -> ViraIOSRuntimeCoreState {
+    runtimeCore.state()
   }
 
   func currentViewGeneration() -> Int64 {
@@ -88,7 +95,31 @@ public final class ViraIOSRuntimeSession {
       if case .string = value { return true }
       return false
     case .number:
-      if case .number(let number) = value { return number.isFinite }
+      if case .number(let number) = value {
+        return number.isFinite && !(number == 0 && number.sign == .minus)
+      }
+      return false
+    case .boolean:
+      if case .bool = value { return true }
+      return false
+    case .enum:
+      guard case .string(let option) = value else { return false }
+      return definition.options?.contains(option) == true
+    }
+  }
+
+  private func payloadAccepts(
+    _ definition: ViraIOSEventPayloadDefinition,
+    _ value: ViraJSONValue
+  ) -> Bool {
+    switch definition.type {
+    case .string:
+      if case .string = value { return true }
+      return false
+    case .number:
+      if case .number(let number) = value {
+        return number.isFinite && !(number == 0 && number.sign == .minus)
+      }
       return false
     case .boolean:
       if case .bool = value { return true }
@@ -359,6 +390,23 @@ public final class ViraIOSRuntimeSession {
     return .success((currentViewIdValue, true))
   }
 
+  private func validatePayload(
+    component: ViraIOSComponentDefinition,
+    event: String,
+    payload: [String: ViraJSONValue]
+  ) -> Bool {
+    guard let eventDefinition = component.events.first(where: { $0.name == event }) else { return false }
+    let definitions = Dictionary(uniqueKeysWithValues: (eventDefinition.payload ?? []).map { ($0.key, $0) })
+    guard payload.keys.allSatisfy({ definitions[$0] != nil }) else { return false }
+    for definition in eventDefinition.payload ?? [] where definition.required {
+      guard payload[definition.key] != nil else { return false }
+    }
+    for (key, value) in payload {
+      guard let definition = definitions[key], payloadAccepts(definition, value) else { return false }
+    }
+    return true
+  }
+
   public func dispatch(
     runtimeNodeId: String,
     event: String,
@@ -388,26 +436,36 @@ public final class ViraIOSRuntimeSession {
     guard let actionType = actionTypes[interaction.actionEvent] else {
       return .failure(.init(code: .unmappedAction, path: "$.action", message: "published native Studio action is unmapped"))
     }
-    if actionType.hasPrefix("runtime.") {
-      return .failure(.init(
-        code: .unsupportedRuntimeAction,
-        path: "$.action.type",
-        message: "Runtime Core built-in actions are not executable by MASTER-07B native Host"
-      ))
-    }
-
-    switch permissionPolicy.effect(subject: .action, id: actionType) {
-    case .deny:
-      return .failure(.init(code: .permissionDenied, path: "$.action.type", message: "native runtime permission denied"))
-    case .confirm:
-      return .failure(.init(code: .confirmationRequired, path: "$.action.type", message: "native runtime confirmation is required before Host dispatch"))
-    case .allow:
-      break
+    guard let component = components[model.component] else {
+      return .failure(.init(code: .dataValueInvalid, path: "$.component", message: "native component metadata is unavailable"))
     }
 
     var payload = externalPayload ?? [:]
     for (key, value) in model.eventPayloads[event] ?? [:] {
       payload[key] = value
+    }
+    guard validatePayload(component: component, event: event, payload: payload) else {
+      return .failure(.init(code: .invalidEventPayload, path: "$.event.payload", message: "native event payload violates the projected component contract"))
+    }
+
+    let permission = permissionPolicy.effect(subject: .action, id: actionType)
+    let hostRequired: Bool
+    switch runtimeCore.process(actionType: actionType, payload: payload, permissionEffect: permission) {
+    case .failure(let issue): return .failure(issue)
+    case .success(let value): hostRequired = value
+    }
+
+    if !hostRequired {
+      switch complete(routes: interaction.routes, outcome: .success) {
+      case .failure(let issue): return .failure(issue)
+      case .success(let completion):
+        return .success(.init(
+          actionType: actionType,
+          outcome: .success,
+          viewId: completion.viewId,
+          transitioned: completion.transitioned
+        ))
+      }
     }
 
     pending = PendingAction(routes: interaction.routes)
