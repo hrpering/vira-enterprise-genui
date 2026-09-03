@@ -42,6 +42,7 @@ public final class ViraIOSRuntimeSession {
   private let components: [String: ViraIOSComponentDefinition]
   private let actionTypes: [String: String]
   private var currentViewIdValue: String
+  private var currentViewGenerationValue: Int64 = 0
   private var pending: PendingAction?
   private var disposed = false
 
@@ -67,6 +68,10 @@ public final class ViraIOSRuntimeSession {
 
   public func currentViewId() -> String {
     currentViewIdValue
+  }
+
+  func currentViewGeneration() -> Int64 {
+    currentViewGenerationValue
   }
 
   public func isDisposed() -> Bool {
@@ -331,11 +336,19 @@ public final class ViraIOSRuntimeSession {
   private func complete(
     routes: [StudioInteractionRoute],
     outcome: ViraIOSHostActionOutcome
-  ) -> (viewId: String, transitioned: Bool) {
+  ) -> Result<(viewId: String, transitioned: Bool), ViraIOSIssue> {
     let route = routes.first(where: { $0.outcome.rawValue == outcome.rawValue })
-    guard let route else { return (currentViewIdValue, false) }
+    guard let route else { return .success((currentViewIdValue, false)) }
+    guard currentViewGenerationValue < VIRA_IOS_MAX_SAFE_INTEGER else {
+      return .failure(.init(
+        code: .revisionOverflow,
+        path: "$.viewGeneration",
+        message: "native runtime view generation overflowed"
+      ))
+    }
+    currentViewGenerationValue += 1
     currentViewIdValue = route.viewId
-    return (currentViewIdValue, true)
+    return .success((currentViewIdValue, true))
   }
 
   public func dispatch(
@@ -410,16 +423,21 @@ public final class ViraIOSRuntimeSession {
 
     switch result {
     case .failure(let issue):
-      _ = complete(routes: routes, outcome: .error)
-      return .failure(issue)
+      switch complete(routes: routes, outcome: .error) {
+      case .failure(let completionIssue): return .failure(completionIssue)
+      case .success: return .failure(issue)
+      }
     case .success(let hostResult):
-      let completion = complete(routes: routes, outcome: hostResult.outcome)
-      return .success(.init(
-        actionType: actionType,
-        outcome: hostResult.outcome,
-        viewId: completion.viewId,
-        transitioned: completion.transitioned
-      ))
+      switch complete(routes: routes, outcome: hostResult.outcome) {
+      case .failure(let issue): return .failure(issue)
+      case .success(let completion):
+        return .success(.init(
+          actionType: actionType,
+          outcome: hostResult.outcome,
+          viewId: completion.viewId,
+          transitioned: completion.transitioned
+        ))
+      }
     }
   }
 
