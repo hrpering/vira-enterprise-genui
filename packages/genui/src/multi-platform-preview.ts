@@ -189,7 +189,7 @@ export function createViraMultiPlatformPreview(input: {
     return pending;
   };
 
-  const session: ViraMultiPlatformPreviewSession = Object.freeze({
+  const session: ViraMultiPlatformPreviewSession = {
     version: VIRA_MULTI_PLATFORM_PREVIEW_VERSION,
     fast(target) {
       if (!validTarget(target)) return failure("INVALID_CONFIGURATION", "$.target", "preview target is invalid");
@@ -219,6 +219,6 @@ export function createViraMultiPlatformPreview(input: {
       acceptedIdentity = currentIdentity;
       return { ok: true, value: Object.freeze({ version: VIRA_MULTI_PLATFORM_PREVIEW_VERSION, mode: "real", target, nativeHost: "android-emulator", previewPack: packOrIssue, descriptor, envelope: envelope.value }) };
     },
-  });
-  return { ok: true, value: session };
+  };
+  return { ok: true, value: Object.freeze(session) };
 }
