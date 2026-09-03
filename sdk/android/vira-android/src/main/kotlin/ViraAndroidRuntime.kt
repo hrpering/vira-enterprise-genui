@@ -42,6 +42,7 @@ class ViraAndroidRuntimeSession(
   private var disposed = false
 
   init {
+    requireViraAndroidMainThread("$.runtime")
     if (host.hostId != envelope.compatibility.hostId) {
       throw ViraAndroidIssue(
         ViraAndroidIssueCode.INVALID_HOST,
@@ -51,12 +52,28 @@ class ViraAndroidRuntimeSession(
     }
   }
 
-  fun currentViewId(): String = currentViewIdValue
-  fun currentViewGeneration(): Long = currentViewGenerationValue
-  fun currentRuntimeState(): ViraAndroidRuntimeCoreState = runtimeCore.state()
-  fun isDisposed(): Boolean = disposed
+  fun currentViewId(): String {
+    requireViraAndroidMainThread("$.runtime")
+    return currentViewIdValue
+  }
+
+  fun currentViewGeneration(): Long {
+    requireViraAndroidMainThread("$.runtime")
+    return currentViewGenerationValue
+  }
+
+  fun currentRuntimeState(): ViraAndroidRuntimeCoreState {
+    requireViraAndroidMainThread("$.runtime")
+    return runtimeCore.state()
+  }
+
+  fun isDisposed(): Boolean {
+    requireViraAndroidMainThread("$.runtime")
+    return disposed
+  }
 
   fun currentView(): Result<ViraAndroidRuntimeViewModel> = runCatching {
+    requireViraAndroidMainThread("$.runtime")
     if (disposed) throw issue(ViraAndroidIssueCode.SESSION_DISPOSED, "$", "native Studio runtime session is disposed")
     val view = envelope.document.views.firstOrNull { it.id == currentViewIdValue }
       ?: throw issue(ViraAndroidIssueCode.VIEW_NOT_FOUND, "$.viewId", "current native Studio view does not exist")
@@ -153,6 +170,7 @@ class ViraAndroidRuntimeSession(
     event: String,
     externalPayload: Map<String, ViraJson>? = null,
   ): Result<ViraAndroidHostedDispatchCompletion> = runCatching {
+    requireViraAndroidMainThread("$.runtime")
     if (disposed) throw issue(ViraAndroidIssueCode.SESSION_DISPOSED, "$", "native Studio runtime session is disposed")
     if (pendingRoutes != null) throw issue(ViraAndroidIssueCode.ACTION_PENDING, "$.event", "one native Studio action is already awaiting a Host outcome")
     val model = currentView().getOrThrow().nodes.firstOrNull { it.id == runtimeNodeId }
@@ -187,11 +205,13 @@ class ViraAndroidRuntimeSession(
     val hostResult = try {
       host.dispatch(ViraAndroidHostActionDescriptor(actionType, payload)).getOrThrow()
     } catch (error: Throwable) {
+      requireViraAndroidMainThread("$.runtime")
       val routes = pendingRoutes.orEmpty()
       pendingRoutes = null
       complete(routes, ViraAndroidHostActionOutcome.ERROR)
       throw error
     }
+    requireViraAndroidMainThread("$.runtime")
     if (disposed) {
       pendingRoutes = null
       throw issue(ViraAndroidIssueCode.DISPOSED, "$", "native Studio runtime was disposed during Host dispatch")
@@ -203,6 +223,7 @@ class ViraAndroidRuntimeSession(
   }
 
   fun dispose() {
+    requireViraAndroidMainThread("$.runtime")
     if (disposed) return
     disposed = true
     pendingRoutes = null
