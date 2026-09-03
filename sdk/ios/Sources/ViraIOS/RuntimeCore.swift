@@ -424,7 +424,7 @@ final class ViraIOSRuntimeCoreSession {
 
   func state() -> ViraIOSRuntimeCoreState { stateValue }
 
-  func prepare(
+  private func prepare(
     actionType: String,
     payload: [String: ViraJSONValue]
   ) -> Result<ViraIOSRuntimePreparedAction, ViraIOSIssue> {
@@ -470,7 +470,7 @@ final class ViraIOSRuntimeCoreSession {
     return .success(.host)
   }
 
-  func reduceAllowed(_ prepared: ViraIOSRuntimePreparedAction) -> Result<Bool, ViraIOSIssue> {
+  private func reduceAllowed(_ prepared: ViraIOSRuntimePreparedAction) -> Result<Bool, ViraIOSIssue> {
     switch prepared {
     case .host:
       return .success(false)
@@ -486,7 +486,8 @@ final class ViraIOSRuntimeCoreSession {
       )
       return .success(true)
     case .patch(let patch):
-      if patch.operations.isEmpty { return .success(false) }
+      if patch.operations.isEmpty { return .success(false)
+      }
       guard stateValue.revision < VIRA_IOS_MAX_SAFE_INTEGER else {
         return .failure(.init(code: .revisionOverflow, path: "$.revision", message: "runtime revision cannot be incremented safely"))
       }
@@ -500,6 +501,37 @@ final class ViraIOSRuntimeCoreSession {
         plan: plan
       )
       return .success(true)
+    }
+  }
+
+  func process(
+    actionType: String,
+    payload: [String: ViraJSONValue],
+    permissionEffect: ViraIOSPermissionEffect
+  ) -> Result<Bool, ViraIOSIssue> {
+    let prepared: ViraIOSRuntimePreparedAction
+    switch prepare(actionType: actionType, payload: payload) {
+    case .failure(let issue): return .failure(issue)
+    case .success(let value): prepared = value
+    }
+
+    switch permissionEffect {
+    case .deny:
+      return .failure(.init(code: .permissionDenied, path: "$.action.type", message: "native runtime permission denied"))
+    case .confirm:
+      return .failure(.init(code: .confirmationRequired, path: "$.action.type", message: "native runtime confirmation is required before execution"))
+    case .allow:
+      break
+    }
+
+    switch prepared {
+    case .host:
+      return .success(true)
+    case .patch, .lifecycle:
+      switch reduceAllowed(prepared) {
+      case .failure(let issue): return .failure(issue)
+      case .success: return .success(false)
+      }
     }
   }
 }
