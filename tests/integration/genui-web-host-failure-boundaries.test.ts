@@ -182,7 +182,7 @@ function resolver(activeBrand: ViraBrandDefinition): ExperienceResolver {
   const created = createExperienceResolver({
     registry: registry(),
     hostManifest: hostManifest(),
-    resolveExactDeployment: async (deploymentId) => ({
+    resolveExactDeployment: async (deploymentId: string) => ({
       deploymentId,
       packId: "alpha/failure-boundary",
       packVersion: "1.0.0",
