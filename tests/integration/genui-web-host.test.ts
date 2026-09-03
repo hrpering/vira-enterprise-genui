@@ -193,7 +193,7 @@ function resolver(activeBrand: ViraBrandDefinition, manifest = hostManifest()) {
   const created = createExperienceResolver({
     registry: registry(),
     hostManifest: manifest,
-    resolveExactDeployment: async (deploymentId) => ({
+    resolveExactDeployment: async (deploymentId: string) => ({
       deploymentId,
       packId: "alpha/catalog",
       packVersion: "1.0.0",
