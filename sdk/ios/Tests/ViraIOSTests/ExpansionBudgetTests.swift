@@ -57,7 +57,7 @@ private final class ExpansionBudgetHostBridge: ViraIOSHostBridge {
 
 final class ExpansionBudgetTests: XCTestCase {
   @MainActor
-  func testNestedRepeatsFailBeforeExceedingCumulativeNativeNodeBudget() throws {
+  func testNestedRepeatsFailBeforeExceedingCumulativeNativeNodeBudget() async throws {
     let itemCount = 65
     XCTAssertGreaterThan(itemCount + itemCount * itemCount, VIRA_IOS_MAX_EXPANDED_NODES)
 
