@@ -2,7 +2,7 @@
 
 ## 1. Authoritative base
 
-This phase starts only from authoritative `main`:
+Authoritative `main` at phase start:
 
 `1e72e50838620558bf908d95e5a3383b115acfde`
 
@@ -10,337 +10,386 @@ Branch:
 
 `master/07a-web-host`
 
-This plan file is the first branch commit. No older web/runtime branch is merged or replayed blindly.
+The first branch commit contained this plan before implementation. No stale web/runtime branch is merged or replayed blindly.
 
 ## 2. Architectural responsibility
 
 MASTER-07A owns one responsibility:
 
-> Reconcile the existing web runtime/public web surfaces with the common Host Capability, exact-instance and platform-neutral session contracts so web becomes the reference first-class host implementation without becoming the semantic definition of Vira.
+> Provide the first-class reference Web Host adapter over the already-canonical Brand, Host Capability, exact-instance resolver, session kernel and Studio runtime contracts without making web the semantic definition of Vira.
 
-Web remains an adapter/implementation over canonical cross-platform semantics.
+The web adapter must consume prior owners rather than duplicate them.
 
-This phase does **not** create a new Experience schema, new runtime kernel, new resolver, new policy system, new protected Action Boundary, iOS/Android renderer, deployment plane or arbitrary HTML compatibility path.
+MASTER-07A does not create a new Experience schema, runtime kernel, resolver, Brand schema, Host Capability schema, policy system, protected Action Boundary, iOS/Android runtime or arbitrary remote HTML/JavaScript execution path.
 
-## 3. Frozen inputs from previous phases
+## 3. Reverse-engineering findings
 
-MASTER-07A must consume, not duplicate:
+### 3.1 Two web runtime families intentionally exist
 
-- canonical Experience semantics → `studio-schema` / publication path;
-- exact brand platform implementation IDs → MASTER-03 `studio-brand`;
-- Host Capability Manifest / compatibility → MASTER-04 `studio-host`;
-- exact deployment/Pack/publication/instance resolution → MASTER-05 `experience-resolver`;
-- platform-neutral session availability/continuity → MASTER-06 `runtime-core`;
-- current browser/DOM rendering → existing `runtime-web`;
-- current React wrapper → existing `react`;
-- current Web Component wrapper → existing `web-component`;
-- public Studio/GenUI web facade → existing `genui` / `genui-web-component`;
-- current trusted JS renderer activation → existing Studio brand/loader/runtime owners.
+The repository has two distinct public histories:
 
-## 4. Global invariants
+```text
+original runtime path
+runtime-web
+  ├─ react
+  └─ web-component
 
-MASTER-07A preserves:
+canonical Studio/public GenUI path
+genui
+  ↓
+studio-host-runtime
+  ↓
+studio-runtime
+  ↓
+studio-runtime-react
+  ↓
+genui-web-component
+```
 
-1. One canonical Experience model.
-2. Web does not redefine semantic components, actions or state.
-3. Exact `instanceId`; no last-mounted/active/global routing.
-4. Exact Host Capability support; no fallback invention.
-5. Host implementation IDs resolve only to trusted installed web implementations.
-6. No arbitrary remote JavaScript/HTML execution as a Vira native/web Experience mechanism.
-7. `runtime-core` remains browser-free.
-8. Browser lifecycle APIs stay in the web adapter and translate into MASTER-06 session semantics.
-9. Web renderer events produce canonical semantic actions, not business side effects directly.
-10. Protected side effects remain future MASTER-08 responsibility.
-11. Runtime/host/session revisions remain distinct and deterministic.
-12. Generic web packages remain customer/domain neutral.
-13. Existing public web APIs remain backward compatible unless RE proves a security/architecture defect.
-14. Unsupported Host Capability fails closed.
-15. No dependency edge is added without an explicit owner justification.
+The README explicitly describes `react` and `web-component` as thin wrappers over the original `runtime-web` surface, while `genui` is the public Studio publication + Host + React integration surface.
 
-## 5. Required reverse engineering before implementation
+Therefore MASTER-07A must not force Studio/Resolver/Brand dependencies downward into `runtime-web` merely to make every historical web API share one package.
 
-Before writing implementation code, inspect and map:
+The original `runtime-web` path remains backward-compatible and receives no new MASTER-03/04/05 ownership.
 
-### 5.1 Current web runtime path
+### 3.2 `genui` is the correct reference Web Host composition owner
 
-- `runtime-web` package exports;
-- SDK creation/configuration;
-- mount/unmount/dispose lifecycle;
-- DOM port boundaries;
-- state binding/reducer path;
-- user-event/action bridge;
-- capability/component security gates;
-- accessibility/responsive owners.
+`genui` already composes:
 
-### 5.2 Current public wrappers
-
-- `react` wrapper lifecycle and configuration;
-- `web-component` wrapper lifecycle/events;
-- `genui` public runtime facade;
-- `genui-web-component` public wrapper;
-- any chat-facing runtime bridge.
-
-Determine whether these all converge on one canonical web runtime or whether parallel activation paths still exist.
-
-### 5.3 Current Studio web path
-
-Inspect:
-
-- `studio-runtime`;
-- `studio-runtime-react`;
 - `studio-host`;
 - `studio-host-runtime`;
-- `studio-brand-loader`.
+- `studio-runtime`;
+- `studio-runtime-react`;
+- public Studio authoring/runtime surfaces.
 
-Identify which path is authoritative for current public Studio publications and which original runtime path remains separately exposed.
+It is therefore the smallest existing owner that can safely compose MASTER-03 Brand metadata, MASTER-04 Host Capability, MASTER-05 exact resolution and MASTER-06 session semantics without introducing a new top-level package.
 
-### 5.4 Host Capability integration gap
+### 3.3 MASTER-03 implementation identity is not yet connected to runtime renderers
 
-Find whether current web runtime:
-
-- constructs a MASTER-04 `StudioHostCapabilityManifest`;
-- evaluates exact implementation IDs/capabilities before mount;
-- has any duplicate/manual capability logic that must be removed or delegated;
-- can expose one reference web Host Manifest without customer/domain switching.
-
-### 5.5 Exact instance integration gap
-
-Map how current web APIs identify mounted Experiences.
-
-Find and remove/avoid any routing based on:
-
-- current mounted Experience;
-- latest mount;
-- singleton active runtime;
-- DOM element identity as business instance identity;
-- hidden global target.
-
-The target web path must bind explicit MASTER-05 `instanceId` through mount/session/action routing where applicable.
-
-### 5.6 MASTER-06 session adapter gap
-
-Map browser signals to common semantics:
+MASTER-03 defines exact mappings:
 
 ```text
-Document visibility / page lifecycle
-          ↓
-foreground / background / resume
-
-online/offline signal
-          ↓
-connected / disconnected / reconnect
+component ref
+  → web implementationId
+  → ios implementationId
+  → android implementationId
 ```
 
-The browser adapter must not probe or claim more network truth than the browser signal provides.
-
-Determine whether the adapter belongs in `runtime-web` or another existing web owner based on current package boundaries.
-
-### 5.7 Trusted implementation resolution gap
-
-Determine where semantic web implementation IDs from MASTER-03 should be resolved to installed renderer implementations.
-
-Rules:
-
-- reuse the existing trusted renderer activation owner;
-- no dynamic remote import;
-- no URL/path/source-code field;
-- exact ID only;
-- missing implementation fails closed;
-- no customer-name switch in generic source.
-
-MASTER-07A may add a web-specific trusted registry/adapter only if RE proves the existing owner cannot represent this without ownership drift.
-
-### 5.8 Public API convergence
-
-Determine the smallest public web Host facade that can be consumed consistently by:
-
-- React;
-- Web Component;
-- Chat/public GenUI;
-- Studio runtime React surface where appropriate.
-
-Do not introduce another facade if the existing public `genui` owner can be extended safely.
-
-## 6. Expected target architecture
-
-Conceptually:
+Existing Studio React runtime rendering expects:
 
 ```text
-ResolvedExperienceDescriptor (MASTER-05)
-        +
-Web Host Capability Manifest (MASTER-04)
-        +
-Web trusted implementation registry
-        +
-RuntimeSessionState (MASTER-06)
-        ↓
-Web Host Adapter
-        ↓
-existing runtime / Studio runtime semantics
-        ↓
-React / Web Component / Chat surfaces
+component ref
+  → trusted renderer function
 ```
 
-The exact package ownership will be finalized only after RE.
-
-## 7. Browser lifecycle target
-
-Expected adapter behavior:
+The missing Web Host bridge is therefore:
 
 ```text
-initial host observation
-  → createRuntimeSessionState(instanceId, explicit visibility/connectivity)
-
-visibility hidden
-  → background
-
-visibility visible after background
-  → foreground or resume according to final adapter contract
-
-offline
-  → disconnect
-
-online after disconnect
-  → reconnect
+Brand component ref
+  ↓ exact MASTER-03 web implementationId
+Host Manifest support
+  ↓ exact local installed implementation registry
+trusted renderer function
+  ↓
+component-ref renderer registry
+  ↓
+studio-runtime-react
 ```
 
-Rules:
+No remote import, URL, path or source-code lookup is required or allowed.
 
-- browser callbacks are translated, never stored in `runtime-core`;
-- duplicate browser events inherit MASTER-06 deterministic no-op semantics;
-- adapter teardown removes listeners;
-- disposed/unmounted instances do not continue receiving lifecycle updates;
-- lifecycle updates target exact instance state only;
-- reconnect does not replay protected actions;
-- no implicit cache verification occurs.
+### 3.4 MASTER-05 already owns exact resolution and reservation
 
-## 8. Host Capability target
+`experience-resolver` already resolves and retains exact mounted descriptors keyed by opaque `instanceId`.
 
-A reference web Host Manifest must be declarative and exact.
+The Web Host must not accept a free-form descriptor as its routing authority. It consumes an `ExperienceResolver` and exact `instanceId`, then obtains the already-resolved descriptor through `resolver.get(instanceId)`.
 
-At minimum it should identify:
+The descriptor must still be defensively validated at the adapter boundary for:
 
+- exact instance equality;
+- exact Host Capability id;
 - platform `web`;
-- host identity;
-- trusted supported implementation IDs;
-- supported canonical capabilities.
+- canonical JSON publication snapshot.
 
-It must not carry:
+A successful Web Experience releases the exact resolver reservation when disposed. Failed Web Host construction does not implicitly release the resolver descriptor, allowing safe correction/retry by the caller.
 
-- renderer functions;
-- DOM nodes;
-- URLs;
-- dynamic imports;
-- secrets;
-- backend endpoints.
+### 3.5 `RuntimeState.experienceId` and mounted `instanceId` are different identities
 
-Actual functions/DOM handles stay in trusted local web implementation code, not the declarative manifest.
+Existing `RuntimeState.experienceId` is a bounded runtime semantic identity with its own contract.
 
-## 9. Compatibility / mount gate
+MASTER-05/06 `instanceId` is an opaque mounted-instance routing identity.
 
-Before a resolved Experience is mounted through the common host path:
+MASTER-07A does not conflate or silently equate these identities. Exact mounted routing remains on resolver/session state; existing runtime semantic identity remains owned by `runtime-core`.
 
-1. exact descriptor/instance context is known;
-2. exact web Host Manifest is known;
-3. host requirement compatibility is already/again consumed through the canonical MASTER-04 evaluator as appropriate to ownership;
-4. semantic component implementation IDs resolve exactly to trusted local web implementations;
-5. missing/unsupported implementation fails closed;
-6. only then may the web renderer mount.
+### 3.6 Browser lifecycle belongs in the Web Host adapter
 
-No prefix, wildcard, `latest`, closest-match or fallback guessing is permitted.
+MASTER-06 intentionally contains no browser APIs.
 
-## 10. Security / trust checks
-
-Focused security review must verify:
-
-- no untrusted payload becomes a renderer function;
-- no `eval`, `Function`, remote script or dynamic URL import is introduced;
-- no DOM/host exception content is reflected to untrusted output;
-- lifecycle callbacks cannot route to another instance;
-- disposed instances stop receiving events;
-- unsupported implementation/capability fails closed;
-- platform manifest cannot grant authorization;
-- component support does not grant business-action permission;
-- reconnect/resume does not trigger action execution;
-- generic source contains no Pegasus/airline/customer switching.
-
-## 11. Expected implementation scope
-
-Default expectation after RE:
+MASTER-07A translates browser observations only:
 
 ```text
-packages/runtime-web/
-  existing SDK/host integration extension
-
-packages/react/
-  thin adaptation only if needed
-
-packages/web-component/
-  thin adaptation only if needed
-
-packages/genui/
-  public facade convergence only if current owner requires it
-
-tests/contract/
-tests/integration/
+visibility hidden  → background
+visibility visible → resume
+offline             → disconnect
+online              → reconnect
 ```
 
-Changes to `studio-host`, `runtime-core`, `experience-resolver` or canonical Studio schema are **not expected**. If implementation appears to require changing those owners, stop and perform architecture reconciliation before coding.
+These are signals, not permission grants, network guarantees or action replay instructions.
 
-## 12. Focused verification
+### 3.7 `genui-web-component` can consume the bound Web Experience directly
 
-Tests should cover as applicable after RE:
+The existing canonical Web Component accepts a raw `ViraExperienceRuntime` plus a component-ref renderer registry.
 
-### Host manifest / compatibility
+A MASTER-07A `ViraWebExperience` already has its renderer mapping bound by the trusted Web Host. The Web Component therefore gains a second thin mount form that accepts the bound `webExperience` directly and does not accept another renderer registry on that path.
 
-- reference web manifest is valid and immutable;
-- exact supported implementation resolves;
-- missing implementation fails closed;
-- near/prefix/wildcard match fails;
-- unsupported capability fails closed;
-- manifest contains no executable renderer surface.
+The existing raw runtime mount form remains backward-compatible.
 
-### Exact instance routing
+## 4. Frozen prior owners
 
-- two simultaneous web instances remain isolated;
-- lifecycle event for A does not mutate B;
-- actions emitted from A retain A context where owned by this phase;
+MASTER-07A consumes without redefining:
+
+- Experience / publication semantics → `studio-schema`, `studio-publish`, `studio-runtime`;
+- Brand package + cross-platform implementation IDs → `studio-brand`;
+- Host Capability Manifest and compatibility semantics → `studio-host`;
+- exact deployment/Pack/artifact/instance resolution → `experience-resolver`;
+- visibility/connectivity/continuity session state → `runtime-core`;
+- Host action completion and duplicate-forward protection → `studio-host-runtime`;
+- React semantic rendering → `studio-runtime-react`.
+
+No changes to these owners are expected in this phase.
+
+## 5. Target architecture
+
+```text
+Host integration
+  ├─ Web Host Capability Manifest
+  ├─ trusted local implementationId → renderer registry
+  ├─ browser lifecycle source
+  └─ business Studio Host bridge
+           │
+           ▼
+      createViraWebHost()
+           │
+           ├─ resolver.get(exact instanceId)
+           │       ↓
+           │   ResolvedExperienceDescriptor
+           │
+           ├─ Brand component → web implementationId
+           │       ↓
+           ├─ exact Host Manifest support
+           │       ↓
+           ├─ trusted installed renderer
+           │
+           ├─ RuntimeSessionState(instanceId)
+           │
+           ▼
+ createViraExperienceRuntime()
+           │
+           ▼
+ studio-host-runtime + studio-runtime
+           │
+           ▼
+ studio-runtime-react
+           │
+           ├─ consumer React surface
+           └─ genui-web-component
+```
+
+The historical `runtime-web → react/web-component` compatibility path remains separate and unchanged.
+
+## 6. Public Web Host contract
+
+The canonical phase surface is conceptually:
+
+```ts
+createViraWebHost({
+  manifest,
+  renderers,  // exact implementationId → trusted local renderer
+  lifecycle,
+})
+```
+
+The returned Host supports exact instances:
+
+```ts
+webHost.createExperience({
+  resolver,
+  instanceId,
+  brand,
+  runtimeState,
+  permissionPolicy,
+  host,
+})
+
+webHost.get(instanceId)
+webHost.release(instanceId)
+webHost.dispose()
+```
+
+No API exists for `latest`, `active`, last-mounted, DOM-selected or implicit current instance routing.
+
+## 7. Renderer trust invariants
+
+1. Host Manifest must be canonical and platform `web`.
+2. Trusted local renderer registry keys must exactly equal Manifest `implementationIds`.
+3. Every Manifest implementation ID therefore corresponds to an actually installed local renderer.
+4. Brand implementation entries must exactly cover the active component catalog.
+5. `component`, `web`, `ios` and `android` mapping fields remain exact MASTER-03-shaped data.
+6. All three platform implementation IDs remain namespaced semantic identifiers even though this adapter executes only the web member.
+7. Brand web implementation ID must be present in the Host Manifest.
+8. That exact ID must resolve to the installed trusted renderer.
+9. Renderer functions never appear in Host Manifest, publication, resolver descriptor or model-generated data.
+10. No prefix/wildcard/closest/latest fallback exists.
+
+## 8. Exact instance invariants
+
+1. `instanceId` uses the existing MASTER-05/06 opaque bounded identity grammar.
+2. Host active/pending instances use `Map`/`Set`, never attacker-controlled object keys.
+3. A resolver descriptor must exactly match the requested `instanceId`.
+4. Descriptor Host Capability identity must exactly match the active Web Host Manifest id and platform.
+5. Two simultaneous instances remain independent even when they use the same Brand/Pack/deployment.
+6. Releasing A does not release B.
+7. Web Experience disposal releases only its own resolver reservation.
+8. Prototype-looking strings are ordinary exact data, not property-routing authority.
+
+## 9. Session / lifecycle invariants
+
+Initial lifecycle snapshot is explicit and becomes a MASTER-06 `RuntimeSessionState` for the exact instance.
+
+Browser mapping:
+
+```text
+hidden  → background
+visible → resume
+offline → disconnect
+online  → reconnect
+```
+
+Rules:
+
+- duplicate signals use MASTER-06 deterministic no-op semantics;
+- only actual semantic transitions increment session revision;
+- visibility/connectivity remain orthogonal;
+- session revision remains separate from Studio/runtime/Host snapshot revisions;
+- lifecycle listener teardown occurs on Web Experience disposal;
+- invalid lifecycle events cannot mutate session state;
+- reconnect/resume never retry or replay protected side effects;
+- no cache verification authority is created.
+
+## 10. Web Component compatibility
+
+`genui-web-component` preserves its current raw runtime mount:
+
+```ts
+mount({ runtime, renderers, onHostResult? })
+```
+
+and adds the bound Web Host form:
+
+```ts
+mount({ webExperience, onHostResult? })
+```
+
+The bound form does not accept another renderer registry. Renderer choice remains owned by the Web Host mapping gate.
+
+Unmount/disconnect continues to remove only UI subscriptions/render roots; ownership of the Web Experience lifetime remains with its Host/application unless explicitly disposed there.
+
+## 11. Security / trust invariants
+
+MASTER-07A must preserve:
+
+1. no untrusted payload becomes executable renderer code;
+2. no `eval`, `Function`, remote script or dynamic URL/path import;
+3. no raw secrets/endpoints added to declarative Host/Experience state;
+4. no arbitrary exception text reflected from trusted resolver/lifecycle callbacks;
+5. exact Host Capability support fails closed;
+6. exact instance mismatch fails closed without reflecting instance values;
+7. Host Capability does not grant business-action permission;
+8. foreground/connected state does not grant authorization;
+9. reconnect/resume does not execute/replay actions;
+10. no browser API enters `runtime-core`;
+11. no customer/domain branching enters generic packages;
+12. protected side effects remain on the existing host path pending MASTER-08.
+
+## 12. Dependency ownership
+
+Expected new `genui` dependency edges are only those required by its new composition responsibility:
+
+```text
+genui
+  → experience-resolver
+  → protocol
+  → runtime-core
+  → studio-brand
+```
+
+Existing `genui` dependencies on Studio Host/Runtime/React remain.
+
+No dependency is added from `runtime-web` to Resolver, Brand, Studio Host or Studio Runtime.
+
+`genui-web-component` continues to depend only on `genui` plus its React peer/runtime dependencies.
+
+## 13. Focused verification
+
+Focused tests must prove:
+
+### End-to-end composition
+
+- real `defineViraBrand()` output;
+- real canonical Studio publication;
+- real MASTER-05 resolver resolution;
+- exact Host Capability identity;
+- Brand web implementation ID binds to the expected trusted renderer;
+- canonical Studio runtime renders through the bound component-ref registry.
+
+### Exact instance isolation
+
+- two simultaneous instances remain isolated;
+- duplicate Web Host mount of the same exact instance is rejected;
 - release/dispose of A does not affect B;
-- prototype-looking IDs behave as ordinary exact IDs.
+- successful disposal releases the corresponding resolver reservation;
+- descriptor instance mismatch is rejected without value reflection;
+- descriptor Host Capability mismatch is rejected.
 
-### Browser lifecycle adapter
+### Renderer/Brand safety
+
+- Manifest/renderer registry mismatch is rejected;
+- non-web Host Manifest is rejected;
+- unsupported Brand web implementation ID is rejected;
+- malformed cross-platform implementation mapping is rejected;
+- renderer functions remain only in the trusted local registry.
+
+### Lifecycle
 
 - explicit initial state;
-- hidden → background;
-- visible/resume → foreground;
-- offline → disconnected;
-- online/reconnect → connected;
-- duplicate signals do not churn revision;
-- teardown removes listener effects;
-- no action replay.
+- background / resume / disconnect / reconnect mapping;
+- duplicate signal no-op;
+- session revision changes only on semantic changes;
+- session listener cleanup;
+- Browser event listener cleanup;
+- no host action is dispatched merely because lifecycle changes.
 
-### Existing web behavior
+### Web Component
 
-- current mount/state-binding/action rendering tests remain green;
-- React wrapper remains thin;
-- Web Component event semantics remain stable;
-- public GenUI web path remains canonical;
-- browser accessibility/responsive gates remain green.
+- historical raw runtime mount remains green;
+- bound `webExperience` mount renders without a second renderer registry;
+- runtime invalidation rerenders;
+- render failure cleans subscription/root state.
 
-### Security
+### Existing compatibility surfaces
 
-- unsupported/untrusted renderer ID denied;
-- no remote executable metadata;
-- hostile host/DOM callback failures are normalized where crossing trust boundaries;
-- no cross-instance leakage.
+- original `runtime-web` suites remain green;
+- original `react` wrapper remains green;
+- original `web-component` wrapper remains green;
+- public GenUI runtime tests remain green;
+- current browser/accessibility/responsive suites remain green.
 
-## 13. Repository verification
+## 14. Repository verification
 
 Before merge:
 
 - focused MASTER-07A tests PASS;
-- existing runtime-web contract/integration suites PASS;
-- React/Web Component suites PASS;
+- existing runtime-web/React/Web Component/GenUI suites PASS;
 - package boundaries PASS;
 - lint PASS;
 - typecheck PASS;
@@ -350,57 +399,59 @@ Before merge:
 - MASTER-02 native conformance remains green;
 - `pnpm verify:all` PASS on exact PR head.
 
-## 14. Independent RE / QC gate
+## 15. Independent RE / QC gate
 
 Before squash merge re-check:
 
 - web remains adapter, not semantic owner;
-- no duplicate Host Capability/Experience/runtime schema;
-- no hidden active/global instance target;
-- no remote executable code path;
-- no action execution bypass;
-- no browser API leaks into runtime-core;
-- no unnecessary dependency cycles/edges;
-- all current public wrappers converge correctly;
-- domain/customer neutrality preserved;
-- all review threads resolved;
-- exact-head CI successful;
-- branch 0 behind authoritative `main`;
-- final diff phase-scoped.
+- `genui` is composition facade, not a duplicate schema/runtime owner;
+- legacy runtime-web wrappers remain backward-compatible;
+- no hidden active/global instance target exists;
+- no remote executable code path exists;
+- no protected action execution bypass was added;
+- no browser API leaked into runtime-core;
+- dependency graph has only justified upward composition edges;
+- Host/Brand/Resolver/session owners remain canonical;
+- domain/customer neutrality is preserved;
+- all review threads are resolved;
+- exact-head hosted CI is successful;
+- branch is 0 behind authoritative `main`;
+- final diff is phase-scoped.
 
 Only then record `MASTER-07A independent RE/QC: PASS` and squash merge using the verified exact head.
 
-## 15. Explicit non-goals
+## 16. Explicit non-goals
 
 MASTER-07A does not implement:
 
 - iOS SDK;
 - Android SDK;
-- arbitrary HTML/MCP Apps compatibility surface;
-- Action Boundary;
+- arbitrary HTML/MCP Apps compatibility;
+- protected Action Boundary;
 - governance/identity/approval;
-- deployment/artifact verification plane;
-- tenant/project/secrets;
+- deployment/artifact signature verification;
+- tenant/project/environment/secrets control plane;
 - new Experience schema;
 - new Brand schema;
 - new Host Capability schema;
-- new generic resolver;
+- new resolver;
 - customer/domain-specific web behavior.
 
-## 16. Acceptance gate
+## 17. Acceptance gate
 
 MASTER-07A is complete only when all are true:
 
-1. one reference web Host path consumes canonical Host Capability semantics;
-2. exact instance identity is preserved across web host lifecycle;
-3. browser lifecycle/connectivity translate into MASTER-06 session semantics;
-4. trusted web implementation resolution is exact and fail closed;
-5. React/Web Component/public GenUI surfaces remain thin consumers of the canonical web host path;
-6. no remote executable renderer mechanism is introduced;
-7. existing execution/action semantics remain owned by their canonical packages;
-8. no protected side effect bypass is introduced;
-9. web is a reference host, not the semantic definition of Vira;
-10. full repository/browser/native verification passes on exact head;
-11. independent architecture/security/API RE/QC passes;
-12. branch is 0 behind authoritative main;
-13. squash merge uses the verified exact head.
+1. `genui` exposes one reference Web Host path over canonical prior-phase contracts;
+2. exact resolver instance identity is preserved through Web Host lifetime;
+3. Brand web implementation IDs resolve exactly to trusted installed renderers;
+4. Web Host Capability identity/platform are exact and fail closed;
+5. browser lifecycle/connectivity translate through MASTER-06 semantics;
+6. lifecycle events cannot replay protected actions;
+7. canonical `genui-web-component` can consume a renderer-bound Web Experience directly;
+8. historical runtime-web/react/web-component APIs remain backward-compatible;
+9. no remote executable renderer mechanism is introduced;
+10. web remains an adapter/reference implementation rather than Vira semantic authority;
+11. full repository/browser/native verification passes on the exact PR head;
+12. independent architecture/security/API RE/QC passes;
+13. branch is 0 behind authoritative main;
+14. squash merge uses the verified exact head.
