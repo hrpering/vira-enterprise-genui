@@ -13,6 +13,7 @@ import {
   type RuntimeSessionVisibility,
 } from "@vira-enterprise-genui/runtime-core";
 import {
+  isSemanticNamespace,
   parseJsonValue,
   type JsonObject,
   type JsonValue,
@@ -20,6 +21,7 @@ import {
 import {
   createStudioBrandPackage,
   VIRA_BRAND_DEFINITION_VERSION,
+  type StudioBrandPackage,
   type ViraBrandDefinition,
 } from "@vira-enterprise-genui/studio-brand";
 import {
@@ -296,6 +298,10 @@ function jsonObject(value: JsonValue | undefined): value is JsonObject {
   return value !== undefined && value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function isImplementationId(value: JsonValue | undefined): value is string {
+  return typeof value === "string" && value.includes(".") && isSemanticNamespace(value);
+}
+
 function canonicalResolution(
   input: unknown,
   expectedInstanceId: string,
@@ -339,7 +345,7 @@ function bindBrandRenderers(
   input: unknown,
   manifest: StudioHostCapabilityManifest,
   installed: ReadonlyMap<string, StudioRuntimeReactRenderer>,
-): { readonly ok: true; readonly brandPackage: ReturnType<typeof createStudioBrandPackage> extends { readonly ok: true; readonly value: infer T } ? T : never; readonly renderers: ViraWebRendererRegistry }
+): { readonly ok: true; readonly brandPackage: StudioBrandPackage; readonly renderers: ViraWebRendererRegistry }
   | { readonly ok: false; readonly issue: ViraWebHostIssue } {
   const root = readDataObject(input, brandFields);
   if (!root.ok || root.value.version !== VIRA_BRAND_DEFINITION_VERSION) {
@@ -376,8 +382,15 @@ function bindBrandRenderers(
     if (keys.length !== implementationFields.size || keys.some((key) => !implementationFields.has(key))) {
       return { ok: false, issue: issue("INVALID_BRAND_IMPLEMENTATIONS", "$.brand.implementations", "brand web implementation mapping has an unexpected shape") };
     }
-    if (typeof entry.component !== "string" || typeof entry.web !== "string" || !expected.has(entry.component) || byComponent.has(entry.component)) {
-      return { ok: false, issue: issue("INVALID_BRAND_IMPLEMENTATIONS", "$.brand.implementations", "brand web implementation mapping does not exactly match the active component catalog") };
+    if (
+      typeof entry.component !== "string"
+      || !isImplementationId(entry.web)
+      || !isImplementationId(entry.ios)
+      || !isImplementationId(entry.android)
+      || !expected.has(entry.component)
+      || byComponent.has(entry.component)
+    ) {
+      return { ok: false, issue: issue("INVALID_BRAND_IMPLEMENTATIONS", "$.brand.implementations", "brand platform implementation mapping does not exactly match the active component catalog") };
     }
     if (!supported.has(entry.web)) {
       return { ok: false, issue: issue("UNSUPPORTED_IMPLEMENTATION", "$.brand.implementations", "brand requires a web implementation not supported by the active Host Manifest") };
