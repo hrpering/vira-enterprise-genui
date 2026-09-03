@@ -14,6 +14,7 @@
     "@vira-enterprise-genui/studio-brand": "workspace:*",
     "@vira-enterprise-genui/studio-host": "workspace:*",
     "@vira-enterprise-genui/studio-host-runtime": "workspace:*",
+    "@vira-enterprise-genui/studio-publish": "workspace:*",
     "@vira-enterprise-genui/studio-runtime": "workspace:*",
     "@vira-enterprise-genui/studio-runtime-react": "workspace:*"
   },
