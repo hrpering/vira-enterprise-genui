@@ -13,42 +13,106 @@ import {
 } from "@vira-enterprise-genui/runtime-core";
 import {
   VIRA_ACTION_BOUNDARY_MAX_CATALOG,
+  VIRA_ACTION_BOUNDARY_MAX_IDEMPOTENCY_KEY_LENGTH,
+  VIRA_ACTION_BOUNDARY_MAX_SAFE_INTEGER,
   VIRA_ACTION_BOUNDARY_VERSION,
   type ViraActionBoundary,
   type ViraActionBoundaryCreateResult,
   type ViraActionBoundaryExecutionResult,
   type ViraActionBoundaryIssue,
   type ViraActionBoundaryIssueCode,
-  type ViraActionBoundaryProposal,
   type ViraActionConfirmationChallenge,
   type ViraActionConfirmationGrant,
   type ViraActionDefinition,
   type ViraActionExecutionPermit,
   type ViraActionExecutor,
+  type ViraActionIntent,
+  type ViraActionReceipt,
+  type ViraTrustedActionAdapterResult,
 } from "./types.js";
 
 const LOCAL_RUNTIME_ACTIONS = new Set(["runtime.patch.apply", "runtime.lifecycle.transition"]);
+const INPUT_FIELDS = new Set(["instanceId", "catalog", "permissionPolicy", "revisionProvider"]);
 const DEFINITION_FIELDS = new Set(["actionType", "effect", "idempotency"]);
-const PROPOSAL_FIELDS = new Set(["version", "instanceId", "action"]);
-const CONFIRMATION_FIELDS = new Set(["version", "instanceId", "actionId", "actionType"]);
+const INTENT_FIELDS = new Set(["version", "instanceId", "expectedStateRevision", "idempotencyKey", "action"]);
+const CONFIRMATION_FIELDS = new Set([
+  "version",
+  "instanceId",
+  "actionId",
+  "actionType",
+  "expectedStateRevision",
+  "idempotencyKey",
+]);
+const ADAPTER_RESULT_FIELDS = new Set(["outcome", "stateRevision", "data"]);
 const EFFECTS = new Set(["read", "write", "irreversible"]);
 const IDEMPOTENCY = new Set(["none", "action-id"]);
+const OUTCOMES = new Set(["success", "empty", "error"]);
+const safeKeyPattern = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/;
 
 function issue(code: ViraActionBoundaryIssueCode, path: string, message: string): ViraActionBoundaryIssue {
   return Object.freeze({ code, path, message });
+}
+
+function dataObject(
+  input: unknown,
+  fields: ReadonlySet<string>,
+): { readonly ok: true; readonly value: Readonly<Record<string, unknown>> } | { readonly ok: false } {
+  if (input === null || typeof input !== "object" || Array.isArray(input)) return { ok: false };
+  try {
+    const prototype = Object.getPrototypeOf(input);
+    if (prototype !== Object.prototype && prototype !== null) return { ok: false };
+    if (Object.getOwnPropertySymbols(input).length > 0) return { ok: false };
+    const keys = Object.keys(input);
+    if (keys.length !== fields.size || Object.getOwnPropertyNames(input).length !== keys.length) return { ok: false };
+    if (keys.some((key) => !fields.has(key))) return { ok: false };
+    const output: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+    for (const key of keys) {
+      const descriptor = Object.getOwnPropertyDescriptor(input, key);
+      if (!descriptor || !("value" in descriptor)) return { ok: false };
+      output[key] = descriptor.value;
+    }
+    return { ok: true, value: output };
+  } catch {
+    return { ok: false };
+  }
 }
 
 function isJsonObject(value: JsonValue | undefined): value is JsonObject {
   return value !== undefined && value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function exactFields(value: JsonObject, expected: ReadonlySet<string>): boolean {
+function exactFields(value: JsonObject, expected: ReadonlySet<string>, optional: ReadonlySet<string> = new Set()): boolean {
   const keys = Object.keys(value);
-  return keys.length === expected.size && keys.every((key) => expected.has(key));
+  if (keys.some((key) => !expected.has(key) && !optional.has(key))) return false;
+  return [...expected].every((key) => Object.hasOwn(value, key));
 }
 
 function validInstanceId(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= 4_096;
+}
+
+function validRevision(value: unknown): value is number {
+  return typeof value === "number"
+    && Number.isSafeInteger(value)
+    && value >= 0
+    && value <= VIRA_ACTION_BOUNDARY_MAX_SAFE_INTEGER;
+}
+
+function validIdempotencyKey(value: unknown): value is string {
+  return typeof value === "string"
+    && value.length > 0
+    && value.length <= VIRA_ACTION_BOUNDARY_MAX_IDEMPOTENCY_KEY_LENGTH
+    && safeKeyPattern.test(value);
+}
+
+function freezeJson<T extends JsonValue>(value: T): T {
+  if (value === null || typeof value !== "object" || Object.isFrozen(value)) return value;
+  if (Array.isArray(value)) {
+    for (const item of value) freezeJson(item);
+    return Object.freeze(value) as T;
+  }
+  for (const child of Object.values(value)) freezeJson(child);
+  return Object.freeze(value) as T;
 }
 
 function parseCatalog(input: unknown):
@@ -96,89 +160,169 @@ function parseCatalog(input: unknown):
   return { ok: true, value: definitions };
 }
 
-function parseProposal(input: unknown):
-  | { readonly ok: true; readonly instanceId: string; readonly action: RuntimeAction }
+function parseIntent(input: unknown):
+  | { readonly ok: true; readonly value: ViraActionIntent }
   | { readonly ok: false; readonly issue: ViraActionBoundaryIssue } {
-  const parsed = parseJsonValue(input, "$.proposal");
-  if (!parsed.ok || !isJsonObject(parsed.value) || !exactFields(parsed.value, PROPOSAL_FIELDS)) {
-    return { ok: false, issue: issue("INVALID_PROPOSAL", "$.proposal", "action proposal must be canonical exact-shape JSON") };
+  const parsed = parseJsonValue(input, "$.intent");
+  if (!parsed.ok || !isJsonObject(parsed.value) || !exactFields(parsed.value, INTENT_FIELDS)) {
+    return { ok: false, issue: issue("INVALID_INTENT", "$.intent", "ActionIntent must be canonical exact-shape JSON") };
   }
-  if (parsed.value.version !== VIRA_ACTION_BOUNDARY_VERSION || !validInstanceId(parsed.value.instanceId)) {
-    return { ok: false, issue: issue("INVALID_PROPOSAL", "$.proposal", "action proposal version or instance identity is invalid") };
+  if (
+    parsed.value.version !== VIRA_ACTION_BOUNDARY_VERSION
+    || !validInstanceId(parsed.value.instanceId)
+    || !validRevision(parsed.value.expectedStateRevision)
+    || !validIdempotencyKey(parsed.value.idempotencyKey)
+  ) {
+    return { ok: false, issue: issue("INVALID_INTENT", "$.intent", "ActionIntent identity, revision, or idempotency key is invalid") };
   }
   const action = createRuntimeAction(parsed.value.action);
   if (!action.ok) {
-    return { ok: false, issue: issue("INVALID_PROPOSAL", `$.proposal.action${action.issue.path === "$" ? "" : action.issue.path.slice(1)}`, action.issue.message) };
+    return { ok: false, issue: issue("INVALID_INTENT", `$.intent.action${action.issue.path === "$" ? "" : action.issue.path.slice(1)}`, action.issue.message) };
   }
-  return { ok: true, instanceId: parsed.value.instanceId, action: action.value };
+  return {
+    ok: true,
+    value: Object.freeze({
+      version: VIRA_ACTION_BOUNDARY_VERSION,
+      instanceId: parsed.value.instanceId,
+      expectedStateRevision: parsed.value.expectedStateRevision,
+      idempotencyKey: parsed.value.idempotencyKey,
+      action: action.value,
+    }),
+  };
 }
 
 function confirmationMatches(
   input: unknown,
-  instanceId: string,
-  action: RuntimeAction,
+  intent: ViraActionIntent,
 ): boolean {
   const parsed = parseJsonValue(input, "$.confirmation");
   if (!parsed.ok || !isJsonObject(parsed.value) || !exactFields(parsed.value, CONFIRMATION_FIELDS)) return false;
   return parsed.value.version === VIRA_ACTION_BOUNDARY_VERSION
-    && parsed.value.instanceId === instanceId
-    && parsed.value.actionId === action.id
-    && parsed.value.actionType === action.type;
+    && parsed.value.instanceId === intent.instanceId
+    && parsed.value.actionId === intent.action.id
+    && parsed.value.actionType === intent.action.type
+    && parsed.value.expectedStateRevision === intent.expectedStateRevision
+    && parsed.value.idempotencyKey === intent.idempotencyKey;
 }
 
-function permit(
-  instanceId: string,
-  action: RuntimeAction,
+function parseAdapterResult(
+  input: unknown,
+  intent: ViraActionIntent,
   definition: ViraActionDefinition,
-): ViraActionExecutionPermit {
+):
+  | { readonly ok: true; readonly value: ViraTrustedActionAdapterResult }
+  | { readonly ok: false; readonly issue: ViraActionBoundaryIssue } {
+  const parsed = parseJsonValue(input, "$.adapterResult");
+  if (
+    !parsed.ok
+    || !isJsonObject(parsed.value)
+    || !exactFields(parsed.value, new Set(["outcome", "stateRevision"]), new Set(["data"]))
+    || typeof parsed.value.outcome !== "string"
+    || !OUTCOMES.has(parsed.value.outcome)
+    || !validRevision(parsed.value.stateRevision)
+    || parsed.value.stateRevision < intent.expectedStateRevision
+  ) {
+    return { ok: false, issue: issue("INVALID_ADAPTER_RESULT", "$.adapterResult", "trusted action adapter result is invalid") };
+  }
+  if (
+    parsed.value.outcome === "success"
+    && definition.effect !== "read"
+    && parsed.value.stateRevision <= intent.expectedStateRevision
+  ) {
+    return { ok: false, issue: issue("INVALID_ADAPTER_RESULT", "$.adapterResult.stateRevision", "successful write/irreversible action must advance state revision") };
+  }
+  let data: JsonObject | undefined;
+  if (Object.hasOwn(parsed.value, "data")) {
+    if (!isJsonObject(parsed.value.data)) {
+      return { ok: false, issue: issue("INVALID_ADAPTER_RESULT", "$.adapterResult.data", "adapter result data must be a canonical JSON object") };
+    }
+    data = freezeJson(parsed.value.data);
+  }
+  return {
+    ok: true,
+    value: Object.freeze({
+      outcome: parsed.value.outcome as ViraTrustedActionAdapterResult["outcome"],
+      stateRevision: parsed.value.stateRevision,
+      ...(data === undefined ? {} : { data }),
+    }),
+  };
+}
+
+function permit(intent: ViraActionIntent, definition: ViraActionDefinition): ViraActionExecutionPermit {
   return Object.freeze({
     version: VIRA_ACTION_BOUNDARY_VERSION,
-    instanceId,
-    actionId: action.id,
-    actionType: action.type,
+    instanceId: intent.instanceId,
+    actionId: intent.action.id,
+    actionType: intent.action.type,
     effect: definition.effect,
     idempotency: definition.idempotency,
+    expectedStateRevision: intent.expectedStateRevision,
+    idempotencyKey: intent.idempotencyKey,
   });
 }
 
-function challenge(
-  instanceId: string,
-  action: RuntimeAction,
-  definition: ViraActionDefinition,
-): ViraActionConfirmationChallenge {
+function challenge(intent: ViraActionIntent, definition: ViraActionDefinition): ViraActionConfirmationChallenge {
   return Object.freeze({
     version: VIRA_ACTION_BOUNDARY_VERSION,
-    instanceId,
-    actionId: action.id,
-    actionType: action.type,
+    instanceId: intent.instanceId,
+    actionId: intent.action.id,
+    actionType: intent.action.type,
     effect: definition.effect,
+    expectedStateRevision: intent.expectedStateRevision,
+    idempotencyKey: intent.idempotencyKey,
+  });
+}
+
+function receipt(
+  intent: ViraActionIntent,
+  definition: ViraActionDefinition,
+  adapterResult: ViraTrustedActionAdapterResult,
+): ViraActionReceipt {
+  return Object.freeze({
+    version: VIRA_ACTION_BOUNDARY_VERSION,
+    instanceId: intent.instanceId,
+    actionId: intent.action.id,
+    actionType: intent.action.type,
+    effect: definition.effect,
+    idempotencyKey: intent.idempotencyKey,
+    expectedStateRevision: intent.expectedStateRevision,
+    observedStateRevision: adapterResult.stateRevision,
+    outcome: adapterResult.outcome,
+    ...(adapterResult.data === undefined ? {} : { data: adapterResult.data }),
   });
 }
 
 export function createViraActionBoundary(input: unknown): ViraActionBoundaryCreateResult {
-  const parsedInput = parseJsonValue(input, "$" );
-  if (!parsedInput.ok || !isJsonObject(parsedInput.value)) {
-    return { ok: false, issue: issue("INVALID_BOUNDARY", "$", "action boundary input must be canonical JSON") };
+  const root = dataObject(input, INPUT_FIELDS);
+  if (!root.ok) {
+    return { ok: false, issue: issue("INVALID_BOUNDARY", "$", "action boundary input must be a plain own-data object with exact fields") };
   }
-  const keys = Object.keys(parsedInput.value);
-  if (keys.length !== 3 || !keys.every((key) => key === "instanceId" || key === "catalog" || key === "permissionPolicy")) {
-    return { ok: false, issue: issue("INVALID_BOUNDARY", "$", "action boundary input shape is invalid") };
-  }
-  if (!validInstanceId(parsedInput.value.instanceId)) {
+  if (!validInstanceId(root.value.instanceId)) {
     return { ok: false, issue: issue("INVALID_BOUNDARY", "$.instanceId", "action boundary requires an exact bounded instanceId") };
   }
+  if (typeof root.value.revisionProvider !== "function") {
+    return { ok: false, issue: issue("INVALID_BOUNDARY", "$.revisionProvider", "action boundary requires a trusted revision provider") };
+  }
 
-  const catalog = parseCatalog(parsedInput.value.catalog);
+  const catalog = parseCatalog(root.value.catalog);
   if (!catalog.ok) return catalog;
 
-  const policyResult = createRuntimePermissionPolicy(parsedInput.value.permissionPolicy);
+  const policyResult = createRuntimePermissionPolicy(root.value.permissionPolicy);
   if (!policyResult.ok) {
     return { ok: false, issue: issue("INVALID_PERMISSION_POLICY", `$.permissionPolicy${policyResult.issue.path === "$" ? "" : policyResult.issue.path.slice(1)}`, policyResult.issue.message) };
   }
   const policy: RuntimePermissionPolicy = policyResult.value;
-  const instanceId = parsedInput.value.instanceId;
-  const consumed = new Set<string>();
+  const instanceId = root.value.instanceId;
+  const revisionProvider = root.value.revisionProvider as () => number;
+  const consumedActionIds = new Set<string>();
+  const consumedIdempotencyKeys = new Set<string>();
   let disposed = false;
+
+  const readRevision = (): number => {
+    const value = revisionProvider();
+    if (!validRevision(value)) throw new Error("invalid revision");
+    return value;
+  };
 
   const boundary: ViraActionBoundary = {
     version: VIRA_ACTION_BOUNDARY_VERSION,
@@ -186,85 +330,112 @@ export function createViraActionBoundary(input: unknown): ViraActionBoundaryCrea
     definition(actionType) {
       return catalog.value.get(actionType);
     },
+    currentRevision() {
+      return readRevision();
+    },
     async execute(
-      proposalInput: ViraActionBoundaryProposal,
+      intentInput: ViraActionIntent,
       executor: ViraActionExecutor,
       confirmation?: ViraActionConfirmationGrant,
     ): Promise<ViraActionBoundaryExecutionResult> {
       if (disposed) return { ok: false, issue: issue("DISPOSED", "$", "action boundary is disposed") };
       if (typeof executor !== "function") {
-        return { ok: false, issue: issue("INVALID_BOUNDARY", "$.executor", "protected action executor must be callable") };
+        return { ok: false, issue: issue("INVALID_BOUNDARY", "$.executor", "trusted action adapter must be callable") };
       }
 
-      const proposal = parseProposal(proposalInput);
-      if (!proposal.ok) return proposal;
-      if (proposal.instanceId !== instanceId) {
-        return { ok: false, issue: issue("INSTANCE_MISMATCH", "$.proposal.instanceId", "action proposal belongs to a different instance") };
+      const parsedIntent = parseIntent(intentInput);
+      if (!parsedIntent.ok) return parsedIntent;
+      const intent = parsedIntent.value;
+      if (intent.instanceId !== instanceId) {
+        return { ok: false, issue: issue("INSTANCE_MISMATCH", "$.intent.instanceId", "ActionIntent belongs to a different instance") };
       }
 
-      const definition = catalog.value.get(proposal.action.type);
+      const definition = catalog.value.get(intent.action.type);
       if (!definition) {
-        return { ok: false, issue: issue("ACTION_NOT_REGISTERED", "$.proposal.action.type", "action type is not registered in the protected catalog") };
+        return { ok: false, issue: issue("ACTION_NOT_REGISTERED", "$.intent.action.type", "action type is not registered in the protected catalog") };
       }
 
-      const decision = evaluateRuntimeActionPermission(policy, proposal.action);
+      const decision = evaluateRuntimeActionPermission(policy, intent.action);
       if (!decision.ok) {
-        return { ok: false, issue: issue("INVALID_PROPOSAL", "$.proposal.action", decision.issue.message) };
+        return { ok: false, issue: issue("INVALID_INTENT", "$.intent.action", decision.issue.message) };
       }
       if (decision.value.effect === "deny") {
-        return { ok: false, issue: issue("PERMISSION_DENIED", "$.proposal.action.type", "protected action is denied by canonical permission policy") };
+        return { ok: false, issue: issue("PERMISSION_DENIED", "$.intent.action.type", "protected action is denied by canonical permission policy") };
       }
       if (decision.value.effect === "confirm") {
-        const expectedChallenge = challenge(instanceId, proposal.action, definition);
+        const expectedChallenge = challenge(intent, definition);
         if (confirmation === undefined) {
           return {
             ok: false,
-            issue: issue("CONFIRMATION_REQUIRED", "$.confirmation", "protected action requires exact user confirmation"),
+            issue: issue("CONFIRMATION_REQUIRED", "$.confirmation", "protected action requires exact approval"),
             challenge: expectedChallenge,
           };
         }
-        if (!confirmationMatches(confirmation, instanceId, proposal.action)) {
+        if (!confirmationMatches(confirmation, intent)) {
           return {
             ok: false,
-            issue: issue("INVALID_CONFIRMATION", "$.confirmation", "confirmation grant does not match the exact protected action"),
+            issue: issue("INVALID_CONFIRMATION", "$.confirmation", "confirmation grant does not match the exact ActionIntent"),
             challenge: expectedChallenge,
           };
         }
       }
 
-      if (consumed.has(proposal.action.id)) {
-        return { ok: false, issue: issue("DUPLICATE_ACTION", "$.proposal.action.id", "protected action id has already crossed this boundary") };
+      let currentRevision: number;
+      try {
+        currentRevision = readRevision();
+      } catch {
+        return { ok: false, issue: issue("INVALID_REVISION", "$.revisionProvider", "trusted revision provider returned an invalid revision") };
+      }
+      if (currentRevision !== intent.expectedStateRevision) {
+        return { ok: false, issue: issue("STALE_REVISION", "$.intent.expectedStateRevision", "ActionIntent was created from a stale state revision") };
       }
 
-      // Reserve synchronously before crossing/awaiting the external effect boundary.
-      // A rejected/throwing executor cannot prove that the external effect did not happen,
-      // therefore this reservation is terminal and is intentionally never rolled back.
-      consumed.add(proposal.action.id);
-      const executionPermit = permit(instanceId, proposal.action, definition);
+      if (consumedActionIds.has(intent.action.id)) {
+        return { ok: false, issue: issue("DUPLICATE_ACTION", "$.intent.action.id", "action id has already crossed this protected boundary") };
+      }
+      if (consumedIdempotencyKeys.has(intent.idempotencyKey)) {
+        return { ok: false, issue: issue("DUPLICATE_IDEMPOTENCY_KEY", "$.intent.idempotencyKey", "idempotency key has already crossed this protected boundary") };
+      }
 
+      // Reserve both identities synchronously before crossing/awaiting the enterprise effect boundary.
+      // Transport uncertainty can never prove that an external side effect did not happen, so neither
+      // reservation is rolled back after this point.
+      consumedActionIds.add(intent.action.id);
+      consumedIdempotencyKeys.add(intent.idempotencyKey);
+      const executionPermit = permit(intent, definition);
+
+      let rawResult: unknown;
       try {
-        const result = await executor(Object.freeze({
+        rawResult = await executor(Object.freeze({
           permit: executionPermit,
           definition,
-          action: proposal.action,
+          intent,
+          action: intent.action,
         }));
-        if (disposed) {
-          return { ok: false, issue: issue("DISPOSED", "$", "action boundary was disposed during protected execution") };
-        }
-        return {
-          ok: true,
-          value: Object.freeze({
-            permit: executionPermit,
-            permission: decision.value.effect,
-            result,
-          }),
-        };
       } catch {
-        return { ok: false, issue: issue("EXECUTOR_FAILED", "$.executor", "protected action executor failed with uncertain external effect state") };
+        return { ok: false, issue: issue("EXECUTOR_FAILED", "$.executor", "trusted action adapter failed with uncertain external effect state") };
       }
+      if (disposed) {
+        return { ok: false, issue: issue("DISPOSED", "$", "action boundary was disposed during protected execution") };
+      }
+
+      const adapterResult = parseAdapterResult(rawResult, intent, definition);
+      if (!adapterResult.ok) return adapterResult;
+      const actionReceipt = receipt(intent, definition, adapterResult.value);
+      return {
+        ok: true,
+        value: Object.freeze({
+          permit: executionPermit,
+          permission: decision.value.effect,
+          receipt: actionReceipt,
+        }),
+      };
     },
-    consumed(actionId) {
-      return consumed.has(actionId);
+    consumedAction(actionId) {
+      return consumedActionIds.has(actionId);
+    },
+    consumedIdempotencyKey(idempotencyKey) {
+      return consumedIdempotencyKeys.has(idempotencyKey);
     },
     dispose() {
       disposed = true;
