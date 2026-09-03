@@ -13,7 +13,7 @@ import type {
   StudioInteractionRoute,
   StudioNode,
 } from "@vira-enterprise-genui/studio-schema";
-import { STUDIO_RUNTIME_MAX_REPEAT_ITEMS } from "./types.js";
+import { STUDIO_RUNTIME_MAX_EXPANDED_NODES, STUDIO_RUNTIME_MAX_REPEAT_ITEMS } from "./types.js";
 import type {
   CreateStudioRuntimeSessionResult,
   StudioRuntimeCompletionResult,
@@ -319,6 +319,13 @@ export function createStudioRuntimeSession(
       suffix: string,
       order: number,
     ): StudioRuntimeIssue | undefined {
+      if (nodes.length >= STUDIO_RUNTIME_MAX_EXPANDED_NODES) {
+        return issue(
+          "REPEAT_LIMIT_EXCEEDED",
+          "$.view.nodes",
+          `expanded node limit is ${STUDIO_RUNTIME_MAX_EXPANDED_NODES}`,
+        );
+      }
       const component = components.get(node.component);
       if (!component) {
         return issue("INVALID_PUBLICATION", "$.publication.document", "published component metadata is unavailable");
