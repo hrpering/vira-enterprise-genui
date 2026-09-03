@@ -308,8 +308,4 @@ public final class ViraIOSHostAdapter {
     lock.unlock()
     cleanup?()
   }
-
-  deinit {
-    dispose()
-  }
 }
