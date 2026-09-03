@@ -29,6 +29,7 @@ public struct ViraIOSHostedDispatchCompletion: Equatable {
   public let transitioned: Bool
 }
 
+@MainActor
 public final class ViraIOSRuntimeSession {
   private struct PendingAction {
     let routes: [StudioInteractionRoute]
@@ -389,7 +390,21 @@ public final class ViraIOSRuntimeSession {
 
     pending = PendingAction(routes: interaction.routes)
     let result = await host.dispatch(.init(type: actionType, payload: payload))
-    let routes = pending?.routes ?? []
+    if disposed {
+      pending = nil
+      return .failure(.init(
+        code: .disposed,
+        path: "$",
+        message: "native Studio runtime was disposed during Host dispatch"
+      ))
+    }
+    guard let routes = pending?.routes else {
+      return .failure(.init(
+        code: .disposed,
+        path: "$",
+        message: "native Studio runtime lost pending Host ownership"
+      ))
+    }
     pending = nil
 
     switch result {
