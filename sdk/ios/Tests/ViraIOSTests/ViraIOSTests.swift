@@ -49,14 +49,18 @@ private func decodeEnvelope(_ json: String = canonicalEnvelopeJSON) throws -> Vi
   }
 }
 
-private func makePolicy(_ effect: ViraIOSPermissionEffect) throws -> ViraIOSPermissionPolicy {
-  let rule = ViraIOSPermissionRule(subject: .action, id: "demo.action.select", effect: effect)
+private func makePolicy(
+  _ effect: ViraIOSPermissionEffect,
+  id: String = "demo.action.select"
+) throws -> ViraIOSPermissionPolicy {
+  let rule = ViraIOSPermissionRule(subject: .action, id: id, effect: effect)
   switch ViraIOSPermissionPolicy.create(rules: [rule]) {
   case .success(let value): return value
   case .failure(let issue): throw issue
   }
 }
 
+@MainActor
 private final class TestHostBridge: ViraIOSHostBridge {
   let version = "1"
   let id = "demo.host.ios"
@@ -65,6 +69,7 @@ private final class TestHostBridge: ViraIOSHostBridge {
   private var snapshotValue: ViraIOSHostSnapshot
   private var actionsValue: [ViraIOSHostActionDescriptor] = []
   private var listener: ((ViraIOSHostSnapshot) -> Void)?
+  private var resultSnapshotValue: ViraIOSHostSnapshot?
   var nextOutcome: ViraIOSHostActionOutcome = .success
 
   init(revision: Int64 = 0) {
@@ -88,15 +93,18 @@ private final class TestHostBridge: ViraIOSHostBridge {
     return snapshotValue
   }
 
-  private func record(_ action: ViraIOSHostActionDescriptor) -> ViraIOSHostActionOutcome {
+  private func record(
+    _ action: ViraIOSHostActionDescriptor
+  ) -> (outcome: ViraIOSHostActionOutcome, snapshot: ViraIOSHostSnapshot?) {
     lock.lock()
     defer { lock.unlock() }
     actionsValue.append(action)
-    return nextOutcome
+    return (nextOutcome, resultSnapshotValue)
   }
 
   func dispatch(_ action: ViraIOSHostActionDescriptor) async throws -> ViraIOSHostActionResult {
-    .init(outcome: record(action))
+    let recorded = record(action)
+    return .init(outcome: recorded.outcome, snapshot: recorded.snapshot)
   }
 
   func subscribe(_ listener: @escaping (ViraIOSHostSnapshot) -> Void) throws -> () -> Void {
@@ -104,9 +112,7 @@ private final class TestHostBridge: ViraIOSHostBridge {
     self.listener = listener
     lock.unlock()
     return { [weak self] in
-      self?.lock.lock()
       self?.listener = nil
-      self?.lock.unlock()
     }
   }
 
@@ -117,6 +123,12 @@ private final class TestHostBridge: ViraIOSHostBridge {
     callback = listener
     lock.unlock()
     callback?(snapshot)
+  }
+
+  func setResultSnapshot(_ snapshot: ViraIOSHostSnapshot?) {
+    lock.lock()
+    resultSnapshotValue = snapshot
+    lock.unlock()
   }
 
   func actions() -> [ViraIOSHostActionDescriptor] {
@@ -159,6 +171,7 @@ private final class TestRenderer: ViraIOSNativeRenderer {
   let implementationId: String
   private(set) var renderedNodeIds: [String] = []
   private(set) var lastSlotSizes: [String: Int] = [:]
+  private(set) var lastEmitter: ViraIOSRenderEventEmitter?
 
   init(_ implementationId: String) {
     self.implementationId = implementationId
@@ -167,6 +180,7 @@ private final class TestRenderer: ViraIOSNativeRenderer {
   func render(_ context: ViraIOSRenderContext) throws -> AnyObject {
     renderedNodeIds.append(context.runtimeNodeId)
     lastSlotSizes = context.slots.mapValues(\.count)
+    lastEmitter = context.emitter
     return RenderedObject(context.runtimeNodeId)
   }
 }
@@ -195,6 +209,40 @@ final class ViraIOSTests: XCTestCase {
     case .failure(let issue):
       XCTAssertEqual(issue.code, .invalidEnvelope)
     }
+  }
+
+  func testPermissionPolicyAcceptsCanonicalSingleSegmentIds() throws {
+    let created = ViraIOSPermissionPolicy.create(rules: [
+      .init(subject: .capability, id: "select-date", effect: .allow),
+    ])
+    let policy = try unwrap(created)
+    XCTAssertEqual(policy.effect(subject: .capability, id: "select-date"), .allow)
+
+    let decoded = try unwrap(ViraIOSPermissionPolicy.decode(Data(
+      #"{"version":"1","rules":[{"subject":"capability","id":"select-date","effect":"allow"}]}"#.utf8
+    )))
+    XCTAssertEqual(decoded.effect(subject: .capability, id: "select-date"), .allow)
+  }
+
+  @MainActor
+  func testCanonicalSingleSegmentActionTypeDecodesAndDispatches() async throws {
+    let json = canonicalEnvelopeJSON.replacingOccurrences(
+      of: "demo.action.select",
+      with: "submit"
+    )
+    let envelope = try decodeEnvelope(json)
+    XCTAssertEqual(envelope.brand.actions.first?.actionType, "submit")
+
+    let bridge = TestHostBridge()
+    let host = try unwrap(ViraIOSHostAdapter.create(bridge: bridge))
+    let session = try ViraIOSRuntimeSession(
+      envelope: envelope,
+      host: host,
+      permissionPolicy: try makePolicy(.allow, id: "submit")
+    )
+    let item = try XCTUnwrap(try unwrap(session.currentView()).nodes.first { $0.sourceNodeId == "item" })
+    _ = try unwrap(await session.dispatch(runtimeNodeId: item.id, event: "press"))
+    XCTAssertEqual(bridge.actions().first?.type, "submit")
   }
 
   @MainActor
@@ -248,16 +296,53 @@ final class ViraIOSTests: XCTestCase {
     }
   }
 
-  func testHostAdapterFailsClosedOnLowerSnapshotRevision() throws {
+  @MainActor
+  func testHostAdapterFailsClosedOnLowerSubscriptionRevision() throws {
     let bridge = TestHostBridge(revision: 2)
     let host = try unwrap(ViraIOSHostAdapter.create(bridge: bridge))
     bridge.emit(.init(revision: 1, state: [:], domain: [:]))
     switch host.snapshot() {
     case .success:
-      XCTFail("lower Host revision must poison the adapter")
+      XCTFail("lower subscription revision must poison the adapter")
     case .failure(let issue):
       XCTAssertEqual(issue.code, .staleSnapshot)
     }
+  }
+
+  @MainActor
+  func testStaleDispatchSnapshotDoesNotPoisonNewerSubscriptionState() async throws {
+    let bridge = TestHostBridge(revision: 1)
+    let host = try unwrap(ViraIOSHostAdapter.create(bridge: bridge))
+    bridge.emit(.init(revision: 2, state: ["ready": .bool(true)], domain: [:]))
+    bridge.setResultSnapshot(.init(revision: 1, state: [:], domain: [:]))
+
+    let dispatch = await host.dispatch(.init(type: "submit", payload: [:]))
+    switch dispatch {
+    case .success:
+      XCTFail("stale action-response snapshot must fail that dispatch")
+    case .failure(let issue):
+      XCTAssertEqual(issue.code, .staleSnapshot)
+    }
+
+    let current = try unwrap(host.snapshot())
+    XCTAssertEqual(current.revision, 2)
+    XCTAssertEqual(current.state["ready"], .bool(true))
+  }
+
+  @MainActor
+  func testHostSubscribersReceiveOnlyActiveMonotonicUpdates() throws {
+    let bridge = TestHostBridge()
+    let host = try unwrap(ViraIOSHostAdapter.create(bridge: bridge))
+    var revisions: [Int64] = []
+    let unsubscribe = host.subscribe { snapshot in
+      revisions.append(snapshot.revision)
+    }
+
+    bridge.emit(.init(revision: 1, state: [:], domain: [:]))
+    XCTAssertEqual(revisions, [1])
+    unsubscribe()
+    bridge.emit(.init(revision: 2, state: [:], domain: [:]))
+    XCTAssertEqual(revisions, [1])
   }
 
   func testLifecycleDuplicateSignalIsNoOpAndInstancesStayIsolated() throws {
@@ -331,6 +416,35 @@ final class ViraIOSTests: XCTestCase {
     XCTAssertEqual(roots.count, 1)
     XCTAssertEqual(stack.lastSlotSizes["content"], 2)
     XCTAssertEqual(item.renderedNodeIds.count, 2)
+  }
+
+  @MainActor
+  func testRendererDispatchCompletionHookFiresAfterRouteTransition() async throws {
+    let envelope = try decodeEnvelope()
+    let stack = TestRenderer("demo.ios.stack")
+    let item = TestRenderer("demo.ios.item")
+    let text = TestRenderer("demo.ios.text")
+    let registry = try unwrap(ViraIOSRendererRegistry.create(
+      envelope: envelope,
+      renderers: [stack, item, text]
+    ))
+    let bridge = TestHostBridge()
+    let session = try ViraIOSRuntimeSession(
+      envelope: envelope,
+      host: try unwrap(ViraIOSHostAdapter.create(bridge: bridge)),
+      permissionPolicy: try makePolicy(.allow)
+    )
+    var refreshRequests = 0
+    _ = try unwrap(registry.render(
+      session: session,
+      onDispatchCompletion: { refreshRequests += 1 }
+    ))
+    let emitter = try XCTUnwrap(item.lastEmitter)
+    XCTAssertEqual(refreshRequests, 0)
+
+    _ = try unwrap(await emitter.emit("press"))
+    XCTAssertEqual(session.currentViewId(), "result")
+    XCTAssertEqual(refreshRequests, 1)
   }
 
   @MainActor
