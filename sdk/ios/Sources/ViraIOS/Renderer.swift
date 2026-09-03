@@ -6,15 +6,18 @@ public final class ViraIOSRenderEventEmitter {
   private let session: ViraIOSRuntimeSession
   private let runtimeNodeId: String
   private let allowedEvents: Set<String>
+  private let onDispatchCompletion: (() -> Void)?
 
   init(
     session: ViraIOSRuntimeSession,
     runtimeNodeId: String,
-    allowedEvents: Set<String>
+    allowedEvents: Set<String>,
+    onDispatchCompletion: (() -> Void)? = nil
   ) {
     self.session = session
     self.runtimeNodeId = runtimeNodeId
     self.allowedEvents = allowedEvents
+    self.onDispatchCompletion = onDispatchCompletion
   }
 
   public func emit(
@@ -28,7 +31,9 @@ public final class ViraIOSRenderEventEmitter {
         message: "native renderer event is not declared by the active component"
       ))
     }
-    return await session.dispatch(runtimeNodeId: runtimeNodeId, event: event, payload: payload)
+    let result = await session.dispatch(runtimeNodeId: runtimeNodeId, event: event, payload: payload)
+    onDispatchCompletion?()
+    return result
   }
 }
 
@@ -99,7 +104,8 @@ public final class ViraIOSRendererRegistry {
   }
 
   public func render(
-    session: ViraIOSRuntimeSession
+    session: ViraIOSRuntimeSession,
+    onDispatchCompletion: (() -> Void)? = nil
   ) -> Result<[AnyObject], ViraIOSIssue> {
     let current: ViraIOSRuntimeViewModel
     switch session.currentView() {
@@ -188,7 +194,8 @@ public final class ViraIOSRendererRegistry {
       let emitter = ViraIOSRenderEventEmitter(
         session: session,
         runtimeNodeId: node.id,
-        allowedEvents: Set(component.events.map(\.name))
+        allowedEvents: Set(component.events.map(\.name)),
+        onDispatchCompletion: onDispatchCompletion
       )
       let context = ViraIOSRenderContext(
         component: node.component,
