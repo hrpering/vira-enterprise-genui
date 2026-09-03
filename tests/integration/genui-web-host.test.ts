@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createExperienceResolver,
   type ExperienceResolver,
-  type ResolvedExperienceDescriptor,
 } from "../../packages/experience-resolver/src/index.js";
 import {
   parseExperienceRegistrySnapshot,
@@ -281,7 +280,7 @@ function lifecycleFixture(
   };
 }
 
-function createHost(activeLifecycle: ViraWebLifecycleSource, renderer = vi.fn((_context: unknown) => null)) {
+function createHost(activeLifecycle: ViraWebLifecycleSource, renderer = vi.fn((context: unknown) => (void context, null))) {
   const result = createViraWebHost({
     manifest: hostManifest(),
     renderers: { [webImplementationId]: renderer },
