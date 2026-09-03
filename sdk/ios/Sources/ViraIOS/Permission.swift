@@ -51,7 +51,7 @@ public struct ViraIOSPermissionRule: Codable, Equatable, Hashable, Sendable {
     subject = try c.decode(ViraIOSPermissionSubject.self, forKey: .subject)
     id = try c.decode(String.self, forKey: .id)
     effect = try c.decode(ViraIOSPermissionEffect.self, forKey: .effect)
-    guard ViraIOSSemanticIdentifier.isNamespace(id, requiresDot: true) else {
+    guard ViraIOSSemanticIdentifier.isNamespace(id) else {
       throw DecodingError.dataCorruptedError(forKey: .id, in: c, debugDescription: "invalid permission rule id")
     }
   }
@@ -80,7 +80,7 @@ public struct ViraIOSPermissionPolicy: Codable, Equatable, Sendable {
     }
     var identities = Set<String>()
     for rule in rules {
-      guard ViraIOSSemanticIdentifier.isNamespace(rule.id, requiresDot: true) else {
+      guard ViraIOSSemanticIdentifier.isNamespace(rule.id) else {
         return .init(
           code: .invalidEnvelope,
           path: "$.permissionPolicy.rules",
