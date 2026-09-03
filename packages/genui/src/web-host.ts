@@ -485,9 +485,15 @@ export function createViraWebBrowserLifecycleSource(
         platform.window.addEventListener("offline", onOffline);
         offlineAttached = true;
       } catch {
-        try { if (visibilityAttached) platform.document.removeEventListener("visibilitychange", onVisibility); } catch {}
-        try { if (onlineAttached) platform.window.removeEventListener("online", onOnline); } catch {}
-        try { if (offlineAttached) platform.window.removeEventListener("offline", onOffline); } catch {}
+        try { if (visibilityAttached) platform.document.removeEventListener("visibilitychange", onVisibility); } catch {
+          // Best-effort rollback of partially attached browser listeners.
+        }
+        try { if (onlineAttached) platform.window.removeEventListener("online", onOnline); } catch {
+          // Best-effort rollback of partially attached browser listeners.
+        }
+        try { if (offlineAttached) platform.window.removeEventListener("offline", onOffline); } catch {
+          // Best-effort rollback of partially attached browser listeners.
+        }
         throw new Error("browser lifecycle subscription failed");
       }
 
@@ -495,9 +501,15 @@ export function createViraWebBrowserLifecycleSource(
       return (): void => {
         if (!active) return;
         active = false;
-        try { platform.document.removeEventListener("visibilitychange", onVisibility); } catch {}
-        try { platform.window.removeEventListener("online", onOnline); } catch {}
-        try { platform.window.removeEventListener("offline", onOffline); } catch {}
+        try { platform.document.removeEventListener("visibilitychange", onVisibility); } catch {
+          // Browser listener cleanup is best-effort and cannot restore ownership.
+        }
+        try { platform.window.removeEventListener("online", onOnline); } catch {
+          // Browser listener cleanup is best-effort and cannot restore ownership.
+        }
+        try { platform.window.removeEventListener("offline", onOffline); } catch {
+          // Browser listener cleanup is best-effort and cannot restore ownership.
+        }
       };
     },
   });
@@ -642,13 +654,14 @@ export function createViraWebHost(input: ViraWebHostConfiguration): CreateViraWe
           return failure("LIFECYCLE_SUBSCRIBE_FAILED", "$.lifecycle", "web lifecycle source subscription failed safely");
         }
         if (hostDisposed) {
-          try { unsubscribeLifecycle(); } catch {}
+          try { unsubscribeLifecycle(); } catch {
+            // Lifecycle teardown is best-effort after Host disposal wins the race.
+          }
           runtime.value.dispose();
           return failure("HOST_DISPOSED", "$", "Vira Web Host was disposed during Experience creation");
         }
 
-        let experience!: ViraWebExperience;
-        experience = Object.freeze({
+        const experience: ViraWebExperience = Object.freeze({
           instanceId,
           capabilityHostId: manifest.id,
           runtimeHostId: runtime.value.hostId,
@@ -676,12 +689,16 @@ export function createViraWebHost(input: ViraWebHostConfiguration): CreateViraWe
           dispose(): void {
             if (experienceDisposed) return;
             experienceDisposed = true;
-            try { unsubscribeLifecycle?.(); } catch {}
+            try { unsubscribeLifecycle?.(); } catch {
+              // Lifecycle teardown cannot block deterministic runtime disposal.
+            }
             unsubscribeLifecycle = undefined;
             sessionListeners.clear();
             runtime.value.dispose();
             if (active.get(instanceId) === experience) active.delete(instanceId);
-            try { resolverRelease.call(resolverInput, instanceId); } catch {}
+            try { resolverRelease.call(resolverInput, instanceId); } catch {
+              // Resolver release is best-effort after this Web Experience is already disposed.
+            }
           },
         });
         active.set(instanceId, experience);
