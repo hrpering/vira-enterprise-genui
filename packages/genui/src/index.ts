@@ -170,6 +170,30 @@ export type {
   ViraPrincipal,
   ViraPrincipalKind,
 } from "@vira-enterprise-genui/governance";
+export {
+  reviewViraPolicySimulation,
+  simulateViraPolicyChange,
+  VIRA_POLICY_SIMULATION_MAX_FIXTURES,
+  VIRA_POLICY_SIMULATION_MAX_ID_LENGTH,
+  VIRA_POLICY_SIMULATION_VERSION,
+} from "@vira-enterprise-genui/policy-simulation";
+export type {
+  ViraPolicySimulationCaseResult,
+  ViraPolicySimulationDecision,
+  ViraPolicySimulationDiffKind,
+  ViraPolicySimulationEffect,
+  ViraPolicySimulationEvaluator,
+  ViraPolicySimulationFixture,
+  ViraPolicySimulationInput,
+  ViraPolicySimulationIssue,
+  ViraPolicySimulationIssueCode,
+  ViraPolicySimulationReport,
+  ViraPolicySimulationResult,
+  ViraPolicySimulationReview,
+  ViraPolicySimulationReviewInput,
+  ViraPolicySimulationReviewResult,
+  ViraPolicySimulationSummary,
+} from "@vira-enterprise-genui/policy-simulation";
 export * from "@vira-enterprise-genui/studio-authoring";
 export type {
   StudioHostActionDescriptor,
