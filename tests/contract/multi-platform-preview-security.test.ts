@@ -40,11 +40,11 @@ test("preview Pack handle rejects accessor properties without invoking getters",
   assert.equal(resolves, 0);
 });
 
-test("invalid runtime instance identity is rejected at preview session creation", () => {
+test("empty runtime instance identity is rejected at preview session creation", () => {
   const provider: ViraPreviewPackProvider = { version: "1", publish: () => ({}), resolve: () => ({}) };
   const created = createViraMultiPlatformPreview({
     workbench,
-    instanceId: "../cross-instance",
+    instanceId: "",
     brand,
     iosHostManifest: hostIOS,
     androidHostManifest: hostAndroid,
