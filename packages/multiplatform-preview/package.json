@@ -6,6 +6,7 @@
   "exports": { ".": "./src/index.ts" },
   "dependencies": {
     "@vira-enterprise-genui/deployment-plane": "workspace:*",
+    "@vira-enterprise-genui/experience-packs": "workspace:*",
     "@vira-enterprise-genui/studio-publish": "workspace:*"
   }
 }
