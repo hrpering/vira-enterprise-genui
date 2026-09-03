@@ -285,16 +285,18 @@ export function createViraDeploymentPlane(input: {
     },
 
     deprecate(input) {
-      if (input === null || typeof input !== "object") {
-        return { ok: false, issue: issue("ARTIFACT_NOT_FOUND", "$", "artifact identity is invalid") };
-      }
-      const key = artifactKey(input.packId, input.packVersion, input.manifestDigest);
-      const record = artifacts.get(key);
-      if (record === undefined) return { ok: false, issue: issue("ARTIFACT_NOT_FOUND", "$", "artifact is not registered") };
-      if (record.status === "deprecated") return { ok: true, value: record };
-      const deprecated: ViraDeploymentArtifactRecord = Object.freeze({ ...record, status: "deprecated" });
-      artifacts.set(key, deprecated);
-      return { ok: true, value: deprecated };
+      return enqueue(async () => {
+        if (input === null || typeof input !== "object") {
+          return { ok: false, issue: issue("ARTIFACT_NOT_FOUND", "$", "artifact identity is invalid") };
+        }
+        const key = artifactKey(input.packId, input.packVersion, input.manifestDigest);
+        const record = artifacts.get(key);
+        if (record === undefined) return { ok: false, issue: issue("ARTIFACT_NOT_FOUND", "$", "artifact is not registered") };
+        if (record.status === "deprecated") return { ok: true, value: record };
+        const deprecated: ViraDeploymentArtifactRecord = Object.freeze({ ...record, status: "deprecated" });
+        artifacts.set(key, deprecated);
+        return { ok: true, value: deprecated };
+      });
     },
 
     inspect(): ViraDeploymentInspection {
