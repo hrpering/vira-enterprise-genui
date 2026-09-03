@@ -67,6 +67,15 @@ export type {
   ViraIOSPermissionRule,
 } from "./ios-runtime-policy.js";
 export {
+  createViraAndroidPermissionPolicyProjection,
+  VIRA_ANDROID_PERMISSION_PROJECTION_VERSION,
+} from "./android-runtime-policy.js";
+export type {
+  ViraAndroidPermissionPolicyProjection,
+  ViraAndroidPermissionPolicyProjectionResult,
+  ViraAndroidPermissionRule,
+} from "./android-runtime-policy.js";
+export {
   createViraWebBrowserLifecycleSource,
   createViraWebHost,
   VIRA_WEB_HOST_VERSION,
@@ -104,7 +113,5 @@ export type {
 } from "@vira-enterprise-genui/studio-host-runtime";
 export type {
   StudioRuntimeReactRenderer,
-} from "@vira-enterprise-genui/studio-runtime-react";
-export type {
   StudioRuntimeReactRenderResult,
 } from "@vira-enterprise-genui/studio-runtime-react";
