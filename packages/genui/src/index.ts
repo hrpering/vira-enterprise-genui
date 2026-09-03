@@ -276,6 +276,20 @@ export type {
   ViraEnterpriseGovernanceProvider,
 } from "@vira-enterprise-genui/enterprise-governance";
 export {
+  generateStudioDraftV2,
+  STUDIO_AI_V2_MAX_PLATFORMS,
+  STUDIO_AI_V2_VERSION,
+} from "@vira-enterprise-genui/studio-ai";
+export type {
+  StudioAiV2ActionMapping,
+  StudioAiV2DraftResult,
+  StudioAiV2Issue,
+  StudioAiV2IssueCode,
+  StudioAiV2PlatformSnapshot,
+  StudioAiV2Provider,
+  StudioAiV2Request,
+} from "@vira-enterprise-genui/studio-ai";
+export {
   createViraStudioBrandConsole,
   VIRA_STUDIO_BRAND_CONSOLE_VERSION,
 } from "@vira-enterprise-genui/studio-brand-console";
