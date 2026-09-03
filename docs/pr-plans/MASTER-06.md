@@ -2,7 +2,7 @@
 
 ## 1. Authoritative base
 
-This phase starts only from authoritative `main`:
+Authoritative `main` at phase start:
 
 `95ebbaba7457aed3ec8e3e3ff10cb13e4bd7ebd8`
 
@@ -10,52 +10,23 @@ Branch:
 
 `master/06-platform-neutral-runtime-kernel`
 
-This plan file is the first branch commit. No implementation from an older branch is merged or replayed blindly.
+The first branch commit contained this plan before implementation work. No stale runtime branch is merged or replayed blindly.
 
 ## 2. Architectural responsibility
 
 MASTER-06 owns one responsibility:
 
-> Preserve and harden the existing `runtime-core` as the platform-neutral execution/state kernel by adding common app/session availability semantics needed by web, iOS and Android hosts without introducing browser, UIKit, SwiftUI, Android, Compose or other OS APIs into the kernel.
+> Extend the existing `runtime-core` owner with deterministic platform-neutral session availability and continuity semantics required by web, iOS and Android hosts, without introducing platform APIs, deployment authority, renderer behavior or protected side-effect execution.
 
-The semantic owner remains the existing `runtime-core` package.
+`runtime-core` remains the single kernel owner.
 
-This phase does **not** create a second runtime package, replace the canonical execution lifecycle, implement web/iOS/Android host adapters, verify production artifact signatures, replay protected actions, or introduce the MASTER-08 Action Boundary.
+MASTER-06 does not create a second runtime package and does not change the canonical Experience schema.
 
 ## 3. Reverse-engineering findings
 
-### 3.1 `runtime-core` is already the canonical owner
+### 3.1 Existing execution lifecycle remains authoritative
 
-`PACKAGE_OWNERSHIP.md` assigns `runtime-core` the platform-neutral runtime actions, permissions, lifecycle, patches, reducer and state responsibility and explicitly assigns MASTER-06 to extending that owner.
-
-The package currently depends only on `protocol` and exports:
-
-- state;
-- actions;
-- patches;
-- lifecycle;
-- permissions;
-- errors;
-- reducer.
-
-Therefore a new runtime-kernel package would create a duplicate owner and is forbidden.
-
-### 3.2 Existing lifecycle is an execution lifecycle, not app availability
-
-Current execution lifecycle values are:
-
-```text
-created
-mounting
-active
-updating
-completed
-cancelled
-failed
-disposed
-```
-
-The current transition table models execution state and terminality:
+Current `RuntimeLifecycle` models execution state:
 
 ```text
 created
@@ -69,460 +40,415 @@ completed / cancelled / failed
 disposed
 ```
 
-Existing contract tests intentionally reject host-specific pseudo-lifecycle values such as `browser-mounted`.
+`foreground`, `background`, connectivity and restore are not execution terminality. They must not be added to `RUNTIME_LIFECYCLES`.
 
-MASTER-06 must **not** insert `foreground`, `background`, `disconnected` or similar host/session concepts into `RUNTIME_LIFECYCLES`. Those concepts are orthogonal to execution terminality and would make states such as “completed but backgrounded” impossible or ambiguous.
+Existing execution lifecycle semantics and tests remain unchanged.
 
-The existing execution lifecycle contract remains backward-compatible unless reverse engineering proves a defect independent of MASTER-06.
+### 3.2 Session availability is a separate state axis
 
-### 3.3 `RuntimeState` is canonical execution state
+Existing `RuntimeState.revision` is execution-semantic revision. Existing `StudioHostSnapshot.revision` is host snapshot revision.
 
-Current `RuntimeState` contains:
+MASTER-06 introduces a third explicitly separate revision domain for session availability/continuity only.
 
-```ts
-{
-  experienceId,
-  revision,
-  lifecycle,
-  plan,
-}
-```
+No comparison between these revision domains is implied.
 
-Its revision is execution semantic revision. MASTER-06 must not silently redefine this revision as application visibility/connectivity revision.
+### 3.3 Web lifecycle is not the semantic source
 
-A new session/availability state, if revisioned, must use an explicitly separate revision identity.
+`runtime-web` currently owns DOM mount/commit/rollback/dispose transactions. React wraps that web runtime.
 
-### 3.4 Runtime reducer effects are business/runtime effects, not platform lifecycle events
+Those APIs do not own app foreground/background, network availability or persisted restore semantics and remain unchanged in MASTER-06.
 
-Current `RuntimeEffect` is limited to:
+MASTER-07A will translate web lifecycle signals into the common kernel semantics.
 
-- `host-action`;
-- `confirmation-required`.
+### 3.4 Host runtime is not the session owner
 
-Foreground/background/disconnect/reconnect/restore must not be encoded as fake action effects merely to reuse the reducer.
+`studio-host-runtime` owns host snapshot/action bridging, monotonic snapshot acceptance and local duplicate-forward protection.
 
-MASTER-06 may add an independent pure session reducer/state transition surface inside `runtime-core`, but protected actions remain on their existing path and later cross MASTER-08.
+It does not own foreground/background/connectivity/session restore. MASTER-06 therefore extends `runtime-core` rather than `studio-host-runtime`.
 
-### 3.5 Existing web lifecycle code is not the semantic source
+### 3.5 MASTER-05 exact instance identity must be preserved
 
-`runtime-web` DOM lifecycle tests own transactional browser mount/commit/rollback/dispose behavior.
+MASTER-05 established explicit mounted Experience identity through `instanceId` and rejected implicit latest/active/global targets.
 
-The React lifecycle session wrapper delegates mount, runtime state and actions to the web runtime.
+Its identity grammar is intentionally opaque:
 
-Neither surface currently models application foreground/background, network connectivity, reconnect or session restore. Those web-specific mount semantics remain web-owned and are not moved into `runtime-core`.
+- non-empty string;
+- maximum 4096 characters;
+- no semantic-namespace assumption.
 
-### 3.6 `studio-host-runtime` does not own app connectivity/visibility
+MASTER-06 session state therefore binds directly to exact opaque `instanceId`. It does not introduce an unrelated `sessionId` identity that could drift from the mounted Experience instance.
 
-`studio-host-runtime` owns the bridge from canonical Studio runtime sessions to host snapshots/actions, including monotonic host snapshot acceptance and per-session duplicate forwarding.
+`runtime-core` only carries the opaque identity. Resolution remains owned by MASTER-05.
 
-It does not own foreground/background/connectivity/session-restore state. Extending `runtime-core` with a platform-neutral session axis therefore does not duplicate the host-runtime owner.
+### 3.6 Persisted state cannot choose the restore target
 
-### 3.7 Host snapshot revision is a separate existing revision domain
+A persisted/cache payload is data and cannot become routing authority merely because it contains an `instanceId`.
 
-`StudioHostSnapshot` has its own `revision` and host state/domain payload.
-
-MASTER-06 must keep three concepts distinct:
+Restore therefore requires trusted caller context:
 
 ```text
-RuntimeState.revision          execution semantic revision
-StudioHostSnapshot.revision   host snapshot revision
-Runtime session revision      MASTER-06 availability/continuity revision, if needed
+restoreRuntimeSessionState(expectedInstanceId, persistedState)
+
+expectedInstanceId  ← exact caller target
+persisted.instanceId
+        ↓ exact equality
+match    → restore
+mismatch → fail closed
 ```
 
-No implicit comparison between these revision domains is permitted.
+The restore result never guesses or switches to the persisted payload's target.
 
-### 3.8 No existing foreground/background/reconnect implementation was found
+### 3.7 Artifact verification authority does not exist in runtime-core
 
-Repository search and targeted package inspection found no canonical implementation for:
+`PLATFORM_MODEL.md` requires verified cached Experience behavior, while `TRUST_MODEL.md` assigns production digest/signature verification to later deployment work.
 
-- browser visibility lifecycle;
-- offline/online transition semantics;
-- reconnect semantics;
-- cross-platform session restore.
+MASTER-11 owns verified artifact/deployment authority.
 
-MASTER-06 therefore introduces new shared semantics rather than extracting an existing web implementation and declaring it canonical.
+Therefore MASTER-06 must not manufacture a positive `verified` state from untrusted JSON or expose a public factory whose invocation alone creates verification authority.
 
-### 3.9 Verified artifact integrity belongs to the deployment plane
-
-`PLATFORM_MODEL.md` requires verified cached Experience support and reconnect behavior, while `TRUST_MODEL.md` states production digest/signature verification is owned by later deployment phases.
-
-MASTER-11 owns:
+The safe phase boundary is:
 
 ```text
-Publication
-  ↓
-Pack
-  ↓
-content-addressed verified artifact
-  ↓
-registry
-  ↓
-deployment
+live session
+  cacheStatus = inactive
+
+persisted restore
+  continuity = restored
+  cacheStatus = verification-required
+
+positive verified-cache activation
+  NOT owned by MASTER-06
+  requires real MASTER-11 verification evidence/authority
 ```
 
-Therefore MASTER-06 must not:
+This is intentionally fail closed.
 
-- invent a signature scheme;
-- declare arbitrary cache bytes trusted;
-- turn a digest string into proof of verification;
-- make `runtime-core` a deployment/artifact verifier.
+### 3.8 Resume/reconnect cannot replay protected actions
 
-MASTER-06 may model **cache eligibility/evidence already established by a trusted upstream owner** and fail closed when required verification evidence is absent.
+Visibility/connectivity transitions only update session semantics.
 
-### 3.10 Offline/reconnect does not grant action permission or replay authority
+They do not:
 
-The platform/trust contracts state:
+- execute actions;
+- retry pending mutations;
+- invoke network/storage ports;
+- bypass permissions;
+- create approvals;
+- resolve deployment targets.
 
-- offline support does not imply offline permission for every action;
-- reconnect must not blindly replay protected mutations;
-- stale revisions fail closed where relevant;
-- retries use explicit idempotency semantics.
+Protected execution remains MASTER-08.
 
-MASTER-08 owns end-to-end Action Boundary, expected revisions and idempotency. MASTER-06 must not autonomously execute or replay protected side effects on resume/reconnect.
+## 4. Public semantic contract
 
-## 4. Proposed semantic model
-
-Exact public names may change if repo conventions require it, but the ownership split is frozen.
-
-### 4.1 Keep execution lifecycle unchanged
-
-`RuntimeLifecycle` remains the execution axis.
-
-MASTER-06 introduces a separate canonical session/availability contract rather than adding host states to `RUNTIME_LIFECYCLES`.
-
-Conceptually:
-
-```text
-Runtime execution
-  lifecycle: active
-
-Runtime session
-  visibility: background
-  connectivity: disconnected
-  continuity: live
-```
-
-These states can coexist without corrupting terminal execution semantics.
-
-### 4.2 Session visibility
-
-Target semantic axis:
-
-```ts
-type RuntimeSessionVisibility = "foreground" | "background";
-```
-
-This describes host application/session visibility only. It is not DOM visibility, route focus or business activity.
-
-Host adapters in MASTER-07 translate browser/UIKit/Android lifecycle callbacks into this contract.
-
-### 4.3 Connectivity
-
-Target semantic axis:
-
-```ts
-type RuntimeSessionConnectivity = "connected" | "disconnected";
-```
-
-This is a canonical availability signal, not permission to execute network actions.
-
-MASTER-06 does not probe the network. Hosts/adapters report transitions.
-
-### 4.4 Continuity / restore state
-
-A separate continuity axis is expected so resume/restore semantics are not overloaded into visibility.
-
-Candidate semantics to validate during implementation RE:
-
-```ts
-type RuntimeSessionContinuity = "live" | "restored";
-```
-
-or an equivalent closed model with explicit transition events.
-
-The final model must distinguish at least:
-
-- a live in-memory session;
-- a session restored from trusted persisted state.
-
-It must not claim that restored data is production-artifact verified unless upstream evidence proves that fact.
-
-### 4.5 Cache activation evidence
-
-MASTER-06 needs a declarative fail-closed way to represent whether a cached Experience is eligible for activation without performing artifact verification itself.
-
-The default design direction is an explicit trusted input/evidence contract that distinguishes:
-
-```text
-not supplied / not verified / verified-by-upstream-owner
-```
-
-The exact type must be finalized only after additional reverse engineering of current resolver/deployment identity surfaces.
-
-Required invariant:
-
-> `runtime-core` may consume verification evidence, but may not manufacture verification authority.
-
-The evidence must not contain executable code, raw secrets, provider credentials or platform handles.
-
-### 4.6 Session state
-
-Target shape conceptually:
+### 4.1 Session state
 
 ```ts
 interface RuntimeSessionState {
   readonly version: "1";
-  readonly sessionId: string;
+  readonly instanceId: string;
   readonly revision: number;
-  readonly visibility: RuntimeSessionVisibility;
-  readonly connectivity: RuntimeSessionConnectivity;
-  readonly continuity: RuntimeSessionContinuity;
-  readonly cache: ...;
+  readonly visibility: "foreground" | "background";
+  readonly connectivity: "connected" | "disconnected";
+  readonly continuity: "live" | "restored";
+  readonly cacheStatus: "inactive" | "verification-required";
 }
 ```
 
-The final shape may be narrower if additional RE proves some fields belong elsewhere.
-
 Rules:
 
-- closed versioned contract;
-- bounded explicit IDs;
-- canonical JSON data only;
-- exact closed enums;
-- safe non-negative revision;
+- exact closed version;
+- exact opaque bounded `instanceId`;
+- non-negative safe integer revision;
+- closed enums;
 - unknown fields fail closed;
-- immutable outputs;
-- no platform/API handles;
-- no tenant/policy/action authority embedded.
+- canonical JSON data only;
+- immutable canonical output.
 
-### 4.7 Session events / transitions
+### 4.2 Creation
 
-Target events represent semantic platform lifecycle changes, for example:
-
-```text
-background
-foreground / resume
-disconnect
-reconnect
-restore
-activate-verified-cache
+```ts
+createRuntimeSessionState(instanceId, {
+  visibility,
+  connectivity,
+})
 ```
 
-The final API should be pure and deterministic, likely through a dedicated session transition/reducer function inside `runtime-core`.
+Creation requires explicit initial host state. The kernel does not guess foreground or connectivity.
+
+Initial semantics:
+
+```text
+revision     = 0
+continuity   = live
+cacheStatus  = inactive
+```
+
+### 4.3 Session signals
+
+Supported versioned semantic signals:
+
+```text
+foreground
+background
+resume
+disconnect
+reconnect
+```
+
+These signals contain no platform handles or executable callbacks.
+
+### 4.4 Pure transition
+
+```ts
+transitionRuntimeSession(state, event)
+```
 
 Rules:
 
-- illegal transitions fail closed;
-- revision increments exactly once per accepted semantic transition;
-- no-op/duplicate event behavior is explicit and tested;
+- state/event are canonically validated;
+- visibility and connectivity remain orthogonal;
+- a semantic change increments only the session revision exactly once;
+- duplicate/idempotent signal returns `changed: false` and does not churn revision;
 - revision overflow fails closed;
 - transition output is immutable;
-- no callback/side-effect execution occurs in the transition function.
+- no side effects occur.
 
-## 5. State-machine invariants
+Examples:
 
-The implementation must preserve these invariants:
+```text
+foreground + connected
+  background
+→ background + connected
 
-1. Execution lifecycle and session availability are orthogonal.
-2. `completed/cancelled/failed/disposed` execution semantics are not reopened by foreground/reconnect.
-3. Background does not mean disconnected.
-4. Disconnected does not mean background.
-5. Foreground does not imply connected.
-6. Reconnect does not imply action replay.
-7. Resume does not create a new deployment/instance implicitly.
-8. Restore requires explicit trusted persisted-state input.
-9. Verified cache activation requires explicit verification evidence; missing/invalid evidence fails closed.
-10. A session transition never performs network, storage, crypto, render or action side effects.
-11. Duplicate/out-of-order transitions have deterministic behavior.
-12. Revisions never overflow or silently wrap.
+background + connected
+  disconnect
+→ background + disconnected
 
-## 6. Security / trust invariants
+background + disconnected
+  resume
+→ foreground + disconnected
+```
 
-MASTER-06 must preserve all of the following:
+### 4.5 Restore
 
-1. **No OS APIs in core.** No DOM, `window`, browser events, UIKit, SwiftUI, Android `Context`, Compose or platform SDK imports.
-2. **No remote executable code.** Session/cache data remains declarative.
-3. **No artifact authority escalation.** Cache metadata cannot self-assert production trust merely through a string flag from untrusted JSON.
-4. **No action replay.** Resume/reconnect never re-executes protected actions.
-5. **No permission escalation.** Connected/foreground state does not grant permission.
-6. **No implicit target.** Session state never chooses latest/active deployment or Experience instance.
-7. **No secret state.** Credentials/tokens/raw secrets are invalid session data.
-8. **No customer/domain branching.** Generic runtime source remains domain-neutral.
-9. **Fail closed on malformed persisted state.** Unknown fields, invalid versions, hostile reflection/proxy inputs and invalid revisions do not become restored sessions.
-10. **Bounded data.** IDs/persisted payloads have explicit resource limits and use canonical JSON budgets where appropriate.
-11. **Immutable canonical outputs.** Parsed/transitioned state cannot be mutated after validation.
-12. **No provider-specific verification semantics.** MASTER-11/12/09 owners remain separate.
+```ts
+restoreRuntimeSessionState(expectedInstanceId, persistedState)
+```
 
-## 7. Expected implementation ownership
+Rules:
 
-Default implementation scope:
+1. expected instance identity must be valid;
+2. persisted state must parse canonically;
+3. persisted `instanceId` must equal the expected instance exactly;
+4. mismatch returns `INSTANCE_MISMATCH` without reflecting either ID;
+5. revision must increment safely;
+6. restored state becomes:
+
+```text
+continuity   = restored
+cacheStatus  = verification-required
+```
+
+Restore does not assert artifact integrity and does not activate protected actions.
+
+## 5. State invariants
+
+1. Execution lifecycle and session availability remain orthogonal.
+2. Foreground does not imply connected.
+3. Background does not imply disconnected.
+4. Reconnect does not imply foreground.
+5. Resume does not imply connected.
+6. Resume/reconnect never reopen a completed/failed/disposed execution lifecycle.
+7. Duplicate semantic signals are deterministic no-ops.
+8. Session revision increments only for actual session semantic changes.
+9. `RuntimeState.revision` is not mutated by session transitions.
+10. `StudioHostSnapshot.revision` is not mutated by session transitions.
+11. Exact `instanceId` remains stable through all transitions.
+12. Persisted data cannot choose another restore target.
+13. `live` state requires `cacheStatus = inactive`.
+14. `restored` state requires `cacheStatus = verification-required`.
+15. There is no public positive `verified` cache state in MASTER-06.
+16. Revisions never overflow or wrap.
+
+## 6. Security invariants
+
+MASTER-06 preserves:
+
+1. no DOM/browser/UIKit/SwiftUI/Android/Compose APIs in `runtime-core`;
+2. no remote executable code;
+3. no renderer/native implementation metadata;
+4. no raw secrets/credentials/endpoints in session contract fields;
+5. no latest/active/global target;
+6. no artifact/signature verification authority escalation;
+7. no permission escalation from connectivity/foreground state;
+8. no action replay on resume/reconnect;
+9. no customer/domain branching;
+10. malformed canonical JSON fails closed;
+11. accessor/revoked/throwing Proxy input does not escape as an exception;
+12. new errors do not echo hostile exception text;
+13. cross-instance restore fails closed;
+14. outputs are immutable.
+
+## 7. Implementation ownership
+
+Phase implementation is restricted to:
 
 ```text
 packages/runtime-core/src/
   session/
     types.ts
-    create.ts / parse.ts / transition.ts (or repo-conventional equivalent)
+    state.ts
+    transition.ts
     index.ts
   index.ts
 
 tests/contract/
-  runtime-session*.test.ts
+  runtime-session.test.ts
 ```
 
-Expected dependency changes:
+Expected package dependency changes: none.
 
-- ideally none;
-- `runtime-core` remains dependent only on `protocol`;
-- `tooling/package-boundaries.config.mjs` should remain unchanged.
+`runtime-core` remains dependent only on `protocol`.
 
-No `runtime-web`, React, Studio runtime, Host, Registry, Resolver, security, policy or native SDK dependency is expected.
+`tooling/package-boundaries.config.mjs` remains unchanged.
 
-## 8. Additional RE required before implementation
+## 8. Explicit non-goals
 
-Before writing the public session contract, verify:
+MASTER-06 does not implement:
 
-1. current `runtime-core` state creation/parser/deep-freeze conventions;
-2. current runtime-web SDK state/session consumers;
-3. host snapshot monotonic revision semantics;
-4. exact MASTER-05 resolution descriptor fields that future hosts can bind to a session without importing resolver ownership into core;
-5. whether any persisted session/cache contract already exists under another package;
-6. repository ID/version syntax conventions for a session identity;
-7. whether cache verification evidence should be an opaque trusted constructor capability rather than directly parseable untrusted JSON.
+- browser visibility listeners;
+- browser online/offline listeners;
+- iOS lifecycle adapters;
+- Android lifecycle adapters;
+- React/SwiftUI/Compose renderer integration;
+- cache storage;
+- artifact digest/signature verification;
+- deployment validity lookup;
+- promotion/rollback;
+- policy/authorization changes;
+- action retries or replay;
+- idempotency receipts;
+- approvals/challenges;
+- tenant/project/environment control plane;
+- network probing;
+- Experience/Pack/Registry/Resolver schema changes.
 
-If this RE shows verification evidence cannot be represented safely without MASTER-11, MASTER-06 will model restore/availability now and leave verified cache **activation authorization** as an explicit unimplemented fail-closed port for MASTER-11 rather than invent authority.
+These remain owned by MASTER-07, MASTER-08, MASTER-09, MASTER-11 and MASTER-12 as applicable.
 
 ## 9. Focused verification
 
-Focused tests must cover at least:
+Focused tests must prove:
 
-### Execution lifecycle preservation
+### Existing kernel preservation
 
-- existing `RuntimeLifecycle` values unchanged;
-- existing transition matrix unchanged;
-- host/session events cannot reopen terminal execution state;
-- existing runtime lifecycle tests remain green.
+- `RUNTIME_LIFECYCLES` unchanged;
+- foreground/background/connectivity/restore are not execution lifecycle values;
+- existing runtime lifecycle/reducer/state suites remain green.
 
-### Session creation / parsing
+### Creation/parsing
 
-- deterministic initial session state;
-- exact version validation;
-- bounded session ID;
-- invalid visibility/connectivity/continuity rejected;
-- invalid/overflow revision rejected;
+- explicit initial visibility/connectivity;
+- exact version;
+- bounded opaque instance identity;
+- prototype-looking identity behaves as ordinary string data;
+- invalid revision/enums rejected;
 - unknown fields rejected;
-- accessor/proxy/hostile input fails closed without exception leakage;
-- output deeply immutable where needed.
+- immutable JSON-round-trippable output.
 
-### Orthogonal session transitions
+### Transition semantics
 
-- foreground → background;
-- background → foreground/resume;
-- connected → disconnected;
-- disconnected → connected/reconnect;
-- background + connected is valid;
-- foreground + disconnected is valid;
-- one axis transition preserves other axes;
-- accepted transition increments session revision once;
-- duplicate/no-op behavior deterministic;
-- revision overflow rejected.
+- foreground/background;
+- disconnect/reconnect;
+- resume;
+- orthogonal axes;
+- stable instance identity;
+- changed transition increments once;
+- duplicate event is no-op;
+- overflow rejected.
 
-### Restore
+### Restore isolation
 
-- valid persisted session restores explicitly;
-- malformed/unknown-version persisted state fails closed;
-- restored state does not silently alter runtime execution revision/lifecycle;
-- restore never calls host/network/action side effects.
+- valid exact-instance restore succeeds;
+- malformed persisted state fails closed;
+- invalid expected instance fails closed;
+- wrong expected instance returns `INSTANCE_MISMATCH`;
+- mismatch error does not reflect either identifier;
+- restored state requires external cache verification;
+- overflow rejected.
 
-### Verified cache behavior
+### Cache trust
 
-Subject to final RE of the safe evidence boundary:
+- no `verified` cache status exists;
+- no `activate-verified-cache` event exists;
+- forged `verified` JSON state is rejected;
+- continuity/cache invariant cannot be self-asserted inconsistently.
 
-- missing verification evidence denies verified-cache activation;
-- invalid/untrusted self-asserted verification denies;
-- trusted verification evidence allows only passive cached Experience activation semantics;
-- no action replay is emitted;
-- exact instance/deployment identity is not guessed.
+### Hostile input
 
-### Platform neutrality / scope
+- revoked Proxy fails closed;
+- throwing reflective Proxy fails closed;
+- exception/secret text is not surfaced.
 
-- source imports no web/React/native/Studio host/runtime modules;
-- generic source contains no customer/domain switch;
-- package-boundary graph remains unchanged.
+### Scope
 
-## 10. Repository verification
+- new kernel source imports no web/React/Studio Host/Studio Runtime/Resolver/native packages;
+- no customer/domain branching;
+- package boundary graph unchanged.
+
+## 10. Repository verification gate
 
 Before merge:
 
-- focused MASTER-06 tests PASS;
-- existing runtime lifecycle/reducer/state tests PASS;
-- `pnpm check:boundaries` PASS;
+- focused MASTER-06 test PASS;
+- existing runtime lifecycle/state/reducer tests PASS;
+- package boundaries PASS;
 - lint PASS;
 - typecheck PASS;
 - full test suite PASS;
-- builds PASS;
+- build PASS;
 - `pnpm verify:all` PASS on exact PR head;
-- MASTER-02 Swift/Kotlin conformance remains green;
+- MASTER-02 real Swift/Kotlin conformance remains green;
 - browser E2E remains green.
 
 ## 11. Independent RE / QC gate
 
-Before merge independently re-check:
+Before squash merge re-check:
 
-- `runtime-core` remains the single kernel owner;
-- existing execution lifecycle semantics are not conflated with session availability;
-- no platform API leaked into core;
-- no new dependency edge was introduced unless explicitly justified;
-- no artifact/signature authority was invented;
-- no reconnect/resume action replay exists;
-- no latest/active/global target exists;
-- no customer/domain branching exists;
-- session revisions are distinct from RuntimeState/HostSnapshot revisions;
-- malformed/hostile inputs fail closed without secret/exception reflection;
+- `runtime-core` remains the one kernel owner;
+- no execution/session lifecycle conflation;
+- no platform API/import leakage;
+- no new package dependency edge;
+- no verified-artifact authority invented;
+- no reconnect/resume action replay;
+- no implicit target;
+- no cross-instance restore;
+- no domain/customer switching;
+- hostile inputs fail closed;
 - all review threads resolved;
 - exact-head hosted CI successful;
-- branch 0 behind authoritative main;
-- final diff phase-scoped.
+- branch 0 behind authoritative `main`;
+- diff phase-scoped.
 
-Only then: `RE/QC: PASS` and squash merge using the verified exact head.
+Only then record `MASTER-06 independent RE/QC: PASS` and squash merge with the verified exact head.
 
-## 12. Explicit non-goals
-
-MASTER-06 does not implement:
-
-- web visibility event adapter;
-- iOS application lifecycle adapter;
-- Android lifecycle adapter;
-- SwiftUI/Compose/React renderer changes;
-- production artifact signature/digest verification;
-- deployment validity lookup/promotion/rollback;
-- action execution or replay;
-- idempotency receipts;
-- governance/identity/approval;
-- tenant/project/environment control plane;
-- platform-specific cache storage;
-- network probing;
-- Experience schema changes;
-- Pack/Registry/Resolver schema changes;
-- customer/domain-specific lifecycle behavior.
-
-These remain owned by MASTER-07, MASTER-08, MASTER-09, MASTER-11 and MASTER-12 as applicable.
-
-## 13. Acceptance gate
+## 12. Acceptance gate
 
 MASTER-06 is complete only when all are true:
 
-1. `runtime-core` remains the sole platform-neutral runtime-kernel owner;
-2. current execution lifecycle semantics remain intact;
-3. foreground/background and connected/disconnected are represented as orthogonal common session semantics;
-4. resume/reconnect/session restore are deterministic pure state transitions;
-5. restore/cached activation cannot manufacture artifact trust;
-6. no reconnect/resume action replay exists;
-7. no platform API or renderer dependency enters `runtime-core`;
-8. session state is bounded, immutable and fail-closed;
-9. revision domains remain explicit and non-conflated;
-10. web/iOS/Android hosts can later adapt their lifecycle events into the same contract;
-11. full repository/browser/native verification passes on exact PR head;
-12. independent architecture/security/API RE/QC passes;
-13. branch is 0 behind authoritative main;
-14. final diff is phase-scoped;
-15. squash merge uses the verified exact head.
+1. platform-neutral session availability semantics exist in `runtime-core`;
+2. existing execution lifecycle is unchanged;
+3. visibility and connectivity are independent;
+4. resume/reconnect are deterministic pure transitions;
+5. exact instance identity is preserved;
+6. restore requires caller-supplied exact instance context;
+7. cross-instance restore fails closed;
+8. persisted restore cannot assert verified cache trust;
+9. no positive verified-cache authority is exposed before MASTER-11;
+10. no protected side effect is replayed or executed;
+11. session revision is independent from existing execution/host revisions;
+12. no platform APIs enter `runtime-core`;
+13. no dependency graph expansion occurs;
+14. focused and full repository/native/browser verification pass on the exact PR head;
+15. independent architecture/security/API RE/QC passes;
+16. branch is 0 behind authoritative main;
+17. squash merge uses the verified exact head.
