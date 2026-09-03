@@ -5,10 +5,11 @@ import android.os.Bundle
 class ViraAndroidApplicationLifecycleSource private constructor(
   private val application: Application,
   initial: ViraAndroidLifecycleSnapshot,
+  initialStartedActivityCount: Int,
 ) : ViraAndroidLifecycleSource, Application.ActivityLifecycleCallbacks {
   private val lock = Any()
   private var current = initial
-  private var startedActivities = if (initial.visibility == ViraAndroidSessionVisibility.FOREGROUND) 1 else 0
+  private var startedActivities = initialStartedActivityCount
   private var disposed = false
   private val listeners = linkedSetOf<(ViraAndroidLifecycleEvent) -> Unit>()
 
@@ -99,13 +100,30 @@ class ViraAndroidApplicationLifecycleSource private constructor(
       application: Application,
       initialVisibility: ViraAndroidSessionVisibility,
       initialConnectivity: ViraAndroidSessionConnectivity,
-    ): ViraAndroidApplicationLifecycleSource {
+      initialStartedActivityCount: Int,
+    ): Result<ViraAndroidApplicationLifecycleSource> = runCatching {
+      if (initialStartedActivityCount < 0) {
+        throw ViraAndroidIssue(
+          ViraAndroidIssueCode.INVALID_RUNTIME_STATE,
+          "$.lifecycle.initialStartedActivityCount",
+          "initial started activity count must be non-negative",
+        )
+      }
+      val expectedForeground = initialStartedActivityCount > 0
+      if (expectedForeground != (initialVisibility == ViraAndroidSessionVisibility.FOREGROUND)) {
+        throw ViraAndroidIssue(
+          ViraAndroidIssueCode.INVALID_RUNTIME_STATE,
+          "$.lifecycle.initialVisibility",
+          "initial visibility must exactly match the supplied started activity count",
+        )
+      }
       val source = ViraAndroidApplicationLifecycleSource(
         application,
         ViraAndroidLifecycleSnapshot(initialVisibility, initialConnectivity),
+        initialStartedActivityCount,
       )
       application.registerActivityLifecycleCallbacks(source)
-      return source
+      source
     }
   }
 }
