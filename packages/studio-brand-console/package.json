@@ -1,0 +1,12 @@
+{
+  "name": "@vira-enterprise-genui/studio-brand-console",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@vira-enterprise-genui/enterprise-context": "workspace:*",
+    "@vira-enterprise-genui/studio-brand": "workspace:*",
+    "@vira-enterprise-genui/studio-workbench": "workspace:*"
+  }
+}
