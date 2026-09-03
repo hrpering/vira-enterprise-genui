@@ -76,6 +76,7 @@ class ViraAndroidRendererRegistry private constructor(
     session: ViraAndroidRuntimeSession,
     onDispatchCompletion: (() -> Unit)? = null,
   ): Result<List<View>> = runCatching {
+    requireViraAndroidMainThread("$.renderers")
     val hostRevision = session.host.snapshot().getOrThrow().revision
     val current = session.currentView().getOrThrow()
     val viewGeneration = session.currentViewGeneration()
