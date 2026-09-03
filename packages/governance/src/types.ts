@@ -96,6 +96,7 @@ export interface ViraApprovalProvider {
 export interface ViraGovernancePipelineInput {
   readonly providers: readonly ViraGovernanceProvider[];
   readonly approvalProvider?: ViraApprovalProvider;
+  readonly allowedObligations: readonly string[];
 }
 
 export interface ViraGovernanceEvaluationInput {
@@ -118,6 +119,7 @@ export type ViraGovernanceIssueCode =
   | "INVALID_PROVIDER"
   | "PROVIDER_FAILED"
   | "INVALID_VERDICT"
+  | "UNKNOWN_OBLIGATION"
   | "GOVERNANCE_DENIED"
   | "APPROVAL_REQUIRED"
   | "APPROVAL_FAILED"
