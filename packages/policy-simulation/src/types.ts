@@ -25,6 +25,7 @@ export interface ViraPolicySimulationDecision {
 export interface ViraPolicySimulationEvaluator {
   readonly version: typeof VIRA_POLICY_SIMULATION_VERSION;
   readonly id: string;
+  readonly policyRef: string;
   readonly evaluate: (fixture: ViraPolicySimulationFixture) => Promise<unknown> | unknown;
 }
 
@@ -50,6 +51,8 @@ export interface ViraPolicySimulationReport {
   readonly reportId: string;
   readonly currentEvaluatorId: string;
   readonly candidateEvaluatorId: string;
+  readonly currentPolicyRef: string;
+  readonly candidatePolicyRef: string;
   readonly fixtureSetId: string;
   readonly cases: readonly ViraPolicySimulationCaseResult[];
   readonly summary: ViraPolicySimulationSummary;
@@ -68,7 +71,8 @@ export type ViraPolicySimulationIssueCode =
   | "INVALID_FIXTURES"
   | "INVALID_EVALUATOR"
   | "EVALUATOR_FAILED"
-  | "INVALID_DECISION";
+  | "INVALID_DECISION"
+  | "INVALID_REVIEW";
 
 export interface ViraPolicySimulationIssue {
   readonly code: ViraPolicySimulationIssueCode;
@@ -90,6 +94,8 @@ export interface ViraPolicySimulationReviewInput {
 export interface ViraPolicySimulationReview {
   readonly version: typeof VIRA_POLICY_SIMULATION_VERSION;
   readonly reportId: string;
+  readonly currentPolicyRef: string;
+  readonly candidatePolicyRef: string;
   readonly reviewerId: string;
   readonly decision: "approved" | "rejected";
   readonly acknowledgedNewDenyFixtureIds: readonly string[];
