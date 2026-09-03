@@ -1,6 +1,79 @@
 import Foundation
 import ViraStudioExperienceWire
 
+private let VIRA_IOS_JSON_MAX_DEPTH = 64
+private let VIRA_IOS_JSON_MAX_NODES = 100_000
+private let VIRA_IOS_JSON_MAX_ARRAY_LENGTH = 50_000
+private let VIRA_IOS_JSON_MAX_OBJECT_KEYS = 50_000
+private let VIRA_IOS_JSON_MAX_OBJECT_KEY_LENGTH = 4_096
+private let VIRA_IOS_JSON_MAX_STRING_LENGTH = 1_048_576
+private let VIRA_IOS_JSON_MAX_TOTAL_STRING_LENGTH = 4_194_304
+
+private struct ViraIOSJSONBudget {
+  var nodes = 0
+  var totalStringLength = 0
+}
+
+private func consumeJSONStringLength(_ value: String, budget: inout ViraIOSJSONBudget) -> Bool {
+  let length = value.utf16.count
+  guard length <= VIRA_IOS_JSON_MAX_STRING_LENGTH else { return false }
+  guard budget.totalStringLength <= VIRA_IOS_JSON_MAX_TOTAL_STRING_LENGTH - length else { return false }
+  budget.totalStringLength += length
+  return true
+}
+
+private func consumeJSONKeyLength(_ value: String, budget: inout ViraIOSJSONBudget) -> Bool {
+  let length = value.utf16.count
+  guard length <= VIRA_IOS_JSON_MAX_OBJECT_KEY_LENGTH else { return false }
+  guard budget.totalStringLength <= VIRA_IOS_JSON_MAX_TOTAL_STRING_LENGTH - length else { return false }
+  budget.totalStringLength += length
+  return true
+}
+
+private func isCanonicalJSONValue(
+  _ value: ViraJSONValue,
+  depth: Int,
+  budget: inout ViraIOSJSONBudget
+) -> Bool {
+  guard depth <= VIRA_IOS_JSON_MAX_DEPTH else { return false }
+  guard budget.nodes < VIRA_IOS_JSON_MAX_NODES else { return false }
+  budget.nodes += 1
+
+  switch value {
+  case .null, .bool:
+    return true
+  case .number(let number):
+    return number.isFinite && !(number == 0 && number.sign == .minus)
+  case .string(let string):
+    return consumeJSONStringLength(string, budget: &budget)
+  case .array(let values):
+    guard values.count <= VIRA_IOS_JSON_MAX_ARRAY_LENGTH else { return false }
+    for item in values {
+      if !isCanonicalJSONValue(item, depth: depth + 1, budget: &budget) { return false }
+    }
+    return true
+  case .object(let object):
+    guard object.count <= VIRA_IOS_JSON_MAX_OBJECT_KEYS else { return false }
+    for (key, item) in object {
+      if !consumeJSONKeyLength(key, budget: &budget) { return false }
+      if !isCanonicalJSONValue(item, depth: depth + 1, budget: &budget) { return false }
+    }
+    return true
+  }
+}
+
+private func isCanonicalJSONObjects(
+  _ first: [String: ViraJSONValue],
+  _ second: [String: ViraJSONValue]? = nil
+) -> Bool {
+  var budget = ViraIOSJSONBudget()
+  guard isCanonicalJSONValue(.object(first), depth: 0, budget: &budget) else { return false }
+  if let second {
+    return isCanonicalJSONValue(.object(second), depth: 0, budget: &budget)
+  }
+  return true
+}
+
 public enum ViraIOSHostActionOutcome: String, Codable, Equatable, Sendable {
   case success
   case empty
@@ -26,7 +99,10 @@ public struct ViraIOSHostSnapshot: Equatable {
   }
 
   public var isCanonical: Bool {
-    version == "1" && revision >= 0 && revision <= VIRA_IOS_MAX_SAFE_INTEGER
+    version == "1"
+      && revision >= 0
+      && revision <= VIRA_IOS_MAX_SAFE_INTEGER
+      && isCanonicalJSONObjects(state, domain)
   }
 }
 
@@ -270,6 +346,13 @@ public final class ViraIOSHostAdapter {
         code: .invalidHostResult,
         path: "$.action.type",
         message: "native action type is invalid"
+      ))
+    }
+    guard isCanonicalJSONObjects(action.payload) else {
+      return .failure(.init(
+        code: .invalidHostResult,
+        path: "$.action.payload",
+        message: "native action payload is not canonical JSON"
       ))
     }
     if let issue = dispatchStateIssue() { return .failure(issue) }
