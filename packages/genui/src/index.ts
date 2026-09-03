@@ -130,7 +130,11 @@ export type {
   ViraTrustedActionAdapterResult,
 } from "@vira-enterprise-genui/action-boundary";
 export {
+  createViraAgtGovernanceProvider,
+  createViraCedarGovernanceProvider,
   createViraGovernancePipeline,
+  createViraOidcAgentIdentityProvider,
+  createViraOpaGovernanceProvider,
   parseViraPrincipal,
   resolveViraAgentPrincipal,
   VIRA_GOVERNANCE_MAX_OBLIGATIONS,
@@ -140,9 +144,11 @@ export {
 export type {
   ViraAgentIdentityProvider,
   ViraAgentIdentityRequest,
+  ViraAgtClient,
   ViraApprovalChallenge,
   ViraApprovalDecision,
   ViraApprovalProvider,
+  ViraCedarClient,
   ViraCoreSafetyEffect,
   ViraCoreSafetyVerdict,
   ViraGovernanceContext,
@@ -159,6 +165,8 @@ export type {
   ViraGovernancePlatform,
   ViraGovernanceProvider,
   ViraGovernanceVerdict,
+  ViraOidcClaimsClient,
+  ViraOpaClient,
   ViraPrincipal,
   ViraPrincipalKind,
 } from "@vira-enterprise-genui/governance";
