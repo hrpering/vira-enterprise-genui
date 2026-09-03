@@ -23,7 +23,8 @@
     "@vira-enterprise-genui/studio-host-runtime": "workspace:*",
     "@vira-enterprise-genui/studio-publish": "workspace:*",
     "@vira-enterprise-genui/studio-runtime": "workspace:*",
-    "@vira-enterprise-genui/studio-runtime-react": "workspace:*"
+    "@vira-enterprise-genui/studio-runtime-react": "workspace:*",
+    "@vira-enterprise-genui/studio-workbench": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18.2.0 <20"
