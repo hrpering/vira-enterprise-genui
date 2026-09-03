@@ -107,7 +107,7 @@ export interface ViraGovernanceEvaluationSuccess {
   readonly effect: "allow";
   readonly context: ViraGovernanceContext;
   readonly verdicts: readonly ViraGovernanceVerdict[];
-  readonly approval?: ViraApprovalDecision;
+  readonly approvals: readonly ViraApprovalDecision[];
 }
 
 export type ViraGovernanceIssueCode =
