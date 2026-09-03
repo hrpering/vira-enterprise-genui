@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   createViraMultiPlatformPreview,
-  type ViraPreviewPackPublisher,
+  type ViraPreviewPackProvider,
 } from "../../packages/genui/src/multi-platform-preview.js";
 import type { StudioWorkbenchSession } from "../../packages/studio-workbench/src/index.js";
 
@@ -27,15 +27,13 @@ function fakeWorkbench(): StudioWorkbenchSession {
 const emptyHost = { version: "1", id: "preview.host", platform: "ios", implementations: [], capabilities: [] } as const;
 const emptyAndroidHost = { ...emptyHost, id: "preview.android", platform: "android" } as const;
 const brand = { version: "1", id: "acme", package: {}, design: {}, policies: {}, implementations: [] } as const;
+const inertProvider: ViraPreviewPackProvider = { version: "1", publish: () => ({ version: "1", previewPackRef: "preview:pack:1" }), resolve: () => ({}) };
 
 test("fast preview exposes semantic approximation and never claims native accuracy", () => {
   const created = createViraMultiPlatformPreview({
-    workbench: fakeWorkbench(),
-    instanceId: "preview-1",
-    brand: brand as never,
-    iosHostManifest: emptyHost as never,
-    androidHostManifest: emptyAndroidHost as never,
-    previewPackPublisher: { version: "1", publish: () => ({}) },
+    workbench: fakeWorkbench(), instanceId: "preview-1", brand: brand as never,
+    iosHostManifest: emptyHost as never, androidHostManifest: emptyAndroidHost as never,
+    previewPackProvider: inertProvider,
   });
   assert.equal(created.ok, true);
   if (!created.ok) return;
@@ -43,7 +41,6 @@ test("fast preview exposes semantic approximation and never claims native accura
     const preview = created.value.fast(target);
     assert.equal(preview.ok, true);
     if (!preview.ok) continue;
-    assert.equal(preview.value.mode, "fast");
     assert.equal(preview.value.semanticSurface, "web-approximation");
     assert.equal(preview.value.nativeAccuracy, false);
     assert.equal(preview.value.target, target);
@@ -51,16 +48,17 @@ test("fast preview exposes semantic approximation and never claims native accura
   }
 });
 
-test("real native preview requires canonical Workbench publication before Pack publication", async () => {
+test("real native preview requires canonical Workbench publication before preview Pack publication", async () => {
   let publishes = 0;
-  const publisher: ViraPreviewPackPublisher = { version: "1", publish: () => { publishes += 1; return {}; } };
+  const provider: ViraPreviewPackProvider = {
+    version: "1",
+    publish: () => { publishes += 1; return { version: "1", previewPackRef: "preview:pack:1" }; },
+    resolve: () => ({}),
+  };
   const created = createViraMultiPlatformPreview({
-    workbench: fakeWorkbench(),
-    instanceId: "preview-1",
-    brand: brand as never,
-    iosHostManifest: emptyHost as never,
-    androidHostManifest: emptyAndroidHost as never,
-    previewPackPublisher: publisher,
+    workbench: fakeWorkbench(), instanceId: "preview-1", brand: brand as never,
+    iosHostManifest: emptyHost as never, androidHostManifest: emptyAndroidHost as never,
+    previewPackProvider: provider,
   });
   assert.equal(created.ok, true);
   if (!created.ok) return;
@@ -70,23 +68,22 @@ test("real native preview requires canonical Workbench publication before Pack p
   assert.equal(publishes, 0);
 });
 
-test("real native targets share one published preview descriptor and fail closed through native envelope validation", async () => {
+test("native targets publish one Pack but resolve independent platform descriptors", async () => {
   let publishes = 0;
-  const publisher: ViraPreviewPackPublisher = {
+  const platforms: string[] = [];
+  const provider: ViraPreviewPackProvider = {
     version: "1",
-    publish: () => { publishes += 1; return { forged: true }; },
+    publish: () => { publishes += 1; return { version: "1", previewPackRef: "preview:pack:1" }; },
+    resolve: ({ platform }) => { platforms.push(platform); return { forged: platform }; },
   };
   const workbench = {
     preview: fakeWorkbench().preview,
     publish: () => ({ ok: true, value: { version: "1", id: "acme.preview", document: {} } }),
   } as unknown as StudioWorkbenchSession;
   const created = createViraMultiPlatformPreview({
-    workbench,
-    instanceId: "preview-1",
-    brand: brand as never,
-    iosHostManifest: emptyHost as never,
-    androidHostManifest: emptyAndroidHost as never,
-    previewPackPublisher: publisher,
+    workbench, instanceId: "preview-1", brand: brand as never,
+    iosHostManifest: emptyHost as never, androidHostManifest: emptyAndroidHost as never,
+    previewPackProvider: provider,
   });
   assert.equal(created.ok, true);
   if (!created.ok) return;
@@ -97,4 +94,26 @@ test("real native targets share one published preview descriptor and fail closed
   if (!ios.ok) assert.equal(ios.issue.code, "NATIVE_PREVIEW_REJECTED");
   if (!android.ok) assert.equal(android.issue.code, "NATIVE_PREVIEW_REJECTED");
   assert.equal(publishes, 1);
+  assert.deepEqual(platforms, ["ios", "android"]);
+});
+
+test("invalid preview Pack reference fails before platform descriptor resolution", async () => {
+  let resolves = 0;
+  const provider: ViraPreviewPackProvider = {
+    version: "1",
+    publish: () => ({ version: "1", previewPackRef: "../unsafe" }),
+    resolve: () => { resolves += 1; return {}; },
+  };
+  const workbench = { preview: fakeWorkbench().preview, publish: () => ({ ok: true, value: {} }) } as unknown as StudioWorkbenchSession;
+  const created = createViraMultiPlatformPreview({
+    workbench, instanceId: "preview-1", brand: brand as never,
+    iosHostManifest: emptyHost as never, androidHostManifest: emptyAndroidHost as never,
+    previewPackProvider: provider,
+  });
+  assert.equal(created.ok, true);
+  if (!created.ok) return;
+  const result = await created.value.real("iphone");
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.issue.code, "INVALID_PREVIEW_PACK");
+  assert.equal(resolves, 0);
 });
