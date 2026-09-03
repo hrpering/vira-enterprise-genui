@@ -13,13 +13,12 @@ import {
 import { validateStudioDocumentFlow } from "@vira-enterprise-genui/studio-flow";
 import {
   defineViraBrand,
+  type ViraBrandComponentImplementation,
   type ViraBrandDefinition,
   type ViraBrandDefinitionInput,
-  type ViraBrandComponentImplementation,
 } from "@vira-enterprise-genui/studio-brand";
 import {
   createStudioHostCapabilityManifest,
-  STUDIO_HOST_PLATFORMS,
   type StudioHostCapabilityManifest,
   type StudioHostPlatform,
 } from "@vira-enterprise-genui/studio-host";
@@ -28,6 +27,7 @@ import { STUDIO_AI_PROMPT_MAX_LENGTH } from "./types.js";
 
 export const STUDIO_AI_V2_VERSION = "2" as const;
 export const STUDIO_AI_V2_MAX_PLATFORMS = 3 as const;
+const UNIVERSAL_PLATFORMS = Object.freeze(["web", "ios", "android"] as const);
 
 export interface StudioAiV2PlatformSnapshot {
   readonly platform: StudioHostPlatform;
@@ -59,7 +59,6 @@ export type StudioAiV2DraftResult = { readonly ok: true; readonly value: StudioE
 
 const INPUT_FIELDS = new Set(["prompt", "experienceId", "recipeId", "brand", "requestedPlatforms", "hostManifests", "baseDocument"]);
 const FORBIDDEN_CONTROL_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
-
 function failure(code: StudioAiV2IssueCode, path: string, message: string): StudioAiV2DraftResult { return { ok: false, issue: Object.freeze({ code, path, message }) }; }
 function plainDataObject(input: unknown, allowed: ReadonlySet<string>): Readonly<Record<string, unknown>> | undefined {
   if (input === null || typeof input !== "object" || Array.isArray(input)) return undefined;
@@ -80,8 +79,8 @@ function plainDataObject(input: unknown, allowed: ReadonlySet<string>): Readonly
     return output;
   } catch { return undefined; }
 }
-function denseOwnDataArray(input: unknown, maximum: number): readonly unknown[] | undefined {
-  if (!Array.isArray(input) || input.length < 1 || input.length > maximum) return undefined;
+function denseOwnDataArray(input: unknown, exactLength: number): readonly unknown[] | undefined {
+  if (!Array.isArray(input) || input.length !== exactLength) return undefined;
   try {
     if (Object.getOwnPropertySymbols(input).length > 0) return undefined;
     const output: unknown[] = [];
@@ -102,46 +101,50 @@ function denseOwnDataArray(input: unknown, maximum: number): readonly unknown[] 
 }
 function freezeData<T>(value: T): T {
   if (value === null || typeof value !== "object" || Object.isFrozen(value)) return value;
-  if (Array.isArray(value)) { for (let index = 0; index < value.length; index += 1) freezeData(value[index]); return Object.freeze(value); }
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index += 1) freezeData(value[index]);
+    return Object.freeze(value);
+  }
   const object = value as Record<string, unknown>;
   for (const key of Object.keys(object)) freezeData(object[key]);
   return Object.freeze(value);
-}
-function containsPlatform(values: readonly StudioHostPlatform[], candidate: StudioHostPlatform): boolean {
-  for (let index = 0; index < values.length; index += 1) if (values[index] === candidate) return true;
-  return false;
 }
 function containsString(values: readonly string[], candidate: string): boolean {
   for (let index = 0; index < values.length; index += 1) if (values[index] === candidate) return true;
   return false;
 }
+function validPlatform(value: unknown): value is StudioHostPlatform { return value === "web" || value === "ios" || value === "android"; }
 function providerGenerate(provider: StudioAiV2Provider): StudioAiV2Provider["generate"] | undefined {
   const data = plainDataObject(provider, new Set(["generate"]));
   return data && typeof data.generate === "function" ? data.generate as StudioAiV2Provider["generate"] : undefined;
 }
-function requestedPlatforms(input: unknown): readonly StudioHostPlatform[] | undefined {
+function universalPlatforms(input: unknown): readonly StudioHostPlatform[] | undefined {
   const values = denseOwnDataArray(input, STUDIO_AI_V2_MAX_PLATFORMS);
   if (!values) return undefined;
-  const output: StudioHostPlatform[] = [];
+  let web = false; let ios = false; let android = false;
   for (let index = 0; index < values.length; index += 1) {
     const value = values[index];
-    if (typeof value !== "string" || !STUDIO_HOST_PLATFORMS.includes(value as StudioHostPlatform) || containsPlatform(output, value as StudioHostPlatform)) return undefined;
-    output.push(value as StudioHostPlatform);
+    if (!validPlatform(value)) return undefined;
+    if (value === "web") { if (web) return undefined; web = true; }
+    else if (value === "ios") { if (ios) return undefined; ios = true; }
+    else { if (android) return undefined; android = true; }
   }
-  return Object.freeze(output);
+  return web && ios && android ? UNIVERSAL_PLATFORMS : undefined;
 }
-function manifestsByPlatform(raw: unknown, requested: readonly StudioHostPlatform[]): { readonly ok: true; readonly value: ReadonlyMap<StudioHostPlatform, StudioHostCapabilityManifest> } | { readonly ok: false; readonly result: StudioAiV2DraftResult } {
+function manifestsByPlatform(raw: unknown): { readonly ok: true; readonly value: ReadonlyMap<StudioHostPlatform, StudioHostCapabilityManifest> } | { readonly ok: false; readonly result: StudioAiV2DraftResult } {
   const values = denseOwnDataArray(raw, STUDIO_AI_V2_MAX_PLATFORMS);
-  if (!values || values.length !== requested.length) return { ok: false, result: failure("INVALID_HOST_MANIFEST", "$.hostManifests", "exactly one Host Capability Manifest is required for every requested platform") };
+  if (!values) return { ok: false, result: failure("INVALID_HOST_MANIFEST", "$.hostManifests", "exactly one Host Capability Manifest is required for web, ios and android") };
   const result = new Map<StudioHostPlatform, StudioHostCapabilityManifest>();
   for (let index = 0; index < values.length; index += 1) {
     const parsed = createStudioHostCapabilityManifest(values[index]);
     if (!parsed.ok) return { ok: false, result: failure("INVALID_HOST_MANIFEST", `$.hostManifests[${index}]`, parsed.issue.message) };
-    if (!containsPlatform(requested, parsed.value.platform)) return { ok: false, result: failure("HOST_PLATFORM_MISMATCH", `$.hostManifests[${index}].platform`, "Host manifest platform was not requested") };
     if (result.has(parsed.value.platform)) return { ok: false, result: failure("INVALID_HOST_MANIFEST", `$.hostManifests[${index}].platform`, "duplicate Host manifest platform") };
     result.set(parsed.value.platform, parsed.value);
   }
-  for (let index = 0; index < requested.length; index += 1) if (!result.has(requested[index]!)) return { ok: false, result: failure("INVALID_HOST_MANIFEST", "$.hostManifests", `missing Host manifest for ${requested[index]}`) };
+  for (let index = 0; index < UNIVERSAL_PLATFORMS.length; index += 1) {
+    const platform = UNIVERSAL_PLATFORMS[index]!;
+    if (!result.has(platform)) return { ok: false, result: failure("HOST_PLATFORM_MISMATCH", "$.hostManifests", `missing Host manifest for ${platform}`) };
+  }
   return { ok: true, value: result };
 }
 function implementationFor(brand: ViraBrandDefinition, component: string): ViraBrandComponentImplementation | undefined {
@@ -151,7 +154,7 @@ function implementationFor(brand: ViraBrandDefinition, component: string): ViraB
   }
   return undefined;
 }
-function commonCatalog(brand: ViraBrandDefinition, requested: readonly StudioHostPlatform[], hosts: ReadonlyMap<StudioHostPlatform, StudioHostCapabilityManifest>): StudioComponentCatalog | undefined {
+function commonCatalog(brand: ViraBrandDefinition, hosts: ReadonlyMap<StudioHostPlatform, StudioHostCapabilityManifest>): StudioComponentCatalog | undefined {
   const components: StudioCatalogComponentDefinition[] = [];
   for (let componentIndex = 0; componentIndex < brand.package.components.components.length; componentIndex += 1) {
     const component = brand.package.components.components[componentIndex];
@@ -159,11 +162,11 @@ function commonCatalog(brand: ViraBrandDefinition, requested: readonly StudioHos
     const mapping = implementationFor(brand, component.ref);
     if (!mapping) continue;
     let supported = true;
-    for (let platformIndex = 0; platformIndex < requested.length; platformIndex += 1) {
-      const platform = requested[platformIndex]!;
+    for (let platformIndex = 0; platformIndex < UNIVERSAL_PLATFORMS.length; platformIndex += 1) {
+      const platform = UNIVERSAL_PLATFORMS[platformIndex]!;
       const host = hosts.get(platform);
       const implementationId = mapping[platform];
-      if (!host || typeof implementationId !== "string" || !containsString(host.implementationIds, implementationId)) { supported = false; break; }
+      if (!host || !containsString(host.implementationIds, implementationId)) { supported = false; break; }
     }
     if (supported) components.push(component);
   }
@@ -171,31 +174,25 @@ function commonCatalog(brand: ViraBrandDefinition, requested: readonly StudioHos
   const parsed = createStudioComponentCatalog({ version: brand.package.components.version, id: brand.package.components.id, brandId: brand.package.components.brandId, components });
   return parsed.ok ? parsed.value : undefined;
 }
-function uniqueSorted(values: readonly string[]): readonly string[] {
-  const output: string[] = [];
-  for (let index = 0; index < values.length; index += 1) if (!containsString(output, values[index]!)) output.push(values[index]!);
-  output.sort();
-  return Object.freeze(output);
-}
-function platformSnapshots(brand: ViraBrandDefinition, catalog: StudioComponentCatalog, requested: readonly StudioHostPlatform[], hosts: ReadonlyMap<StudioHostPlatform, StudioHostCapabilityManifest>): readonly StudioAiV2PlatformSnapshot[] {
+function appendUnique(output: string[], value: string): void { if (!containsString(output, value)) output.push(value); }
+function platformSnapshots(brand: ViraBrandDefinition, catalog: StudioComponentCatalog, hosts: ReadonlyMap<StudioHostPlatform, StudioHostCapabilityManifest>): readonly StudioAiV2PlatformSnapshot[] {
   const snapshots: StudioAiV2PlatformSnapshot[] = [];
-  for (let platformIndex = 0; platformIndex < requested.length; platformIndex += 1) {
-    const platform = requested[platformIndex]!;
+  for (let platformIndex = 0; platformIndex < UNIVERSAL_PLATFORMS.length; platformIndex += 1) {
+    const platform = UNIVERSAL_PLATFORMS[platformIndex]!;
     const host = hosts.get(platform)!;
     const implementationIds: string[] = [];
     for (let componentIndex = 0; componentIndex < catalog.components.length; componentIndex += 1) {
       const component = catalog.components[componentIndex];
       if (!component) continue;
-      const mapping = implementationFor(brand, component.ref);
-      const implementationId = mapping?.[platform];
-      if (typeof implementationId === "string") implementationIds.push(implementationId);
+      const implementationId = implementationFor(brand, component.ref)?.[platform];
+      if (typeof implementationId === "string") appendUnique(implementationIds, implementationId);
     }
     const capabilityIds: string[] = [];
     for (let capabilityIndex = 0; capabilityIndex < host.capabilities.length; capabilityIndex += 1) {
       const capability = host.capabilities[capabilityIndex];
-      if (capability) capabilityIds.push(`${capability.id}@${capability.version}`);
+      if (capability) appendUnique(capabilityIds, `${capability.id}@${capability.version}`);
     }
-    snapshots.push(Object.freeze({ platform, hostId: host.id, implementationIds: uniqueSorted(implementationIds), capabilityIds: uniqueSorted(capabilityIds) }));
+    snapshots.push(Object.freeze({ platform, hostId: host.id, implementationIds: Object.freeze(implementationIds), capabilityIds: Object.freeze(capabilityIds) }));
   }
   return Object.freeze(snapshots);
 }
@@ -212,7 +209,6 @@ function actionMappings(brand: ViraBrandDefinition): readonly StudioAiV2ActionMa
     const mapping = brand.package.actions.mappings[index];
     if (mapping) result.push(Object.freeze({ event: mapping.event, actionType: mapping.actionType }));
   }
-  result.sort((left, right) => left.event === right.event ? left.actionType.localeCompare(right.actionType) : left.event.localeCompare(right.event));
   return Object.freeze(result);
 }
 function unsupportedComponent(document: StudioExperienceDocument, allowed: ReadonlySet<string>): string | undefined {
@@ -234,12 +230,12 @@ export async function generateStudioDraftV2(input: unknown, provider: StudioAiV2
   if (typeof fields.experienceId !== "string" || !isSemanticNamespace(fields.experienceId) || typeof fields.recipeId !== "string" || !isSemanticNamespace(fields.recipeId)) return failure("INVALID_IDENTITY", "$", "Studio AI v2 identity must use semantic namespaces");
   const brand = defineViraBrand(fields.brand as ViraBrandDefinitionInput);
   if (!brand.ok) return failure("INVALID_BRAND", `$.brand${brand.issue.path === "$" ? "" : brand.issue.path.slice(1)}`, brand.issue.message);
-  const platforms = requestedPlatforms(fields.requestedPlatforms);
-  if (!platforms) return failure("INVALID_PLATFORMS", "$.requestedPlatforms", "requestedPlatforms must contain 1..3 unique web/ios/android targets");
-  const hosts = manifestsByPlatform(fields.hostManifests, platforms);
+  const platforms = universalPlatforms(fields.requestedPlatforms);
+  if (!platforms) return failure("INVALID_PLATFORMS", "$.requestedPlatforms", "Studio AI v2 requires the exact web + ios + android platform set");
+  const hosts = manifestsByPlatform(fields.hostManifests);
   if (!hosts.ok) return hosts.result;
-  const catalog = commonCatalog(brand.value, platforms, hosts.value);
-  if (!catalog) return failure("NO_COMMON_COMPONENTS", "$.requestedPlatforms", "requested platforms do not share any Brand component supported by every Host");
+  const catalog = commonCatalog(brand.value, hosts.value);
+  if (!catalog) return failure("NO_COMMON_COMPONENTS", "$.requestedPlatforms", "web, ios and android do not share any Brand component supported by every Host");
   const bindings = createStudioBindingSourceCatalog(brand.value.package.dataSources);
   if (!bindings.ok) return failure("INVALID_BRAND", "$.brand.dataSources", bindings.issue.message);
   const policy = policyRefsForRecipe(brand.value, fields.recipeId);
@@ -262,7 +258,7 @@ export async function generateStudioDraftV2(input: unknown, provider: StudioAiV2
     prompt: fields.prompt,
     identity: Object.freeze({ experienceId: fields.experienceId, recipeId: fields.recipeId }),
     requestedPlatforms: platforms,
-    platforms: platformSnapshots(brand.value, catalog, platforms, hosts.value),
+    platforms: platformSnapshots(brand.value, catalog, hosts.value),
     components: catalog.components,
     bindingSources: bindings.value.sources,
     actions: actionMappings(brand.value),
@@ -278,9 +274,12 @@ export async function generateStudioDraftV2(input: unknown, provider: StudioAiV2
     const allBindings = validateStudioDocumentBindings(candidate, brand.value.package.components, bindings.value);
     if (allBindings.ok) {
       const allowed = new Set<string>();
-      for (let index = 0; index < catalog.components.length; index += 1) if (catalog.components[index]) allowed.add(catalog.components[index]!.ref);
+      for (let index = 0; index < catalog.components.length; index += 1) {
+        const component = catalog.components[index];
+        if (component) allowed.add(component.ref);
+      }
       const unsupported = unsupportedComponent(allBindings.value, allowed);
-      if (unsupported) return failure("UNSUPPORTED_COMPONENT", "$.candidate", `generated component ${unsupported} is not supported by every requested platform Host`);
+      if (unsupported) return failure("UNSUPPORTED_COMPONENT", "$.candidate", `generated component ${unsupported} is not supported by all three platform Hosts`);
     }
     return failure("INVALID_CANDIDATE", `$.candidate${candidateBindings.issue.path === "$" ? "" : candidateBindings.issue.path.slice(1)}`, candidateBindings.issue.message);
   }
