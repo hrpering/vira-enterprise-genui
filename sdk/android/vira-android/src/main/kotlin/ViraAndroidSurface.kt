@@ -3,6 +3,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.widget.LinearLayout
+import java.util.concurrent.atomic.AtomicBoolean
 
 class ViraAndroidSurfaceController private constructor(
   private val context: Context,
@@ -14,7 +15,7 @@ class ViraAndroidSurfaceController private constructor(
   }
 
   private val mainHandler = Handler(Looper.getMainLooper())
-  private var disposed = false
+  private val disposed = AtomicBoolean(false)
   private var unsubscribeHost: (() -> Unit)? = null
   private var lastIssueValue: ViraAndroidIssue? = null
 
@@ -22,7 +23,7 @@ class ViraAndroidSurfaceController private constructor(
     get() = lastIssueValue
 
   fun refresh(): Result<Unit> {
-    if (disposed) {
+    if (disposed.get()) {
       return Result.failure(ViraAndroidIssue(ViraAndroidIssueCode.DISPOSED, "$", "native Android surface is disposed"))
     }
     if (Looper.myLooper() != Looper.getMainLooper()) {
@@ -44,8 +45,7 @@ class ViraAndroidSurfaceController private constructor(
   }
 
   fun dispose() {
-    if (disposed) return
-    disposed = true
+    if (!disposed.compareAndSet(false, true)) return
     unsubscribeHost?.invoke()
     unsubscribeHost = null
     if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -56,11 +56,11 @@ class ViraAndroidSurfaceController private constructor(
   }
 
   private fun requestRefresh() {
-    if (disposed) return
+    if (disposed.get()) return
     if (Looper.myLooper() == Looper.getMainLooper()) {
       refresh()
     } else {
-      mainHandler.post { if (!disposed) refresh() }
+      mainHandler.post { if (!disposed.get()) refresh() }
     }
   }
 
@@ -79,9 +79,14 @@ class ViraAndroidSurfaceController private constructor(
         throw ViraAndroidIssue(ViraAndroidIssueCode.RENDERER_FAILED, "$.surface", "native Android surface creation requires the main looper")
       }
       val controller = ViraAndroidSurfaceController(context, session, registry)
-      controller.unsubscribeHost = session.host.subscribe { controller.requestRefresh() }
-      controller.refresh().getOrThrow()
-      controller
+      try {
+        controller.unsubscribeHost = session.host.subscribe { controller.requestRefresh() }
+        controller.refresh().getOrThrow()
+        controller
+      } catch (error: Throwable) {
+        controller.dispose()
+        throw error
+      }
     }
   }
 }
