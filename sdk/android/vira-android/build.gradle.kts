@@ -1,5 +1,3 @@
-import org.gradle.api.tasks.Sync
-
 plugins {
   id("com.android.library")
 }
@@ -31,6 +29,8 @@ val generatePackagedMainSources = tasks.register("generatePackagedMainSources") 
       writePackaged(source, source.relativeTo(file("src/main/kotlin")).path)
     }
 
+    // Consume only the generated wire model. The JVM-only Conformance.kt harness
+    // remains outside the Android AAR and continues to be verified by MASTER-02.
     writePackaged(portableWireFile.asFile, "StudioExperienceModels.kt")
   }
 }
@@ -63,8 +63,8 @@ android {
   }
 
   sourceSets {
-    getByName("main").java.setSrcDirs(listOf(generatedMainDir))
-    getByName("test").java.setSrcDirs(listOf(generatedTestDir))
+    getByName("main").java.setSrcDirs(listOf(generatedMainDir.get().asFile))
+    getByName("test").java.setSrcDirs(listOf(generatedTestDir.get().asFile, file("src/test/java")))
   }
 
   testOptions {
@@ -78,6 +78,12 @@ tasks.matching { task ->
   if (name.contains("UnitTest", ignoreCase = true)) {
     dependsOn(generatePackagedTestSources)
   }
+  dependsOn(generatePackagedMainSources)
+}
+
+tasks.matching { task ->
+  task.name.startsWith("compile") && task.name.contains("Java", ignoreCase = true)
+}.configureEach {
   dependsOn(generatePackagedMainSources)
 }
 
