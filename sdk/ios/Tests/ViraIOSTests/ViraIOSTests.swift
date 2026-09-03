@@ -18,9 +18,17 @@ private let canonicalEnvelopeJSON = #"""
       {"key":"emphasis","type":"boolean","required":true,"bindable":false},
       {"key":"largeFiniteNumber","type":"number","required":true,"bindable":false},
       {"key":"title","type":"string","required":true,"bindable":true}
-    ],"slots":[],"events":[{"name":"press","payload":[{"key":"userNote","type":"string","required":false}]}]},
+    ],"slots":[],"events":[{"name":"press","payload":[
+      {"key":"itemId","type":"string","required":true},
+      {"key":"source","type":"string","required":true},
+      {"key":"userNote","type":"string","required":false}
+    ]}]},
     {"ref":"demo.component.text","implementationId":"demo.ios.text","props":[{"key":"text","type":"string","required":true,"bindable":false}],"slots":[],"events":[]}
-  ],"actions":[{"event":"catalog.item.select","actionType":"demo.action.select"}]},
+  ],"actions":[{"event":"catalog.item.select","actionType":"demo.action.select"}],"dataSources":[
+    {"kind":"domain","path":"catalog.items","valueType":"array"},
+    {"kind":"scope","path":"currentItem.title","valueType":"string"},
+    {"kind":"scope","path":"currentItem.id","valueType":"string"}
+  ]},
   "document":{
     "version":"1",
     "id":"demo.catalog",
@@ -238,6 +246,7 @@ final class ViraIOSTests: XCTestCase {
     let session = try ViraIOSRuntimeSession(
       envelope: envelope,
       host: host,
+      runtimeState: try makeTestRuntimeCoreState(),
       permissionPolicy: try makePolicy(.allow, id: "submit")
     )
     let item = try XCTUnwrap(try unwrap(session.currentView()).nodes.first { $0.sourceNodeId == "item" })
@@ -253,6 +262,7 @@ final class ViraIOSTests: XCTestCase {
     let session = try ViraIOSRuntimeSession(
       envelope: envelope,
       host: host,
+      runtimeState: try makeTestRuntimeCoreState(),
       permissionPolicy: try makePolicy(.allow)
     )
 
@@ -281,6 +291,7 @@ final class ViraIOSTests: XCTestCase {
       let session = try ViraIOSRuntimeSession(
         envelope: envelope,
         host: host,
+        runtimeState: try makeTestRuntimeCoreState(),
         permissionPolicy: try makePolicy(effect)
       )
       let view = try unwrap(session.currentView())
@@ -410,6 +421,7 @@ final class ViraIOSTests: XCTestCase {
     let session = try ViraIOSRuntimeSession(
       envelope: envelope,
       host: host,
+      runtimeState: try makeTestRuntimeCoreState(),
       permissionPolicy: try makePolicy(.allow)
     )
     let roots = try unwrap(registry.render(session: session))
@@ -432,6 +444,7 @@ final class ViraIOSTests: XCTestCase {
     let session = try ViraIOSRuntimeSession(
       envelope: envelope,
       host: try unwrap(ViraIOSHostAdapter.create(bridge: bridge)),
+      runtimeState: try makeTestRuntimeCoreState(),
       permissionPolicy: try makePolicy(.allow)
     )
     var refreshRequests = 0
@@ -459,11 +472,13 @@ final class ViraIOSTests: XCTestCase {
     let sessionA = try ViraIOSRuntimeSession(
       envelope: envelopeA,
       host: try unwrap(ViraIOSHostAdapter.create(bridge: bridgeA)),
+      runtimeState: try makeTestRuntimeCoreState(),
       permissionPolicy: try makePolicy(.allow)
     )
     let sessionB = try ViraIOSRuntimeSession(
       envelope: envelopeB,
       host: try unwrap(ViraIOSHostAdapter.create(bridge: bridgeB)),
+      runtimeState: try makeTestRuntimeCoreState(),
       permissionPolicy: try makePolicy(.allow)
     )
     let itemA = try XCTUnwrap(try unwrap(sessionA.currentView()).nodes.first { $0.sourceNodeId == "item" })
