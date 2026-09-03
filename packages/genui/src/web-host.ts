@@ -695,10 +695,13 @@ export function createViraWebHost(input: ViraWebHostConfiguration): CreateViraWe
           renderReact(renderInput: {
             readonly onHostResult?: (result: StudioHostedDispatchResult) => void;
           } = {}): StudioRuntimeReactRenderResult {
-            return runtime.value.renderReact({
-              renderers: brand.renderers,
-              onHostResult: renderInput.onHostResult,
-            });
+            if (renderInput.onHostResult) {
+              return runtime.value.renderReact({
+                renderers: brand.renderers,
+                onHostResult: renderInput.onHostResult,
+              });
+            }
+            return runtime.value.renderReact({ renderers: brand.renderers });
           },
           isDisposed: () => experienceDisposed,
           dispose(): void {
