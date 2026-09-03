@@ -12,7 +12,12 @@ function oidcIssuer(value: unknown): value is string {
   if (!bounded(value)) return false;
   try {
     const url = new URL(value);
-    return (url.protocol === "https:" || url.protocol === "http:") && url.username === "" && url.password === "";
+    return url.protocol === "https:"
+      && url.host.length > 0
+      && url.username === ""
+      && url.password === ""
+      && url.search === ""
+      && url.hash === "";
   } catch {
     return false;
   }
@@ -124,7 +129,7 @@ export function createViraOidcAgentIdentityProvider(id: string, client: ViraOidc
       const raw = await client.resolveClaims(request.credentialRef);
       const parsed = parseJsonValue(raw, "$.oidcClaims");
       const claims = parsed.ok ? object(parsed.value) : undefined;
-      if (!claims || !bounded(claims.sub) || !oidcIssuer(claims.iss)) throw new Error("OIDC claims require bounded sub and URL issuer");
+      if (!claims || !bounded(claims.sub, 255) || !oidcIssuer(claims.iss)) throw new Error("OIDC claims require bounded sub and secure issuer URL");
       return {
         version: "1",
         kind: "agent",
