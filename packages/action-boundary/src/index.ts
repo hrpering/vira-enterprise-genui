@@ -1,6 +1,8 @@
 export { createViraActionBoundary } from "./boundary.js";
 export {
   VIRA_ACTION_BOUNDARY_MAX_CATALOG,
+  VIRA_ACTION_BOUNDARY_MAX_IDEMPOTENCY_KEY_LENGTH,
+  VIRA_ACTION_BOUNDARY_MAX_SAFE_INTEGER,
   VIRA_ACTION_BOUNDARY_VERSION,
 } from "./types.js";
 export type {
@@ -20,5 +22,9 @@ export type {
   ViraActionExecutor,
   ViraActionExecutorInput,
   ViraActionIdempotency,
+  ViraActionIntent,
   ViraActionPayload,
+  ViraActionReceipt,
+  ViraActionReceiptOutcome,
+  ViraTrustedActionAdapterResult,
 } from "./types.js";
