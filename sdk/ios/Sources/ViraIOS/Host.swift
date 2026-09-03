@@ -134,34 +134,43 @@ public final class ViraIOSHostAdapter {
     return .success(adapter)
   }
 
-  private func receive(_ candidate: ViraIOSHostSnapshot) {
+  private func acceptSnapshot(
+    _ candidate: ViraIOSHostSnapshot,
+    poisonOnFailure: Bool
+  ) -> ViraIOSIssue? {
     let callbacks: [(ViraIOSHostSnapshot) -> Void]
     lock.lock()
-    if disposed || subscriptionFault != nil {
+    if disposed {
       lock.unlock()
-      return
+      return .init(code: .disposed, path: "$", message: "native host adapter is disposed")
+    }
+    if let subscriptionFault {
+      lock.unlock()
+      return subscriptionFault
     }
     guard candidate.isCanonical else {
-      subscriptionFault = .init(
+      let issue = ViraIOSIssue(
         code: .invalidSnapshot,
         path: "$.snapshot",
         message: "native host emitted an invalid snapshot"
       )
+      if poisonOnFailure { subscriptionFault = issue }
       lock.unlock()
-      return
+      return issue
     }
     if candidate.revision < currentSnapshot.revision {
-      subscriptionFault = .init(
+      let issue = ViraIOSIssue(
         code: .staleSnapshot,
         path: "$.snapshot.revision",
         message: "native host snapshot revision moved backwards"
       )
+      if poisonOnFailure { subscriptionFault = issue }
       lock.unlock()
-      return
+      return issue
     }
     if candidate.revision == currentSnapshot.revision {
       lock.unlock()
-      return
+      return nil
     }
     currentSnapshot = candidate
     callbacks = Array(listeners.values)
@@ -170,6 +179,11 @@ public final class ViraIOSHostAdapter {
     for callback in callbacks {
       callback(candidate)
     }
+    return nil
+  }
+
+  private func receive(_ candidate: ViraIOSHostSnapshot) {
+    _ = acceptSnapshot(candidate, poisonOnFailure: true)
   }
 
   private func dispatchStateIssue() -> ViraIOSIssue? {
@@ -251,7 +265,7 @@ public final class ViraIOSHostAdapter {
   public func dispatch(
     _ action: ViraIOSHostActionDescriptor
   ) async -> Result<ViraIOSHostActionResult, ViraIOSIssue> {
-    guard ViraIOSSemanticIdentifier.isNamespace(action.type, requiresDot: true) else {
+    guard ViraIOSSemanticIdentifier.isNamespace(action.type) else {
       return .failure(.init(
         code: .invalidHostResult,
         path: "$.action.type",
@@ -273,9 +287,9 @@ public final class ViraIOSHostAdapter {
     }
 
     if let issue = dispatchStateIssue() { return .failure(issue) }
-    if let snapshot = result.snapshot {
-      receive(snapshot)
-      if let issue = dispatchStateIssue() { return .failure(issue) }
+    if let snapshot = result.snapshot,
+       let issue = acceptSnapshot(snapshot, poisonOnFailure: false) {
+      return .failure(issue)
     }
     return .success(result)
   }
