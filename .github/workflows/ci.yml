@@ -94,7 +94,18 @@ jobs:
           gradle-version: '9.6.0'
 
       - name: Install Android API 37
-        run: sdkmanager 'platforms;android-37' 'build-tools;36.0.0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${ANDROID_HOME:?ANDROID_HOME is required on the hosted runner}"
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -perm -u+x 2>/dev/null | sort | tail -n 1)"
+          if [[ -z "$SDKMANAGER" ]]; then
+            echo "sdkmanager was not found under $ANDROID_HOME/cmdline-tools" >&2
+            find "$ANDROID_HOME" -maxdepth 3 -type f -name sdkmanager -print >&2 || true
+            exit 1
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" 'platforms;android-37' 'build-tools;36.0.0'
 
       - name: Build and test Android SDK
         run: >-
