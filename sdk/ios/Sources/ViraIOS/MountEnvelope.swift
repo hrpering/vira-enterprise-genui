@@ -467,7 +467,7 @@ public struct ViraIOSBrandProjection: Codable, Equatable, Sendable {
   }
 }
 
-public struct ViraIOSMountEnvelope: Decodable, Equatable, Sendable {
+public struct ViraIOSMountEnvelope: Decodable, Equatable {
   public let version: String
   public let instanceId: String
   public let deploymentId: String
