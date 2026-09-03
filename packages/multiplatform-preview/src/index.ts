@@ -3,6 +3,7 @@ import {
   type ViraDeploymentPlane,
   type ViraSignedExperiencePack,
 } from "@vira-enterprise-genui/deployment-plane";
+import { parseExperiencePackManifest } from "@vira-enterprise-genui/experience-packs";
 import {
   prepareStudioPreview,
   type StudioPreviewDescriptor,
@@ -169,10 +170,20 @@ export async function runViraRealNativePreview(input: {
   if (registered === undefined || registered.status !== "active") {
     return { ok: false, issue: issue("PACK_NOT_REGISTERED", "$.pack", "real native preview requires an active registered published Pack artifact") };
   }
+  const manifest = parseExperiencePackManifest(input.pack.manifest);
+  if (!manifest.ok) {
+    return { ok: false, issue: issue("PACK_VERIFICATION_FAILED", "$.pack.manifest", "verified Pack could not be canonicalized for native preview") };
+  }
+  const canonicalPack: ViraSignedExperiencePack = Object.freeze({
+    version: "1",
+    manifest: manifest.value,
+    manifestDigest: registered.manifestDigest,
+    signature: registered.signature,
+  });
 
   let raw: unknown;
   try {
-    raw = await input.runner.run(Object.freeze({ artifact: registered, pack: input.pack }));
+    raw = await input.runner.run(Object.freeze({ artifact: registered, pack: canonicalPack }));
   } catch {
     return { ok: false, issue: issue("RUNNER_FAILED", "$.runner", "native preview runner failed closed") };
   }
