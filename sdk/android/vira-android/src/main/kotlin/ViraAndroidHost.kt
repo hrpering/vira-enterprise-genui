@@ -51,16 +51,21 @@ class ViraAndroidHostAdapter private constructor(
   private var unsubscribe: (() -> Unit)? = null
   private val listeners = linkedSetOf<(ViraAndroidHostSnapshot) -> Unit>()
 
+  private data class SnapshotAcceptance(
+    val issue: ViraAndroidIssue? = null,
+    val changed: Boolean = false,
+  )
+
   private fun acceptSnapshot(
     snapshot: ViraAndroidHostSnapshot,
     poisonOnFailure: Boolean,
   ): ViraAndroidIssue? {
-    val issue = synchronized(lock) {
-      if (disposed) return@synchronized ViraAndroidIssue(
+    val acceptance = synchronized(lock) {
+      if (disposed) return@synchronized SnapshotAcceptance(issue = ViraAndroidIssue(
         ViraAndroidIssueCode.DISPOSED,
         "$",
         "native Host adapter is disposed",
-      )
+      ))
       if (!snapshot.isCanonical()) {
         val invalid = ViraAndroidIssue(
           ViraAndroidIssueCode.DATA_VALUE_INVALID,
@@ -68,7 +73,7 @@ class ViraAndroidHostAdapter private constructor(
           "native Host snapshot is not canonical JSON",
         )
         if (poisonOnFailure) subscriptionFault = invalid
-        return@synchronized invalid
+        return@synchronized SnapshotAcceptance(issue = invalid)
       }
       if (snapshot.revision < current.revision) {
         val stale = ViraAndroidIssue(
@@ -77,17 +82,17 @@ class ViraAndroidHostAdapter private constructor(
           "native Host snapshot revision regressed",
         )
         if (poisonOnFailure) subscriptionFault = stale
-        return@synchronized stale
+        return@synchronized SnapshotAcceptance(issue = stale)
       }
-      if (snapshot.revision == current.revision) return@synchronized null
+      if (snapshot.revision == current.revision) return@synchronized SnapshotAcceptance()
       current = snapshot
-      null
+      SnapshotAcceptance(changed = true)
     }
-    if (issue == null) {
+    if (acceptance.issue == null && acceptance.changed) {
       val callbacks = synchronized(lock) { listeners.toList() }
       callbacks.forEach { it(snapshot) }
     }
-    return issue
+    return acceptance.issue
   }
 
   fun snapshot(): Result<ViraAndroidHostSnapshot> = runCatching {
