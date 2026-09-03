@@ -69,7 +69,7 @@ private func viraIOSInteractionIdentity(_ viewId: String, _ nodeId: String, _ ev
   "\(viewId)\u{0}\(nodeId)\u{0}\(event)"
 }
 
-private func viraIOSSourceIdentity(_ kind: StudioBindingSourceKind, _ path: String) -> String {
+private func viraIOSSourceIdentity<Kind: RawRepresentable>(_ kind: Kind, _ path: String) -> String where Kind.RawValue == String {
   "\(kind.rawValue):\(path)"
 }
 
