@@ -7,6 +7,7 @@ public enum ViraIOSIssueCode: String, Equatable, Sendable {
   case extraRenderer = "EXTRA_RENDERER"
   case invalidSessionState = "INVALID_SESSION_STATE"
   case invalidLifecycleEvent = "INVALID_LIFECYCLE_EVENT"
+  case invalidLifecycleSource = "INVALID_LIFECYCLE_SOURCE"
   case revisionOverflow = "REVISION_OVERFLOW"
   case instanceMismatch = "INSTANCE_MISMATCH"
   case invalidHost = "INVALID_HOST"
