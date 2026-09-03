@@ -129,6 +129,39 @@ export type {
   ViraActionReceiptOutcome,
   ViraTrustedActionAdapterResult,
 } from "@vira-enterprise-genui/action-boundary";
+export {
+  createViraGovernancePipeline,
+  parseViraPrincipal,
+  resolveViraAgentPrincipal,
+  VIRA_GOVERNANCE_MAX_OBLIGATIONS,
+  VIRA_GOVERNANCE_MAX_PROVIDERS,
+  VIRA_GOVERNANCE_VERSION,
+} from "@vira-enterprise-genui/governance";
+export type {
+  ViraAgentIdentityProvider,
+  ViraAgentIdentityRequest,
+  ViraApprovalChallenge,
+  ViraApprovalDecision,
+  ViraApprovalProvider,
+  ViraCoreSafetyEffect,
+  ViraCoreSafetyVerdict,
+  ViraGovernanceContext,
+  ViraGovernanceEffect,
+  ViraGovernanceEvaluationInput,
+  ViraGovernanceEvaluationResult,
+  ViraGovernanceEvaluationSuccess,
+  ViraGovernanceIssue,
+  ViraGovernanceIssueCode,
+  ViraGovernanceObligation,
+  ViraGovernancePipeline,
+  ViraGovernancePipelineCreateResult,
+  ViraGovernancePipelineInput,
+  ViraGovernancePlatform,
+  ViraGovernanceProvider,
+  ViraGovernanceVerdict,
+  ViraPrincipal,
+  ViraPrincipalKind,
+} from "@vira-enterprise-genui/governance";
 export * from "@vira-enterprise-genui/studio-authoring";
 export type {
   StudioHostActionDescriptor,
