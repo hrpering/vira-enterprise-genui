@@ -266,15 +266,31 @@ public enum ViraIOSBindingValueType: String, Codable, Equatable, Sendable {
   case object
 }
 
+public enum ViraIOSBindingSourceKind: String, Codable, Equatable, Sendable {
+  case state
+  case domain
+  case scope
+}
+
 public struct ViraIOSBindingSourceDefinition: Codable, Equatable, Sendable {
-  public let kind: StudioBindingSourceKind
+  public let kind: ViraIOSBindingSourceKind
   public let path: String
   public let valueType: ViraIOSBindingValueType
 
   private enum CodingKeys: String, CodingKey { case kind, path, valueType }
 
-  public init(kind: StudioBindingSourceKind, path: String, valueType: ViraIOSBindingValueType) {
+  public init(kind: ViraIOSBindingSourceKind, path: String, valueType: ViraIOSBindingValueType) {
     self.kind = kind
+    self.path = path
+    self.valueType = valueType
+  }
+
+  public init(kind: StudioBindingSourceKind, path: String, valueType: ViraIOSBindingValueType) {
+    switch kind {
+    case .state: self.kind = .state
+    case .domain: self.kind = .domain
+    case .scope: self.kind = .scope
+    }
     self.path = path
     self.valueType = valueType
   }
@@ -282,7 +298,7 @@ public struct ViraIOSBindingSourceDefinition: Codable, Equatable, Sendable {
   public init(from decoder: Decoder) throws {
     try rejectUnknownFields(decoder, allowed: ["kind", "path", "valueType"])
     let c = try decoder.container(keyedBy: CodingKeys.self)
-    kind = try c.decode(StudioBindingSourceKind.self, forKey: .kind)
+    kind = try c.decode(ViraIOSBindingSourceKind.self, forKey: .kind)
     path = try c.decode(String.self, forKey: .path)
     valueType = try c.decode(ViraIOSBindingValueType.self, forKey: .valueType)
     let pathIsValid = kind == .scope
