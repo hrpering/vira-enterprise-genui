@@ -501,6 +501,12 @@ public struct ViraIOSMountEnvelope: Decodable, Equatable {
     brand = try c.decode(ViraIOSBrandProjection.self, forKey: .brand)
     document = try c.decode(StudioExperienceDocument.self, forKey: .document)
 
+    guard validateViraIOSDocumentGraphSafety(document) else {
+      throw DecodingError.dataCorrupted(
+        .init(codingPath: decoder.codingPath, debugDescription: "unsafe native document graph")
+      )
+    }
+
     guard version == VIRA_IOS_MOUNT_ENVELOPE_VERSION,
           !instanceId.isEmpty,
           instanceId.count <= VIRA_IOS_MAX_INSTANCE_ID_LENGTH,
