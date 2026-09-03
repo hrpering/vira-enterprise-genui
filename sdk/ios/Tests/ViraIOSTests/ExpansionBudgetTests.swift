@@ -14,7 +14,9 @@ private let expansionEnvelopeJSON = #"""
   "host":{"version":"1","id":"demo.host.ios","platform":"ios","implementationIds":["demo.ios.container"],"capabilities":[]},
   "brand":{"version":"1","id":"demo","components":[
     {"ref":"demo.component.container","implementationId":"demo.ios.container","props":[],"slots":["content"],"events":[]}
-  ],"actions":[]},
+  ],"actions":[],"dataSources":[
+    {"kind":"state","path":"items","valueType":"array"}
+  ]},
   "document":{
     "version":"1",
     "id":"demo.expansion",
@@ -82,6 +84,7 @@ final class ExpansionBudgetTests: XCTestCase {
     let session = try ViraIOSRuntimeSession(
       envelope: envelope,
       host: host,
+      runtimeState: try makeTestRuntimeCoreState(),
       permissionPolicy: policy
     )
 
@@ -89,7 +92,7 @@ final class ExpansionBudgetTests: XCTestCase {
     case .success:
       XCTFail("nested repeats must not materialize beyond the cumulative native node budget")
     case .failure(let issue):
-      XCTAssertEqual(issue.code, .repeatLimitExceeded)
+      XCTAssertEqual(issue.code, ViraIOSIssueCode.repeatLimitExceeded)
       XCTAssertEqual(issue.path, "$.view.nodes")
     }
   }
