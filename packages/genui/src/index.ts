@@ -216,6 +216,43 @@ export type {
   ViraDeploymentSignatureAlgorithm,
   ViraSignedExperiencePack,
 } from "@vira-enterprise-genui/deployment-plane";
+export {
+  createViraEnterpriseContext,
+  VIRA_ENTERPRISE_CONTEXT_VERSION,
+  VIRA_ENTERPRISE_ENVIRONMENTS,
+  VIRA_ENTERPRISE_PRINCIPAL_KINDS,
+} from "@vira-enterprise-genui/enterprise-context";
+export type {
+  ViraEnterpriseContext,
+  ViraEnterpriseContextCreateResult,
+  ViraEnterpriseContextInput,
+  ViraEnterpriseContextIssue,
+  ViraEnterpriseContextIssueCode,
+  ViraEnterpriseContextResult,
+  ViraEnterpriseEnvironmentName,
+  ViraEnterprisePrincipal,
+  ViraEnterprisePrincipalKind,
+  ViraEnterpriseScope,
+  ViraEnvironmentRef,
+  ViraOrganizationRef,
+  ViraProjectRef,
+  ViraSecretBroker,
+  ViraSecretLease,
+  ViraSecretRef,
+} from "@vira-enterprise-genui/enterprise-context";
+export {
+  createViraEnterpriseGovernancePipeline,
+  VIRA_ENTERPRISE_GOVERNANCE_VERSION,
+} from "@vira-enterprise-genui/enterprise-governance";
+export type {
+  ViraEnterpriseApprovalContext,
+  ViraEnterpriseApprovalProvider,
+  ViraEnterpriseGovernanceContext,
+  ViraEnterpriseGovernanceCreateResult,
+  ViraEnterpriseGovernancePipeline,
+  ViraEnterpriseGovernancePipelineInput,
+  ViraEnterpriseGovernanceProvider,
+} from "@vira-enterprise-genui/enterprise-governance";
 export * from "@vira-enterprise-genui/studio-authoring";
 export type {
   StudioHostActionDescriptor,
