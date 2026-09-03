@@ -117,7 +117,8 @@ export type {
   ViraMultiPlatformPreviewSession,
   ViraMultiPlatformPreviewTarget,
   ViraNativePreviewTarget,
-  ViraPreviewPackPublisher,
+  ViraPreviewPackProvider,
+  ViraPublishedPreviewPack,
   ViraRealPreviewArtifact,
   ViraRealPreviewResult,
 } from "./multi-platform-preview.js";
