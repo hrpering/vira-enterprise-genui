@@ -25,7 +25,7 @@ export const allowedDependencies = Object.freeze({
   telemetry: [],
   "experience-observability": ["telemetry"],
   "action-ledger": ["action-boundary", "experience-observability", "governance", "protocol", "runtime-core", "telemetry"],
-  "cross-platform-conformance": ["action-boundary", "protocol"],
+  "cross-platform-conformance": ["action-boundary", "native-ux-gate", "protocol"],
   "native-ux-gate": [],
   "tool-bridge": ["protocol"],
   "protocol-gateway": ["protocol", "tool-bridge"],
