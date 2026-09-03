@@ -85,6 +85,24 @@ function throwingProxy(secret = "reflection-secret"): object {
   });
 }
 
+function nonThenableThrowingProxy(secret: string): object {
+  return new Proxy({}, {
+    get(target, property, receiver) {
+      if (property === "then") return undefined;
+      return Reflect.get(target, property, receiver);
+    },
+    getPrototypeOf() {
+      throw new Error(secret);
+    },
+    ownKeys() {
+      throw new Error(secret);
+    },
+    getOwnPropertyDescriptor() {
+      throw new Error(secret);
+    },
+  });
+}
+
 function validConfiguration(overrides: Record<string, unknown> = {}) {
   return {
     registry: registry(),
@@ -137,51 +155,80 @@ describe("MASTER-05 resolver reflective boundary safety", () => {
     }
   });
 
-  it("normalizes hostile exact deployment targets to INVALID_DEPLOYMENT_TARGET", async () => {
-    for (const deploymentTarget of [revokedProxy(), throwingProxy("deployment-secret")]) {
-      const factory = createExperienceResolver(validConfiguration({
-        resolveExactDeployment: async () => deploymentTarget,
-      }));
-      expect(factory.ok).toBe(true);
-      if (!factory.ok) continue;
-      const result = await factory.value.resolve(request());
-      expect(result).toMatchObject({
+  it("distinguishes trusted-port thenable assimilation failures from downstream parsing", async () => {
+    const deploymentFactory = createExperienceResolver(validConfiguration({
+      resolveExactDeployment: async () => revokedProxy(),
+    }));
+    expect(deploymentFactory.ok).toBe(true);
+    if (deploymentFactory.ok) {
+      await expect(deploymentFactory.value.resolve(request())).resolves.toMatchObject({
         ok: false,
-        issue: { code: "INVALID_DEPLOYMENT_TARGET", path: "$.deployment" },
+        issue: { code: "DEPLOYMENT_RESOLUTION_FAILED", path: "$.deploymentId" },
       });
-      expect(JSON.stringify(result)).not.toContain("deployment-secret");
     }
+
+    const publicationFactory = createExperienceResolver(validConfiguration({
+      resolvePublicationArtifact: async () => revokedProxy(),
+    }));
+    expect(publicationFactory.ok).toBe(true);
+    if (publicationFactory.ok) {
+      await expect(publicationFactory.value.resolve(request())).resolves.toMatchObject({
+        ok: false,
+        issue: { code: "ARTIFACT_RESOLUTION_FAILED", path: "$.publication" },
+      });
+    }
+
+    const requirementFactory = createExperienceResolver(validConfiguration({
+      deriveHostRequirement: async () => revokedProxy(),
+    }));
+    expect(requirementFactory.ok).toBe(true);
+    if (requirementFactory.ok) {
+      await expect(requirementFactory.value.resolve(request())).resolves.toMatchObject({
+        ok: false,
+        issue: { code: "HOST_REQUIREMENT_DERIVATION_FAILED", path: "$.compatibility" },
+      });
+    }
+  });
+
+  it("normalizes hostile exact deployment targets to INVALID_DEPLOYMENT_TARGET", async () => {
+    const factory = createExperienceResolver(validConfiguration({
+      resolveExactDeployment: async () => nonThenableThrowingProxy("deployment-secret"),
+    }));
+    expect(factory.ok).toBe(true);
+    if (!factory.ok) return;
+    const result = await factory.value.resolve(request());
+    expect(result).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_DEPLOYMENT_TARGET", path: "$.deployment" },
+    });
+    expect(JSON.stringify(result)).not.toContain("deployment-secret");
   });
 
   it("normalizes hostile publication payloads to INVALID_PUBLICATION_ARTIFACT", async () => {
-    for (const publication of [revokedProxy(), throwingProxy("publication-secret")]) {
-      const factory = createExperienceResolver(validConfiguration({
-        resolvePublicationArtifact: async () => publication,
-      }));
-      expect(factory.ok).toBe(true);
-      if (!factory.ok) continue;
-      const result = await factory.value.resolve(request());
-      expect(result).toMatchObject({
-        ok: false,
-        issue: { code: "INVALID_PUBLICATION_ARTIFACT", path: "$.publication" },
-      });
-      expect(JSON.stringify(result)).not.toContain("publication-secret");
-    }
+    const factory = createExperienceResolver(validConfiguration({
+      resolvePublicationArtifact: async () => nonThenableThrowingProxy("publication-secret"),
+    }));
+    expect(factory.ok).toBe(true);
+    if (!factory.ok) return;
+    const result = await factory.value.resolve(request());
+    expect(result).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_PUBLICATION_ARTIFACT", path: "$.publication" },
+    });
+    expect(JSON.stringify(result)).not.toContain("publication-secret");
   });
 
   it("normalizes hostile Host requirements to INVALID_HOST_REQUIREMENT", async () => {
-    for (const hostRequirement of [revokedProxy(), throwingProxy("requirement-secret")]) {
-      const factory = createExperienceResolver(validConfiguration({
-        deriveHostRequirement: async () => hostRequirement,
-      }));
-      expect(factory.ok).toBe(true);
-      if (!factory.ok) continue;
-      const result = await factory.value.resolve(request());
-      expect(result).toMatchObject({
-        ok: false,
-        issue: { code: "INVALID_HOST_REQUIREMENT", path: "$.compatibility" },
-      });
-      expect(JSON.stringify(result)).not.toContain("requirement-secret");
-    }
+    const factory = createExperienceResolver(validConfiguration({
+      deriveHostRequirement: async () => nonThenableThrowingProxy("requirement-secret"),
+    }));
+    expect(factory.ok).toBe(true);
+    if (!factory.ok) return;
+    const result = await factory.value.resolve(request());
+    expect(result).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_HOST_REQUIREMENT", path: "$.compatibility" },
+    });
+    expect(JSON.stringify(result)).not.toContain("requirement-secret");
   });
 });
