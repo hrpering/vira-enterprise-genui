@@ -48,3 +48,27 @@ jobs:
 
       - name: Verify repository and browser gates
         run: pnpm verify:all
+
+  ios-native:
+    # Ubuntu validates generated Swift interoperability and the platform-neutral
+    # Swift runtime tests. This job additionally forces the UIKit-gated sources
+    # through a real Apple SDK compiler so `#if canImport(UIKit)` cannot hide
+    # iOS-only build failures.
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Report Xcode
+        run: xcodebuild -version
+
+      - name: Report Swift package schemes
+        run: xcodebuild -list
+
+      - name: Build native iOS package
+        run: >-
+          xcodebuild
+          -scheme ViraNative
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
+          build
