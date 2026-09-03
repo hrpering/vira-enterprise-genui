@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createViraEnterpriseContext } from "@vira-enterprise-genui/enterprise-context";
+import { createViraEnterpriseContext } from "../../packages/enterprise-context/src/index.js";
 
 describe("MASTER-12 secret lease version identity", () => {
   it("rejects a lease that does not echo the exact SecretRef versionRef", async () => {
