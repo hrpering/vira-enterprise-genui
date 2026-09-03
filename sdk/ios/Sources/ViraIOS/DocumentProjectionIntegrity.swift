@@ -91,9 +91,9 @@ func validateViraIOSDocumentProjectionIntegrity(
       viraIOSInteractionIdentity(interaction.viewId, interaction.nodeId, interaction.event)
     ).inserted else { return false }
 
-    var outcomes = Set<StudioInteractionOutcome>()
+    var outcomes = Set<String>()
     for route in interaction.routes {
-      guard viewIds.contains(route.viewId), outcomes.insert(route.outcome).inserted else { return false }
+      guard viewIds.contains(route.viewId), outcomes.insert(route.outcome.rawValue).inserted else { return false }
     }
   }
 
