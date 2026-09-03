@@ -1,7 +1,18 @@
 import android.content.Context
+import android.os.Looper
 
 const val VIRA_ANDROID_PLATFORM = "android"
 const val VIRA_ANDROID_MOUNT_ENVELOPE_VERSION = "1"
+
+internal fun requireViraAndroidMainThread(path: String = "$") {
+  if (Looper.myLooper() != Looper.getMainLooper()) {
+    throw ViraAndroidIssue(
+      ViraAndroidIssueCode.WRONG_THREAD,
+      path,
+      "native Android runtime operation requires the main looper",
+    )
+  }
+}
 
 /**
  * Marker proving the handwritten SDK is compiled against the real Android SDK,
