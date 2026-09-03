@@ -104,7 +104,7 @@ export function transitionRuntimeSession(
   }
   const canonical: RuntimeSessionState = Object.freeze({
     version: RUNTIME_SESSION_STATE_VERSION,
-    sessionId: stateAfter.sessionId,
+    instanceId: stateAfter.instanceId,
     revision: stateAfter.revision,
     visibility: stateAfter.visibility,
     connectivity: stateAfter.connectivity,
