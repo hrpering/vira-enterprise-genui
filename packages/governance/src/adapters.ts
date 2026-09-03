@@ -2,7 +2,8 @@ import { isSemanticNamespace, parseJsonValue, type JsonObject, type JsonValue } 
 import { VIRA_GOVERNANCE_VERSION, type ViraAgentIdentityProvider, type ViraGovernanceContext, type ViraGovernanceProvider } from "./types.js";
 
 function object(value: JsonValue | undefined): JsonObject | undefined {
-  return value !== undefined && value !== null && typeof value === "object" && !Array.isArray(value) ? value : undefined;
+  if (value === undefined || value === null || typeof value !== "object" || Array.isArray(value)) return undefined;
+  return value as JsonObject;
 }
 function bounded(value: unknown, max = 4_096): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= max;
@@ -28,7 +29,7 @@ export interface ViraAgtClient {
 }
 export function createViraAgtGovernanceProvider(id: string, client: ViraAgtClient): ViraGovernanceProvider {
   if (!providerId(id) || typeof client?.evaluate !== "function") throw new TypeError("invalid AGT adapter configuration");
-  return Object.freeze({
+  const provider: ViraGovernanceProvider = {
     version: VIRA_GOVERNANCE_VERSION,
     id,
     async evaluate(context) {
@@ -59,7 +60,8 @@ export function createViraAgtGovernanceProvider(id: string, client: ViraAgtClien
         default: throw new Error("unknown AGT verdict");
       }
     },
-  });
+  };
+  return Object.freeze(provider);
 }
 
 export interface ViraOpaClient {
@@ -67,7 +69,7 @@ export interface ViraOpaClient {
 }
 export function createViraOpaGovernanceProvider(id: string, client: ViraOpaClient): ViraGovernanceProvider {
   if (!providerId(id) || typeof client?.evaluate !== "function") throw new TypeError("invalid OPA adapter configuration");
-  return Object.freeze({
+  const provider: ViraGovernanceProvider = {
     version: VIRA_GOVERNANCE_VERSION,
     id,
     async evaluate(context) {
@@ -89,7 +91,8 @@ export function createViraOpaGovernanceProvider(id: string, client: ViraOpaClien
         ...(bounded(root.evidenceRef) ? { evidenceRef: root.evidenceRef } : {}),
       };
     },
-  });
+  };
+  return Object.freeze(provider);
 }
 
 export interface ViraCedarClient {
@@ -97,7 +100,7 @@ export interface ViraCedarClient {
 }
 export function createViraCedarGovernanceProvider(id: string, client: ViraCedarClient): ViraGovernanceProvider {
   if (!providerId(id) || typeof client?.authorize !== "function") throw new TypeError("invalid Cedar adapter configuration");
-  return Object.freeze({
+  const provider: ViraGovernanceProvider = {
     version: VIRA_GOVERNANCE_VERSION,
     id,
     async evaluate(context) {
@@ -114,7 +117,8 @@ export function createViraCedarGovernanceProvider(id: string, client: ViraCedarC
         ...(bounded(root.evidenceRef) ? { evidenceRef: root.evidenceRef } : {}),
       };
     },
-  });
+  };
+  return Object.freeze(provider);
 }
 
 export interface ViraOidcClaimsClient {
@@ -122,7 +126,7 @@ export interface ViraOidcClaimsClient {
 }
 export function createViraOidcAgentIdentityProvider(id: string, client: ViraOidcClaimsClient): ViraAgentIdentityProvider {
   if (!providerId(id) || typeof client?.resolveClaims !== "function") throw new TypeError("invalid OIDC identity adapter configuration");
-  return Object.freeze({
+  const provider: ViraAgentIdentityProvider = {
     version: VIRA_GOVERNANCE_VERSION,
     id,
     async resolve(request) {
@@ -138,5 +142,6 @@ export function createViraOidcAgentIdentityProvider(id: string, client: ViraOidc
         claims,
       };
     },
-  });
+  };
+  return Object.freeze(provider);
 }
