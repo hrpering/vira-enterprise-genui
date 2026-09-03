@@ -7,7 +7,7 @@ import {
   RUNTIME_SESSION_CACHE_STATUSES,
   RUNTIME_SESSION_CONNECTIVITIES,
   RUNTIME_SESSION_CONTINUITIES,
-  RUNTIME_SESSION_ID_MAX_LENGTH,
+  RUNTIME_SESSION_INSTANCE_ID_MAX_LENGTH,
   RUNTIME_SESSION_INITIAL_REVISION,
   RUNTIME_SESSION_STATE_VERSION,
   RUNTIME_SESSION_VISIBILITIES,
@@ -22,11 +22,10 @@ import {
   type RuntimeSessionVisibility,
 } from "./types.js";
 
-const sessionIdPattern = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/;
 const createFields = new Set(["visibility", "connectivity"]);
 const stateFields = new Set([
   "version",
-  "sessionId",
+  "instanceId",
   "revision",
   "visibility",
   "connectivity",
@@ -71,11 +70,10 @@ function hasUnknownField(value: JsonObject, allowed: ReadonlySet<string>): boole
   return Object.keys(value).some((key) => !allowed.has(key));
 }
 
-export function isRuntimeSessionId(value: unknown): value is string {
+export function isRuntimeSessionInstanceId(value: unknown): value is string {
   return typeof value === "string"
     && value.length >= 1
-    && value.length <= RUNTIME_SESSION_ID_MAX_LENGTH
-    && sessionIdPattern.test(value);
+    && value.length <= RUNTIME_SESSION_INSTANCE_ID_MAX_LENGTH;
 }
 
 export function isRuntimeSessionVisibility(value: unknown): value is RuntimeSessionVisibility {
@@ -95,7 +93,7 @@ export function isRuntimeSessionCacheStatus(value: unknown): value is RuntimeSes
 }
 
 function canonicalState(
-  sessionId: string,
+  instanceId: string,
   revision: number,
   visibility: RuntimeSessionVisibility,
   connectivity: RuntimeSessionConnectivity,
@@ -104,7 +102,7 @@ function canonicalState(
 ): RuntimeSessionState {
   return Object.freeze({
     version: RUNTIME_SESSION_STATE_VERSION,
-    sessionId,
+    instanceId,
     revision,
     visibility,
     connectivity,
@@ -114,14 +112,14 @@ function canonicalState(
 }
 
 export function createRuntimeSessionState(
-  sessionId: unknown,
+  instanceId: unknown,
   input: unknown,
 ): RuntimeSessionCreateResult {
-  if (!isRuntimeSessionId(sessionId)) {
+  if (!isRuntimeSessionInstanceId(instanceId)) {
     return validationFailure(
-      "INVALID_SESSION_ID",
-      "$.sessionId",
-      `sessionId must use safe identifier characters and be at most ${RUNTIME_SESSION_ID_MAX_LENGTH} characters`,
+      "INVALID_INSTANCE_ID",
+      "$.instanceId",
+      `instanceId must be a non-empty string of at most ${RUNTIME_SESSION_INSTANCE_ID_MAX_LENGTH} characters`,
     );
   }
   const fields = parseObject(input);
@@ -144,7 +142,7 @@ export function createRuntimeSessionState(
   return {
     ok: true,
     value: canonicalState(
-      sessionId,
+      instanceId,
       RUNTIME_SESSION_INITIAL_REVISION,
       fields.visibility,
       fields.connectivity,
@@ -169,8 +167,8 @@ export function parseRuntimeSessionState(input: unknown): RuntimeSessionParseRes
       `runtime session state version must be ${RUNTIME_SESSION_STATE_VERSION}`,
     );
   }
-  if (!isRuntimeSessionId(fields.sessionId)) {
-    return validationFailure("INVALID_SESSION_ID", "$.sessionId", "runtime session sessionId is invalid");
+  if (!isRuntimeSessionInstanceId(fields.instanceId)) {
+    return validationFailure("INVALID_INSTANCE_ID", "$.instanceId", "runtime session instanceId is invalid");
   }
   if (typeof fields.revision !== "number" || !Number.isSafeInteger(fields.revision) || fields.revision < 0) {
     return validationFailure(
@@ -204,7 +202,7 @@ export function parseRuntimeSessionState(input: unknown): RuntimeSessionParseRes
   return {
     ok: true,
     value: canonicalState(
-      fields.sessionId,
+      fields.instanceId,
       fields.revision,
       fields.visibility,
       fields.connectivity,
@@ -223,7 +221,7 @@ export function restoreRuntimeSessionState(input: unknown): RuntimeSessionRestor
     return restoreFailure("REVISION_OVERFLOW", "$.revision", "runtime session revision cannot be incremented safely");
   }
   const state = canonicalState(
-    parsed.value.sessionId,
+    parsed.value.instanceId,
     parsed.value.revision + 1,
     parsed.value.visibility,
     parsed.value.connectivity,
