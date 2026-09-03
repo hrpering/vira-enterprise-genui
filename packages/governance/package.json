@@ -6,6 +6,7 @@
   "exports": { ".": "./src/index.ts" },
   "dependencies": {
     "@vira-enterprise-genui/action-boundary": "workspace:*",
+    "@vira-enterprise-genui/enterprise-context": "workspace:*",
     "@vira-enterprise-genui/protocol": "workspace:*",
     "@vira-enterprise-genui/runtime-core": "workspace:*"
   }
