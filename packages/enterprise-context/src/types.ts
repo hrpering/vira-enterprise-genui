@@ -52,6 +52,7 @@ export interface ViraSecretLease {
   readonly environment: ViraEnterpriseEnvironmentName;
   readonly provider: string;
   readonly key: string;
+  readonly versionRef?: string;
 }
 
 export interface ViraSecretBroker {
