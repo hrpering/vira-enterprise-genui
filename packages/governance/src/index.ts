@@ -1,3 +1,15 @@
+export {
+  createViraAgtGovernanceProvider,
+  createViraCedarGovernanceProvider,
+  createViraOidcAgentIdentityProvider,
+  createViraOpaGovernanceProvider,
+} from "./adapters.js";
+export type {
+  ViraAgtClient,
+  ViraCedarClient,
+  ViraOidcClaimsClient,
+  ViraOpaClient,
+} from "./adapters.js";
 export { resolveViraAgentPrincipal, parseViraPrincipal } from "./identity.js";
 export { createViraGovernancePipeline } from "./pipeline.js";
 export {
