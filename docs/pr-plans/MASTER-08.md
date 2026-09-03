@@ -1,114 +1,235 @@
-# MASTER-08 — Protected Action Boundary
+# MASTER-08 — Vira Action Boundary
 
 ## Responsibility
 
-Create the single governed execution boundary between a canonical Vira runtime action and any Host-owned external side effect.
-
-MASTER-08 does **not** create a new policy language, transport, renderer, workflow engine, or Host implementation. It composes existing canonical Runtime Core permission semantics with an exact action catalog and a single-use execution permit.
+Own the single governed execution boundary between a canonical Vira user/agent action and any Host/connector-owned enterprise side effect.
 
 ```text
-Runtime action proposal
-        ↓
-exact instance/action validation
-        ↓
-action catalog classification
-        ↓
-canonical permission decision
-        ↓
-allow | deny | confirm
-        ↓
-single-use execution permit
-        ↓
-Host / protected effect executor
+UI Action / Agent Action
+          ↓
+      ActionIntent
+          ↓
+       Validation
+          ↓
+   Exact instance/action identity
+          ↓
+        Policy
+          ↓
+       Approval
+          ↓
+ Revision + idempotency
+          ↓
+ Trusted action adapter
+          ↓
+     ActionReceipt
 ```
+
+MASTER-08 does **not** create a new policy language, Host transport, renderer, workflow engine, connector credential system, or business-rule engine.
 
 ## Existing ownership preserved
 
-- `runtime-core` remains the permission-policy authority (`allow | deny | confirm`, default deny).
-- `studio-runtime` remains the canonical UI event → runtime action authority.
-- `studio-host-runtime` remains Host transport, monotonic snapshot, completion, and existing action-id forward protection.
-- Web/iOS/Android remain rendering/platform adapters.
+- `runtime-core` remains the canonical permission authority for `allow | deny | confirm` and default-deny behavior.
+- `studio-runtime` remains the UI event → canonical runtime action authority.
+- `studio-host-runtime` remains Host transport, monotonic Host snapshots, completion, and its existing action-forward protection.
+- Web/iOS/Android remain platform/rendering adapters.
+- `action-boundary` owns protected external-effect admission and execution identity.
 
-MASTER-08 introduces only the protected execution authority.
+Transport and governance remain separate authorities.
 
-## Invariants
+## Canonical ActionIntent
 
-1. **Exact instance ownership** — a boundary is created for one bounded `instanceId`; proposals for any other instance fail closed.
-2. **Catalog-owned effect classification** — the caller/agent cannot self-declare an action safer than the registered catalog definition.
-3. **Canonical action identity** — every proposal has one exact bounded `actionId` and semantic `actionType`.
-4. **Canonical JSON payload** — payloads are inspected through protocol canonical JSON validation before policy or execution.
-5. **Default deny** — missing permission rule never becomes implicit allow.
-6. **Confirmation is not allow** — `confirm` produces a challenge. Execution requires a matching, unconsumed confirmation grant for the exact instance/action/actionType.
-7. **Single-use execution** — an action id can cross the protected external-effect boundary at most once per boundary instance.
-8. **Reserve before effect** — the action id is reserved before awaiting the executor; transport uncertainty can never cause replay of the same action id.
-9. **Definition immutability** — action catalog definitions are validated, copied, frozen, unique by `actionType`, and bounded.
-10. **No local Runtime Core built-in diversion** — exact local Runtime Core actions remain locally reduced by platform/runtime sessions. MASTER-08 is for Host/protected external actions.
-11. **No platform fork** — boundary semantics are platform-neutral TypeScript contracts used by Web/iOS/Android Host integration.
-12. **No secret material** — confirmation grants and execution permits are identifiers/claims, not credentials or backend secrets.
-
-## V1 action catalog
-
-Each action type is registered with:
-
-- `actionType`
-- `effect`: `read | write | irreversible`
-- `idempotency`: `none | action-id`
-
-The effect class is descriptive/governance metadata owned by trusted product configuration. Permission remains canonical Runtime Core policy.
-
-`write` and `irreversible` actions MUST use `action-id` idempotency. `read` actions may use either mode, but the protected boundary still refuses duplicate execution of the same proposal action id.
-
-## Confirmation grant
-
-A grant is exact and single-purpose:
+A protected side effect is proposed with:
 
 ```text
-version: 1
+version
 instanceId
- actionId
- actionType
+expectedStateRevision
+idempotencyKey
+action
+  ├── id
+  ├── type
+  ├── source
+  └── payload
 ```
 
-It can satisfy only the challenge for the same proposal. It does not alter the permission policy and cannot authorize another action.
+The caller cannot omit or self-correct revision/idempotency metadata after policy evaluation.
 
-## Execution semantics
+## Trusted action catalog
 
-`execute(proposal, executor, confirmation?)`:
+Each allowed external action type is registered by trusted product configuration:
 
-1. validate proposal;
-2. resolve exact catalog definition;
-3. evaluate canonical Runtime Core action permission;
-4. deny → fail closed, no reservation, no executor call;
-5. confirm without exact grant → return confirmation-required, no reservation, no executor call;
-6. allow / confirmed → atomically reserve action id;
-7. invoke executor with frozen permit + action data;
-8. success → terminal success;
-9. executor throws/rejects → terminal uncertain failure; reservation remains consumed.
+```text
+actionType
+effect       = read | write | irreversible
+idempotency  = none | action-id
+```
 
-The boundary never retries an external effect automatically.
+Rules:
+
+- action types are exact, semantic, unique and bounded;
+- exact local Runtime Core built-ins (`runtime.patch.apply`, `runtime.lifecycle.transition`) cannot be diverted into this external boundary;
+- `write` and `irreversible` require `action-id` idempotency;
+- callers/agents cannot downgrade an action from irreversible/write to read.
+
+## Policy and approval
+
+MASTER-08 reuses canonical Runtime Core permission semantics:
+
+```text
+allow
+  → continue
+
+deny
+  → fail closed
+
+confirm
+  → exact confirmation challenge
+  → exact matching grant required
+```
+
+A confirmation grant is bound to all of:
+
+```text
+instanceId
+actionId
+actionType
+expectedStateRevision
+idempotencyKey
+```
+
+Confirmation never mutates policy and cannot authorize a different action or revision.
+
+## Revision ownership
+
+The boundary receives a trusted `revisionProvider`.
+
+Requirements:
+
+- revision is a non-negative safe integer;
+- provider revisions may not regress;
+- `ActionIntent.expectedStateRevision` must exactly equal current trusted revision;
+- stale intents fail before any execution identity is consumed;
+- only one **effectful** (`write | irreversible`) ActionIntent may own a given revision at a time;
+- a second different effectful action from the same revision fails with `REVISION_CONFLICT`;
+- read actions do not reserve effect revision ownership;
+- revision ownership is released only after a trusted deterministic no-effect result at the same revision, or once the trusted revision advances.
+
+This prevents two different writes generated from the same stale state from crossing concurrently.
+
+## Idempotency and replay safety
+
+Two independent execution identities are protected:
+
+```text
+actionId
+idempotencyKey
+```
+
+Both are synchronously reserved before the trusted adapter is invoked or awaited.
+
+Therefore:
+
+- double click with same action id → reject;
+- retry with new action id but same idempotency key → reject;
+- concurrent duplicate → only one can cross;
+- transport/adapter exception after the boundary is crossed → action/key remain consumed because the external side effect is uncertain;
+- the boundary does not automatically retry external effects.
+
+This is an **at-most-once crossing guarantee for one boundary instance**, not a claim of distributed exactly-once execution. Durable/distributed idempotency belongs to a later storage/deployment integration layer.
+
+## Trusted action adapter
+
+After all checks, the adapter receives a frozen permit containing:
+
+```text
+instanceId
+actionId
+actionType
+effect
+idempotency
+expectedStateRevision
+idempotencyKey
+```
+
+The adapter returns canonical:
+
+```text
+outcome       = success | empty | error
+stateRevision
+data?         = canonical JSON object
+```
+
+For a successful `write | irreversible` action, observed `stateRevision` must advance beyond `expectedStateRevision`.
+
+Malformed or contradictory adapter results fail closed. Execution identities remain consumed because the boundary has already crossed into an external effect authority.
+
+## ActionReceipt
+
+A valid adapter result is normalized into immutable `ActionReceipt`:
+
+```text
+version
+instanceId
+actionId
+actionType
+effect
+idempotencyKey
+expectedStateRevision
+observedStateRevision
+outcome
+data?
+```
+
+This receipt is the semantic handoff for later MASTER-17 observability/replay/ledger work. MASTER-08 does not persist the receipt itself.
+
+## Core invariants
+
+1. Every enterprise side effect crosses Action Boundary.
+2. Exact instance ownership is mandatory.
+3. Action registration is trusted configuration, never agent-selected authority.
+4. Payload/action identity is canonical before policy evaluation.
+5. Missing permission rule is deny.
+6. Confirmation is not implicit allow.
+7. Stale revision is rejected before execution.
+8. Effectful revision ownership is atomic before await.
+9. Action id and idempotency key are reserved before await.
+10. Uncertain external failure never causes automatic replay.
+11. ActionReceipt is produced only from a valid trusted adapter result.
+12. No platform-specific Action Boundary fork.
+13. No backend secrets enter ActionIntent, permit, challenge, or receipt.
+14. No claim of distributed exactly-once semantics.
 
 ## Out of scope
 
-- Rego/Cedar/policy language adapters
-- enterprise approval workflows
-- durable distributed idempotency store
-- audit persistence / evidence ledger
+- AGT / OPA / Cedar provider adapters (MASTER-09)
+- agent identity providers (MASTER-09)
+- enterprise approval orchestration beyond the exact confirmation primitive (MASTER-09)
+- policy simulation (MASTER-10)
+- durable distributed idempotency / deployment persistence
+- audit persistence / replay ledger (MASTER-17)
 - compensation / saga semantics
-- connector credential handling
-- action-specific backend clients
+- connector credentials or action-specific backend clients
 
-Those layers may consume MASTER-08 later; they must not bypass it.
+Those layers may consume MASTER-08 but may not bypass its core safety checks.
 
-## Acceptance / final CI gate
+## Verification policy
 
-Implementation work may stack without hosted CI. Final verification is intentionally deferred until the complete master-plan stack is ready for the user's local CI run.
+The stack is intentionally being completed before the final CI run. Hosted CI is not an intermediate phase blocker; the user will run the authoritative local/full CI after all master phases are implemented.
 
-Before merge of the stack, final verification must prove:
+Final verification must cover at minimum:
 
-- repository typecheck/lint/tests/build;
-- protected action boundary contract tests;
-- default-deny and exact confirmation tests;
-- duplicate/replay tests including uncertain executor failure;
-- instance mismatch and forged payload tests;
-- Web/iOS/Android native regression gates;
-- diff/boundary hygiene.
+- default deny;
+- exact approval challenge/grant;
+- cross-instance deny;
+- malformed ActionIntent deny;
+- stale revision deny;
+- revision-provider regression deny;
+- same-action double click deny;
+- new-action/same-idempotency-key retry deny;
+- two different writes from the same revision conflict;
+- uncertain adapter failure remains consumed;
+- deterministic no-effect result releases effect revision ownership;
+- successful write must advance revision;
+- canonical immutable ActionReceipt;
+- package-boundary hygiene;
+- Web/iOS/Android regression/conformance gates in final full CI.
