@@ -26,6 +26,11 @@ try {
   ]);
   run(swiftBin, [valid, invalidVersion, missingRequired, unknownField]);
 
+  // MASTER-07B executable SDK gate. The generated wire harness above remains a
+  // separate structural-conformance proof; this compiles and runs the real
+  // handwritten ViraIOS Swift package against those generated models.
+  run("swift", ["test", "--package-path", root]);
+
   const kotlinJar = path.join(temp, "kotlin-conformance.jar");
   run("kotlinc", [
     "interop/studio-experience/v1/kotlin/StudioExperienceModels.kt",
