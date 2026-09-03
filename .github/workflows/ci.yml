@@ -93,7 +93,7 @@ jobs:
         with:
           gradle-version: '9.6.0'
 
-      - name: Install Android API 37
+      - name: Install Android API 36
         shell: bash
         run: |
           set -euo pipefail
@@ -105,7 +105,7 @@ jobs:
             exit 1
           fi
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" 'platforms;android-37' 'build-tools;36.0.0'
+          "$SDKMANAGER" 'platforms;android-36' 'build-tools;36.0.0'
 
       - name: Build and test Android SDK
         run: >-
