@@ -170,6 +170,15 @@ public final class ViraIOSHostAdapter {
     }
   }
 
+  private func dispatchStateIssue() -> ViraIOSIssue? {
+    lock.lock()
+    defer { lock.unlock() }
+    if disposed {
+      return .init(code: .disposed, path: "$", message: "native host adapter is disposed")
+    }
+    return subscriptionFault
+  }
+
   public func snapshot() -> Result<ViraIOSHostSnapshot, ViraIOSIssue> {
     lock.lock()
     defer { lock.unlock() }
@@ -247,20 +256,13 @@ public final class ViraIOSHostAdapter {
         message: "native action type is invalid"
       ))
     }
-
-    lock.lock()
-    let localDisposed = disposed
-    let fault = subscriptionFault
-    lock.unlock()
-    if localDisposed {
-      return .failure(.init(code: .disposed, path: "$", message: "native host adapter is disposed"))
-    }
-    if let fault { return .failure(fault) }
+    if let issue = dispatchStateIssue() { return .failure(issue) }
 
     let result: ViraIOSHostActionResult
     do {
       result = try await bridge.dispatch(action)
     } catch {
+      if let issue = dispatchStateIssue() { return .failure(issue) }
       return .failure(.init(
         code: .hostDispatchFailed,
         path: "$.host.dispatch",
@@ -268,12 +270,10 @@ public final class ViraIOSHostAdapter {
       ))
     }
 
+    if let issue = dispatchStateIssue() { return .failure(issue) }
     if let snapshot = result.snapshot {
       receive(snapshot)
-      lock.lock()
-      let receivedFault = subscriptionFault
-      lock.unlock()
-      if let receivedFault { return .failure(receivedFault) }
+      if let issue = dispatchStateIssue() { return .failure(issue) }
     }
     return .success(result)
   }
@@ -290,11 +290,7 @@ public final class ViraIOSHostAdapter {
     unsubscribe = nil
     listeners.removeAll()
     lock.unlock()
-    do {
-      cleanup?()
-    } catch {
-      // Teardown failure cannot restore native Host ownership.
-    }
+    cleanup?()
   }
 
   deinit {
