@@ -77,7 +77,7 @@ export function createViraActionLedger(input: { readonly instanceId: string; rea
     },
     recordPolicyEvaluated: (occurredAt, actionId, verdict) => {
       const missing = requireAction<ViraActionLedgerEntry>(actionId); if (missing) return missing;
-      if (terminal.has(actionId) || hasPendingChallenge(actionId)) return fail("STAGE_ORDER_INVALID", "$.actionId", "policy cannot be recorded after terminal or pending approval state");
+      if (terminal.has(actionId) || hasPendingChallenge(actionId) || disposition.get(actionId) === "challenge") return fail("STAGE_ORDER_INVALID", "$.actionId", "policy evaluation is suspended by challenge or terminal state");
       if (!verdict || (verdict.effect !== "allow" && verdict.effect !== "deny" && verdict.effect !== "challenge" && verdict.effect !== "transform") || !boundedText(verdict.provider) || !boundedText(verdict.reasonCode)) return fail("ACTION_IDENTITY_MISMATCH", "$.verdict", "governance verdict is invalid");
       const current = action(actionId)!;
       const written = append({ occurredAt, kind: "policy.evaluated", stateRevision: current.expectedStateRevision, actionId, actionType: current.actionType, expectedStateRevision: current.expectedStateRevision, policyEffect: verdict.effect, policyProvider: verdict.provider, reasonCode: verdict.reasonCode });
