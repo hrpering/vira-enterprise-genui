@@ -161,16 +161,20 @@ class ViraAndroidSessionController private constructor(
   }
 
   fun transition(type: ViraAndroidLifecycleEventType): Result<ViraAndroidSessionTransition> {
-    val transition = synchronized(lock) {
+    val delivery = synchronized(lock) {
       if (disposed) return Result.failure(ViraAndroidIssue(ViraAndroidIssueCode.DISPOSED, "$", "native lifecycle controller is disposed"))
       val result = stateValue.transition(ViraAndroidLifecycleEvent(type = type))
       if (result.isFailure) return result
       val value = result.getOrThrow()
-      if (value.changed) stateValue = value.state
-      value
+      if (value.changed) {
+        stateValue = value.state
+        value to listeners.toList()
+      } else {
+        value to emptyList()
+      }
     }
-    if (transition.changed) notifyListeners(transition.state)
-    return Result.success(transition)
+    delivery.second.forEach { it(delivery.first.state) }
+    return Result.success(delivery.first)
   }
 
   fun subscribe(listener: (ViraAndroidSessionState) -> Unit): () -> Unit {
@@ -202,21 +206,16 @@ class ViraAndroidSessionController private constructor(
   }
 
   private fun receive(event: ViraAndroidLifecycleEvent) {
-    val next = synchronized(lock) {
+    val delivery = synchronized(lock) {
       if (disposed) return
       val result = stateValue.transition(event)
       if (result.isFailure) return
       val transition = result.getOrThrow()
       if (!transition.changed) return
       stateValue = transition.state
-      transition.state
+      transition.state to listeners.toList()
     }
-    notifyListeners(next)
-  }
-
-  private fun notifyListeners(state: ViraAndroidSessionState) {
-    val callbacks = synchronized(lock) { listeners.toList() }
-    callbacks.forEach { it(state) }
+    delivery.second.forEach { it(delivery.first) }
   }
 
   companion object {
