@@ -37,7 +37,7 @@ private final class CanonicalJSONHostBridge: ViraIOSHostBridge {
 
 final class HostCanonicalJSONTests: XCTestCase {
   @MainActor
-  func testInitialSnapshotsRejectNonCanonicalNumbers() {
+  func testInitialSnapshotsRejectNonCanonicalNumbers() async throws {
     let invalidNumbers = [Double.nan, Double.infinity, -Double.infinity, -0.0]
 
     for number in invalidNumbers {
@@ -58,7 +58,7 @@ final class HostCanonicalJSONTests: XCTestCase {
   }
 
   @MainActor
-  func testNestedInvalidSubscriptionSnapshotPoisonsFailClosed() throws {
+  func testNestedInvalidSubscriptionSnapshotPoisonsFailClosed() async throws {
     let bridge = CanonicalJSONHostBridge()
     let adapter: ViraIOSHostAdapter
     switch ViraIOSHostAdapter.create(bridge: bridge) {
