@@ -34,6 +34,15 @@ export type {
   ViraIOSMountEnvelopeStage,
 } from "./ios-host-envelope.js";
 export {
+  createViraIOSPermissionPolicyProjection,
+  VIRA_IOS_PERMISSION_PROJECTION_VERSION,
+} from "./ios-runtime-policy.js";
+export type {
+  ViraIOSPermissionPolicyProjection,
+  ViraIOSPermissionPolicyProjectionResult,
+  ViraIOSPermissionRule,
+} from "./ios-runtime-policy.js";
+export {
   createViraWebBrowserLifecycleSource,
   createViraWebHost,
   VIRA_WEB_HOST_VERSION,
