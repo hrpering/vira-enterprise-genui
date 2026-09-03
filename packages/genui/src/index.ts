@@ -9,6 +9,31 @@ export type {
   ViraExperienceRuntimeListener,
   ViraExperienceRuntimeResult,
 } from "./runtime.js";
+export {
+  createViraWebBrowserLifecycleSource,
+  createViraWebHost,
+  VIRA_WEB_HOST_VERSION,
+} from "./web-host.js";
+export type {
+  CreateViraWebBrowserLifecycleSourceResult,
+  CreateViraWebHostResult,
+  ViraWebBrowserDocument,
+  ViraWebBrowserLifecycleIssue,
+  ViraWebBrowserLifecycleIssueCode,
+  ViraWebBrowserNavigator,
+  ViraWebBrowserPlatform,
+  ViraWebBrowserWindow,
+  ViraWebExperience,
+  ViraWebExperienceInput,
+  ViraWebExperienceResult,
+  ViraWebHost,
+  ViraWebHostConfiguration,
+  ViraWebHostIssue,
+  ViraWebHostIssueCode,
+  ViraWebLifecycleSnapshot,
+  ViraWebLifecycleSource,
+  ViraWebRendererRegistry,
+} from "./web-host.js";
 export * from "@vira-enterprise-genui/studio-authoring";
 export type {
   StudioHostActionDescriptor,
