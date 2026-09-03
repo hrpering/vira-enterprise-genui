@@ -51,10 +51,13 @@ test("Studio Brand Console binds exact enterprise scope and exposes immutable te
   assert.equal(created.ok, true);
   if (!created.ok) return;
   assert.deepEqual(created.value.scope, scope);
-  assert.deepEqual(created.value.listTemplates(), [
+  const summaries = created.value.listTemplates();
+  assert.deepEqual(summaries, [
     { id: "starter", label: "Starter", description: "Starter template" },
   ]);
-  assert.equal(Object.isFrozen(created.value.listTemplates()), true);
+  assert.equal(Object.isFrozen(summaries), true);
+  assert.equal(Object.isFrozen(summaries[0]), true);
+  assert.throws(() => { (summaries as Array<{ id: string }>).push({ id: "forged" }); }, TypeError);
 });
 
 test("Studio Brand Console rejects malformed enterprise scope before Brand import", () => {
@@ -80,6 +83,21 @@ test("Studio Brand Console delegates Brand validation to canonical studio-brand 
   assert.equal(created.ok, false);
   if (created.ok) return;
   assert.equal(created.issue.code, "INVALID_BRAND_PACKAGE");
+});
+
+test("Studio Brand Console rejects malformed openTemplate input before Workbench ownership", () => {
+  const created = createViraStudioBrandConsole({ scope, brandPackage });
+  assert.equal(created.ok, true);
+  if (!created.ok) return;
+  const opened = created.value.openTemplate({ templateId: 42 as unknown as string, allocateNodeId: () => "node-1" });
+  assert.deepEqual(opened, {
+    ok: false,
+    issue: {
+      code: "INVALID_TEMPLATE_INPUT",
+      path: "$.openTemplate",
+      message: "workbench template input is invalid",
+    },
+  });
 });
 
 test("Studio Brand Console resolves template IDs exactly with no fallback", () => {
@@ -108,4 +126,22 @@ test("Studio Brand Console hands validated template and exact Brand catalogs to 
   assert.equal(opened.value.componentCatalog().brandId, "acme");
   assert.equal(opened.value.actionAdapter().brandId, "acme");
   assert.deepEqual(opened.value.currentDocument().id, "acme.starter");
+});
+
+test("Studio Brand Console template traversal does not depend on ambient Array map/find", () => {
+  const originalMap = Array.prototype.map;
+  const originalFind = Array.prototype.find;
+  try {
+    Array.prototype.map = function () { throw new Error("ambient map must not be used"); } as typeof Array.prototype.map;
+    Array.prototype.find = function () { throw new Error("ambient find must not be used"); } as typeof Array.prototype.find;
+    const created = createViraStudioBrandConsole({ scope, brandPackage });
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+    assert.equal(created.value.listTemplates()[0]?.id, "starter");
+    const opened = created.value.openTemplate({ templateId: "starter", allocateNodeId: () => "node-1" });
+    assert.equal(opened.ok, true);
+  } finally {
+    Array.prototype.map = originalMap;
+    Array.prototype.find = originalFind;
+  }
 });
