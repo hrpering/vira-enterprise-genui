@@ -74,6 +74,8 @@ export interface ViraApprovalChallenge {
   readonly instanceId: string;
   readonly actionId: string;
   readonly actionType: string;
+  readonly expectedStateRevision: number;
+  readonly idempotencyKey: string;
   readonly provider: string;
   readonly reasonCode: string;
   readonly obligations: readonly ViraGovernanceObligation[];
@@ -102,6 +104,7 @@ export interface ViraGovernancePipelineInput {
 export interface ViraGovernanceEvaluationInput {
   readonly coreSafety: ViraCoreSafetyVerdict;
   readonly context: ViraGovernanceContext;
+  readonly approvals?: readonly ViraApprovalDecision[];
 }
 
 export interface ViraGovernanceEvaluationSuccess {
@@ -124,6 +127,7 @@ export type ViraGovernanceIssueCode =
   | "APPROVAL_REQUIRED"
   | "APPROVAL_FAILED"
   | "INVALID_APPROVAL"
+  | "APPROVAL_REPLAY"
   | "TRANSFORM_INVALID";
 
 export interface ViraGovernanceIssue {
