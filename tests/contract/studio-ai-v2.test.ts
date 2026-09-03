@@ -24,7 +24,14 @@ function brand() {
     experiences: [{ id: "baggage-upgrade", label: "Baggage upgrade", description: "Upgrade baggage", document: document() }],
   };
 }
-function hosts() {
+type TestHostManifest = {
+  version: string;
+  id: string;
+  platform: string;
+  implementationIds: string[];
+  capabilities: { version: string; id: string }[];
+};
+function hosts(): [TestHostManifest, TestHostManifest, TestHostManifest] {
   return [
     { version: "1", id: "pegasus.host.web", platform: "web", implementationIds: ["pegasus.web.card", "pegasus.web.web-only", "internal.web.secret"], capabilities: [{ version: "1", id: "capability.pointer" }] },
     { version: "1", id: "pegasus.host.ios", platform: "ios", implementationIds: ["pegasus.ios.card", "pegasus.ios.web-only", "internal.ios.secret"], capabilities: [{ version: "1", id: "capability.touch" }] },
@@ -54,7 +61,8 @@ test("AI v2 exposes only the component surface common to web, iOS and Android", 
 test("AI v2 canonicalizes caller platform order to web, ios, android", async () => {
   const value = input();
   value.requestedPlatforms = ["android", "web", "ios"];
-  value.hostManifests = [hosts()[2], hosts()[0], hosts()[1]];
+  const [web, ios, android] = hosts();
+  value.hostManifests = [android, web, ios];
   let request: StudioAiV2Request | undefined;
   const result = await generateStudioDraftV2(value, { generate(candidate) { request = candidate; return document(); } });
   assert.equal(result.ok, true);
@@ -65,7 +73,8 @@ test("AI v2 canonicalizes caller platform order to web, ios, android", async () 
 test("AI v2 rejects any subset instead of widening the catalog beyond universal support", async () => {
   const value = input();
   value.requestedPlatforms = ["web"];
-  value.hostManifests = [hosts()[0]];
+  const [web] = hosts();
+  value.hostManifests = [web];
   let called = false;
   const result = await generateStudioDraftV2(value, { generate() { called = true; return document(); } });
   assert.equal(result.ok, false);
@@ -82,7 +91,8 @@ test("AI v2 rejects a generated Brand component that is not common to all three 
 test("AI v2 rejects missing/duplicate Host platform before provider execution", async () => {
   let called = false;
   const broken = input();
-  broken.hostManifests = [hosts()[0], hosts()[1], { ...hosts()[2], platform: "web" }];
+  const [web, ios, android] = hosts();
+  broken.hostManifests = [web, ios, { ...android, platform: "web" }];
   const result = await generateStudioDraftV2(broken, { generate() { called = true; return document(); } });
   assert.equal(result.ok, false);
   assert.equal(called, false);
@@ -113,9 +123,10 @@ test("AI v2 rejects accessor-backed requested platform arrays without invoking g
 test("AI v2 rejects accessor-backed Host manifest arrays without invoking getters", async () => {
   let reads = 0;
   const manifests: unknown[] = new Array(3);
-  Object.defineProperty(manifests, "0", { enumerable: true, configurable: true, get() { reads += 1; return hosts()[0]; } });
-  Object.defineProperty(manifests, "1", { enumerable: true, configurable: true, value: hosts()[1] });
-  Object.defineProperty(manifests, "2", { enumerable: true, configurable: true, value: hosts()[2] });
+  const [web, ios, android] = hosts();
+  Object.defineProperty(manifests, "0", { enumerable: true, configurable: true, get() { reads += 1; return web; } });
+  Object.defineProperty(manifests, "1", { enumerable: true, configurable: true, value: ios });
+  Object.defineProperty(manifests, "2", { enumerable: true, configurable: true, value: android });
   const value = input(); value.hostManifests = manifests as ReturnType<typeof hosts>;
   const result = await generateStudioDraftV2(value, { generate: () => document() });
   assert.equal(result.ok, false); assert.equal(reads, 0);
