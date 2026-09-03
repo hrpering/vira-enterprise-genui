@@ -100,6 +100,29 @@ export type {
   ViraWebLifecycleSource,
   ViraWebRendererRegistry,
 } from "./web-host.js";
+export {
+  createViraActionBoundary,
+  VIRA_ACTION_BOUNDARY_MAX_CATALOG,
+  VIRA_ACTION_BOUNDARY_VERSION,
+} from "@vira-enterprise-genui/action-boundary";
+export type {
+  ViraActionBoundary,
+  ViraActionBoundaryCreateResult,
+  ViraActionBoundaryExecutionResult,
+  ViraActionBoundaryExecutionSuccess,
+  ViraActionBoundaryInput,
+  ViraActionBoundaryIssue,
+  ViraActionBoundaryIssueCode,
+  ViraActionBoundaryProposal,
+  ViraActionConfirmationChallenge,
+  ViraActionConfirmationGrant,
+  ViraActionDefinition,
+  ViraActionEffect,
+  ViraActionExecutionPermit,
+  ViraActionExecutor,
+  ViraActionExecutorInput,
+  ViraActionIdempotency,
+} from "@vira-enterprise-genui/action-boundary";
 export * from "@vira-enterprise-genui/studio-authoring";
 export type {
   StudioHostActionDescriptor,
