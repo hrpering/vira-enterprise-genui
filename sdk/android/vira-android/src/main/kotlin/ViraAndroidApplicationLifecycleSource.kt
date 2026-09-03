@@ -13,6 +13,11 @@ class ViraAndroidApplicationLifecycleSource private constructor(
   private var disposed = false
   private val listeners = linkedSetOf<(ViraAndroidLifecycleEvent) -> Unit>()
 
+  private data class Delivery(
+    val type: ViraAndroidLifecycleEventType,
+    val callbacks: List<(ViraAndroidLifecycleEvent) -> Unit>,
+  )
+
   override fun snapshot(): ViraAndroidLifecycleSnapshot = synchronized(lock) {
     if (disposed) throw ViraAndroidIssue(ViraAndroidIssueCode.DISPOSED, "$", "Android lifecycle source is disposed")
     current
@@ -35,19 +40,23 @@ class ViraAndroidApplicationLifecycleSource private constructor(
   }
 
   fun reportConnectivity(connected: Boolean) {
-    val event = synchronized(lock) {
+    val delivery = synchronized(lock) {
       if (disposed) return
       val next = if (connected) ViraAndroidSessionConnectivity.CONNECTED else ViraAndroidSessionConnectivity.DISCONNECTED
       if (next == current.connectivity) return
       current = current.copy(connectivity = next)
-      if (connected) ViraAndroidLifecycleEventType.RECONNECT else ViraAndroidLifecycleEventType.DISCONNECT
+      val type = if (connected) ViraAndroidLifecycleEventType.RECONNECT else ViraAndroidLifecycleEventType.DISCONNECT
+      Delivery(type, listeners.toList())
     }
-    emit(event)
+    deliver(delivery)
   }
 
   fun reportResume() {
-    synchronized(lock) { if (disposed) return }
-    emit(ViraAndroidLifecycleEventType.RESUME)
+    val delivery = synchronized(lock) {
+      if (disposed) return
+      Delivery(ViraAndroidLifecycleEventType.RESUME, listeners.toList())
+    }
+    deliver(delivery)
   }
 
   fun dispose() {
@@ -60,27 +69,27 @@ class ViraAndroidApplicationLifecycleSource private constructor(
   }
 
   override fun onActivityStarted(activity: Activity) {
-    val shouldEmit = synchronized(lock) {
+    val delivery = synchronized(lock) {
       if (disposed) return
       startedActivities += 1
       if (startedActivities == 1 && current.visibility != ViraAndroidSessionVisibility.FOREGROUND) {
         current = current.copy(visibility = ViraAndroidSessionVisibility.FOREGROUND)
-        true
-      } else false
+        Delivery(ViraAndroidLifecycleEventType.FOREGROUND, listeners.toList())
+      } else null
     }
-    if (shouldEmit) emit(ViraAndroidLifecycleEventType.FOREGROUND)
+    delivery?.let(::deliver)
   }
 
   override fun onActivityStopped(activity: Activity) {
-    val shouldEmit = synchronized(lock) {
+    val delivery = synchronized(lock) {
       if (disposed) return
       if (startedActivities > 0) startedActivities -= 1
       if (startedActivities == 0 && current.visibility != ViraAndroidSessionVisibility.BACKGROUND) {
         current = current.copy(visibility = ViraAndroidSessionVisibility.BACKGROUND)
-        true
-      } else false
+        Delivery(ViraAndroidLifecycleEventType.BACKGROUND, listeners.toList())
+      } else null
     }
-    if (shouldEmit) emit(ViraAndroidLifecycleEventType.BACKGROUND)
+    delivery?.let(::deliver)
   }
 
   override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
@@ -89,10 +98,9 @@ class ViraAndroidApplicationLifecycleSource private constructor(
   override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
   override fun onActivityDestroyed(activity: Activity) = Unit
 
-  private fun emit(type: ViraAndroidLifecycleEventType) {
-    val callbacks = synchronized(lock) { if (disposed) emptyList() else listeners.toList() }
-    val event = ViraAndroidLifecycleEvent(type = type)
-    callbacks.forEach { it(event) }
+  private fun deliver(delivery: Delivery) {
+    val event = ViraAndroidLifecycleEvent(type = delivery.type)
+    delivery.callbacks.forEach { it(event) }
   }
 
   companion object {
