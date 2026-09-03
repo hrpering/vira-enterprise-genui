@@ -96,10 +96,12 @@ class RuntimeConcurrencyTests {
     val completion = first.await().getOrThrow()
     assertEquals(ViraAndroidHostActionOutcome.SUCCESS, completion.outcome)
 
-    val third = runSuspendConcurrency {
+    val third = StartedSuspend {
       session.dispatch("button", "press")
     }
-    assertTrue(third.isSuccess)
+    assertTrue(third.isSuspended())
+    bridge.complete()
+    assertTrue(third.await().isSuccess)
   }
 }
 
