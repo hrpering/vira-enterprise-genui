@@ -2,6 +2,7 @@ import type {
   StudioHostedDispatchResult,
   StudioRuntimeReactRenderer,
   ViraExperienceRuntime,
+  ViraWebExperience,
 } from "@vira-enterprise-genui/genui";
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
@@ -9,11 +10,20 @@ import type { Root } from "react-dom/client";
 
 export const VIRA_GENUI_EXPERIENCE_TAG_NAME = "vira-genui-experience" as const;
 
-export interface ViraGenUIElementMountInput {
+export interface ViraGenUIElementRuntimeMountInput {
   readonly runtime: ViraExperienceRuntime;
   readonly renderers: Readonly<Record<string, StudioRuntimeReactRenderer>>;
   readonly onHostResult?: (result: StudioHostedDispatchResult) => void;
 }
+
+export interface ViraGenUIElementWebExperienceMountInput {
+  readonly webExperience: ViraWebExperience;
+  readonly onHostResult?: (result: StudioHostedDispatchResult) => void;
+}
+
+export type ViraGenUIElementMountInput =
+  | ViraGenUIElementRuntimeMountInput
+  | ViraGenUIElementWebExperienceMountInput;
 
 export type ViraGenUIElementMountResult =
   | { readonly ok: true }
@@ -47,6 +57,10 @@ export type ViraGenUIElementDefineResult =
   | { readonly ok: true; readonly value: ViraGenUIElementConstructor }
   | { readonly ok: false; readonly issue: { readonly code: "PLATFORM_UNAVAILABLE" | "ALREADY_DEFINED" | "REGISTRATION_FAILED"; readonly message: string } };
 
+function runtimeSource(input: ViraGenUIElementMountInput): Pick<ViraExperienceRuntime, "subscribe"> | Pick<ViraWebExperience, "subscribe"> {
+  return "webExperience" in input ? input.webExperience : input.runtime;
+}
+
 export function createViraGenUIElementClass(
   HTMLElementBase: typeof HTMLElement,
   rootFactory: ViraGenUIReactRootFactory = (container) => createRoot(container),
@@ -59,15 +73,22 @@ export function createViraGenUIElementClass(
 
     #renderCurrent(): ViraGenUIElementMountResult {
       if (this.#disposed) return { ok: false, issue: { code: "DISPOSED", message: "GenUI element is disposed" } };
-      if (!this.#input) return { ok: true };
+      const input = this.#input;
+      if (!input) return { ok: true };
 
       try {
-        const rendered = this.#input.runtime.renderReact({
-          renderers: this.#input.renderers,
-          onHostResult: (result) => {
-            this.#input?.onHostResult?.(result);
-          },
-        });
+        const rendered = "webExperience" in input
+          ? input.webExperience.renderReact({
+              onHostResult: (result) => {
+                if (this.#input === input) input.onHostResult?.(result);
+              },
+            })
+          : input.runtime.renderReact({
+              renderers: input.renderers,
+              onHostResult: (result) => {
+                if (this.#input === input) input.onHostResult?.(result);
+              },
+            });
         if (!rendered.ok) return { ok: false, issue: { code: "RENDER_FAILED", message: rendered.issue.message } };
         this.#root ??= rootFactory(this);
         this.#root.render(createElement("div", { "data-vira-genui-root": "true" }, rendered.value));
@@ -81,9 +102,10 @@ export function createViraGenUIElementClass(
       if (this.#disposed) return { ok: false, issue: { code: "DISPOSED", message: "GenUI element is disposed" } };
       this.unmount();
       this.#input = input;
+      const source = runtimeSource(input);
       try {
-        this.#unsubscribeRuntime = input.runtime.subscribe(() => {
-          if (this.#disposed || this.#input?.runtime !== input.runtime) return;
+        this.#unsubscribeRuntime = source.subscribe(() => {
+          if (this.#disposed || !this.#input || runtimeSource(this.#input) !== source) return;
           const rerendered = this.#renderCurrent();
           if (!rerendered.ok) this.unmount();
         });

@@ -7,7 +7,11 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@vira-enterprise-genui/experience-resolver": "workspace:*",
+    "@vira-enterprise-genui/protocol": "workspace:*",
+    "@vira-enterprise-genui/runtime-core": "workspace:*",
     "@vira-enterprise-genui/studio-authoring": "workspace:*",
+    "@vira-enterprise-genui/studio-brand": "workspace:*",
     "@vira-enterprise-genui/studio-host": "workspace:*",
     "@vira-enterprise-genui/studio-host-runtime": "workspace:*",
     "@vira-enterprise-genui/studio-runtime": "workspace:*",
