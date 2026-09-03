@@ -73,6 +73,7 @@ const FAST_VIEWPORTS: Readonly<Record<ViraFastPreviewTarget, ViraFastPreviewView
   iphone: Object.freeze({ width: 393, height: 852 }),
   android: Object.freeze({ width: 412, height: 915 }),
 });
+const ATTESTATION_FIELDS = new Set(["version", "target", "renderer", "status", "artifactId", "manifestDigest", "hostId"]);
 
 function issue(code: ViraMultiplatformPreviewIssueCode, path: string, message: string): ViraMultiplatformPreviewIssue {
   return Object.freeze({ code, path, message });
@@ -95,11 +96,29 @@ function validRunner(value: unknown, target: ViraRealPreviewTarget): value is Vi
     && (value as ViraNativePreviewRunner).target === target
     && typeof (value as ViraNativePreviewRunner).run === "function";
 }
-function parseAttestation(input: unknown, target: ViraRealPreviewTarget, artifact: ViraDeploymentArtifactRecord): ViraNativePreviewAttestation | undefined {
+function ownDataObject(input: unknown, fields: ReadonlySet<string>): Readonly<Record<string, unknown>> | undefined {
   if (input === null || typeof input !== "object" || Array.isArray(input)) return undefined;
-  const value = input as Record<string, unknown>;
-  const keys = Object.keys(value);
-  if (keys.length !== 7 || !["version", "target", "renderer", "status", "artifactId", "manifestDigest", "hostId"].every((key) => Object.hasOwn(value, key))) return undefined;
+  try {
+    const prototype = Object.getPrototypeOf(input);
+    if (prototype !== Object.prototype && prototype !== null) return undefined;
+    if (Object.getOwnPropertySymbols(input).length > 0) return undefined;
+    const names = Object.getOwnPropertyNames(input);
+    const keys = Object.keys(input);
+    if (names.length !== fields.size || keys.length !== fields.size || keys.some((key) => !fields.has(key))) return undefined;
+    const output: Record<string, unknown> = Object.create(null) as Record<string, unknown>;
+    for (const key of fields) {
+      const descriptor = Object.getOwnPropertyDescriptor(input, key);
+      if (!descriptor || !("value" in descriptor) || descriptor.enumerable !== true) return undefined;
+      output[key] = descriptor.value;
+    }
+    return output;
+  } catch {
+    return undefined;
+  }
+}
+function parseAttestation(input: unknown, target: ViraRealPreviewTarget, artifact: ViraDeploymentArtifactRecord): ViraNativePreviewAttestation | undefined {
+  const value = ownDataObject(input, ATTESTATION_FIELDS);
+  if (!value) return undefined;
   if (
     value.version !== VIRA_MULTIPLATFORM_PREVIEW_VERSION
     || value.target !== target
