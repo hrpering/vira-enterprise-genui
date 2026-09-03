@@ -5,25 +5,55 @@ import ViraStudioExperienceWire
 public final class ViraIOSRenderEventEmitter {
   private let session: ViraIOSRuntimeSession
   private let runtimeNodeId: String
+  private let expectedViewId: String
+  private let expectedHostRevision: Int64
   private let allowedEvents: Set<String>
   private let onDispatchCompletion: (() -> Void)?
 
   init(
     session: ViraIOSRuntimeSession,
     runtimeNodeId: String,
+    expectedViewId: String,
+    expectedHostRevision: Int64,
     allowedEvents: Set<String>,
     onDispatchCompletion: (() -> Void)? = nil
   ) {
     self.session = session
     self.runtimeNodeId = runtimeNodeId
+    self.expectedViewId = expectedViewId
+    self.expectedHostRevision = expectedHostRevision
     self.allowedEvents = allowedEvents
     self.onDispatchCompletion = onDispatchCompletion
+  }
+
+  private func freshnessIssue() -> ViraIOSIssue? {
+    guard session.currentViewId() == expectedViewId else {
+      return .init(
+        code: .interactionNotFound,
+        path: "$.runtimeNodeId",
+        message: "native renderer binding belongs to an inactive view"
+      )
+    }
+    switch session.host.snapshot() {
+    case .failure(let issue):
+      return issue
+    case .success(let snapshot):
+      guard snapshot.revision == expectedHostRevision else {
+        return .init(
+          code: .interactionNotFound,
+          path: "$.runtimeNodeId",
+          message: "native renderer binding is stale after a Host state revision"
+        )
+      }
+      return nil
+    }
   }
 
   public func emit(
     _ event: String,
     payload: [String: ViraJSONValue]? = nil
   ) async -> Result<ViraIOSHostedDispatchCompletion, ViraIOSIssue> {
+    if let issue = freshnessIssue() { return .failure(issue) }
     guard allowedEvents.contains(event) else {
       return .failure(.init(
         code: .interactionNotFound,
@@ -107,6 +137,12 @@ public final class ViraIOSRendererRegistry {
     session: ViraIOSRuntimeSession,
     onDispatchCompletion: (() -> Void)? = nil
   ) -> Result<[AnyObject], ViraIOSIssue> {
+    let hostRevision: Int64
+    switch session.host.snapshot() {
+    case .failure(let issue): return .failure(issue)
+    case .success(let snapshot): hostRevision = snapshot.revision
+    }
+
     let current: ViraIOSRuntimeViewModel
     switch session.currentView() {
     case .failure(let issue): return .failure(issue)
@@ -194,6 +230,8 @@ public final class ViraIOSRendererRegistry {
       let emitter = ViraIOSRenderEventEmitter(
         session: session,
         runtimeNodeId: node.id,
+        expectedViewId: current.viewId,
+        expectedHostRevision: hostRevision,
         allowedEvents: Set(component.events.map(\.name)),
         onDispatchCompletion: onDispatchCompletion
       )
