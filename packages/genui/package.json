@@ -16,6 +16,7 @@
     "@vira-enterprise-genui/experience-resolver": "workspace:*",
     "@vira-enterprise-genui/protocol": "workspace:*",
     "@vira-enterprise-genui/runtime-core": "workspace:*",
+    "@vira-enterprise-genui/studio-ai": "workspace:*",
     "@vira-enterprise-genui/studio-authoring": "workspace:*",
     "@vira-enterprise-genui/studio-brand": "workspace:*",
     "@vira-enterprise-genui/studio-brand-console": "workspace:*",
