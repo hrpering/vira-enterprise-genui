@@ -1,5 +1,22 @@
 import Foundation
 
+private struct ViraIOSPermissionAnyCodingKey: CodingKey {
+  let stringValue: String
+  let intValue: Int?
+  init?(stringValue: String) { self.stringValue = stringValue; self.intValue = nil }
+  init?(intValue: Int) { self.stringValue = String(intValue); self.intValue = intValue }
+}
+
+private func rejectUnknownPermissionFields(
+  _ decoder: Decoder,
+  allowed: Set<String>
+) throws {
+  let c = try decoder.container(keyedBy: ViraIOSPermissionAnyCodingKey.self)
+  if let unknown = c.allKeys.first(where: { !allowed.contains($0.stringValue) }) {
+    throw DecodingError.dataCorruptedError(forKey: unknown, in: c, debugDescription: "unknown field")
+  }
+}
+
 public enum ViraIOSPermissionSubject: String, Codable, Equatable, Sendable {
   case action
   case capability
@@ -29,6 +46,7 @@ public struct ViraIOSPermissionRule: Codable, Equatable, Hashable, Sendable {
   }
 
   public init(from decoder: Decoder) throws {
+    try rejectUnknownPermissionFields(decoder, allowed: ["subject", "id", "effect"])
     let c = try decoder.container(keyedBy: CodingKeys.self)
     subject = try c.decode(ViraIOSPermissionSubject.self, forKey: .subject)
     id = try c.decode(String.self, forKey: .id)
@@ -45,26 +63,61 @@ public struct ViraIOSPermissionPolicy: Codable, Equatable, Sendable {
 
   private enum CodingKeys: String, CodingKey { case version, rules }
 
-  public init(version: String = "1", rules: [ViraIOSPermissionRule]) {
-    self.version = version
-    self.rules = rules
+  private init(validatedRules: [ViraIOSPermissionRule]) {
+    self.version = "1"
+    self.rules = validatedRules
+  }
+
+  private static func validationIssue(
+    _ rules: [ViraIOSPermissionRule]
+  ) -> ViraIOSIssue? {
+    guard rules.count <= 512 else {
+      return .init(
+        code: .invalidEnvelope,
+        path: "$.permissionPolicy.rules",
+        message: "native runtime permission policy exceeds the canonical rule limit"
+      )
+    }
+    var identities = Set<String>()
+    for rule in rules {
+      guard ViraIOSSemanticIdentifier.isNamespace(rule.id, requiresDot: true) else {
+        return .init(
+          code: .invalidEnvelope,
+          path: "$.permissionPolicy.rules",
+          message: "native runtime permission rule id is invalid"
+        )
+      }
+      let identity = "\(rule.subject.rawValue)\u{0}\(rule.id)"
+      guard identities.insert(identity).inserted else {
+        return .init(
+          code: .invalidEnvelope,
+          path: "$.permissionPolicy.rules",
+          message: "native runtime permission policy contains a duplicate rule"
+        )
+      }
+    }
+    return nil
+  }
+
+  public static func create(
+    rules: [ViraIOSPermissionRule]
+  ) -> Result<ViraIOSPermissionPolicy, ViraIOSIssue> {
+    if let issue = validationIssue(rules) { return .failure(issue) }
+    return .success(.init(validatedRules: rules))
   }
 
   public init(from decoder: Decoder) throws {
+    try rejectUnknownPermissionFields(decoder, allowed: ["version", "rules"])
     let c = try decoder.container(keyedBy: CodingKeys.self)
-    version = try c.decode(String.self, forKey: .version)
-    rules = try c.decode([ViraIOSPermissionRule].self, forKey: .rules)
-    guard version == "1", rules.count <= 512 else {
+    let version = try c.decode(String.self, forKey: .version)
+    let rules = try c.decode([ViraIOSPermissionRule].self, forKey: .rules)
+    guard version == "1", Self.validationIssue(rules) == nil else {
       throw DecodingError.dataCorrupted(
         .init(codingPath: decoder.codingPath, debugDescription: "invalid runtime permission policy")
       )
     }
-    let identities = rules.map { "\($0.subject.rawValue)\u{0}\($0.id)" }
-    guard Set(identities).count == identities.count else {
-      throw DecodingError.dataCorrupted(
-        .init(codingPath: decoder.codingPath, debugDescription: "duplicate runtime permission rule")
-      )
-    }
+    self.version = version
+    self.rules = rules
   }
 
   public static func decode(_ data: Data) -> Result<ViraIOSPermissionPolicy, ViraIOSIssue> {
