@@ -107,14 +107,14 @@ async function verifyArtifact(
     return { ok: false, issue: issue("DIGEST_MISMATCH", "$.manifestDigest", "canonical Pack manifest digest does not match envelope") };
   }
 
-  let signatureValid = false;
+  let signatureValid: boolean;
   try {
     signatureValid = await integrity.verifySignature({
       manifestDigest: artifact.manifestDigest,
       signature: artifact.signature,
     });
   } catch {
-    signatureValid = false;
+    return { ok: false, issue: issue("SIGNATURE_INVALID", "$.signature", "Pack signature verification failed closed") };
   }
   if (signatureValid !== true) {
     return { ok: false, issue: issue("SIGNATURE_INVALID", "$.signature", "Pack signature verification failed closed") };

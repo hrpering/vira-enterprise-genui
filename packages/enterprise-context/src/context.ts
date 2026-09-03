@@ -7,11 +7,9 @@ import {
   type ViraEnterpriseContextCreateResult,
   type ViraEnterpriseContextIssue,
   type ViraEnterpriseContextIssueCode,
-  type ViraEnterpriseContextResult,
   type ViraEnterpriseEnvironmentName,
   type ViraEnterprisePrincipal,
   type ViraEnterpriseScope,
-  type ViraSecretBroker,
   type ViraSecretLease,
   type ViraSecretRef,
 } from "./types.js";

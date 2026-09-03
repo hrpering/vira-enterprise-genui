@@ -5,6 +5,8 @@ coverage/
 **/.next/
 playwright-report/
 test-results/
+examples/experience-studio-demo/.data/
+examples/experience-studio-demo/.data-e2e/
 .env
 .env.*
 !.env.example

@@ -15,7 +15,7 @@ function evaluator(policyRef: string, mutate = false): ViraPolicySimulationEvalu
         expect(Object.isFrozen(fixture)).toBe(true);
         expect(Object.isFrozen(fixture.input)).toBe(true);
         expect(Object.isFrozen((fixture.input.nested as { value: number }))).toBe(true);
-        try { (fixture.input.nested as { value: number }).value = 999; } catch {}
+        try { (fixture.input.nested as { value: number }).value = 999; } catch { /* expected for frozen fixture */ }
       }
       return { version: "1", effect: "allow", reasonCode: policyRef };
     },

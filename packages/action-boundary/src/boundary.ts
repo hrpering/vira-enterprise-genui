@@ -8,7 +8,6 @@ import {
   createRuntimeAction,
   createRuntimePermissionPolicy,
   evaluateRuntimeActionPermission,
-  type RuntimeAction,
   type RuntimePermissionPolicy,
 } from "@vira-enterprise-genui/runtime-core";
 import {
