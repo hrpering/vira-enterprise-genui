@@ -14,7 +14,7 @@ private let staleRendererEnvelopeJSON = #"""
   "host":{"version":"1","id":"demo.host.ios","platform":"ios","implementationIds":["demo.ios.button"],"capabilities":[]},
   "brand":{"version":"1","id":"demo","components":[
     {"ref":"demo.component.button","implementationId":"demo.ios.button","props":[],"slots":[],"events":[{"name":"press"}]}
-  ],"actions":[{"event":"button.press","actionType":"demo.action.press"}]},
+  ],"actions":[{"event":"button.press","actionType":"demo.action.press"}],"dataSources":[]},
   "document":{
     "version":"1",
     "id":"demo.stale-render",
@@ -89,7 +89,12 @@ final class StaleRendererTests: XCTestCase {
     case .success(let value): policy = value
     }
 
-    let session = try ViraIOSRuntimeSession(envelope: envelope, host: host, permissionPolicy: policy)
+    let session = try ViraIOSRuntimeSession(
+      envelope: envelope,
+      host: host,
+      runtimeState: try makeTestRuntimeCoreState(),
+      permissionPolicy: policy
+    )
     let renderer = CapturingRenderer()
     let registry: ViraIOSRendererRegistry
     switch ViraIOSRendererRegistry.create(envelope: envelope, renderers: [renderer]) {
