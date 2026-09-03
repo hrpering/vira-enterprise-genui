@@ -25,6 +25,7 @@ export const allowedDependencies = Object.freeze({
   telemetry: [],
   "experience-observability": ["telemetry"],
   "action-ledger": ["action-boundary", "experience-observability", "governance", "protocol", "runtime-core", "telemetry"],
+  "cross-platform-conformance": ["action-boundary", "protocol"],
   "tool-bridge": ["protocol"],
   "protocol-gateway": ["protocol", "tool-bridge"],
   "studio-schema": ["protocol"],
@@ -51,7 +52,7 @@ export const allowedDependencies = Object.freeze({
   "studio-host": ["protocol"],
   "studio-host-runtime": ["studio-host", "studio-runtime", "studio-schema"],
   "studio-enterprise": ["protocol", "studio-schema"],
-  genui: ["action-boundary", "action-ledger", "deployment-plane", "enterprise-context", "enterprise-governance", "governance", "policy-simulation", "experience-resolver", "protocol", "runtime-core", "studio-ai", "studio-authoring", "studio-brand", "studio-brand-console", "studio-host", "studio-host-runtime", "studio-publish", "studio-runtime", "studio-runtime-react", "studio-workbench"],
+  genui: ["action-boundary", "action-ledger", "cross-platform-conformance", "deployment-plane", "enterprise-context", "enterprise-governance", "governance", "policy-simulation", "experience-resolver", "protocol", "runtime-core", "studio-ai", "studio-authoring", "studio-brand", "studio-brand-console", "studio-host", "studio-host-runtime", "studio-publish", "studio-runtime", "studio-runtime-react", "studio-workbench"],
   "genui-cli": ["studio-authoring"],
   "genui-web-component": ["genui"],
 });
