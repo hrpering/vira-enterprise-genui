@@ -7,7 +7,10 @@ import type { TelemetryEvent } from "@vira-enterprise-genui/telemetry";
 
 export const VIRA_ACTION_LEDGER_VERSION = "1" as const;
 export const VIRA_ACTION_LEDGER_MAX_ENTRIES = 100_000 as const;
-export const VIRA_ACTION_LEDGER_ENTRY_KINDS = Object.freeze(["experience.shown", "view.changed", "action.proposed", "policy.evaluated", "approval.requested", "approval.granted", "action.executed", "action.failed", "action.retry", "action.recovery"] as const);
+export const VIRA_ACTION_LEDGER_ENTRY_KINDS = Object.freeze([
+  "experience.shown", "view.changed", "action.proposed", "policy.evaluated", "approval.requested",
+  "approval.granted", "action.executed", "action.failed", "action.retry", "action.recovery",
+] as const);
 export type ViraActionLedgerEntryKind = (typeof VIRA_ACTION_LEDGER_ENTRY_KINDS)[number];
 export type ViraActionLedgerPlatform = "web" | "ios" | "android";
 export interface ViraActionLedgerSession { readonly version: "1"; readonly instanceId: string; readonly experienceId: string; readonly experienceVersion: string; readonly platform: ViraActionLedgerPlatform; readonly hostId: string; readonly hostVersion: string; readonly initialStateRevision: number; }
@@ -42,11 +45,20 @@ export function createViraActionLedger(input: { readonly instanceId: string; rea
   const session: ViraActionLedgerSession = Object.freeze({ version: "1", ...input });
   const log: ViraActionLedgerEntry[] = [];
   const proposed = new Map<string, { actionType: string; expectedStateRevision: number; idempotencyKey: string }>();
-  const policySeen = new Set<string>();
+  const disposition = new Map<string, "allow" | "deny" | "challenge" | "transform">();
   const pendingChallenges = new Map<string, string>();
-  const terminal = new Map<string, "executed" | "failed">();
+  const terminal = new Map<string, "executed" | "failed" | "denied">();
   const retried = new Set<string>();
-  const append = (entry: Omit<ViraActionLedgerEntry, "version" | "sequence">): ViraActionLedgerResult<ViraActionLedgerEntry> => { if (log.length >= VIRA_ACTION_LEDGER_MAX_ENTRIES) return fail("ENTRY_LIMIT_EXCEEDED", "$.entries", "action ledger entry limit exceeded"); if (!validTimestamp(entry.occurredAt)) return fail("INVALID_TIMESTAMP", "$.occurredAt", "ledger timestamp is invalid"); if (!safeRevision(entry.stateRevision)) return fail("INVALID_REVISION", "$.stateRevision", "ledger state revision is invalid"); const value = Object.freeze({ version: "1" as const, sequence: log.length, ...entry }); log.push(value); return { ok: true, value }; };
+  const recovered = new Set<string>();
+  let lastStateRevision = session.initialStateRevision;
+
+  const append = (entry: Omit<ViraActionLedgerEntry, "version" | "sequence">): ViraActionLedgerResult<ViraActionLedgerEntry> => {
+    if (log.length >= VIRA_ACTION_LEDGER_MAX_ENTRIES) return fail("ENTRY_LIMIT_EXCEEDED", "$.entries", "action ledger entry limit exceeded");
+    if (!validTimestamp(entry.occurredAt)) return fail("INVALID_TIMESTAMP", "$.occurredAt", "ledger timestamp is invalid");
+    if (!safeRevision(entry.stateRevision) || entry.stateRevision < lastStateRevision) return fail("INVALID_REVISION", "$.stateRevision", "ledger state revision must be monotonic and cannot precede the session revision");
+    const value = Object.freeze({ version: "1" as const, sequence: log.length, ...entry });
+    log.push(value); lastStateRevision = entry.stateRevision; return { ok: true, value };
+  };
   const action = (actionId: string) => proposed.get(actionId);
   const requireAction = <T>(actionId: unknown): ViraActionLedgerResult<T> | undefined => !boundedText(actionId) || !proposed.has(actionId) ? fail("ACTION_NOT_PROPOSED", "$.actionId", "action must be proposed before later ledger stages") : undefined;
   const validNote = (note: unknown): note is string => boundedText(note, 512);
@@ -65,15 +77,17 @@ export function createViraActionLedger(input: { readonly instanceId: string; rea
     },
     recordPolicyEvaluated: (occurredAt, actionId, verdict) => {
       const missing = requireAction<ViraActionLedgerEntry>(actionId); if (missing) return missing;
-      if (terminal.has(actionId)) return fail("STAGE_ORDER_INVALID", "$.actionId", "policy cannot be recorded after terminal action outcome");
+      if (terminal.has(actionId) || hasPendingChallenge(actionId)) return fail("STAGE_ORDER_INVALID", "$.actionId", "policy cannot be recorded after terminal or pending approval state");
       if (!verdict || (verdict.effect !== "allow" && verdict.effect !== "deny" && verdict.effect !== "challenge" && verdict.effect !== "transform") || !boundedText(verdict.provider) || !boundedText(verdict.reasonCode)) return fail("ACTION_IDENTITY_MISMATCH", "$.verdict", "governance verdict is invalid");
-      const current = action(actionId)!; const written = append({ occurredAt, kind: "policy.evaluated", stateRevision: current.expectedStateRevision, actionId, actionType: current.actionType, expectedStateRevision: current.expectedStateRevision, policyEffect: verdict.effect, policyProvider: verdict.provider, reasonCode: verdict.reasonCode });
-      if (written.ok) policySeen.add(actionId); return written;
+      const current = action(actionId)!;
+      const written = append({ occurredAt, kind: "policy.evaluated", stateRevision: current.expectedStateRevision, actionId, actionType: current.actionType, expectedStateRevision: current.expectedStateRevision, policyEffect: verdict.effect, policyProvider: verdict.provider, reasonCode: verdict.reasonCode });
+      if (written.ok) { disposition.set(actionId, verdict.effect); if (verdict.effect === "deny") terminal.set(actionId, "denied"); }
+      return written;
     },
     recordApprovalRequested: (occurredAt, challenge) => {
       const missing = requireAction<ViraActionLedgerEntry>(challenge?.actionId); if (missing) return missing; const current = action(challenge.actionId)!;
-      if (!policySeen.has(challenge.actionId) || terminal.has(challenge.actionId)) return fail("STAGE_ORDER_INVALID", "$.challenge", "approval request requires a prior non-terminal policy evaluation");
-      if (!challengeMatches(challenge, current) || pendingChallenges.has(challenge.challengeId)) return fail("INVALID_APPROVAL", "$.challenge", "approval challenge does not match proposed action identity");
+      if (disposition.get(challenge.actionId) !== "challenge" || terminal.has(challenge.actionId)) return fail("STAGE_ORDER_INVALID", "$.challenge", "approval request requires a challenge policy disposition");
+      if (!challengeMatches(challenge, current) || pendingChallenges.has(challenge.challengeId) || hasPendingChallenge(challenge.actionId)) return fail("INVALID_APPROVAL", "$.challenge", "approval challenge does not match proposed action identity");
       const written = append({ occurredAt, kind: "approval.requested", stateRevision: current.expectedStateRevision, actionId: challenge.actionId, actionType: current.actionType, expectedStateRevision: current.expectedStateRevision, challengeId: challenge.challengeId, policyProvider: challenge.provider, reasonCode: challenge.reasonCode });
       if (written.ok) pendingChallenges.set(challenge.challengeId, challenge.actionId); return written;
     },
@@ -82,32 +96,56 @@ export function createViraActionLedger(input: { readonly instanceId: string; rea
       if (!challengeMatches(challenge, current) || pendingChallenges.get(challenge.challengeId) !== challenge.actionId) return fail("STAGE_ORDER_INVALID", "$.challenge", "approval grant requires the exact previously requested challenge");
       if (!decision || decision.challengeId !== challenge.challengeId || decision.decision !== "approved" || !decision.approver || (decision.approver.kind !== "user" && decision.approver.kind !== "agent") || !boundedText(decision.approver.id)) return fail("INVALID_APPROVAL", "$.decision", "approval decision does not exactly approve the challenge");
       const written = append({ occurredAt, kind: "approval.granted", stateRevision: current.expectedStateRevision, actionId: challenge.actionId, actionType: current.actionType, expectedStateRevision: current.expectedStateRevision, challengeId: challenge.challengeId, approverId: decision.approver.id, approverKind: decision.approver.kind });
-      if (written.ok) pendingChallenges.delete(challenge.challengeId); return written;
+      if (written.ok) { pendingChallenges.delete(challenge.challengeId); disposition.set(challenge.actionId, "allow"); }
+      return written;
     },
     recordActionExecuted: (occurredAt, receipt) => {
       const missing = requireAction<ViraActionLedgerEntry>(receipt?.actionId); if (missing) return missing; const current = action(receipt.actionId)!;
-      if (!policySeen.has(receipt.actionId) || hasPendingChallenge(receipt.actionId) || terminal.has(receipt.actionId)) return fail("STAGE_ORDER_INVALID", "$.receipt", "execution requires completed policy/approval stages and no prior terminal outcome");
+      const currentDisposition = disposition.get(receipt.actionId);
+      if ((currentDisposition !== "allow" && currentDisposition !== "transform") || hasPendingChallenge(receipt.actionId) || terminal.has(receipt.actionId)) return fail("STAGE_ORDER_INVALID", "$.receipt", "execution requires an allow/transform policy disposition, completed approvals and no terminal outcome");
       if (!receipt || receipt.instanceId !== session.instanceId || receipt.actionType !== current.actionType || receipt.expectedStateRevision !== current.expectedStateRevision || receipt.idempotencyKey !== current.idempotencyKey || !safeRevision(receipt.observedStateRevision) || receipt.observedStateRevision < receipt.expectedStateRevision || (receipt.effect !== "read" && receipt.effect !== "write" && receipt.effect !== "irreversible") || (receipt.outcome !== "success" && receipt.outcome !== "empty" && receipt.outcome !== "error")) return fail("INVALID_RECEIPT", "$.receipt", "ActionReceipt does not match proposed action identity");
-      const kind = receipt.outcome === "error" ? "action.failed" as const : "action.executed" as const; const written = append({ occurredAt, kind, stateRevision: receipt.observedStateRevision, actionId: receipt.actionId, actionType: receipt.actionType, actionEffect: receipt.effect, expectedStateRevision: receipt.expectedStateRevision, observedStateRevision: receipt.observedStateRevision, idempotencyKey: receipt.idempotencyKey, outcome: receipt.outcome });
+      const kind = receipt.outcome === "error" ? "action.failed" as const : "action.executed" as const;
+      const written = append({ occurredAt, kind, stateRevision: receipt.observedStateRevision, actionId: receipt.actionId, actionType: receipt.actionType, actionEffect: receipt.effect, expectedStateRevision: receipt.expectedStateRevision, observedStateRevision: receipt.observedStateRevision, idempotencyKey: receipt.idempotencyKey, outcome: receipt.outcome });
       if (written.ok) terminal.set(receipt.actionId, receipt.outcome === "error" ? "failed" : "executed"); return written;
     },
     recordActionFailed: (occurredAt, actionId, stateRevision, note) => {
       const missing = requireAction<ViraActionLedgerEntry>(actionId); if (missing) return missing;
-      if (!policySeen.has(actionId) || hasPendingChallenge(actionId) || terminal.has(actionId)) return fail("STAGE_ORDER_INVALID", "$.actionId", "failure requires completed policy/approval stages and no prior terminal outcome");
-      if (!validNote(note)) return fail("INVALID_RECEIPT", "$.note", "failure note is invalid"); const written = append({ occurredAt, kind: "action.failed", stateRevision, actionId, actionType: action(actionId)!.actionType, note }); if (written.ok) terminal.set(actionId, "failed"); return written;
+      const currentDisposition = disposition.get(actionId);
+      if ((currentDisposition !== "allow" && currentDisposition !== "transform") || hasPendingChallenge(actionId) || terminal.has(actionId)) return fail("STAGE_ORDER_INVALID", "$.actionId", "failure requires an allow/transform policy disposition, completed approvals and no terminal outcome");
+      if (!validNote(note)) return fail("INVALID_RECEIPT", "$.note", "failure note is invalid");
+      const written = append({ occurredAt, kind: "action.failed", stateRevision, actionId, actionType: action(actionId)!.actionType, note });
+      if (written.ok) terminal.set(actionId, "failed"); return written;
     },
     recordRetry: (occurredAt, actionId, stateRevision, note) => {
       const missing = requireAction<ViraActionLedgerEntry>(actionId); if (missing) return missing;
       if (terminal.get(actionId) !== "failed" || retried.has(actionId)) return fail("STAGE_ORDER_INVALID", "$.actionId", "retry requires exactly one prior failed terminal outcome");
-      if (note !== undefined && !validNote(note)) return fail("INVALID_RECEIPT", "$.note", "retry note is invalid"); const written = append({ occurredAt, kind: "action.retry", stateRevision, actionId, actionType: action(actionId)!.actionType, ...(note === undefined ? {} : { note }) }); if (written.ok) retried.add(actionId); return written;
+      if (note !== undefined && !validNote(note)) return fail("INVALID_RECEIPT", "$.note", "retry note is invalid");
+      const written = append({ occurredAt, kind: "action.retry", stateRevision, actionId, actionType: action(actionId)!.actionType, ...(note === undefined ? {} : { note }) });
+      if (written.ok) retried.add(actionId); return written;
     },
     recordRecovery: (occurredAt, actionId, stateRevision, note) => {
       const missing = requireAction<ViraActionLedgerEntry>(actionId); if (missing) return missing;
-      if (!retried.has(actionId)) return fail("STAGE_ORDER_INVALID", "$.actionId", "recovery requires a prior retry");
-      if (note !== undefined && !validNote(note)) return fail("INVALID_RECEIPT", "$.note", "recovery note is invalid"); return append({ occurredAt, kind: "action.recovery", stateRevision, actionId, actionType: action(actionId)!.actionType, ...(note === undefined ? {} : { note }) });
+      if (!retried.has(actionId) || recovered.has(actionId)) return fail("STAGE_ORDER_INVALID", "$.actionId", "recovery requires exactly one prior retry and may be recorded once");
+      if (note !== undefined && !validNote(note)) return fail("INVALID_RECEIPT", "$.note", "recovery note is invalid");
+      const written = append({ occurredAt, kind: "action.recovery", stateRevision, actionId, actionType: action(actionId)!.actionType, ...(note === undefined ? {} : { note }) });
+      if (written.ok) recovered.add(actionId); return written;
     },
     replay: () => Object.freeze({ version: "1", session, entries: Object.freeze(log.slice()), sideEffectExecution: "forbidden" as const }),
-    telemetry: () => { const events: TelemetryEvent[] = []; for (let index = 0; index < log.length; index += 1) { const entry = log[index]!; const event = createExperienceObservation({ name: telemetryName(entry.kind), source: "action-ledger", occurredAt: entry.occurredAt }); if (!event.ok) return fail("INVALID_TIMESTAMP", `$.entries[${index}].occurredAt`, event.issue.message); events.push(event.value); } return { ok: true, value: Object.freeze(events) }; },
+    telemetry: () => {
+      const events: TelemetryEvent[] = [];
+      for (let index = 0; index < log.length; index += 1) {
+        const entry = log[index]!;
+        const event = createExperienceObservation({ name: telemetryName(entry.kind), source: "action-ledger", occurredAt: entry.occurredAt });
+        if (!event.ok) return fail("INVALID_TIMESTAMP", `$.entries[${index}].occurredAt`, event.issue.message);
+        events.push(event.value);
+        if (entry.kind === "policy.evaluated" && entry.policyEffect === "deny") {
+          const denied = createExperienceObservation({ name: "experience.action.denied", source: "action-ledger", occurredAt: entry.occurredAt });
+          if (!denied.ok) return fail("INVALID_TIMESTAMP", `$.entries[${index}].occurredAt`, denied.issue.message);
+          events.push(denied.value);
+        }
+      }
+      return { ok: true, value: Object.freeze(events) };
+    },
   });
   return { ok: true, value: ledger };
 }
