@@ -87,7 +87,12 @@ function brandInput(): ViraBrandDefinitionInput {
     dataSources: {
       version: "1",
       id: `${brandId}.data`,
-      sources: [{ id: "catalog", kinds: ["state", "domain"] }],
+      sources: [{
+        kind: "state",
+        path: "catalog.count",
+        label: "Catalog count",
+        valueType: "number",
+      }],
     },
     policies: {
       version: "1",
