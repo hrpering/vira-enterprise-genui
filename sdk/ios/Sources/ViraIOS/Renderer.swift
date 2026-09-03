@@ -6,6 +6,7 @@ public final class ViraIOSRenderEventEmitter {
   private let session: ViraIOSRuntimeSession
   private let runtimeNodeId: String
   private let expectedViewId: String
+  private let expectedViewGeneration: Int64
   private let expectedHostRevision: Int64
   private let allowedEvents: Set<String>
   private let onDispatchCompletion: (() -> Void)?
@@ -14,6 +15,7 @@ public final class ViraIOSRenderEventEmitter {
     session: ViraIOSRuntimeSession,
     runtimeNodeId: String,
     expectedViewId: String,
+    expectedViewGeneration: Int64,
     expectedHostRevision: Int64,
     allowedEvents: Set<String>,
     onDispatchCompletion: (() -> Void)? = nil
@@ -21,17 +23,19 @@ public final class ViraIOSRenderEventEmitter {
     self.session = session
     self.runtimeNodeId = runtimeNodeId
     self.expectedViewId = expectedViewId
+    self.expectedViewGeneration = expectedViewGeneration
     self.expectedHostRevision = expectedHostRevision
     self.allowedEvents = allowedEvents
     self.onDispatchCompletion = onDispatchCompletion
   }
 
   private func freshnessIssue() -> ViraIOSIssue? {
-    guard session.currentViewId() == expectedViewId else {
+    guard session.currentViewId() == expectedViewId,
+          session.currentViewGeneration() == expectedViewGeneration else {
       return .init(
         code: .interactionNotFound,
         path: "$.runtimeNodeId",
-        message: "native renderer binding belongs to an inactive view"
+        message: "native renderer binding belongs to an inactive render generation"
       )
     }
     switch session.host.snapshot() {
@@ -148,6 +152,7 @@ public final class ViraIOSRendererRegistry {
     case .failure(let issue): return .failure(issue)
     case .success(let view): current = view
     }
+    let viewGeneration = session.currentViewGeneration()
 
     let componentMap = Dictionary(
       uniqueKeysWithValues: session.envelope.brand.components.map { ($0.ref, $0) }
@@ -231,6 +236,7 @@ public final class ViraIOSRendererRegistry {
         session: session,
         runtimeNodeId: node.id,
         expectedViewId: current.viewId,
+        expectedViewGeneration: viewGeneration,
         expectedHostRevision: hostRevision,
         allowedEvents: Set(component.events.map(\.name)),
         onDispatchCompletion: onDispatchCompletion
