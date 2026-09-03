@@ -128,15 +128,15 @@ test("Studio Brand Console hands validated template and exact Brand catalogs to 
   assert.deepEqual(opened.value.currentDocument().id, "acme.starter");
 });
 
-test("Studio Brand Console template traversal does not depend on ambient Array map/find", () => {
+test("Studio Brand Console session traversal does not depend on ambient Array map/find", () => {
+  const created = createViraStudioBrandConsole({ scope, brandPackage });
+  assert.equal(created.ok, true);
+  if (!created.ok) return;
   const originalMap = Array.prototype.map;
   const originalFind = Array.prototype.find;
   try {
     Array.prototype.map = function () { throw new Error("ambient map must not be used"); } as typeof Array.prototype.map;
     Array.prototype.find = function () { throw new Error("ambient find must not be used"); } as typeof Array.prototype.find;
-    const created = createViraStudioBrandConsole({ scope, brandPackage });
-    assert.equal(created.ok, true);
-    if (!created.ok) return;
     assert.equal(created.value.listTemplates()[0]?.id, "starter");
     const opened = created.value.openTemplate({ templateId: "starter", allocateNodeId: () => "node-1" });
     assert.equal(opened.ok, true);
