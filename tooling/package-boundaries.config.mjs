@@ -24,6 +24,7 @@ export const allowedDependencies = Object.freeze({
   "policy-engine": ["security"],
   telemetry: [],
   "experience-observability": ["telemetry"],
+  "action-ledger": ["action-boundary", "experience-observability", "governance", "protocol", "runtime-core", "telemetry"],
   "tool-bridge": ["protocol"],
   "protocol-gateway": ["protocol", "tool-bridge"],
   "studio-schema": ["protocol"],
