@@ -432,12 +432,13 @@ export function createExperienceResolver(input: unknown): ExperienceResolverFact
   if (!configuration.ok) return configuration.result;
   const fields = configuration.value;
 
-  let canonicalRegistry = false;
-  try {
-    canonicalRegistry = isCanonicalExperienceRegistrySnapshot(fields.registry);
-  } catch {
-    canonicalRegistry = false;
-  }
+  const canonicalRegistry = (() => {
+    try {
+      return isCanonicalExperienceRegistrySnapshot(fields.registry);
+    } catch {
+      return false;
+    }
+  })();
   if (!canonicalRegistry) {
     return configurationFailure(
       "INVALID_REGISTRY",
