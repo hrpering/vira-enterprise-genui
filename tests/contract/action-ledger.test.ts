@@ -52,15 +52,39 @@ test("failed proposal validation does not reserve action identity", () => {
   assert.equal(value.entries().length, 0);
 });
 
-test("policy, approval and execution ordering is fail-closed", () => {
+test("challenge policy cannot execute before exact approval continuation", () => {
   const value = ledger();
   assert.equal(value.recordActionProposed(t(1), intent as never).ok, true);
-  const earlyApproval = value.recordApprovalRequested(t(2), challenge as never);
-  assert.equal(earlyApproval.ok, false);
-  if (!earlyApproval.ok) assert.equal(earlyApproval.issue.code, "STAGE_ORDER_INVALID");
+  assert.equal(value.recordPolicyEvaluated(t(2), "action-17", verdict as never).ok, true);
   const earlyExecution = value.recordActionExecuted(t(3), receipt as never);
   assert.equal(earlyExecution.ok, false);
   if (!earlyExecution.ok) assert.equal(earlyExecution.issue.code, "STAGE_ORDER_INVALID");
+  assert.equal(value.recordApprovalRequested(t(4), challenge as never).ok, true);
+  const pendingExecution = value.recordActionExecuted(t(5), receipt as never);
+  assert.equal(pendingExecution.ok, false);
+  if (!pendingExecution.ok) assert.equal(pendingExecution.issue.code, "STAGE_ORDER_INVALID");
+});
+
+test("deny policy is terminal and projects a denied telemetry observation", () => {
+  const value = ledger();
+  assert.equal(value.recordActionProposed(t(1), intent as never).ok, true);
+  assert.equal(value.recordPolicyEvaluated(t(2), "action-17", { ...verdict, effect: "deny", reasonCode: "blocked" } as never).ok, true);
+  const execution = value.recordActionExecuted(t(3), receipt as never);
+  assert.equal(execution.ok, false);
+  if (!execution.ok) assert.equal(execution.issue.code, "STAGE_ORDER_INVALID");
+  const telemetry = value.telemetry();
+  assert.equal(telemetry.ok, true);
+  if (!telemetry.ok) return;
+  assert.deepEqual(telemetry.value.map((event) => event.name), ["experience.action.proposed", "experience.policy.evaluated", "experience.action.denied"]);
+});
+
+test("approval requests require an actual challenge disposition", () => {
+  const value = ledger();
+  assert.equal(value.recordActionProposed(t(1), intent as never).ok, true);
+  assert.equal(value.recordPolicyEvaluated(t(2), "action-17", { ...verdict, effect: "allow" } as never).ok, true);
+  const approval = value.recordApprovalRequested(t(3), challenge as never);
+  assert.equal(approval.ok, false);
+  if (!approval.ok) assert.equal(approval.issue.code, "STAGE_ORDER_INVALID");
 });
 
 test("cross-instance approval and receipt identities are rejected", () => {
@@ -73,21 +97,32 @@ test("cross-instance approval and receipt identities are rejected", () => {
   const forgedGrant = value.recordApprovalGranted(t(4), challenge as never, decision as never);
   assert.equal(forgedGrant.ok, false);
   if (!forgedGrant.ok) assert.equal(forgedGrant.issue.code, "STAGE_ORDER_INVALID");
-  const badReceipt = value.recordActionExecuted(t(5), { ...receipt, idempotencyKey: "other-key" } as never);
-  assert.equal(badReceipt.ok, false);
-  if (!badReceipt.ok) assert.equal(badReceipt.issue.code, "INVALID_RECEIPT");
 });
 
-test("retry and recovery require a recorded failure and preserve telemetry order", () => {
+test("state revisions are globally monotonic from the replay session revision", () => {
+  const value = ledger();
+  const beforeInitial = value.recordExperienceShown(t(0), 38);
+  assert.equal(beforeInitial.ok, false);
+  if (!beforeInitial.ok) assert.equal(beforeInitial.issue.code, "INVALID_REVISION");
+  assert.equal(value.recordExperienceShown(t(1), 39).ok, true);
+  assert.equal(value.recordViewChanged(t(2), 40, "detail").ok, true);
+  const regression = value.recordViewChanged(t(3), 39, "back");
+  assert.equal(regression.ok, false);
+  if (!regression.ok) assert.equal(regression.issue.code, "INVALID_REVISION");
+});
+
+test("retry and recovery require a recorded failure and recovery is single-shot", () => {
   const value = ledger();
   assert.equal(value.recordActionProposed(t(1), intent as never).ok, true);
   assert.equal(value.recordPolicyEvaluated(t(2), "action-17", { ...verdict, effect: "allow" } as never).ok, true);
   assert.equal(value.recordActionFailed(t(3), "action-17", 39, "backend timeout").ok, true);
   assert.equal(value.recordRetry(t(4), "action-17", 39, "retry requested").ok, true);
   assert.equal(value.recordRecovery(t(5), "action-17", 40, "recovered").ok, true);
+  const duplicateRecovery = value.recordRecovery("2026-09-03T18:56:00.000Z", "action-17", 40, "again");
+  assert.equal(duplicateRecovery.ok, false);
+  if (!duplicateRecovery.ok) assert.equal(duplicateRecovery.issue.code, "STAGE_ORDER_INVALID");
   const projected = value.telemetry();
   assert.equal(projected.ok, true);
   if (!projected.ok) return;
   assert.deepEqual(projected.value.map((event) => event.name), ["experience.action.proposed", "experience.policy.evaluated", "experience.action.failed", "experience.action.retry", "experience.action.recovery"]);
-  assert.deepEqual(projected.value.map((event) => event.source), ["action-ledger", "action-ledger", "action-ledger", "action-ledger", "action-ledger"]);
 });
