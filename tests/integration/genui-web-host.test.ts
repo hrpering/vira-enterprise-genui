@@ -281,7 +281,7 @@ function lifecycleFixture(
   };
 }
 
-function createHost(activeLifecycle: ViraWebLifecycleSource, renderer = vi.fn(() => null)) {
+function createHost(activeLifecycle: ViraWebLifecycleSource, renderer = vi.fn((_context: unknown) => null)) {
   const result = createViraWebHost({
     manifest: hostManifest(),
     renderers: { [webImplementationId]: renderer },
