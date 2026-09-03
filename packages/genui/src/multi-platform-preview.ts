@@ -15,23 +15,12 @@ import {
 } from "./android-host-envelope.js";
 
 export const VIRA_MULTI_PLATFORM_PREVIEW_VERSION = "1" as const;
-export const VIRA_MULTI_PLATFORM_PREVIEW_TARGETS = Object.freeze([
-  "desktop",
-  "mobile-web",
-  "iphone",
-  "android",
-] as const);
-
+export const VIRA_MULTI_PLATFORM_PREVIEW_TARGETS = Object.freeze(["desktop", "mobile-web", "iphone", "android"] as const);
 export type ViraMultiPlatformPreviewTarget = (typeof VIRA_MULTI_PLATFORM_PREVIEW_TARGETS)[number];
 export type ViraNativePreviewTarget = "iphone" | "android";
 type StudioPublication = Extract<StudioPublishResult, { readonly ok: true }>["value"];
 
-export interface ViraFastPreviewViewport {
-  readonly width: number;
-  readonly height: number;
-  readonly deviceScaleFactor: number;
-}
-
+export interface ViraFastPreviewViewport { readonly width: number; readonly height: number; readonly deviceScaleFactor: number; }
 export interface ViraFastPreviewArtifact {
   readonly version: typeof VIRA_MULTI_PLATFORM_PREVIEW_VERSION;
   readonly mode: "fast";
@@ -42,9 +31,18 @@ export interface ViraFastPreviewArtifact {
   readonly nativeAccuracy: false;
 }
 
-export interface ViraPreviewPackPublisher {
+export interface ViraPublishedPreviewPack {
+  readonly version: typeof VIRA_MULTI_PLATFORM_PREVIEW_VERSION;
+  readonly previewPackRef: string;
+}
+export interface ViraPreviewPackProvider {
   readonly version: typeof VIRA_MULTI_PLATFORM_PREVIEW_VERSION;
   readonly publish: (publication: StudioPublication) => Promise<unknown> | unknown;
+  readonly resolve: (input: {
+    readonly previewPackRef: string;
+    readonly platform: "ios" | "android";
+    readonly instanceId: string;
+  }) => Promise<unknown> | unknown;
 }
 
 export interface ViraIOSRealPreviewArtifact {
@@ -52,19 +50,19 @@ export interface ViraIOSRealPreviewArtifact {
   readonly mode: "real";
   readonly target: "iphone";
   readonly nativeHost: "ios-simulator";
+  readonly previewPack: ViraPublishedPreviewPack;
   readonly descriptor: ResolvedExperienceDescriptor;
   readonly envelope: ViraIOSMountEnvelope;
 }
-
 export interface ViraAndroidRealPreviewArtifact {
   readonly version: typeof VIRA_MULTI_PLATFORM_PREVIEW_VERSION;
   readonly mode: "real";
   readonly target: "android";
   readonly nativeHost: "android-emulator";
+  readonly previewPack: ViraPublishedPreviewPack;
   readonly descriptor: ResolvedExperienceDescriptor;
   readonly envelope: ViraAndroidMountEnvelope;
 }
-
 export type ViraRealPreviewArtifact = ViraIOSRealPreviewArtifact | ViraAndroidRealPreviewArtifact;
 
 export type ViraMultiPlatformPreviewIssueCode =
@@ -72,32 +70,25 @@ export type ViraMultiPlatformPreviewIssueCode =
   | "FAST_PREVIEW_FAILED"
   | "PUBLICATION_FAILED"
   | "PREVIEW_PACK_PUBLISH_FAILED"
+  | "INVALID_PREVIEW_PACK"
+  | "PREVIEW_DESCRIPTOR_RESOLUTION_FAILED"
   | "INVALID_PREVIEW_DESCRIPTOR"
-  | "NATIVE_PREVIEW_REJECTED";
-
+  | "NATIVE_PREVIEW_REJECTED"
+  | "PREVIEW_PACK_DRIFT";
 export interface ViraMultiPlatformPreviewIssue {
   readonly code: ViraMultiPlatformPreviewIssueCode;
   readonly path: string;
   readonly message: string;
   readonly nativeIssue?: ViraIOSMountEnvelopeIssue | ViraAndroidMountEnvelopeIssue;
 }
-
-export type ViraFastPreviewResult =
-  | { readonly ok: true; readonly value: ViraFastPreviewArtifact }
-  | { readonly ok: false; readonly issue: ViraMultiPlatformPreviewIssue };
-export type ViraRealPreviewResult =
-  | { readonly ok: true; readonly value: ViraRealPreviewArtifact }
-  | { readonly ok: false; readonly issue: ViraMultiPlatformPreviewIssue };
-
+export type ViraFastPreviewResult = { readonly ok: true; readonly value: ViraFastPreviewArtifact } | { readonly ok: false; readonly issue: ViraMultiPlatformPreviewIssue };
+export type ViraRealPreviewResult = { readonly ok: true; readonly value: ViraRealPreviewArtifact } | { readonly ok: false; readonly issue: ViraMultiPlatformPreviewIssue };
 export interface ViraMultiPlatformPreviewSession {
   readonly version: typeof VIRA_MULTI_PLATFORM_PREVIEW_VERSION;
   readonly fast: (target: ViraMultiPlatformPreviewTarget) => ViraFastPreviewResult;
   readonly real: (target: ViraNativePreviewTarget) => Promise<ViraRealPreviewResult>;
 }
-
-export type ViraMultiPlatformPreviewCreateResult =
-  | { readonly ok: true; readonly value: ViraMultiPlatformPreviewSession }
-  | { readonly ok: false; readonly issue: ViraMultiPlatformPreviewIssue };
+export type ViraMultiPlatformPreviewCreateResult = { readonly ok: true; readonly value: ViraMultiPlatformPreviewSession } | { readonly ok: false; readonly issue: ViraMultiPlatformPreviewIssue };
 
 const VIEWPORTS: Readonly<Record<ViraMultiPlatformPreviewTarget, ViraFastPreviewViewport>> = Object.freeze({
   desktop: Object.freeze({ width: 1440, height: 900, deviceScaleFactor: 1 }),
@@ -105,35 +96,32 @@ const VIEWPORTS: Readonly<Record<ViraMultiPlatformPreviewTarget, ViraFastPreview
   iphone: Object.freeze({ width: 393, height: 852, deviceScaleFactor: 3 }),
   android: Object.freeze({ width: 412, height: 915, deviceScaleFactor: 2.625 }),
 });
+const previewPackRefPattern = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,511}$/;
 
-function failure(
-  code: ViraMultiPlatformPreviewIssueCode,
-  path: string,
-  message: string,
-  nativeIssue?: ViraIOSMountEnvelopeIssue | ViraAndroidMountEnvelopeIssue,
-): { readonly ok: false; readonly issue: ViraMultiPlatformPreviewIssue } {
-  return {
-    ok: false,
-    issue: Object.freeze({ code, path, message, ...(nativeIssue === undefined ? {} : { nativeIssue }) }),
-  };
+function failure(code: ViraMultiPlatformPreviewIssueCode, path: string, message: string, nativeIssue?: ViraIOSMountEnvelopeIssue | ViraAndroidMountEnvelopeIssue): { readonly ok: false; readonly issue: ViraMultiPlatformPreviewIssue } {
+  return { ok: false, issue: Object.freeze({ code, path, message, ...(nativeIssue === undefined ? {} : { nativeIssue }) }) };
 }
-
 function validWorkbench(value: unknown): value is StudioWorkbenchSession {
-  return value !== null
-    && typeof value === "object"
-    && typeof (value as StudioWorkbenchSession).preview === "function"
-    && typeof (value as StudioWorkbenchSession).publish === "function";
+  return value !== null && typeof value === "object" && typeof (value as StudioWorkbenchSession).preview === "function" && typeof (value as StudioWorkbenchSession).publish === "function";
 }
-
-function validPublisher(value: unknown): value is ViraPreviewPackPublisher {
-  return value !== null
-    && typeof value === "object"
-    && (value as ViraPreviewPackPublisher).version === VIRA_MULTI_PLATFORM_PREVIEW_VERSION
-    && typeof (value as ViraPreviewPackPublisher).publish === "function";
+function validProvider(value: unknown): value is ViraPreviewPackProvider {
+  return value !== null && typeof value === "object" && (value as ViraPreviewPackProvider).version === VIRA_MULTI_PLATFORM_PREVIEW_VERSION && typeof (value as ViraPreviewPackProvider).publish === "function" && typeof (value as ViraPreviewPackProvider).resolve === "function";
 }
-
-function validTarget(value: unknown): value is ViraMultiPlatformPreviewTarget {
-  return value === "desktop" || value === "mobile-web" || value === "iphone" || value === "android";
+function validTarget(value: unknown): value is ViraMultiPlatformPreviewTarget { return value === "desktop" || value === "mobile-web" || value === "iphone" || value === "android"; }
+function parsePublishedPreviewPack(input: unknown): ViraPublishedPreviewPack | undefined {
+  if (input === null || typeof input !== "object" || Array.isArray(input)) return undefined;
+  const value = input as Record<string, unknown>;
+  const keys = Object.keys(value);
+  if (keys.length !== 2 || !Object.hasOwn(value, "version") || !Object.hasOwn(value, "previewPackRef")) return undefined;
+  if (value.version !== VIRA_MULTI_PLATFORM_PREVIEW_VERSION || typeof value.previewPackRef !== "string" || !previewPackRefPattern.test(value.previewPackRef)) return undefined;
+  return Object.freeze({ version: VIRA_MULTI_PLATFORM_PREVIEW_VERSION, previewPackRef: value.previewPackRef });
+}
+interface NativeIdentity { readonly packId: string; readonly packVersion: string; readonly entrypoint: string; readonly artifactId: string; readonly artifactDigest: string; }
+function identity(envelope: ViraIOSMountEnvelope | ViraAndroidMountEnvelope): NativeIdentity {
+  return Object.freeze({ packId: envelope.pack.id, packVersion: envelope.pack.version, entrypoint: envelope.pack.entrypoint, artifactId: envelope.artifact.id, artifactDigest: envelope.artifact.digest });
+}
+function sameIdentity(left: NativeIdentity, right: NativeIdentity): boolean {
+  return left.packId === right.packId && left.packVersion === right.packVersion && left.entrypoint === right.entrypoint && left.artifactId === right.artifactId && left.artifactDigest === right.artifactDigest;
 }
 
 export function createViraMultiPlatformPreview(input: {
@@ -142,47 +130,45 @@ export function createViraMultiPlatformPreview(input: {
   readonly brand: ViraBrandDefinition;
   readonly iosHostManifest: StudioHostCapabilityManifest;
   readonly androidHostManifest: StudioHostCapabilityManifest;
-  readonly previewPackPublisher: ViraPreviewPackPublisher;
+  readonly previewPackProvider: ViraPreviewPackProvider;
 }): ViraMultiPlatformPreviewCreateResult {
-  if (
-    input === null
-    || typeof input !== "object"
-    || !validWorkbench(input.workbench)
-    || typeof input.instanceId !== "string"
-    || input.instanceId.length < 1
-    || input.instanceId.length > 256
-    || !validPublisher(input.previewPackPublisher)
-  ) {
+  if (input === null || typeof input !== "object" || !validWorkbench(input.workbench) || typeof input.instanceId !== "string" || input.instanceId.length < 1 || input.instanceId.length > 256 || !validProvider(input.previewPackProvider)) {
     return failure("INVALID_CONFIGURATION", "$", "multi-platform preview configuration is invalid");
   }
+  const { workbench, instanceId, brand, iosHostManifest, androidHostManifest } = input;
+  const provider = input.previewPackProvider;
+  let packPromise: Promise<ViraPublishedPreviewPack | { readonly issue: ViraMultiPlatformPreviewIssue }> | undefined;
+  const descriptorPromises = new Map<"ios" | "android", Promise<ResolvedExperienceDescriptor | { readonly issue: ViraMultiPlatformPreviewIssue }>>();
+  let acceptedIdentity: NativeIdentity | undefined;
 
-  const workbench = input.workbench;
-  const instanceId = input.instanceId;
-  const brand = input.brand;
-  const iosHostManifest = input.iosHostManifest;
-  const androidHostManifest = input.androidHostManifest;
-  const publisher = input.previewPackPublisher;
-  let descriptorPromise: Promise<ResolvedExperienceDescriptor | { readonly issue: ViraMultiPlatformPreviewIssue }> | undefined;
-
-  const publishPreviewDescriptor = (): Promise<ResolvedExperienceDescriptor | { readonly issue: ViraMultiPlatformPreviewIssue }> => {
-    if (descriptorPromise !== undefined) return descriptorPromise;
-    descriptorPromise = (async () => {
+  const publishPreviewPack = (): Promise<ViraPublishedPreviewPack | { readonly issue: ViraMultiPlatformPreviewIssue }> => {
+    if (packPromise !== undefined) return packPromise;
+    packPromise = (async () => {
       const published = workbench.publish();
-      if (!published.ok) {
-        return Object.freeze({ issue: failure("PUBLICATION_FAILED", published.issue.path, published.issue.message).issue });
-      }
-      let descriptor: unknown;
-      try {
-        descriptor = await publisher.publish(published.value);
-      } catch {
-        return Object.freeze({ issue: failure("PREVIEW_PACK_PUBLISH_FAILED", "$.previewPackPublisher", "preview Pack publisher failed closed").issue });
-      }
-      if (descriptor === null || typeof descriptor !== "object") {
-        return Object.freeze({ issue: failure("INVALID_PREVIEW_DESCRIPTOR", "$.descriptor", "preview Pack publisher returned an invalid descriptor").issue });
-      }
-      return descriptor as ResolvedExperienceDescriptor;
+      if (!published.ok) return Object.freeze({ issue: failure("PUBLICATION_FAILED", published.issue.path, published.issue.message).issue });
+      let raw: unknown;
+      try { raw = await provider.publish(published.value); }
+      catch { return Object.freeze({ issue: failure("PREVIEW_PACK_PUBLISH_FAILED", "$.previewPackProvider.publish", "preview Pack publisher failed closed").issue }); }
+      const pack = parsePublishedPreviewPack(raw);
+      return pack ?? Object.freeze({ issue: failure("INVALID_PREVIEW_PACK", "$.previewPack", "preview Pack publisher returned an invalid Pack reference").issue });
     })();
-    return descriptorPromise;
+    return packPromise;
+  };
+
+  const resolveDescriptor = (platform: "ios" | "android"): Promise<ResolvedExperienceDescriptor | { readonly issue: ViraMultiPlatformPreviewIssue }> => {
+    const existing = descriptorPromises.get(platform);
+    if (existing !== undefined) return existing;
+    const pending = (async () => {
+      const packOrIssue = await publishPreviewPack();
+      if ("issue" in packOrIssue) return packOrIssue;
+      let raw: unknown;
+      try { raw = await provider.resolve({ previewPackRef: packOrIssue.previewPackRef, platform, instanceId }); }
+      catch { return Object.freeze({ issue: failure("PREVIEW_DESCRIPTOR_RESOLUTION_FAILED", `$.${platform}`, "preview descriptor resolver failed closed").issue }); }
+      if (raw === null || typeof raw !== "object") return Object.freeze({ issue: failure("INVALID_PREVIEW_DESCRIPTOR", `$.${platform}`, "preview descriptor resolver returned an invalid descriptor").issue });
+      return raw as ResolvedExperienceDescriptor;
+    })();
+    descriptorPromises.set(platform, pending);
+    return pending;
   };
 
   const session: ViraMultiPlatformPreviewSession = Object.freeze({
@@ -191,32 +177,30 @@ export function createViraMultiPlatformPreview(input: {
       if (!validTarget(target)) return failure("INVALID_CONFIGURATION", "$.target", "preview target is invalid");
       const preview = workbench.preview();
       if (!preview.ok) return failure("FAST_PREVIEW_FAILED", preview.issue.path, preview.issue.message);
-      return {
-        ok: true,
-        value: Object.freeze({
-          version: VIRA_MULTI_PLATFORM_PREVIEW_VERSION,
-          mode: "fast" as const,
-          target,
-          semanticSurface: "web-approximation" as const,
-          viewport: VIEWPORTS[target],
-          preview: preview.value,
-          nativeAccuracy: false as const,
-        }),
-      };
+      return { ok: true, value: Object.freeze({ version: VIRA_MULTI_PLATFORM_PREVIEW_VERSION, mode: "fast", target, semanticSurface: "web-approximation", viewport: VIEWPORTS[target], preview: preview.value, nativeAccuracy: false }) };
     },
     async real(target) {
       if (target !== "iphone" && target !== "android") return failure("INVALID_CONFIGURATION", "$.target", "real preview target must be iphone or android");
-      const descriptorOrIssue = await publishPreviewDescriptor();
+      const platform = target === "iphone" ? "ios" : "android";
+      const packOrIssue = await publishPreviewPack();
+      if ("issue" in packOrIssue) return { ok: false, issue: packOrIssue.issue };
+      const descriptorOrIssue = await resolveDescriptor(platform);
       if ("issue" in descriptorOrIssue) return { ok: false, issue: descriptorOrIssue.issue };
       const descriptor = descriptorOrIssue;
       if (target === "iphone") {
         const envelope = createViraIOSMountEnvelope({ instanceId, descriptor, brand, hostManifest: iosHostManifest });
         if (!envelope.ok) return failure("NATIVE_PREVIEW_REJECTED", "$.iphone", "iOS preview mount envelope was rejected", envelope.issue);
-        return { ok: true, value: Object.freeze({ version: VIRA_MULTI_PLATFORM_PREVIEW_VERSION, mode: "real", target, nativeHost: "ios-simulator", descriptor, envelope: envelope.value }) };
+        const currentIdentity = identity(envelope.value);
+        if (acceptedIdentity !== undefined && !sameIdentity(acceptedIdentity, currentIdentity)) return failure("PREVIEW_PACK_DRIFT", "$.iphone", "native preview targets resolved different Pack/artifact identities");
+        acceptedIdentity = currentIdentity;
+        return { ok: true, value: Object.freeze({ version: VIRA_MULTI_PLATFORM_PREVIEW_VERSION, mode: "real", target, nativeHost: "ios-simulator", previewPack: packOrIssue, descriptor, envelope: envelope.value }) };
       }
       const envelope = createViraAndroidMountEnvelope({ instanceId, descriptor, brand, hostManifest: androidHostManifest });
       if (!envelope.ok) return failure("NATIVE_PREVIEW_REJECTED", "$.android", "Android preview mount envelope was rejected", envelope.issue);
-      return { ok: true, value: Object.freeze({ version: VIRA_MULTI_PLATFORM_PREVIEW_VERSION, mode: "real", target, nativeHost: "android-emulator", descriptor, envelope: envelope.value }) };
+      const currentIdentity = identity(envelope.value);
+      if (acceptedIdentity !== undefined && !sameIdentity(acceptedIdentity, currentIdentity)) return failure("PREVIEW_PACK_DRIFT", "$.android", "native preview targets resolved different Pack/artifact identities");
+      acceptedIdentity = currentIdentity;
+      return { ok: true, value: Object.freeze({ version: VIRA_MULTI_PLATFORM_PREVIEW_VERSION, mode: "real", target, nativeHost: "android-emulator", previewPack: packOrIssue, descriptor, envelope: envelope.value }) };
     },
   });
   return { ok: true, value: session };
