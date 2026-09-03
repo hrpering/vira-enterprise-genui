@@ -40,7 +40,7 @@ export const allowedDependencies = Object.freeze({
   "studio-authoring": ["studio-enterprise", "studio-schema", "studio-publish"],
   "studio-runtime": ["protocol", "runtime-web", "studio-schema", "studio-compiler", "studio-catalog", "studio-publish"],
   "studio-runtime-react": ["studio-catalog", "studio-design-react", "studio-runtime"],
-  "studio-ai": ["protocol", "adapter-sdk", "studio-schema", "studio-catalog", "studio-binding", "studio-flow"],
+  "studio-ai": ["protocol", "adapter-sdk", "studio-schema", "studio-catalog", "studio-binding", "studio-flow", "studio-brand", "studio-host"],
   "studio-workbench": ["adapter-sdk", "studio-schema", "studio-catalog", "studio-puck-authoring", "studio-binding", "studio-flow", "studio-publish"],
   "studio-workbench-react": ["studio-schema", "studio-compiler", "studio-react", "studio-binding", "studio-catalog", "studio-design", "studio-flow", "studio-workbench"],
   "studio-lifecycle": ["studio-schema", "studio-compiler", "studio-binding", "studio-design", "studio-flow", "studio-publish"],
@@ -50,7 +50,7 @@ export const allowedDependencies = Object.freeze({
   "studio-host": ["protocol"],
   "studio-host-runtime": ["studio-host", "studio-runtime", "studio-schema"],
   "studio-enterprise": ["protocol", "studio-schema"],
-  genui: ["action-boundary", "deployment-plane", "enterprise-context", "enterprise-governance", "governance", "policy-simulation", "experience-resolver", "protocol", "runtime-core", "studio-authoring", "studio-brand", "studio-brand-console", "studio-host", "studio-host-runtime", "studio-publish", "studio-runtime", "studio-runtime-react", "studio-workbench"],
+  genui: ["action-boundary", "deployment-plane", "enterprise-context", "enterprise-governance", "governance", "policy-simulation", "experience-resolver", "protocol", "runtime-core", "studio-ai", "studio-authoring", "studio-brand", "studio-brand-console", "studio-host", "studio-host-runtime", "studio-publish", "studio-runtime", "studio-runtime-react", "studio-workbench"],
   "genui-cli": ["studio-authoring"],
   "genui-web-component": ["genui"],
 });
