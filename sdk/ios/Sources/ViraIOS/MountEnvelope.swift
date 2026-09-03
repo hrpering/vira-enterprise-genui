@@ -76,6 +76,12 @@ public enum ViraIOSSemanticIdentifier {
     if requiresDot && segments.count < 2 { return false }
     return !segments.isEmpty && segments.allSatisfy { isSegment(String($0)) }
   }
+
+  static func isScopePath(_ value: String) -> Bool {
+    guard value.hasPrefix("currentItem.") else { return false }
+    let tail = String(value.dropFirst("currentItem.".count))
+    return isNamespace(tail)
+  }
 }
 
 public struct ViraIOSPackIdentity: Codable, Equatable, Sendable {
@@ -249,6 +255,45 @@ public enum ViraIOSCatalogValueType: String, Codable, Equatable, Sendable {
   case number
   case boolean
   case `enum`
+}
+
+public enum ViraIOSBindingValueType: String, Codable, Equatable, Sendable {
+  case string
+  case number
+  case boolean
+  case `enum`
+  case array
+  case object
+}
+
+public struct ViraIOSBindingSourceDefinition: Codable, Equatable, Sendable {
+  public let kind: StudioBindingSourceKind
+  public let path: String
+  public let valueType: ViraIOSBindingValueType
+
+  private enum CodingKeys: String, CodingKey { case kind, path, valueType }
+
+  public init(kind: StudioBindingSourceKind, path: String, valueType: ViraIOSBindingValueType) {
+    self.kind = kind
+    self.path = path
+    self.valueType = valueType
+  }
+
+  public init(from decoder: Decoder) throws {
+    try rejectUnknownFields(decoder, allowed: ["kind", "path", "valueType"])
+    let c = try decoder.container(keyedBy: CodingKeys.self)
+    kind = try c.decode(StudioBindingSourceKind.self, forKey: .kind)
+    path = try c.decode(String.self, forKey: .path)
+    valueType = try c.decode(ViraIOSBindingValueType.self, forKey: .valueType)
+    let pathIsValid = kind == .scope
+      ? ViraIOSSemanticIdentifier.isScopePath(path)
+      : ViraIOSSemanticIdentifier.isNamespace(path)
+    guard pathIsValid else {
+      throw DecodingError.dataCorrupted(
+        .init(codingPath: decoder.codingPath, debugDescription: "invalid native binding source")
+      )
+    }
+  }
 }
 
 public struct ViraIOSPropDefinition: Codable, Equatable, Sendable {
@@ -435,31 +480,38 @@ public struct ViraIOSBrandProjection: Codable, Equatable, Sendable {
   public let id: String
   public let components: [ViraIOSComponentDefinition]
   public let actions: [ViraIOSActionMapping]
+  public let dataSources: [ViraIOSBindingSourceDefinition]
 
-  private enum CodingKeys: String, CodingKey { case version, id, components, actions }
+  private enum CodingKeys: String, CodingKey { case version, id, components, actions, dataSources }
 
   public init(
     version: String = "1",
     id: String,
     components: [ViraIOSComponentDefinition],
-    actions: [ViraIOSActionMapping]
+    actions: [ViraIOSActionMapping],
+    dataSources: [ViraIOSBindingSourceDefinition]
   ) {
     self.version = version
     self.id = id
     self.components = components
     self.actions = actions
+    self.dataSources = dataSources
   }
 
   public init(from decoder: Decoder) throws {
-    try rejectUnknownFields(decoder, allowed: ["version", "id", "components", "actions"])
+    try rejectUnknownFields(decoder, allowed: ["version", "id", "components", "actions", "dataSources"])
     let c = try decoder.container(keyedBy: CodingKeys.self)
     version = try c.decode(String.self, forKey: .version)
     id = try c.decode(String.self, forKey: .id)
     components = try c.decode([ViraIOSComponentDefinition].self, forKey: .components)
     actions = try c.decode([ViraIOSActionMapping].self, forKey: .actions)
+    dataSources = try c.decode([ViraIOSBindingSourceDefinition].self, forKey: .dataSources)
+    let sourceIdentities = dataSources.map { "\($0.kind.rawValue):\($0.path)" }
     guard version == "1", ViraIOSSemanticIdentifier.isNamespace(id),
           Set(components.map(\.ref)).count == components.count,
-          Set(actions.map(\.event)).count == actions.count else {
+          Set(actions.map(\.event)).count == actions.count,
+          dataSources.count <= 512,
+          Set(sourceIdentities).count == sourceIdentities.count else {
       throw DecodingError.dataCorrupted(
         .init(codingPath: decoder.codingPath, debugDescription: "invalid native Brand projection")
       )
