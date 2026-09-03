@@ -282,28 +282,34 @@ function canonicalBrand(
       readonly components: readonly ViraIOSMountEnvelopeComponent[];
     }
   | { readonly ok: false; readonly result: ViraIOSMountEnvelopeResult } {
-  const root = dataObject(input, BRAND_FIELDS);
-  if (!root.ok || root.value.version !== VIRA_BRAND_DEFINITION_VERSION) {
-    return { ok: false, result: failure("brand", "INVALID_BRAND", "$.brand", "iOS mount requires a canonical Vira Brand definition") };
+  let parsedBrand: ReturnType<typeof parseJsonValue>;
+  try {
+    parsedBrand = parseJsonValue(input, "$.brand");
+  } catch {
+    return { ok: false, result: failure("brand", "INVALID_BRAND", "$.brand", "Vira Brand definition could not be inspected safely") };
   }
-  const brandPackage = createStudioBrandPackage(root.value.package);
+  if (
+    !parsedBrand.ok
+    || !jsonObject(parsedBrand.value)
+    || !exactFields(parsedBrand.value, BRAND_FIELDS)
+    || parsedBrand.value.version !== VIRA_BRAND_DEFINITION_VERSION
+  ) {
+    return { ok: false, result: failure("brand", "INVALID_BRAND", "$.brand", "iOS mount requires canonical Vira Brand data") };
+  }
+  const root = parsedBrand.value;
+  const brandPackage = createStudioBrandPackage(root.package);
   if (!brandPackage.ok) {
     return { ok: false, result: failure("brand", "INVALID_BRAND", "$.brand.package", "Vira Brand package is invalid") };
   }
 
-  let parsed: ReturnType<typeof parseJsonValue>;
-  try {
-    parsed = parseJsonValue(root.value.implementations, "$.brand.implementations");
-  } catch {
-    return { ok: false, result: failure("brand", "INVALID_IMPLEMENTATIONS", "$.brand.implementations", "brand implementation mappings could not be inspected safely") };
-  }
-  if (!parsed.ok || !Array.isArray(parsed.value)) {
+  const implementations = root.implementations;
+  if (!Array.isArray(implementations)) {
     return { ok: false, result: failure("brand", "INVALID_IMPLEMENTATIONS", "$.brand.implementations", "brand implementation mappings must be canonical JSON") };
   }
 
   const catalogRefs = new Set(brandPackage.value.components.components.map((component) => component.ref));
   const byComponent = new Map<string, string>();
-  for (const entry of parsed.value) {
+  for (const entry of implementations) {
     if (!jsonObject(entry) || !exactFields(entry, IMPLEMENTATION_FIELDS)) {
       return { ok: false, result: failure("brand", "INVALID_IMPLEMENTATIONS", "$.brand.implementations", "brand implementation mapping shape is invalid") };
     }
