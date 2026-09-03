@@ -253,6 +253,18 @@ export type {
   ViraEnterpriseGovernancePipelineInput,
   ViraEnterpriseGovernanceProvider,
 } from "@vira-enterprise-genui/enterprise-governance";
+export {
+  createViraStudioBrandConsole,
+  VIRA_STUDIO_BRAND_CONSOLE_VERSION,
+} from "@vira-enterprise-genui/studio-brand-console";
+export type {
+  ViraStudioBrandConsoleCreateResult,
+  ViraStudioBrandConsoleIssue,
+  ViraStudioBrandConsoleIssueCode,
+  ViraStudioBrandConsoleSession,
+  ViraStudioBrandConsoleTemplateSummary,
+  ViraStudioBrandConsoleWorkbenchResult,
+} from "@vira-enterprise-genui/studio-brand-console";
 export * from "@vira-enterprise-genui/studio-authoring";
 export type {
   StudioHostActionDescriptor,
