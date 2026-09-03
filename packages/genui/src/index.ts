@@ -194,6 +194,28 @@ export type {
   ViraPolicySimulationReviewResult,
   ViraPolicySimulationSummary,
 } from "@vira-enterprise-genui/policy-simulation";
+export {
+  createViraDeploymentPlane,
+  VIRA_DEPLOYMENT_ENVIRONMENTS,
+  VIRA_DEPLOYMENT_PLANE_VERSION,
+  VIRA_DEPLOYMENT_SIGNATURE_ALGORITHMS,
+} from "@vira-enterprise-genui/deployment-plane";
+export type {
+  ViraArtifactSignature,
+  ViraDeploymentArtifactRecord,
+  ViraDeploymentArtifactStatus,
+  ViraDeploymentEnvironment,
+  ViraDeploymentInspection,
+  ViraDeploymentIntegrityProvider,
+  ViraDeploymentIssue,
+  ViraDeploymentIssueCode,
+  ViraDeploymentPlane,
+  ViraDeploymentPlaneCreateResult,
+  ViraDeploymentRecord,
+  ViraDeploymentResult,
+  ViraDeploymentSignatureAlgorithm,
+  ViraSignedExperiencePack,
+} from "@vira-enterprise-genui/deployment-plane";
 export * from "@vira-enterprise-genui/studio-authoring";
 export type {
   StudioHostActionDescriptor,
