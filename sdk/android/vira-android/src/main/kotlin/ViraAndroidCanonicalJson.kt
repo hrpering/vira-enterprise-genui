@@ -8,6 +8,11 @@ internal object ViraAndroidCanonicalJson {
 
   fun decode(text: String): ViraJson = Parser(text).parse()
 
+  fun encode(value: ViraJson): String {
+    if (!isCanonical(value)) throw IllegalArgumentException("invalid canonical JSON")
+    return Writer.write(value)
+  }
+
   fun isCanonical(value: ViraJson): Boolean {
     val budget = Budget()
     return validate(value, 0, budget)
@@ -206,6 +211,40 @@ internal object ViraAndroidCanonicalJson {
     }
 
     private fun invalid(): Nothing = throw IllegalArgumentException("invalid canonical JSON")
+  }
+
+  private object Writer {
+    fun write(value: ViraJson): String = when (value) {
+      ViraJson.Null -> "null"
+      is ViraJson.Bool -> if (value.value) "true" else "false"
+      is ViraJson.Num -> value.value.toString()
+      is ViraJson.Str -> quote(value.value)
+      is ViraJson.Arr -> value.value.joinToString(prefix = "[", postfix = "]", separator = ",") { write(it) }
+      is ViraJson.Obj -> value.value.entries.joinToString(prefix = "{", postfix = "}", separator = ",") {
+        quote(it.key) + ":" + write(it.value)
+      }
+    }
+
+    private fun quote(value: String): String {
+      val output = StringBuilder("\"")
+      for (character in value) {
+        when (character) {
+          '"' -> output.append("\\\"")
+          '\\' -> output.append("\\\\")
+          '\b' -> output.append("\\b")
+          '\u000C' -> output.append("\\f")
+          '\n' -> output.append("\\n")
+          '\r' -> output.append("\\r")
+          '\t' -> output.append("\\t")
+          else -> if (character.code < 0x20) {
+            output.append("\\u%04x".format(character.code))
+          } else {
+            output.append(character)
+          }
+        }
+      }
+      return output.append('"').toString()
+    }
   }
 }
 
