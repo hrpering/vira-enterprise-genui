@@ -46,10 +46,11 @@ export const allowedDependencies = Object.freeze({
   "studio-lifecycle": ["studio-schema", "studio-compiler", "studio-binding", "studio-design", "studio-flow", "studio-publish"],
   "studio-brand": ["protocol", "adapter-sdk", "design-system-compiler", "studio-schema", "studio-catalog", "studio-binding", "studio-flow"],
   "studio-brand-loader": ["protocol", "studio-brand", "studio-schema"],
+  "studio-brand-console": ["enterprise-context", "studio-brand", "studio-workbench"],
   "studio-host": ["protocol"],
   "studio-host-runtime": ["studio-host", "studio-runtime", "studio-schema"],
   "studio-enterprise": ["protocol", "studio-schema"],
-  genui: ["action-boundary", "deployment-plane", "enterprise-context", "enterprise-governance", "governance", "policy-simulation", "experience-resolver", "protocol", "runtime-core", "studio-authoring", "studio-brand", "studio-host", "studio-host-runtime", "studio-publish", "studio-runtime", "studio-runtime-react"],
+  genui: ["action-boundary", "deployment-plane", "enterprise-context", "enterprise-governance", "governance", "policy-simulation", "experience-resolver", "protocol", "runtime-core", "studio-authoring", "studio-brand", "studio-brand-console", "studio-host", "studio-host-runtime", "studio-publish", "studio-runtime", "studio-runtime-react"],
   "genui-cli": ["studio-authoring"],
   "genui-web-component": ["genui"],
 });
