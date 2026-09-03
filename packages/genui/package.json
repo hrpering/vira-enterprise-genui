@@ -18,6 +18,7 @@
     "@vira-enterprise-genui/runtime-core": "workspace:*",
     "@vira-enterprise-genui/studio-authoring": "workspace:*",
     "@vira-enterprise-genui/studio-brand": "workspace:*",
+    "@vira-enterprise-genui/studio-brand-console": "workspace:*",
     "@vira-enterprise-genui/studio-host": "workspace:*",
     "@vira-enterprise-genui/studio-host-runtime": "workspace:*",
     "@vira-enterprise-genui/studio-publish": "workspace:*",
