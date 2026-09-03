@@ -1,4 +1,6 @@
 import type { ResolvedExperienceDescriptor } from "@vira-enterprise-genui/experience-resolver";
+import { parseJsonValue, type JsonObject, type JsonValue } from "@vira-enterprise-genui/protocol";
+import { isRuntimeSessionInstanceId } from "@vira-enterprise-genui/runtime-core";
 import type { ViraBrandDefinition } from "@vira-enterprise-genui/studio-brand";
 import type { StudioHostCapabilityManifest } from "@vira-enterprise-genui/studio-host";
 import type { StudioPreviewDescriptor, StudioPublishResult } from "@vira-enterprise-genui/studio-publish";
@@ -44,6 +46,8 @@ export interface ViraPreviewPackProvider {
     readonly instanceId: string;
   }) => Promise<unknown> | unknown;
 }
+/** Compatibility alias while MASTER-14 public facade migrates to provider terminology. */
+export type ViraPreviewPackPublisher = ViraPreviewPackProvider;
 
 export interface ViraIOSRealPreviewArtifact {
   readonly version: typeof VIRA_MULTI_PLATFORM_PREVIEW_VERSION;
@@ -101,16 +105,23 @@ const previewPackRefPattern = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,511}$/;
 function failure(code: ViraMultiPlatformPreviewIssueCode, path: string, message: string, nativeIssue?: ViraIOSMountEnvelopeIssue | ViraAndroidMountEnvelopeIssue): { readonly ok: false; readonly issue: ViraMultiPlatformPreviewIssue } {
   return { ok: false, issue: Object.freeze({ code, path, message, ...(nativeIssue === undefined ? {} : { nativeIssue }) }) };
 }
+function jsonObject(value: JsonValue | undefined): value is JsonObject { return value !== undefined && value !== null && typeof value === "object" && !Array.isArray(value); }
 function validWorkbench(value: unknown): value is StudioWorkbenchSession {
   return value !== null && typeof value === "object" && typeof (value as StudioWorkbenchSession).preview === "function" && typeof (value as StudioWorkbenchSession).publish === "function";
 }
 function validProvider(value: unknown): value is ViraPreviewPackProvider {
-  return value !== null && typeof value === "object" && (value as ViraPreviewPackProvider).version === VIRA_MULTI_PLATFORM_PREVIEW_VERSION && typeof (value as ViraPreviewPackProvider).publish === "function" && typeof (value as ViraPreviewPackProvider).resolve === "function";
+  if (value === null || typeof value !== "object") return false;
+  try {
+    return (value as ViraPreviewPackProvider).version === VIRA_MULTI_PLATFORM_PREVIEW_VERSION
+      && typeof (value as ViraPreviewPackProvider).publish === "function"
+      && typeof (value as ViraPreviewPackProvider).resolve === "function";
+  } catch { return false; }
 }
 function validTarget(value: unknown): value is ViraMultiPlatformPreviewTarget { return value === "desktop" || value === "mobile-web" || value === "iphone" || value === "android"; }
 function parsePublishedPreviewPack(input: unknown): ViraPublishedPreviewPack | undefined {
-  if (input === null || typeof input !== "object" || Array.isArray(input)) return undefined;
-  const value = input as Record<string, unknown>;
+  const parsed = parseJsonValue(input, "$.previewPack");
+  if (!parsed.ok || !jsonObject(parsed.value)) return undefined;
+  const value = parsed.value;
   const keys = Object.keys(value);
   if (keys.length !== 2 || !Object.hasOwn(value, "version") || !Object.hasOwn(value, "previewPackRef")) return undefined;
   if (value.version !== VIRA_MULTI_PLATFORM_PREVIEW_VERSION || typeof value.previewPackRef !== "string" || !previewPackRefPattern.test(value.previewPackRef)) return undefined;
@@ -132,7 +143,7 @@ export function createViraMultiPlatformPreview(input: {
   readonly androidHostManifest: StudioHostCapabilityManifest;
   readonly previewPackProvider: ViraPreviewPackProvider;
 }): ViraMultiPlatformPreviewCreateResult {
-  if (input === null || typeof input !== "object" || !validWorkbench(input.workbench) || typeof input.instanceId !== "string" || input.instanceId.length < 1 || input.instanceId.length > 256 || !validProvider(input.previewPackProvider)) {
+  if (input === null || typeof input !== "object" || !validWorkbench(input.workbench) || !isRuntimeSessionInstanceId(input.instanceId) || !validProvider(input.previewPackProvider)) {
     return failure("INVALID_CONFIGURATION", "$", "multi-platform preview configuration is invalid");
   }
   const { workbench, instanceId, brand, iosHostManifest, androidHostManifest } = input;
