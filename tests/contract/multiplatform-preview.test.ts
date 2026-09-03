@@ -43,15 +43,31 @@ function document() {
   };
 }
 
+const manifestDigest = `sha256:${"a".repeat(64)}`;
+const signature = Object.freeze({ algorithm: "ed25519" as const, keyId: "key:vira:preview-1", value: "abcdefghijklmnop" });
+const pack: ViraSignedExperiencePack = Object.freeze({
+  version: "1",
+  manifest: Object.freeze({
+    schemaVersion: "1",
+    id: "vira/demo",
+    version: "1.0.0",
+    publisher: Object.freeze({ id: "vira", name: "Vira" }),
+    metadata: Object.freeze({ name: "Preview Pack", tags: Object.freeze(["preview"]) }),
+    compatibility: Object.freeze({ minViraVersion: "1.0.0" }),
+    entrypoints: Object.freeze(["publication"]),
+    artifacts: Object.freeze([{ id: "publication", role: "studio-publication" as const, mediaType: "application/json" as const, digest: `sha256:${"c".repeat(64)}`, size: 123 }]),
+  }),
+  manifestDigest,
+  signature,
+});
 const artifact: ViraDeploymentArtifactRecord = Object.freeze({
-  artifactId: "artifact:acme/demo:1.0.0:sha256:" + "a".repeat(64),
-  packId: "acme/demo",
+  artifactId: `artifact:vira/demo:1.0.0:${manifestDigest}`,
+  packId: "vira/demo",
   packVersion: "1.0.0",
-  manifestDigest: "sha256:" + "a".repeat(64),
-  signature: Object.freeze({ algorithm: "ed25519", keyId: "key-1", value: "abcdefghijklmnop" }),
+  manifestDigest,
+  signature,
   status: "active",
 });
-const pack = Object.freeze({ version: "1", manifestDigest: artifact.manifestDigest, signature: artifact.signature, manifest: Object.freeze({}) }) as unknown as ViraSignedExperiencePack;
 function plane(registered = true): ViraDeploymentPlane {
   return Object.freeze({
     version: "1",
@@ -94,9 +110,13 @@ test("real native preview refuses a verified but unregistered Pack", async () =>
 });
 
 test("real native preview accepts only exact native attestation identity", async () => {
+  let runnerPack: ViraSignedExperiencePack | undefined;
   const runner: ViraNativePreviewRunner = Object.freeze({
     version: "1", target: "ios",
-    run() { return Object.freeze({ version: "1", target: "ios", renderer: "native", status: "passed", artifactId: artifact.artifactId, manifestDigest: artifact.manifestDigest, hostId: "ios.preview.host" }); },
+    run(input) {
+      runnerPack = input.pack;
+      return Object.freeze({ version: "1", target: "ios", renderer: "native", status: "passed", artifactId: artifact.artifactId, manifestDigest: artifact.manifestDigest, hostId: "ios.preview.host" });
+    },
   });
   const result = await runViraRealNativePreview({ target: "ios", pack, deploymentPlane: plane(true), runner });
   assert.equal(result.ok, true);
@@ -105,6 +125,8 @@ test("real native preview accepts only exact native attestation identity", async
     assert.equal(result.value.target, "ios");
     assert.equal(result.value.artifactId, artifact.artifactId);
   }
+  assert.equal(runnerPack?.manifest.id, "vira/demo");
+  assert.equal(Object.isFrozen(runnerPack?.manifest), true);
 });
 
 test("native attestation cannot switch target or artifact identity", async () => {
