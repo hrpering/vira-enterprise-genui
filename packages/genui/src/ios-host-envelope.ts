@@ -91,11 +91,18 @@ export interface ViraIOSMountEnvelopeActionMapping {
   readonly actionType: string;
 }
 
+export interface ViraIOSMountEnvelopeDataSource {
+  readonly kind: "state" | "domain" | "scope";
+  readonly path: string;
+  readonly valueType: "string" | "number" | "boolean" | "enum" | "array" | "object";
+}
+
 export interface ViraIOSMountEnvelopeBrand {
   readonly version: "1";
   readonly id: string;
   readonly components: readonly ViraIOSMountEnvelopeComponent[];
   readonly actions: readonly ViraIOSMountEnvelopeActionMapping[];
+  readonly dataSources: readonly ViraIOSMountEnvelopeDataSource[];
 }
 
 export interface ViraIOSMountEnvelope {
@@ -454,6 +461,11 @@ export function createViraIOSMountEnvelope(
       actions: Object.freeze(brand.package.actions.mappings.map((mapping) => Object.freeze({
         event: mapping.event,
         actionType: mapping.actionType,
+      }))),
+      dataSources: Object.freeze(brand.package.dataSources.sources.map((source) => Object.freeze({
+        kind: source.kind,
+        path: source.path,
+        valueType: source.valueType,
       }))),
     }),
     document: rebuilt.value.document,
