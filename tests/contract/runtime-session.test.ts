@@ -5,7 +5,7 @@ import {
   RUNTIME_SESSION_CACHE_STATUSES,
   RUNTIME_SESSION_EVENT_TYPES,
   RUNTIME_SESSION_EVENT_VERSION,
-  RUNTIME_SESSION_ID_MAX_LENGTH,
+  RUNTIME_SESSION_INSTANCE_ID_MAX_LENGTH,
   RUNTIME_SESSION_STATE_VERSION,
   createRuntimeSessionState,
   parseRuntimeSessionState,
@@ -19,7 +19,7 @@ function createSession(
   visibility: "foreground" | "background" = "foreground",
   connectivity: "connected" | "disconnected" = "connected",
 ): RuntimeSessionState {
-  const result = createRuntimeSessionState("session-1", { visibility, connectivity });
+  const result = createRuntimeSessionState("instance-exact-1", { visibility, connectivity });
   expect(result.ok).toBe(true);
   if (!result.ok) throw new Error(result.issue.message);
   return result.value;
@@ -67,8 +67,8 @@ describe("MASTER-06 platform-neutral runtime session kernel", () => {
     expect(RUNTIME_LIFECYCLES).not.toContain("restored");
   });
 
-  it("creates an explicit immutable live session without guessing host availability", () => {
-    const result = createRuntimeSessionState("session-1", {
+  it("creates an explicit immutable live session bound to an exact opaque instance", () => {
+    const result = createRuntimeSessionState("instance exact/opaque", {
       visibility: "background",
       connectivity: "disconnected",
     });
@@ -76,7 +76,7 @@ describe("MASTER-06 platform-neutral runtime session kernel", () => {
       ok: true,
       value: {
         version: RUNTIME_SESSION_STATE_VERSION,
-        sessionId: "session-1",
+        instanceId: "instance exact/opaque",
         revision: 0,
         visibility: "background",
         connectivity: "disconnected",
@@ -87,6 +87,22 @@ describe("MASTER-06 platform-neutral runtime session kernel", () => {
     if (!result.ok) return;
     expect(Object.isFrozen(result.value)).toBe(true);
     expect(JSON.parse(JSON.stringify(result.value))).toEqual(result.value);
+  });
+
+  it("keeps exact instance identity stable across all session transitions", () => {
+    let state = createSession();
+    for (const type of ["background", "disconnect", "resume", "reconnect"] as const) {
+      const result = transitionRuntimeSession(state, event(type));
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.value.state.instanceId).toBe("instance-exact-1");
+      state = result.value.state;
+    }
+    const restored = restoreRuntimeSessionState(state);
+    expect(restored).toMatchObject({
+      ok: true,
+      value: { state: { instanceId: "instance-exact-1" } },
+    });
   });
 
   it("keeps visibility and connectivity orthogonal and increments only the session revision", () => {
@@ -167,7 +183,7 @@ describe("MASTER-06 platform-neutral runtime session kernel", () => {
     });
   });
 
-  it("restores persisted session state explicitly and requires external cache verification", () => {
+  it("restores persisted instance-bound session state and requires external cache verification", () => {
     const live = createSession("background", "disconnected");
     const restored = restoreRuntimeSessionState(live);
     expect(restored).toEqual({
@@ -176,7 +192,7 @@ describe("MASTER-06 platform-neutral runtime session kernel", () => {
         changed: true,
         state: {
           version: "1",
-          sessionId: "session-1",
+          instanceId: "instance-exact-1",
           revision: 1,
           visibility: "background",
           connectivity: "disconnected",
@@ -241,18 +257,23 @@ describe("MASTER-06 platform-neutral runtime session kernel", () => {
     });
   });
 
-  it("rejects invalid state/event versions, fields and identifiers fail closed", () => {
-    expect(createRuntimeSessionState("bad session", {
+  it("rejects invalid state/event versions, fields and bounded instance identities fail closed", () => {
+    expect(createRuntimeSessionState("", {
       visibility: "foreground",
       connectivity: "connected",
-    })).toMatchObject({ ok: false, issue: { code: "INVALID_SESSION_ID" } });
+    })).toMatchObject({ ok: false, issue: { code: "INVALID_INSTANCE_ID", path: "$.instanceId" } });
 
-    expect(createRuntimeSessionState(`s${"a".repeat(RUNTIME_SESSION_ID_MAX_LENGTH)}`, {
+    expect(createRuntimeSessionState("a".repeat(RUNTIME_SESSION_INSTANCE_ID_MAX_LENGTH + 1), {
       visibility: "foreground",
       connectivity: "connected",
-    })).toMatchObject({ ok: false, issue: { code: "INVALID_SESSION_ID" } });
+    })).toMatchObject({ ok: false, issue: { code: "INVALID_INSTANCE_ID", path: "$.instanceId" } });
 
-    expect(createRuntimeSessionState("session-1", {
+    expect(createRuntimeSessionState("__proto__", {
+      visibility: "foreground",
+      connectivity: "connected",
+    })).toMatchObject({ ok: true, value: { instanceId: "__proto__" } });
+
+    expect(createRuntimeSessionState("instance-exact-1", {
       visibility: "foreground",
       connectivity: "connected",
       endpoint: "https://secret.example",
@@ -309,7 +330,7 @@ describe("MASTER-06 platform-neutral runtime session kernel", () => {
     for (const hostile of [revokedProxy(), throwingProxy()]) {
       let created: ReturnType<typeof createRuntimeSessionState> | undefined;
       expect(() => {
-        created = createRuntimeSessionState("session-1", hostile);
+        created = createRuntimeSessionState("instance-exact-1", hostile);
       }).not.toThrow();
       expect(created).toMatchObject({ ok: false, issue: { code: "INVALID_TYPE", path: "$" } });
       expect(JSON.stringify(created)).not.toContain("SESSION_SECRET");
