@@ -456,7 +456,7 @@ export function createViraWebBrowserLifecycleSource(
         connectivity: platform.navigator.onLine ? "connected" : "disconnected",
       });
     },
-    subscribe(listener): () => void {
+    subscribe(listener: (event: RuntimeSessionEvent) => void): () => void {
       const onVisibility = (): void => {
         try {
           listener(Object.freeze({
@@ -682,7 +682,7 @@ export function createViraWebHost(input: ViraWebHostConfiguration): CreateViraWe
           revision: runtime.value.revision,
           subscribe: runtime.value.subscribe,
           sessionState: () => sessionState,
-          subscribeSession(listener): () => void {
+          subscribeSession(listener: (state: RuntimeSessionState) => void): () => void {
             if (experienceDisposed || hostDisposed || typeof listener !== "function") return () => {};
             sessionListeners.add(listener);
             let subscribed = true;
@@ -692,7 +692,9 @@ export function createViraWebHost(input: ViraWebHostConfiguration): CreateViraWe
               sessionListeners.delete(listener);
             };
           },
-          renderReact(renderInput = {}): StudioRuntimeReactRenderResult {
+          renderReact(renderInput: {
+            readonly onHostResult?: (result: StudioHostedDispatchResult) => void;
+          } = {}): StudioRuntimeReactRenderResult {
             return runtime.value.renderReact({
               renderers: brand.renderers,
               onHostResult: renderInput.onHostResult,
