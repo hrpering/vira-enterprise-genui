@@ -5,8 +5,12 @@ internal object ViraAndroidCanonicalJson {
   private const val MAX_STRING_UNITS = 1_048_576
   private const val MAX_KEY_UNITS = 4_096
   private const val MAX_TOTAL_STRING_UNITS = 4_194_304
+  private const val MAX_SOURCE_UNITS = 16_777_216
 
-  fun decode(text: String): ViraJson = Parser(text).parse()
+  fun decode(text: String): ViraJson {
+    if (text.length > MAX_SOURCE_UNITS) throw IllegalArgumentException("invalid canonical JSON")
+    return Parser(text).parse()
+  }
 
   fun encode(value: ViraJson): String {
     if (!isCanonical(value)) throw IllegalArgumentException("invalid canonical JSON")
@@ -74,7 +78,12 @@ internal object ViraAndroidCanonicalJson {
     }
 
     private fun whitespace() {
-      while (index < source.length && source[index].isWhitespace()) index += 1
+      while (index < source.length) {
+        when (source[index]) {
+          ' ', '\t', '\r', '\n' -> index += 1
+          else -> return
+        }
+      }
     }
 
     private fun parseValue(depth: Int): ViraJson {
