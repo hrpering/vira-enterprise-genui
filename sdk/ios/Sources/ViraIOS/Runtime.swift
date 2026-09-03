@@ -2,6 +2,7 @@ import Foundation
 import ViraStudioExperienceWire
 
 public let VIRA_IOS_MAX_REPEAT_ITEMS = 256
+public let VIRA_IOS_MAX_EXPANDED_NODES = 4_096
 private let VIRA_IOS_ORDER_STRIDE: Int64 = 257
 
 public struct ViraIOSRuntimeNodeModel: Equatable {
@@ -194,6 +195,13 @@ public final class ViraIOSRuntimeSession {
       suffix: String,
       order: Int64
     ) -> ViraIOSIssue? {
+      guard output.count < VIRA_IOS_MAX_EXPANDED_NODES else {
+        return .init(
+          code: .repeatLimitExceeded,
+          path: "$.view.nodes",
+          message: "native expanded node limit is \(VIRA_IOS_MAX_EXPANDED_NODES)"
+        )
+      }
       guard let component = components[node.component] else {
         return .init(
           code: .dataValueInvalid,
