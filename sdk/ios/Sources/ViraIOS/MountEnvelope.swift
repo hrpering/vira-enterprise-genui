@@ -330,7 +330,7 @@ public struct ViraIOSEventPayloadDefinition: Codable, Equatable, Sendable {
         throw DecodingError.dataCorruptedError(forKey: .options, in: c, debugDescription: "enum event payload requires unique options")
       }
     } else if options != nil {
-      throw DecodingError.dataCorruptedError(forKey: .options, in: c, debugDescription: "non-enum event payload cannot declare options")
+      throw DecodingError.dataCorruptedError(forKey: .options, in: c, debugDescription: "non-enum prop cannot declare options")
     }
   }
 }
@@ -504,6 +504,11 @@ public struct ViraIOSMountEnvelope: Decodable, Equatable {
     guard validateViraIOSDocumentGraphSafety(document) else {
       throw DecodingError.dataCorrupted(
         .init(codingPath: decoder.codingPath, debugDescription: "unsafe native document graph")
+      )
+    }
+    guard validateViraIOSDocumentProjectionIntegrity(document, brand: brand) else {
+      throw DecodingError.dataCorrupted(
+        .init(codingPath: decoder.codingPath, debugDescription: "invalid native document projection")
       )
     }
 
