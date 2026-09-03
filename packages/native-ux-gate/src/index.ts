@@ -5,86 +5,28 @@ export type ViraTextDirection = "ltr" | "rtl";
 export type ViraDateTimeStyle = "short" | "medium" | "long" | "full";
 export type ViraNumberStyle = "decimal" | "percent" | "currency";
 
-export interface ViraLocalizationSemantics {
-  readonly version: "1";
-  readonly locale: string;
-  readonly direction: ViraTextDirection;
-  readonly currency: string;
-  readonly timeZone: string;
-  readonly numberingSystem: string;
-  readonly dateStyle: ViraDateTimeStyle;
-  readonly timeStyle: ViraDateTimeStyle;
-  readonly numberStyle: ViraNumberStyle;
-}
-
-export interface ViraWebAccessibilityEvidence {
-  readonly version: "1";
-  readonly platform: "web";
-  readonly keyboardNavigation: boolean;
-  readonly aria: boolean;
-  readonly screenReader: boolean;
-}
-
-export interface ViraIosAccessibilityEvidence {
-  readonly version: "1";
-  readonly platform: "ios";
-  readonly voiceOver: boolean;
-  readonly dynamicType: boolean;
-  readonly higBehavior: boolean;
-}
-
-export interface ViraAndroidAccessibilityEvidence {
-  readonly version: "1";
-  readonly platform: "android";
-  readonly talkBack: boolean;
-  readonly fontScaling: boolean;
-  readonly composeSemantics: boolean;
-}
-
+export interface ViraLocalizationSemantics { readonly version: "1"; readonly locale: string; readonly direction: ViraTextDirection; readonly currency: string; readonly timeZone: string; readonly numberingSystem: string; readonly dateStyle: ViraDateTimeStyle; readonly timeStyle: ViraDateTimeStyle; readonly numberStyle: ViraNumberStyle; }
+export interface ViraWebAccessibilityEvidence { readonly version: "1"; readonly platform: "web"; readonly keyboardNavigation: boolean; readonly aria: boolean; readonly screenReader: boolean; }
+export interface ViraIosAccessibilityEvidence { readonly version: "1"; readonly platform: "ios"; readonly voiceOver: boolean; readonly dynamicType: boolean; readonly higBehavior: boolean; }
+export interface ViraAndroidAccessibilityEvidence { readonly version: "1"; readonly platform: "android"; readonly talkBack: boolean; readonly fontScaling: boolean; readonly composeSemantics: boolean; }
 export type ViraPlatformAccessibilityEvidence = ViraWebAccessibilityEvidence | ViraIosAccessibilityEvidence | ViraAndroidAccessibilityEvidence;
+export interface ViraNativeUxGateInput { readonly version: "1"; readonly localization: ViraLocalizationSemantics; readonly evidence: readonly ViraPlatformAccessibilityEvidence[]; }
 
-export interface ViraNativeUxGateInput {
-  readonly version: "1";
-  readonly localization: ViraLocalizationSemantics;
-  readonly evidence: readonly ViraPlatformAccessibilityEvidence[];
-}
-
-export type ViraNativeUxGateFailureCode =
-  | "WEB_KEYBOARD_REQUIRED"
-  | "WEB_ARIA_REQUIRED"
-  | "WEB_SCREEN_READER_REQUIRED"
-  | "IOS_VOICEOVER_REQUIRED"
-  | "IOS_DYNAMIC_TYPE_REQUIRED"
-  | "IOS_HIG_REQUIRED"
-  | "ANDROID_TALKBACK_REQUIRED"
-  | "ANDROID_FONT_SCALING_REQUIRED"
-  | "ANDROID_COMPOSE_SEMANTICS_REQUIRED";
-
-export interface ViraNativeUxGateFailure {
-  readonly platform: ViraNativeUxPlatform;
-  readonly code: ViraNativeUxGateFailureCode;
-  readonly path: string;
-  readonly message: string;
-}
-
-export interface ViraNativeUxGateReport {
-  readonly version: "1";
-  readonly accepted: boolean;
-  readonly localization: ViraLocalizationSemantics;
-  readonly platforms: readonly ViraNativeUxPlatform[];
-  readonly failures: readonly ViraNativeUxGateFailure[];
-}
-
+export type ViraNativeUxGateFailureCode = "WEB_KEYBOARD_REQUIRED" | "WEB_ARIA_REQUIRED" | "WEB_SCREEN_READER_REQUIRED" | "IOS_VOICEOVER_REQUIRED" | "IOS_DYNAMIC_TYPE_REQUIRED" | "IOS_HIG_REQUIRED" | "ANDROID_TALKBACK_REQUIRED" | "ANDROID_FONT_SCALING_REQUIRED" | "ANDROID_COMPOSE_SEMANTICS_REQUIRED";
+export interface ViraNativeUxGateFailure { readonly platform: ViraNativeUxPlatform; readonly code: ViraNativeUxGateFailureCode; readonly path: string; readonly message: string; }
+export interface ViraNativeUxGateReport { readonly version: "1"; readonly accepted: boolean; readonly localization: ViraLocalizationSemantics; readonly platforms: readonly ViraNativeUxPlatform[]; readonly failures: readonly ViraNativeUxGateFailure[]; }
 export type ViraNativeUxGateIssueCode = "INVALID_INPUT" | "INVALID_LOCALIZATION" | "INVALID_EVIDENCE" | "MISSING_PLATFORM" | "DUPLICATE_PLATFORM";
 export interface ViraNativeUxGateIssue { readonly code: ViraNativeUxGateIssueCode; readonly path: string; readonly message: string; }
-export type ViraNativeUxGateResult = { readonly ok: true; readonly value: ViraNativeUxGateReport } | { readonly ok: false; readonly issue: ViraNativeUxGateIssue };
+export type ViraNativeUxGateFailureResult = { readonly ok: false; readonly issue: ViraNativeUxGateIssue };
+export type ViraNativeUxGateResult = { readonly ok: true; readonly value: ViraNativeUxGateReport } | ViraNativeUxGateFailureResult;
+export type ViraLocalizationSemanticsResult = { readonly ok: true; readonly value: ViraLocalizationSemantics } | ViraNativeUxGateFailureResult;
 
 const localizationKeys = Object.freeze(["version", "locale", "direction", "currency", "timeZone", "numberingSystem", "dateStyle", "timeStyle", "numberStyle"] as const);
 const webKeys = Object.freeze(["version", "platform", "keyboardNavigation", "aria", "screenReader"] as const);
 const iosKeys = Object.freeze(["version", "platform", "voiceOver", "dynamicType", "higBehavior"] as const);
 const androidKeys = Object.freeze(["version", "platform", "talkBack", "fontScaling", "composeSemantics"] as const);
 
-function issue(code: ViraNativeUxGateIssueCode, path: string, message: string): ViraNativeUxGateResult { return { ok: false, issue: Object.freeze({ code, path, message }) }; }
+function issue(code: ViraNativeUxGateIssueCode, path: string, message: string): ViraNativeUxGateFailureResult { return { ok: false, issue: Object.freeze({ code, path, message }) }; }
 function plain(value: unknown): value is Record<string, unknown> { if (!value || typeof value !== "object" || Array.isArray(value)) return false; const proto = Object.getPrototypeOf(value); return proto === Object.prototype || proto === null; }
 function exact(value: Record<string, unknown>, keys: readonly string[]): boolean { const actual = Object.keys(value).sort(); const expected = [...keys].sort(); return actual.length === expected.length && actual.every((key, index) => key === expected[index]); }
 function bounded(value: unknown, max = 128): value is string { return typeof value === "string" && value.length > 0 && value.length <= max; }
@@ -96,13 +38,13 @@ function dateTimeStyle(value: unknown): value is ViraDateTimeStyle { return valu
 function numberStyle(value: unknown): value is ViraNumberStyle { return value === "decimal" || value === "percent" || value === "currency"; }
 function boolean(value: unknown): value is boolean { return typeof value === "boolean"; }
 
-export function parseViraLocalizationSemantics(raw: unknown): ViraNativeUxGateResult | { readonly ok: true; readonly value: ViraLocalizationSemantics } {
+export function parseViraLocalizationSemantics(raw: unknown): ViraLocalizationSemanticsResult {
   if (!plain(raw) || !exact(raw, localizationKeys)) return issue("INVALID_LOCALIZATION", "$.localization", "localization semantics must be an exact plain object");
   if (raw.version !== "1" || !locale(raw.locale) || (raw.direction !== "ltr" && raw.direction !== "rtl") || !currency(raw.currency) || !timeZone(raw.timeZone) || !numberingSystem(raw.numberingSystem) || !dateTimeStyle(raw.dateStyle) || !dateTimeStyle(raw.timeStyle) || !numberStyle(raw.numberStyle)) return issue("INVALID_LOCALIZATION", "$.localization", "localization semantics are invalid");
   return { ok: true, value: Object.freeze({ version: "1", locale: raw.locale, direction: raw.direction, currency: raw.currency, timeZone: raw.timeZone, numberingSystem: raw.numberingSystem, dateStyle: raw.dateStyle, timeStyle: raw.timeStyle, numberStyle: raw.numberStyle }) };
 }
 
-function parseEvidence(raw: unknown, index: number): ViraNativeUxGateResult | { readonly ok: true; readonly value: ViraPlatformAccessibilityEvidence } {
+function parseEvidence(raw: unknown, index: number): ViraNativeUxGateFailureResult | { readonly ok: true; readonly value: ViraPlatformAccessibilityEvidence } {
   if (!plain(raw) || raw.version !== "1" || (raw.platform !== "web" && raw.platform !== "ios" && raw.platform !== "android")) return issue("INVALID_EVIDENCE", `$.evidence[${index}]`, "platform accessibility evidence is invalid");
   if (raw.platform === "web") {
     if (!exact(raw, webKeys) || !boolean(raw.keyboardNavigation) || !boolean(raw.aria) || !boolean(raw.screenReader)) return issue("INVALID_EVIDENCE", `$.evidence[${index}]`, "web evidence is invalid");
