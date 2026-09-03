@@ -90,12 +90,12 @@ export interface ViraDeploymentPlane {
   readonly rollback: (input: {
     readonly environment: ViraDeploymentEnvironment;
     readonly deploymentId: string;
-  }) => ViraDeploymentResult<ViraDeploymentRecord>;
+  }) => Promise<ViraDeploymentResult<ViraDeploymentRecord>>;
   readonly deprecate: (input: {
     readonly packId: string;
     readonly packVersion: string;
     readonly manifestDigest: string;
-  }) => ViraDeploymentResult<ViraDeploymentArtifactRecord>;
+  }) => Promise<ViraDeploymentResult<ViraDeploymentArtifactRecord>>;
   readonly inspect: () => ViraDeploymentInspection;
   readonly verifyCachedPack: (artifact: ViraSignedExperiencePack) => Promise<ViraDeploymentResult<ViraDeploymentArtifactRecord>>;
 }
