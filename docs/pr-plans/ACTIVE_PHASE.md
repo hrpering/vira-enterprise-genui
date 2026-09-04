@@ -1,8 +1,9 @@
 # Active Phase
 
 **Phase:** MASTER-36 — Design System / External Design Import  
-**Status:** Q0–Q4 PASS / Q5–Q6 REVIEW IN PROGRESS  
+**Status:** Q0–Q6 PASS / LOCAL Q7 REQUIRED  
 **Base SHA:** `70194c6415c7b66c5f2569733b6ed1aa88b59832`  
+**Frozen executable SHA:** `2909dd596a54b6e6602b0ea38135cb2a243ef4e8`  
 **Previous:** MASTER-35 merged via PR #195  
 **Next after merge:** MASTER-37 — Distribution / protocol program
 
@@ -10,8 +11,12 @@ MASTER-36 introduces `@vira-enterprise-genui/application-canvas-design-import` a
 
 External vendor adapters must normalize source material to DTCG 2025.10 before entering core. Canvas does not own Figma/Sketch/API payload parsing, URLs, credentials or provider bindings.
 
-The import boundary validates the Canvas draft, requires the Application's existing exact `brandRef`, validates bounded source provenance, delegates token compilation to the canonical `design-system-compiler`, and returns a frozen `mode: "authoring-import"` artifact carrying safe raw DTCG plus compiled Studio design options/metadata.
+The import boundary validates the Canvas draft, requires the Application's existing exact `brandRef`, validates bounded source provenance, delegates token compilation to the canonical `design-system-compiler`, and returns a frozen `mode: "authoring-import"` artifact carrying canonicalized safe DTCG plus compiled Studio design options/metadata.
 
-The artifact has no apply/publish/deploy/execute or renderer-installation authority. Full brand assembly remains with `studio-brand`; trusted renderer activation remains with `studio-brand-loader`.
+Q5 security review PASS. Exact input/source shapes reject provider/url/credential/apply/publish smuggling; raw DTCG is canonicalized with null-prototype objects before the existing compiler applies its own prototype-sensitive-name rejection. Compiler failures remain fail-closed and preserve compiler code/path.
 
-Merge remains blocked until Q5/Q6 security/architecture review, exact-head local Q7 and final executable-clean Q8.
+Q6 architecture review PASS. Executable dependencies are only `application-canvas`, `design-system-compiler` and `protocol`. Full brand assembly remains with `studio-brand`; trusted renderer activation remains with `studio-brand-loader`; Canvas mutation/publish/deploy/runtime/governance/Action authority is unreachable.
+
+Hosted verify/iOS/Android jobs on the frozen executable head completed with `steps: null`; this is runner-allocation infrastructure non-signal, not a code result.
+
+Merge remains blocked until exact frozen-head local Q7 and final executable-clean Q8.
