@@ -9,6 +9,7 @@ Implement the canonical provider-neutral `ViraCapabilityDefinition` without expa
 - authoritative `main`: `c17d5016a00f915604de73b9797a94e72692c5a6`
 - previous phase: MASTER-27 merged via PR #187
 - branch: `master/28-capability-contract`
+- frozen executable head: `614467b91ba6c7798fe060c4e38fa51a914ddc1d`
 
 ## Reverse-engineered ownership
 
@@ -84,15 +85,27 @@ Input/output/context contracts are exact semantic references. MASTER-28 does not
 - Serialization is deterministic.
 - New package dependency edge is only `capability-contract → protocol`.
 
+## Verification
+
+Local Q7 was reported GREEN on exact executable head `614467b91ba6c7798fe060c4e38fa51a914ddc1d` for:
+
+```bash
+pnpm check:boundaries
+pnpm typecheck
+pnpm vitest run tests/contract/capability-contract.test.ts
+```
+
+Hosted GitHub Actions zero-step failures are not counted as code PASS or code FAIL.
+
 ## Q0–Q9
 
-- Q0: exact base `c17d5016...`.
-- Q1: reverse engineer protocol Capability, tool bridge, Action Boundary and MASTER-26 authority docs.
-- Q2: freeze ownership/invocation invariants above.
-- Q3: implement types/parser/serializer + boundary entry.
-- Q4: focused positive/negative/security tests.
-- Q5: fail-closed/provider-smuggling/effect-bypass review.
-- Q6: architecture review proving wire Capability and Action Boundary owners are not duplicated.
-- Q7: exact-head local `pnpm check:boundaries && pnpm typecheck && pnpm vitest run tests/contract/capability-contract.test.ts`.
-- Q8: independent actual PR diff reverse engineering.
-- Q9: squash merge only after Q7 green and final evidence-only compare; then start MASTER-29 from new main.
+- Q0: PASS — exact base `c17d5016...`.
+- Q1: PASS — reverse engineered protocol Capability, tool bridge, Action Boundary and MASTER-26 authority docs.
+- Q2: PASS — ownership/invocation invariants frozen above.
+- Q3: PASS — types/parser/serializer + boundary entry implemented.
+- Q4: PASS — focused positive/negative/security coverage implemented, including inline-schema smuggling and context bounds.
+- Q5: PASS — fail-closed/provider-smuggling/effect-bypass review.
+- Q6: PASS — architecture review proving wire Capability and Action Boundary owners are not duplicated.
+- Q7: PASS — operator-reported exact-head local boundary/type/focused tests on `614467b...`.
+- Q8: FINAL COMPARE PENDING — post-Q7 commits must remain documentation/evidence only.
+- Q9: BLOCKED until final Q8; then squash merge and start MASTER-29 from new authoritative main.
