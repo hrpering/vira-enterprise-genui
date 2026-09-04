@@ -90,16 +90,15 @@ describe("commercial settlement hardening", () => {
     }
   });
 
-  it("requires exact Application, publisher and plan linkage", () => {
+  it("requires canonical publisher namespace parity plus exact Application and plan linkage", () => {
+    expect(parseViraCommercialSettlementSchedule(
+      schedule([rule({ publisherId: "other" })]),
+    )).toMatchObject({ ok: false, issue: { code: "INVALID_PUBLISHER" } });
+
     expect(allocateViraCommercialSettlement(
       schedule([rule({ applicationVersion: "2.0.0" })]),
       request(),
     )).toMatchObject({ ok: false, issue: { code: "APPLICATION_MISMATCH" } });
-
-    expect(allocateViraCommercialSettlement(
-      schedule([rule({ publisherId: "other" })]),
-      request(),
-    )).toMatchObject({ ok: false, issue: { code: "PUBLISHER_MISMATCH" } });
 
     expect(allocateViraCommercialSettlement(
       schedule([rule({ planRef: { id: "plan.other", versionRef: "1" } })]),
@@ -147,10 +146,15 @@ describe("commercial settlement hardening", () => {
     }
   });
 
-  it("rejects forged allocation arithmetic and forged embedded quote", () => {
+  it("rejects forged allocation identity, arithmetic and embedded quote", () => {
     const allocation = allocateViraCommercialSettlement(schedule(), request());
     expect(allocation.ok).toBe(true);
     if (!allocation.ok) return;
+
+    expect(parseViraCommercialSettlementAllocation({
+      ...allocation.value,
+      publisherId: "other",
+    })).toMatchObject({ ok: false, issue: { code: "INVALID_PUBLISHER" } });
 
     expect(parseViraCommercialSettlementAllocation({
       ...allocation.value,
