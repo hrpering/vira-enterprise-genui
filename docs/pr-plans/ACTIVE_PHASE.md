@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-38 — Application Protocol Projection Contract  
-**Status:** Q0–Q7 PASS / FINAL Q8 REQUIRED  
+**Status:** Q0–Q8 PASS / Q9 READY TO MERGE  
 **Base SHA:** `e03118833731c8483d0c42f648fefe446f0a103a`  
 **Frozen executable SHA:** `73f99f85f9f0226591d6161825857b40541455b3`  
 **Previous:** MASTER-37 merged via PR #197  
@@ -15,16 +15,16 @@ The artifact consumes one canonical `ViraApplicationDistributionEnvelope`, requi
 
 Lossy projection must enumerate bounded unique canonical `$.application` loss paths using the strict dot-field/numeric-index path grammar. Unsupported projection cannot carry payload. Lossless projection cannot hide loss metadata.
 
-Q5 security/semantic review PASS: shared safe JSON boundary, exact source/ref/result shapes, undeclared projection rejection, strict fidelity variants, canonical loss-path grammar, loss bounds, deterministic payload serialization, prototype-sensitive payload safety and authority-smuggling rejection.
-
-Q6 architecture review PASS: exact executable dependencies are only `application-distribution` and `protocol`. `application-package` remains declaration owner through the source envelope; `protocol-gateway` remains tool/protocol invocation adaptation owner. No registry, transport, provider, deployment, runtime, governance, entitlement or Action owner is imported or modified.
+Q5 security/semantic review PASS. Q6 architecture/ownership review PASS.
 
 `fidelity` is an explicit adapter projection report, not a Vira proof of arbitrary protocol-specific semantic equivalence. The source digest declaration is carried as distribution data but MASTER-38 does not claim source integrity verification or execution trust.
 
-First exact-head local Q7 on `0728072b19e4b73cb654bab1b724e2aefbbdb99b` reported package boundaries PASS and focused tests 16/16 PASS, but TypeScript failed with two TS7053 object-index errors in `freezeJson()` and `canonicalJson()`. The semantic-neutral correction adds explicit `JsonObject` narrowing after the array branches.
+First exact-head local Q7 on `0728072b19e4b73cb654bab1b724e2aefbbdb99b` passed package boundaries and 16/16 focused tests but exposed two TS7053 TypeScript 6 narrowing errors. The semantic-neutral correction established corrected frozen executable head `73f99f85f9f0226591d6161825857b40541455b3`.
 
 Corrected exact-head local Q7 on `73f99f85f9f0226591d6161825857b40541455b3` is operator-reported PASS for package boundaries, TypeScript, and both focused projection suites. Evidence is recorded in `docs/evidence/MASTER-38/VERIFICATION.md`.
 
+Q8 PASS: final compare from corrected frozen executable head to closure state contains only `docs/evidence/MASTER-38/VERIFICATION.md`, `docs/pr-plans/ACTIVE_PHASE.md`, and `docs/pr-plans/MASTER-38.md`; executable drift is zero.
+
 Hosted verify/iOS/Android jobs ended with `steps: null`, so they remain infrastructure non-signal.
 
-Merge remains blocked only on final executable-clean Q8 compare.
+MASTER-38 is ready for exact-head squash merge. MASTER-39 must start only from the resulting new authoritative `main`.
