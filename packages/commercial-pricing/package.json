@@ -1,0 +1,14 @@
+{
+  "name": "@vira-enterprise-genui/commercial-pricing",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/application-package": "workspace:*",
+    "@vira-enterprise-genui/commercial-metering": "workspace:*",
+    "@vira-enterprise-genui/protocol": "workspace:*"
+  }
+}
