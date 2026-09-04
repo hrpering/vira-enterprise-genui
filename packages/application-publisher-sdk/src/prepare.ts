@@ -80,7 +80,9 @@ export async function prepareViraApplicationDistribution(
   if (unknown) return failure("UNKNOWN_FIELD", `$.${unknown}`, "unknown publisher preparation field");
   if (!("publisherId" in root)) return failure("INVALID_PUBLISHER_ID", "$.publisherId", "publisherId is required");
   if (!("application" in root)) return failure("INVALID_APPLICATION", "$.application", "application is required");
-  if (!validPublisherId(root.publisherId)) {
+
+  const publisherId = root.publisherId;
+  if (!validPublisherId(publisherId)) {
     return failure("INVALID_PUBLISHER_ID", "$.publisherId", "publisherId must be bounded safe exact text");
   }
 
@@ -94,7 +96,7 @@ export async function prepareViraApplicationDistribution(
     );
   }
 
-  if (application.value.publisher.id !== root.publisherId) {
+  if (application.value.publisher.id !== publisherId) {
     return failure(
       "PUBLISHER_MISMATCH",
       "$.publisherId",
