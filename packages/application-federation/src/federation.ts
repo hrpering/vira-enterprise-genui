@@ -212,14 +212,16 @@ export function lookupViraFederatedApplication(
   ) {
     return failure("INVALID_QUERY", "$query.applicationVersion", "applicationVersion must be an exact release semver");
   }
+  const applicationId = query.applicationId;
+  const applicationVersion = query.applicationVersion;
 
   const sourceIds: string[] = [];
   let envelope: ViraApplicationDistributionEnvelope | null = null;
   for (const source of snapshot.value.sources) {
     for (const candidate of source.applications) {
       if (
-        candidate.application.identity.id === query.applicationId
-        && candidate.application.version === query.applicationVersion
+        candidate.application.identity.id === applicationId
+        && candidate.application.version === applicationVersion
       ) {
         sourceIds.push(source.sourceId);
         envelope ??= candidate;
@@ -230,8 +232,8 @@ export function lookupViraFederatedApplication(
   return {
     ok: true,
     value: Object.freeze({
-      applicationId: query.applicationId,
-      applicationVersion: query.applicationVersion,
+      applicationId,
+      applicationVersion,
       envelope,
       sourceIds: Object.freeze(sourceIds),
     }),
