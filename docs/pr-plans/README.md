@@ -1,11 +1,13 @@
 # Active PR Plans
 
-This directory contains work that is currently active or retained as the immediate release/application interface.
+Current active record:
 
-Current records:
-
-- `MASTER-26.md` — active Application semantic freeze.
+- `MASTER-27.md` — Vira Application Package implementation.
 - `ACTIVE_PHASE.md` — machine/human-readable status pointer.
-- `MASTER-25.md` / `MASTER-25R.md` / `MASTER-25-native-qc-note.md` — retained Enterprise GenUI RC1 release provenance/interface records pending later archival cleanup.
 
-MASTER-25R merged via PR #185 and Enterprise GenUI RC1 is closed. MASTER-26 now owns only the semantic freeze for Application model/authority/lifecycle/versioning. Do not pre-create MASTER-27 implementation until MASTER-26 completes Q0–Q9 on latest authoritative `main`.
+Immediate provenance retained:
+
+- `MASTER-26.md` — merged Application semantic freeze.
+- `MASTER-25.md` / `MASTER-25R.md` / `MASTER-25-native-qc-note.md` — Enterprise GenUI RC1 release provenance/interface records pending later archival cleanup.
+
+Do not start MASTER-28 until MASTER-27 completes focused local verification, actual-diff Q8, squash merge, and new authoritative `main` is fetched.
