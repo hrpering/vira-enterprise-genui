@@ -186,6 +186,13 @@ export function parseViraCommercialUsageRating(input: unknown): ViraCommercialUs
       "rating includedRecordCount and usedQuantity must both be zero or both be positive",
     );
   }
+  if (usedQuantity.value < includedRecordCount.value) {
+    return fail(
+      "INVALID_INPUT",
+      "$",
+      "rating usedQuantity cannot be smaller than includedRecordCount because every included usage record has positive quantity",
+    );
+  }
   const limitQuantity = nullableQuantity(root.limitQuantity, "$.limitQuantity");
   if (!limitQuantity.ok) return limitQuantity;
   const remainingQuantity = nullableQuantity(root.remainingQuantity, "$.remainingQuantity");
