@@ -1,44 +1,46 @@
 # Active Phase
 
-**Phase:** MASTER-44 — Hosted Capability Runtime Foundation  
-**Status:** Q0–Q8 PASS / Q9 READY  
-**Base SHA:** `e987f3447953761b70c4aa548761bf359b3e07f0`  
-**Frozen executable SHA:** `c6b21360b6471f506fc7c9ec940f687c96de38af`  
-**Previous frozen SHA:** `52dfb067904b34ffe055431232ed8e621a3b3d6f` — invalidated by Q7 typecheck defect  
-**Previous:** MASTER-43 merged via PR #204  
-**Branch:** `master/44-hosted-capability-runtime`  
-**PR:** #205 (draft until final closure compare)  
-**Next:** MASTER-45 after MASTER-44 merge from new authoritative `main`
+**Phase:** MASTER-45 — Commercial Pricing + Rate Card  
+**Status:** Q0–Q2 PASS / Q3 ACTIVE  
+**Base SHA:** `f1ee6ec68b9c1a53f3413b9f201eae355517fc52`  
+**Previous:** MASTER-44 merged via PR #205  
+**Branch:** `master/45-commercial-pricing`  
+**Next:** MASTER-46 after MASTER-45 merge from new authoritative `main`
 
-MASTER-44 introduces the provider-neutral hosted **query Capability** execution boundary without turning Vira into generic cloud compute or duplicating existing semantic/security owners.
+MASTER-45 introduces the canonical provider-neutral monetary pricing boundary downstream of entitlement/metering without becoming billing/payment/subscription/payout authority.
 
-Canonical owner boundary:
+Nearest-owner findings:
+
+- `commercial-entitlement` owns exact `planRef` selection but deliberately leaves price semantics opaque;
+- `commercial-metering` owns exact meter definitions and non-monetary usage ratings;
+- `application-package` only references commercial entitlement/meter identities;
+- legacy `experience-marketplace` is Experience catalog/search and is not Application Network economics authority.
+
+New canonical owner:
 
 ```text
-hosted-capability-runtime → capability-contract, enterprise-context, protocol, work-context
+@vira-enterprise-genui/commercial-pricing
 ```
 
-Foundation invariants:
+Executable dependency target:
 
-- only canonical `query` Capabilities may reach the trusted provider adapter;
-- `action` Capabilities fail with `ACTION_BOUNDARY_REQUIRED` before adapter invocation;
-- exact binding ↔ Capability identity/version only;
-- canonical enterprise principal/scope is carried, but the runtime does not authenticate or authorize it;
-- request Context exactly matches declared Capability `contextRequirements`, with no ambient/extra Context leakage;
-- input/output type refs exactly match canonical CapabilityDefinition contracts;
-- the execution evidence envelope never becomes authorization, governance, entitlement, deployment or commercial authority;
-- typed `output.value` remains domain data under its exact type reference and does not acquire authority from field names;
-- provider/binding/location evidence is not authentication or attestation;
-- no implicit retry/failover/ranking;
-- no automatic commercial usage record from execution success;
-- no endpoints, credentials, containers, Kubernetes/serverless/cloud scheduling or generic workload orchestration.
+```text
+commercial-pricing → application-package, commercial-metering, protocol
+```
 
-Q5/Q6 security and architecture review PASS. Q7 attempt 1 correctly failed and invalidated the old freeze because of TS7053 in `freezeJson()`; evidence is retained in `docs/evidence/MASTER-44/Q7_ATTEMPT_1.md`.
+MASTER-45 also adds the missing canonical rating parser/serializer to the existing `commercial-metering` owner so pricing can consume persisted/transmitted rating evidence without copying rating semantics.
 
-The local explicit `JsonArray` type-guard remediation produced the final frozen executable SHA `c6b21360b6471f506fc7c9ec940f687c96de38af`. The operator reran the full local Q7 command set at that exact SHA and reported it green; final evidence is `docs/evidence/MASTER-44/Q7_LOCAL_PASS.md`.
+Pricing invariants:
 
-Q8 independent PR reverse engineering PASS at reviewed head `99e80da0f41f06ccd52dc497e2ba7dd92d9ed7b1`; evidence is `docs/evidence/MASTER-44/Q8_REVIEW.md`. Frozen executable → reviewed head contained documentation/evidence only.
+- integer currency nanos only; no floating-point money;
+- exact `planRef` and `meteringRef` identities;
+- lexical three-letter uppercase currency code only; no ISO/FX authority claim;
+- bounded fixed amount and per-meter `used | excess` nanos-per-unit rates;
+- every plan rate requires exactly one canonical rating;
+- missing, duplicate or undeclared ratings fail closed;
+- quote and rating `asOf` must exactly match;
+- multiplication and total accumulation fail before safe-integer overflow;
+- quote evaluation never mutates usage/entitlement/payment state;
+- pricing evidence is not invoice/payment/subscription/settlement/tax/authorization/governance/runtime authority.
 
-Hosted `verify`, `android-native` and `ios-native` failures remain infrastructure non-signal because their jobs expose no executed steps.
-
-MASTER-44 is Q9 READY subject to one final frozen-executable → closure-head compare proving executable drift remains zero. Any executable change invalidates Q7/Q8 and blocks merge.
+Full Q1/Q2 contract: `docs/pr-plans/MASTER-45.md`.
