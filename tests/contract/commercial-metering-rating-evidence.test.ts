@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  VIRA_COMMERCIAL_METERING_MAX_USAGE_RECORDS,
   parseViraCommercialUsageRating,
   serializeViraCommercialUsageRating,
 } from "../../packages/commercial-metering/src/index.js";
@@ -58,6 +59,42 @@ describe("commercial metering rating evidence", () => {
       status: "unlimited",
     }));
     expect(parsed.ok).toBe(true);
+  });
+
+  it("accepts canonical zero-usage evidence only with zero included records", () => {
+    const parsed = parseViraCommercialUsageRating(rating({
+      includedRecordCount: 0,
+      usedQuantity: 0,
+      limitQuantity: 100,
+      remainingQuantity: 100,
+      excessQuantity: 0,
+      status: "within-limit",
+    }));
+    expect(parsed.ok).toBe(true);
+  });
+
+  it("rejects impossible record-count and used-quantity combinations", () => {
+    expect(parseViraCommercialUsageRating(rating({
+      includedRecordCount: 0,
+      usedQuantity: 1,
+      limitQuantity: 100,
+      remainingQuantity: 99,
+      excessQuantity: 0,
+      status: "within-limit",
+    }))).toMatchObject({ ok: false, issue: { code: "INVALID_INPUT" } });
+
+    expect(parseViraCommercialUsageRating(rating({
+      includedRecordCount: 1,
+      usedQuantity: 0,
+      limitQuantity: 100,
+      remainingQuantity: 100,
+      excessQuantity: 0,
+      status: "within-limit",
+    }))).toMatchObject({ ok: false, issue: { code: "INVALID_INPUT" } });
+
+    expect(parseViraCommercialUsageRating(rating({
+      includedRecordCount: VIRA_COMMERCIAL_METERING_MAX_USAGE_RECORDS + 1,
+    }))).toMatchObject({ ok: false, issue: { code: "USAGE_LIMIT_EXCEEDED" } });
   });
 
   it("rejects inconsistent status, remaining and excess evidence", () => {
