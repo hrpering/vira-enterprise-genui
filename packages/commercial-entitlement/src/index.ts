@@ -3,7 +3,6 @@ export {
   VIRA_COMMERCIAL_ENTITLEMENT_MAX_ENTITLEMENTS,
   VIRA_COMMERCIAL_ENTITLEMENT_MAX_LIMITS_PER_ENTITLEMENT,
   VIRA_COMMERCIAL_ENTITLEMENT_SCHEMA_VERSION,
-  VIRA_COMMERCIAL_LIMIT_PERIODS,
 } from "./types.js";
 export type {
   ViraCommercialAccessState,
@@ -22,7 +21,6 @@ export type {
   ViraCommercialEntitlementSet,
   ViraCommercialEntitlementSubject,
   ViraCommercialEntitlementTarget,
-  ViraCommercialLimitPeriod,
   ViraCommercialPrincipalSelector,
 } from "./types.js";
 export {
