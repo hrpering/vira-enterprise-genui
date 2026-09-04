@@ -5,6 +5,7 @@ import {
   serializeViraApplicationDistributionEnvelope,
   verifyViraApplicationDistributionIntegrity,
 } from "../../packages/application-distribution/src/index.js";
+import type { ViraApplicationDistributionVerifierInput } from "../../packages/application-distribution/src/index.js";
 
 const DIGEST = "a".repeat(64);
 
@@ -165,10 +166,13 @@ describe("Vira Application Distribution v1", () => {
     if (!canonicalApplication.ok) return;
 
     let observed: unknown = null;
-    const result = await verifyViraApplicationDistributionIntegrity(envelope(), (input) => {
-      observed = input;
-      return true;
-    });
+    const result = await verifyViraApplicationDistributionIntegrity(
+      envelope(),
+      (input: ViraApplicationDistributionVerifierInput) => {
+        observed = input;
+        return true;
+      },
+    );
     expect(result.ok).toBe(true);
     expect(observed).toEqual({
       algorithm: "sha256",
