@@ -27,16 +27,16 @@ An Application can reference Experiences, Capabilities, Context and Actions, but
 | Enterprise scope | `enterprise-context` | weaken tenant/project/environment boundaries |
 | Action audit/replay evidence | `action-ledger` | create a competing effect ledger |
 | Platform host/render mapping | existing Web/native host/runtime owners | redefine business semantics per platform |
-| Application semantic composition | future Application package/graph owner | absorb the authorities listed above |
-| Capability semantics | future provider-neutral Capability owner | let MCP/SaaS/customer/provider bindings define canonical meaning |
-| Work Context semantics | future bounded Context owner | treat chat history, prompt dump or user memory as canonical Context |
-| Canvas | future Canvas owner | become runtime, publication, governance or effect authority |
-| Network | future distribution owner | become runtime/execution/governance authority |
-| Entitlement/commercial access | future commercial owner | be treated as authorization/governance/runtime permission |
+| Application semantic composition | `application-package`, `application-graph` | absorb the authorities listed above |
+| Capability semantics | `capability-contract` | let MCP/SaaS/customer/provider bindings define canonical meaning |
+| Work Context semantics | `work-context` | treat chat history, prompt dump or user memory as canonical Context |
+| Canvas | `application-canvas` family | become runtime, publication, governance or effect authority |
+| Network | `application-distribution`, `application-federation` | become runtime/execution/governance authority |
+| Entitlement/commercial access | `commercial-entitlement` | be treated as authorization/governance/runtime permission |
 
 ## Application authority
 
-The future Application owner may canonically own only application-level semantics such as:
+The Application owners may canonically own only application-level semantics such as:
 
 - Application identity/release identity;
 - semantic graph membership and edges;
@@ -44,7 +44,7 @@ The future Application owner may canonically own only application-level semantic
 - application-level declarations that do not duplicate the referenced owner's payload;
 - integrity/provenance binding for the Application release.
 
-It does not own the internals of an Experience, Capability provider, Context implementation, Action execution, policy decision or deployment plane.
+They do not own the internals of an Experience, Capability provider, Context implementation, Action execution, policy decision or deployment plane.
 
 ## Canvas authority
 
@@ -80,6 +80,14 @@ Network may not:
 - execute a protected effect because distribution succeeded;
 - conflate commercial entitlement with authorization.
 
+## Commercial entitlement authority
+
+`commercial-entitlement` may determine only whether one explicitly selected exact Application entitlement reference has a matching commercial grant for the exact Application release, enterprise principal/scope, optional Capability and location selectors. It may return exact plan evidence and declarative `meteringRef + quantity` limits.
+
+`entitled` means **commercial eligibility only**. It is not an authorization, governance approval, runtime permission, deployment approval or protected Action permission. Downstream execution must still independently pass the canonical registry/resolution, enterprise scope, governance, runtime/deployment and Action Boundary gates that apply to that operation.
+
+Commercial entitlement also does not define meter units/windows, count mutable usage, compute remaining quota, rate usage, price invoices or own payment/subscription provider state. Those concerns are separately owned downstream.
+
 ## Provider authority
 
 Providers implement/bind functionality. They are never Vira canonical semantic owners merely because they expose an API, MCP server, SDK, model, SaaS integration or hosted execution environment.
@@ -97,6 +105,8 @@ exact semantic dependency references
       ↓
 canonical registry/resolver/deployment authorities
       ↓
+commercial entitlement where commercially required
+      ↓
 enterprise scope + governance
       ↓
 runtime / host
@@ -104,8 +114,8 @@ runtime / host
 Action Boundary for protected effects
 ```
 
-An upstream composition layer cannot overrule a downstream security/execution authority.
+An upstream composition or commercial layer cannot overrule a downstream security/execution authority.
 
 ## Failure rule
 
-Ambiguous, missing, stale, unapproved, incompatible or untrusted authority resolution fails closed. A higher-level Application declaration cannot convert an underlying denial/failure into success.
+Ambiguous, missing, stale, unapproved, incompatible or untrusted authority resolution fails closed. A higher-level Application declaration or commercial entitlement cannot convert an underlying denial/failure into success.
