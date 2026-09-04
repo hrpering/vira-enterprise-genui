@@ -66,6 +66,12 @@ function safeText(value: JsonValue | undefined, maxLength: number): value is str
     && !CONTROL_CHARS.test(value);
 }
 
+function isCanonicalApplicationPath(path: string): boolean {
+  return path === "$.application"
+    || path.startsWith("$.application.")
+    || path.startsWith("$.application[");
+}
+
 function projectionKey(ref: ViraApplicationProtocolProjectionRef): string {
   return `${ref.id}\u0000${ref.versionRef}`;
 }
@@ -127,11 +133,14 @@ function parseLosses(value: JsonValue | undefined): Parsed<readonly ViraApplicat
     const unknown = firstUnknownField(object, LOSS_FIELDS);
     if (unknown) return failure("UNKNOWN_FIELD", `$.result.losses[${index}].${unknown}`, "unknown loss field");
 
-    if (!safeText(object.path, VIRA_APPLICATION_PROTOCOL_PROJECTION_PATH_MAX_LENGTH) || !object.path.startsWith("$.application")) {
+    if (
+      !safeText(object.path, VIRA_APPLICATION_PROTOCOL_PROJECTION_PATH_MAX_LENGTH)
+      || !isCanonicalApplicationPath(object.path)
+    ) {
       return failure(
         "INVALID_LOSS_PATH",
         `$.result.losses[${index}].path`,
-        "loss path must be a bounded canonical Application path beginning with $.application",
+        "loss path must be a bounded canonical Application path rooted at $.application",
       );
     }
     if (!safeText(object.reason, VIRA_APPLICATION_PROTOCOL_PROJECTION_REASON_MAX_LENGTH)) {
