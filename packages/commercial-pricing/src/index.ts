@@ -25,3 +25,7 @@ export {
   priceViraCommercialUsage,
   serializeViraCommercialPriceCatalog,
 } from "./pricing.js";
+export {
+  parseViraCommercialPriceQuote,
+  serializeViraCommercialPriceQuote,
+} from "./quote-evidence.js";
