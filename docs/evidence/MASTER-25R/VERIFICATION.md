@@ -2,7 +2,7 @@
 
 ## Scope
 
-MASTER-25R closes Enterprise GenUI RC evidence against the exact post-CLEAN-00 tree. It must not introduce new runtime, SDK, governance, Action Boundary or customer-specific implementation authority.
+MASTER-25R closes Enterprise GenUI RC evidence against the exact post-CLEAN-00 tree without introducing new runtime, SDK, governance, Action Boundary or customer-specific authority.
 
 ## Baseline
 
@@ -10,115 +10,104 @@ MASTER-25R closes Enterprise GenUI RC evidence against the exact post-CLEAN-00 t
 - phase branch: `master/25r-enterprise-rc-closure`
 - canonical executable gate: `pnpm verify:enterprise-rc`
 
-## Static Q4/Q5/Q6 review
+## Existing release contract review
 
 ### RC composition
 
-PASS by source inspection:
+Source inspection confirms `tooling/verify-enterprise-rc.mjs` runs, fail-fast and in order:
 
-- `tooling/verify-enterprise-rc.mjs` runs repository/browser verification first;
-- then portable native conformance;
-- then real iOS Simulator gate;
-- then real Android Emulator gate;
-- then external-brand evidence verification;
-- any command start/non-zero failure exits before PASS;
-- Enterprise RC PASS is printed only after all five stages succeed.
+```text
+verify:all
+check:studio-native
+verify:ios-simulator
+verify:android-emulator
+verify:external-brand-proof
+```
 
-### External evidence fail-closed properties
+Enterprise RC PASS is emitted only after every stage returns success.
 
-PASS by source inspection:
+### External evidence boundary
 
-- evidence path is mandatory via `VIRA_EXTERNAL_BRAND_PROOF_EVIDENCE`;
-- JSON parsing/read failure throws;
-- root object has exact allowed keys;
-- evidence version is exact;
-- `viraHead` must be a 40-character lowercase hex SHA;
-- Pack id/version/digest shapes are validated;
-- platform object must contain exactly Web/iOS/Android;
-- every platform must have `passed === true` and a valid trace reference;
-- gate object must contain exactly the complete required gate set;
-- every required gate must be exactly `true`;
-- current checkout is obtained with `git rev-parse HEAD`;
-- evidence targeting another HEAD throws.
+Source inspection confirms the generic verifier fails closed for missing/unreadable evidence, non-exact object shapes, wrong evidence version, invalid HEAD/Pack/digest/reference forms, missing or failed Web/iOS/Android records, missing/false required gate records and a `viraHead` different from `git rev-parse HEAD`.
 
-### Security/architecture
+No Pegasus/customer identity is embedded in the generic verifier.
 
-PASS by source inspection:
+## Q4 regression-gap finding
 
-- external provider/proof cannot override core structural checks;
+A second-pass test-tree audit found no focused contract test for either release script. The broader suite covers underlying runtime/governance/native contracts, but did not directly protect the release orchestration/evidence boundary from regression.
+
+Added:
+
+```text
+tests/contract/enterprise-rc-gate.test.ts
+```
+
+The black-box tests cover:
+
+- exact valid evidence → success;
+- missing evidence → fail closed;
+- malformed JSON → fail closed;
+- stale `viraHead` → fail closed;
+- omitted required gate → fail closed;
+- failed iOS platform record → fail closed;
+- canonical five-stage RC order;
+- first-stage failure propagation/short circuit;
+- no PASS message after failure.
+
+A separate behavioral sanity harness using the same `.mjs` boundaries confirmed valid exact-head evidence acceptance, canonical five-stage order and synthetic iOS failure exit/no-PASS behavior. That run used the available analysis environment and is **not** repository Q7 evidence.
+
+The new Vitest contract file is included by the repository `tests/**/*.ts` TypeScript/test surface. Canonical execution still must occur through the repository's Node >=24 `pnpm` gate.
+
+## Security/architecture review
+
+Current implementation review remains clean:
+
 - no implicit latest release identity;
 - no stale-head acceptance;
 - no missing-platform acceptance;
 - no omitted-negative-gate acceptance;
-- no customer/domain-specific identity is embedded in the generic verifier;
-- no second RC authority is required;
-- no package dependency edge is justified.
+- no provider/customer bypass;
+- no second RC authority;
+- no production/tooling behavior modification;
+- no dependency edge added.
 
-## Current repository diff expectation
+## Current PR scope
 
-Before Q7, the phase remains documentation/evidence-only:
+Current base-to-branch compare contains release plan/evidence/status documents plus one focused contract-test file. There are no changes under `packages/`, `sdk/`, `.github/`, dependency manifests or release tooling implementation.
 
-```text
-MASTER_PLAN.md
-docs/pr-plans/MASTER-25R.md
-docs/pr-plans/ACTIVE_PHASE.md
-docs/pr-plans/README.md
-docs/evidence/MASTER-25R/RE_REPORT.md
-docs/evidence/MASTER-25R/VERIFICATION.md
-docs/evidence/MASTER-25R/PR_REVIEW.md
-```
+Because executable test coverage was added after the original pre-Q7 review, the earlier frozen SHA `27845ef...` is obsolete and must not be used for external proof.
 
-Any executable change discovered in a later compare requires renewed Q4–Q7 verification.
+## Q7 required exact-tree gate
 
-## Pre-Q7 Q8 review
+Still blocked on external proof and exact local repository execution.
 
-PASS.
-
-Independent review of PR #185 at pre-Q7 head `52bc8e3af6567bb769146818d6f167004a048723` found only release plan/status/evidence changes and no package/runtime/SDK/tooling/workflow/test/manifest implementation change. See `PR_REVIEW.md`.
-
-The Q8 evidence documents added after that review are themselves non-executable; a final compare must confirm this before the branch is frozen for Q7.
-
-## Q7 required exact executable-tree gate
-
-NOT YET EXECUTED / BLOCKED ON EXTERNAL EXACT-HEAD PROOF.
-
-Required command:
+Required final command after the new pre-Q7 head is frozen:
 
 ```bash
 VIRA_EXTERNAL_BRAND_PROOF_EVIDENCE=/absolute/path/to/external-brand-proof.json pnpm verify:enterprise-rc
 ```
 
-The evidence `viraHead` must equal the exact checkout SHA on which this command runs.
-
-The release command itself covers:
-
-```text
-pnpm verify:all
-pnpm check:studio-native
-pnpm verify:ios-simulator
-pnpm verify:android-emulator
-pnpm verify:external-brand-proof
-```
+The evidence `viraHead` must equal that newly frozen exact checkout SHA.
 
 ## Hosted CI
 
-Hosted GitHub Actions previously exhibited a pre-existing zero-step/no-runner allocation failure during CLEAN-00. That infrastructure state is not treated as release evidence and cannot substitute for the exact local RC gate.
+Hosted GitHub Actions continues to exhibit the pre-existing zero-step/no-runner allocation failure. It is not counted as PASS.
 
 ## Gate status
 
 - Q0 baseline: PASS
 - Q1 reverse engineering: PASS
 - Q2 authority freeze: PASS
-- Q3 minimal implementation: PASS so far — documentation/evidence only
-- Q4 focused static verification: PASS for existing release verifier semantics
-- Q5 security review: PASS for existing release verifier semantics
-- Q6 architecture review: PASS — no duplicate release/runtime owner introduced
+- Q3 minimal implementation: PASS — plan/evidence + one focused contract-test file
+- Q4 focused verification: **TEST COVERAGE ADDED / CANONICAL REPOSITORY EXECUTION PENDING**
+- Q5 security review: PASS by source/diff review
+- Q6 architecture review: PASS — release owners unchanged
 - Q7 exact Enterprise RC execution: **BLOCKED / NOT EXECUTED**
-- Q8 independent PR reverse engineering: **PASS — PRE-Q7**
+- Q8 independent PR reverse engineering: **REQUIRED AGAIN AFTER TEST ADDITION**
 - Q9 merge/post-merge: NOT STARTED
 
 ## Merge decision
 
 # NOT READY TO MERGE
 
-Do not declare Enterprise GenUI RC1 and do not start MASTER-26 until exact-head external proof exists, `pnpm verify:enterprise-rc` passes, and the final post-Q7 evidence-only compare completes.
+Do not declare Enterprise GenUI RC1 and do not start MASTER-26 until the updated PR passes independent Q8, the new exact pre-Q7 head is frozen, exact-head external proof exists, `pnpm verify:enterprise-rc` passes, and the final post-Q7 evidence-only compare is clean.
