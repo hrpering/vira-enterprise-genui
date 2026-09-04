@@ -1,12 +1,18 @@
 # Active Phase
 
-**Phase:** MASTER-38 — Application Protocol Projection Contract  
-**Status:** Q0–Q8 PASS / Q9 READY TO MERGE  
-**Base SHA:** `e03118833731c8483d0c42f648fefe446f0a103a`  
-**Frozen executable SHA:** `73f99f85f9f0226591d6161825857b40541455b3`  
-**Previous:** MASTER-37 merged via PR #197  
-**Branch:** `master/38-application-protocol-projection`  
-**PR:** #198  
-**Next after merge:** MASTER-39 from new authoritative `main`
+**Phase:** MASTER-39 — Application Publisher SDK  
+**Status:** Q0–Q4 IMPLEMENTED / Q5–Q6 REVIEW REQUIRED / LOCAL Q7 REQUIRED  
+**Base SHA:** `b8f009603407fea9a9115d735e9a144017fc654f`  
+**Previous:** MASTER-38 merged via PR #198  
+**Branch:** `master/39-application-publisher-sdk`  
+**Next after merge:** MASTER-40 AI-host SDK phase from new authoritative `main`
 
-Corrected exact-head local Q7 PASS. Final Q8 docs/evidence-only compare PASS. Executable drift zero. MASTER-38 is ready for exact-head squash merge.
+MASTER-39 introduces `@vira-enterprise-genui/application-publisher-sdk` as a thin publisher-side integration layer over existing canonical Application and Distribution owners.
+
+The SDK takes one host-asserted `publisherId`, one Application candidate and one injected SHA-256 digest provider. It delegates Application parsing/serialization to `application-package`, requires exact publisher-id parity, obtains a strict lowercase digest over canonical Application serialization, then delegates envelope parse/serialization to `application-distribution`.
+
+`publisherId` is not authentication. Digest-provider output is a declared integrity identity, not a trust/verification claim. The SDK has no signing credential, URL/transport, registry upload, federation, deployment/runtime, governance/authorization/entitlement or Capability/Action execution authority.
+
+Exact executable dependency boundary: `application-publisher-sdk → application-package, application-distribution, protocol`.
+
+Merge remains blocked until Q5 security review, Q6 architecture review, exact-head local Q7 and final executable-clean actual-diff Q8.
