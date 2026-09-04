@@ -11,22 +11,13 @@ Establish the first canonical Vira Network distribution boundary: distribute one
 - branch: `master/37-distribution-contract`
 - corrected frozen executable head: `ad9745334e0cedfe2b7d28ee06435f498e62e7c4`
 
-## Reverse-engineered owners
+## Ownership
 
-Existing owners remain canonical:
+Existing owners remain canonical. `application-package` owns Application identity/version, distribution metadata, compatibility and exact protocol projection references. Existing Experience/private registries, protocol gateway, deployment plane, runtime, governance and Action owners retain their current authority.
 
-- `application-package` owns Application identity/version, distribution metadata, compatibility and exact `protocolProjections[]` references.
-- `experience-registry` owns Experience Pack manifest snapshot/lookup only.
-- `enterprise-registry` owns tenant-scoped private approval registry concerns only.
-- `protocol-gateway` owns existing tool/protocol adaptation, not Application discovery/distribution semantics.
-- `deployment-plane` owns existing Experience Pack signing/promotion/deployment truth; MASTER-37 does not redefine it as Application Network distribution.
-- runtime, governance and Action owners retain all execution/security authority.
+`@vira-enterprise-genui/application-distribution` owns only strict distribution-envelope shape, canonical Application embedding by delegation, exact SHA-256 artifact-integrity identity, deterministic envelope serialization around canonical Application serialization, and fail-closed integrity verification through an injected verifier.
 
-## New owner
-
-`@vira-enterprise-genui/application-distribution` owns only strict distribution-envelope shape, canonical parsed `ViraApplicationPackage` embedding by delegation, exact SHA-256 artifact-integrity identity, deterministic envelope serialization around canonical Application serialization, and fail-closed integrity verification through an injected verifier.
-
-It does not own discovery metadata/visibility/compatibility/protocol projection semantics, URL/endpoint/transport/federation/provider/credential semantics, registry persistence or `latest` resolution, entitlement/authorization/governance, deployment/runtime state, Capability/Action execution, or digest-provider implementation.
+It does not own registry/search/ranking, implicit latest, transport/federation/provider/credential semantics, deployment/runtime state, entitlement/authorization/governance, Capability/Action execution, or digest provider implementation.
 
 ## Contract
 
@@ -41,19 +32,7 @@ ViraApplicationDistributionEnvelope {
 }
 ```
 
-Parsing validates the declared integrity identity but does not claim verification. `verifyViraApplicationDistributionIntegrity()` receives an injected verifier and verifies against `serializeViraApplicationPackage(application)`.
-
-## Invariants
-
-- exact Application release/version rules are delegated to `application-package`;
-- no implicit `latest`, fallback, provider substitution or network resolution;
-- discovery/visibility/protocol metadata is never copied into a second top-level schema;
-- integrity verification is explicit and fail-closed;
-- verifier false/throw/non-`true` all fail closed;
-- unknown provider/url/endpoint/transport/credential/execute/authorize/deploy fields fail closed;
-- shared safe JSON boundary rejects accessors, custom prototypes and non-JSON inputs;
-- deterministic serialization reuses canonical Application serialization rather than forking it;
-- distribution success grants no execution, entitlement, governance or deployment authority.
+Parsing validates the declared integrity identity but does not claim verification. `verifyViraApplicationDistributionIntegrity()` verifies against canonical `serializeViraApplicationPackage(application)` using an injected verifier.
 
 ## Package boundary
 
@@ -61,23 +40,15 @@ Parsing validates the declared integrity identity but does not claim verificatio
 application-distribution → application-package, protocol
 ```
 
-## Q5 security review
+## Reviews
 
-PASS. Root input passes shared `parseJsonValue()` before field inspection; root/integrity envelopes are exact-shape; canonical Application validation is delegated and preserves owner failure context; v1 integrity identity is exact lowercase SHA-256; parsing does not mark a digest verified; verifier input is frozen; false, exception, missing verifier or non-`true` fail closed; prototype/accessor inputs fail before application logic.
+Q5 security review PASS: shared safe JSON boundary, exact root/integrity shapes, canonical Application delegation, strict SHA-256 identity, explicit verification, fail-closed verifier handling, prototype/accessor hardening and authority-smuggling rejection.
 
-## Q6 architecture review
-
-PASS. Executable dependencies are exactly `application-package` and `protocol`. No registry/gateway/deployment/runtime/governance/Action owner changes. Application metadata is consumed from the canonical package and serialization composes `serializeViraApplicationPackage()`. Public API remains parse/serialize/integrity verification only.
+Q6 architecture review PASS: only `application-package` and `protocol` executable dependencies; no competing registry/gateway/deployment/runtime/governance/Action authority; no duplicate Application metadata schema; canonical serialization reused.
 
 ## Local Q7 history
 
-First exact-head run on `41fa04d7af4c5a68fa4eff1cb4a2403bff4dbaac`:
-
-- `pnpm check:boundaries` PASS;
-- focused `application-distribution` tests 13/13 PASS;
-- `pnpm typecheck` failed with one test-only TS7006 implicit-any verifier callback parameter.
-
-The correction changed only the focused test by annotating the callback with exported `ViraApplicationDistributionVerifierInput`; production implementation stayed unchanged. Corrected frozen executable head: `ad9745334e0cedfe2b7d28ee06435f498e62e7c4`.
+First exact-head run on `41fa04d7af4c5a68fa4eff1cb4a2403bff4dbaac` passed package boundaries and 13/13 focused tests but failed TypeScript on one test-only TS7006 implicit-any verifier callback. Production implementation did not change. The test was annotated with exported `ViraApplicationDistributionVerifierInput`, creating corrected frozen executable head `ad9745334e0cedfe2b7d28ee06435f498e62e7c4`.
 
 Corrected exact-head local Q7 is operator-reported GREEN:
 
@@ -87,17 +58,27 @@ Corrected exact-head local Q7 is operator-reported GREEN:
 
 Evidence: `docs/evidence/MASTER-37/VERIFICATION.md`.
 
+## Final Q8
+
+PASS. Compare from corrected frozen executable head `ad9745334e0cedfe2b7d28ee06435f498e62e7c4` to closure branch state contains only:
+
+- `docs/evidence/MASTER-37/VERIFICATION.md`
+- `docs/pr-plans/ACTIVE_PHASE.md`
+- `docs/pr-plans/MASTER-37.md`
+
+No executable drift exists after the verified head.
+
 ## Q0–Q9
 
-- Q0 PASS — exact authoritative base.
-- Q1 PASS — targeted RE.
-- Q2 PASS — distribution ownership/invariants frozen.
-- Q3 PASS — package implementation.
-- Q4 PASS — focused contract/integrity/security coverage.
-- Q5 PASS — security/fail-closed review.
-- Q6 PASS — architecture/ownership review.
-- Q7 PASS — corrected exact-head local gate.
-- Q8 FINAL REQUIRED — compare corrected frozen executable head to final PR head; only docs/evidence/status may differ.
-- Q9 BLOCKED until final Q8; then exact-head squash merge and MASTER-38 starts from resulting new authoritative `main`.
+- Q0 PASS
+- Q1 PASS
+- Q2 PASS
+- Q3 PASS
+- Q4 PASS
+- Q5 PASS
+- Q6 PASS
+- Q7 PASS
+- Q8 PASS
+- Q9 READY — exact-head squash merge; then MASTER-38 starts from resulting authoritative `main`.
 
 Hosted verify/iOS/Android jobs remain zero-step / runner-id-0 infrastructure non-signal.
