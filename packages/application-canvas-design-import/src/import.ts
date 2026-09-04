@@ -25,7 +25,7 @@ import {
 
 const ROOT_FIELDS = Object.freeze(["draft", "source"] as const);
 const SOURCE_FIELDS = Object.freeze(["format", "sourceId", "revision", "document"] as const);
-const SAFE_SOURCE_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:@/-]*$/;
+const SAFE_SOURCE_TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:@\/-]*$/;
 const FORBIDDEN_CONTROL_PATTERN = /[\u0000-\u001F\u007F]/;
 
 type Failure = { readonly ok: false; readonly issue: ViraCanvasDesignImportIssue };
