@@ -17,13 +17,9 @@ Lossy projection must enumerate bounded unique canonical `$.application` loss pa
 
 Q5 security/semantic review PASS. Q6 architecture/ownership review PASS.
 
-`fidelity` is an explicit adapter projection report, not a Vira proof of arbitrary protocol-specific semantic equivalence. The source digest declaration is carried as distribution data but MASTER-38 does not claim source integrity verification or execution trust.
-
-First exact-head local Q7 on `0728072b19e4b73cb654bab1b724e2aefbbdb99b` passed package boundaries and 16/16 focused tests but exposed two TS7053 TypeScript 6 narrowing errors. The semantic-neutral correction established corrected frozen executable head `73f99f85f9f0226591d6161825857b40541455b3`.
-
 Corrected exact-head local Q7 on `73f99f85f9f0226591d6161825857b40541455b3` is operator-reported PASS for package boundaries, TypeScript, and both focused projection suites. Evidence is recorded in `docs/evidence/MASTER-38/VERIFICATION.md`.
 
-Q8 PASS: final compare from corrected frozen executable head to closure state contains only `docs/evidence/MASTER-38/VERIFICATION.md`, `docs/pr-plans/ACTIVE_PHASE.md`, and `docs/pr-plans/MASTER-38.md`; executable drift is zero.
+Q8 PASS: final compare from corrected frozen executable head to closure state contains only phase/status/evidence documentation; executable drift is zero.
 
 Hosted verify/iOS/Android jobs ended with `steps: null`, so they remain infrastructure non-signal.
 
