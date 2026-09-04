@@ -18,6 +18,7 @@ export const allowedDependencies = Object.freeze({
   "work-context": ["protocol"],
   "application-graph": ["protocol"],
   "application-canvas": ["application-graph", "application-package", "protocol"],
+  "application-canvas-ai": ["application-canvas", "application-package", "protocol"],
   "experience-packs": [],
   "experience-pack-compositions": ["protocol", "studio-schema"],
   "experience-registry": ["experience-packs"],
