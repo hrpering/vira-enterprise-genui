@@ -68,8 +68,12 @@ function object(value: JsonValue | undefined): JsonObject | null {
     : null;
 }
 
+function jsonArray(value: JsonValue): value is JsonArray {
+  return Array.isArray(value);
+}
+
 function array(value: JsonValue | undefined): JsonArray | null {
-  return Array.isArray(value) ? value : null;
+  return value !== undefined && jsonArray(value) ? value : null;
 }
 
 function shape(value: JsonObject, allowed: readonly string[], required: readonly string[] = allowed): string | null {
@@ -125,7 +129,7 @@ function sameRef(
 
 function freezeJson(value: JsonValue): JsonValue {
   if (value === null || typeof value !== "object" || Object.isFrozen(value)) return value;
-  if (Array.isArray(value)) {
+  if (jsonArray(value)) {
     for (const item of value) freezeJson(item);
     return Object.freeze(value);
   }
