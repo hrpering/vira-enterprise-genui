@@ -100,3 +100,17 @@ WorkContext does not invent a data-schema language. Item `typeRef` points to ext
 - Q7: exact-head local `pnpm check:boundaries && pnpm typecheck && pnpm vitest run tests/contract/work-context.test.ts`.
 - Q8: independent actual PR diff reverse engineering.
 - Q9: squash merge only after green Q7 and final executable-clean compare; then start MASTER-30 from new `main`.
+
+## Q7 correction record
+
+Initial executable head `8ea036ccdfeb13a2ff42486a23ab939a19946e42` produced:
+
+- `pnpm check:boundaries` PASS;
+- focused `work-context.test.ts` PASS — 11/11;
+- `pnpm typecheck` FAIL — TS7053 at `packages/work-context/src/validate.ts:83` because TypeScript did not narrow readonly `JsonArray | JsonObject` sufficiently for string indexing.
+
+The correction is semantic-neutral: the non-array branch in `canonicalize()` now explicitly narrows to `JsonObject` before indexing. Corrected executable head:
+
+`68d1c1f48a68c6963fd8ba0be3e01fa4be66a428`
+
+Q7 must be rerun on that exact executable head before merge.
