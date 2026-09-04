@@ -2,10 +2,10 @@
 
 **Date:** 2026-09-05  
 **Base:** `a7083edbb3bafc9326546fbba10286e696f86a06`  
-**Reviewed executable/test/boundary head:** `25ee1c25223863f3ceeb53210142acd1da331405`  
-**Result:** PASS
+**Reviewed executable/test/boundary head:** `b42ae481700094f118328f111f8011ab44136877`  
+**Result:** PASS after Q8 remediation
 
-This is static security/architecture evidence only. Local boundaries/typecheck/focused-suite execution remains Q7; no runtime pass counts or timings are claimed here.
+This is static security/architecture evidence only. It does not reconstruct local runtime counts/timings.
 
 ## Q5 — Security / fail-closed review
 
@@ -15,32 +15,32 @@ PASS.
 
 - settlement schedules, allocation requests and allocation evidence enter through shared safe JSON parsing;
 - exact-object shapes reject unknown fields;
-- accessor/custom-prototype cases are covered and must fail without getter execution;
+- accessor/custom-prototype cases cover direct exact-reference parsing, schedules, requests and persisted allocation evidence and fail without getter execution;
 - settlement schedule rules are bounded to `2048`;
-- the rule ceiling remains comfortably below the shared JSON node/string budgets for the focused boundary fixture, so the domain limit is reachable rather than shadowed by the shared parser.
+- focused evidence-smuggling coverage rejects invoice/payment/payout/tax/FX/credential/authorization fields across schedule/request/allocation surfaces.
 
-### Exact-reference ownership
+### Exact-reference ownership — remediated
 
-`application-package` already owns `ViraApplicationExactReference` semantics internally. MASTER-47 exposes owner-local public parse/serialize APIs from the same package rather than copying exact-reference parsing into `commercial-settlement`.
+`application-package` is the sole exact-reference semantic owner.
 
-The public API preserves the existing owner semantics:
+The canonical implementation is now:
 
-- canonical semantic namespace id;
-- bounded exact versionRef syntax;
-- rejection of `latest/current/stable/head/main/next`;
-- rejection of x-style floating ranges;
-- exact-object/fail-closed parsing;
-- canonical frozen output and deterministic serialization.
+```text
+parseViraApplicationExactReference
+serializeViraApplicationExactReference
+```
 
-The existing private Application-package validation path remains inside the same canonical owner package; this is not a second cross-package semantic owner. New focused coverage protects the public owner surface.
+`parseViraApplicationPackage` no longer maintains its own `VERSION_REF`, floating-alias/range or exact-reference parser implementation. Its internal nested-reference wrapper delegates to the canonical parser and only remaps `$`-relative error paths back to the package field path.
+
+Focused parity coverage checks direct public parsing and package reference validation remain aligned while preserving contextual package error paths.
 
 ### Canonical Application and quote delegation
 
-- allocation requests reparse the supplied Application through `parseViraApplicationPackage`;
+- allocation requests reparse Application input through `parseViraApplicationPackage`;
 - pricing quote input is reparsed through `parseViraCommercialPriceQuote`;
 - allocation evidence embeds the canonical quote rather than copying quote fields;
 - allocation serialization delegates quote serialization to `commercial-pricing`;
-- settlementRef/planRef parsing and serialization delegate to `application-package`.
+- settlementRef/planRef parse/serialize delegates to the Application exact-reference owner.
 
 ### Exact linkage
 
@@ -48,18 +48,16 @@ Settlement rules are selected by exact `settlementRef` only.
 
 Rules fail closed unless:
 
-- Application id is namespaced and release version is exact semver;
-- publisherId is canonical and matches the Application identity namespace;
-- planRef is exact;
-- publisher share is an integer `0..10000` basis points.
+- Application id is namespaced and release version exact semver;
+- publisherId matches the Application identity namespace;
+- planRef is exact/non-floating;
+- publisher share is integer `0..10000` basis points.
 
-Evaluation then requires rule Application id/version to equal the canonical Application package and rule planRef to equal the canonical quote planRef. There is no default/latest/fallback settlement policy.
+Evaluation requires exact Application id/version match and exact rule-plan/quote-plan match. There is no default/latest/fallback settlement policy.
 
 ### Monetary arithmetic
 
-Settlement never uses floating-point ratios or direct `gross × basisPoints` multiplication.
-
-For gross safe-integer nanos and integer basis points:
+Settlement never uses floating-point ratios or unsafe direct `gross × basisPoints` multiplication.
 
 ```text
 q = floor(gross / 10000)
@@ -68,31 +66,29 @@ publisher = q*bps + floor(r*bps/10000)
 platform = gross - publisher
 ```
 
-`q*bps`, `r*bps`, publisher and platform remain within safe-integer bounds for all accepted inputs. Fractional nano remainder deterministically stays with platform. Focused hardening includes `Number.MAX_SAFE_INTEGER` gross and verifies the result against an exact BigInt reference calculation.
+All accepted operations remain safe-integer bounded, including `Number.MAX_SAFE_INTEGER` gross. Fractional nano remainder deterministically stays with platform. Focused hardening compares the MAX_SAFE case with an exact BigInt reference calculation.
 
 ### Allocation evidence
 
-The allocation parser independently reparses the canonical quote and recomputes publisher/platform amounts. Forged split arithmetic fails `ALLOCATION_MISMATCH`; forged quote arithmetic fails through the pricing owner.
+The allocation parser reparses the embedded canonical quote and recomputes publisher/platform amounts. Forged split arithmetic fails `ALLOCATION_MISMATCH`; forged quote arithmetic fails through the pricing owner.
 
-Allocation evidence parsing validates internal semantics/arithmetic only. It does **not** authenticate who selected the settlement schedule/rule or prove policy provenance. External provenance/trust remains separately owned.
-
-### Authority smuggling
-
-Exact shapes reject invoice/payment/payout/tax/FX/credential/authorization fields. The package contains no processor credential, bank account, payment intent, payout state, subscription/refund state, tax/FX calculation, accounting state, authorization/governance/runtime permission or funds-movement operation.
+Evidence parsing validates internal semantics/arithmetic only. It does not authenticate settlement-policy provenance, prove entitlement, move funds or create payout state.
 
 ## Q6 — Architecture / ownership review
 
 PASS.
 
-### New owner justification
-
-MASTER-45 established canonical pricing quote evidence. MASTER-46 closed Capability supply/discovery. The repository constitution explicitly reserves downstream settlement/publisher economics as a separate noun that must consume quote evidence rather than duplicate rate-card arithmetic.
-
-Canonical new owner:
+### Canonical owner chain
 
 ```text
-@vira-enterprise-genui/commercial-settlement
+application-package    → Application release + publisher + exact-reference semantics
+commercial-entitlement → commercial eligibility
+commercial-metering    → usage/rating truth
+commercial-pricing     → rate-card + canonical quote evidence
+commercial-settlement  → deterministic publisher/platform allocation evidence
 ```
+
+The Q8 remediation strengthens this chain by making Application exact-reference semantics one implementation inside the canonical owner rather than two parallel owner-local parsers.
 
 ### Executable dependency boundary
 
@@ -103,34 +99,13 @@ commercial-settlement
   → protocol
 ```
 
-No executable dependency on:
+No executable dependency on commercial-entitlement/metering, governance/runtime/Action owners, Capability runtime/supply, telemetry/action-ledger, deployment, payment processors/banks, tax/FX/accounting providers or cloud SDKs.
 
-- commercial-entitlement or commercial-metering;
-- governance/runtime/Action owners;
-- Capability runtime/supply;
-- telemetry/action-ledger;
-- deployment-plane;
-- payment processors/banks;
-- tax/FX/accounting providers;
-- cloud/provider SDKs.
-
-The absence of entitlement dependency is intentional: settlement allocation over a canonical quote does not prove entitlement, charge or payment.
-
-### Owner chain
-
-```text
-application-package    → Application release + publisher + exact-reference semantics
-commercial-entitlement → commercial eligibility
-commercial-metering    → usage/rating truth
-commercial-pricing     → rate-card + canonical quote evidence
-commercial-settlement  → deterministic publisher/platform allocation evidence
-```
-
-No commercial artifact inherits authorization, governance, runtime or protected-effect authority.
+The absence of entitlement dependency is intentional: allocation over canonical quote evidence does not prove entitlement, charge or payment.
 
 ### Settlement versus payment/payout
 
-The output is economic allocation evidence only. It does not create an invoice, move funds, authorize a payment, create a publisher payout, settle a bank/processor ledger, determine taxes, convert FX or recognize revenue.
+The output is economic allocation evidence only. It does not create an invoice, move funds, authorize a payment, create a publisher payout, settle a processor/bank ledger, determine taxes, convert FX or recognize revenue.
 
 Generic payment-provider integration remains outside Vira core semantics.
 
@@ -140,7 +115,7 @@ Generic payment-provider integration remains outside Vira core semantics.
 - duplicate refs fail closed;
 - no implicit latest/default policy;
 - exact Application release/publisher namespace/plan binding;
-- deterministic basis-point rounding;
+- deterministic integer basis-point rounding;
 - canonical quote embedded and independently reparsed.
 
 ## Focused verification surface
@@ -151,10 +126,12 @@ tests/contract/commercial-settlement.test.ts
 tests/contract/commercial-settlement-hardening.test.ts
 ```
 
-Coverage includes exact-reference roundtrip/floating rejection, schedule sorting/freeze/serialization, exact Application/plan linkage, no fallback, 0/100% and fractional rounding, MAX_SAFE arithmetic, forged allocation/quote evidence, impossible publisher parity, authority/payment/tax/credential smuggling, collection bounds and accessor/custom-prototype fail-closed behavior.
+Coverage now includes exact-reference parser/package parity, nested package error-path preservation, exact-reference roundtrip/floating rejection, schedule determinism, exact Application/plan linkage, no fallback, 0/100% and fractional rounding, MAX_SAFE arithmetic, canonical quote roundtrip, forged allocation/quote evidence, impossible publisher parity, authority/payment/tax/credential smuggling on persisted evidence, collection bounds and accessor/custom-prototype fail-closed behavior.
 
 ## Conclusion
 
-Q5 PASS / Q6 PASS on executable/test/boundary head `25ee1c25223863f3ceeb53210142acd1da331405`.
+Q5 PASS / Q6 PASS on remediated executable/test/boundary head:
 
-This SHA is the executable freeze candidate. Any later source/package/test/boundary change invalidates this review and requires a new review before Q7.
+`b42ae481700094f118328f111f8011ab44136877`
+
+This is the new executable freeze candidate. The previous Q7 PASS on `25ee1c25223863f3ceeb53210142acd1da331405` is invalidated for final merge because executable/tests changed afterward. A fresh exact-head local Q7 is required before Q8 restarts.
