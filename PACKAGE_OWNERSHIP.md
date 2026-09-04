@@ -14,6 +14,7 @@ If this document and the executable boundary graph disagree, the executable grap
 | Application protocol projection fidelity artifact | `application-protocol-projection` |
 | Publisher-side Application distribution preparation ergonomics | `application-publisher-sdk` |
 | AI-host-side Application integrity + compatibility ergonomics | `application-ai-host-sdk` |
+| Public Application federation snapshot + exact-release discovery/conflict semantics | `application-federation` |
 | Application semantic nodes/edges | `application-graph` |
 | Canvas draft identity/editor revision/non-semantic projection + mutation session | `application-canvas` |
 | Application-level Canvas AI semantic proposal/diff | `application-canvas-ai` |
@@ -47,31 +48,28 @@ If this document and the executable boundary graph disagree, the executable grap
 
 `application-distribution` remains the canonical provider-neutral distribution envelope/integrity owner.
 
-`application-protocol-projection` remains the Application-level projection fidelity owner; protocol payloads remain non-canonical interoperability data.
+`application-publisher-sdk` and `application-ai-host-sdk` remain thin integration layers over canonical Application/Distribution owners. They do not own registries, transports, deployment/runtime, governance or protected execution.
 
-`application-publisher-sdk` depends only on `application-package`, `application-distribution` and `protocol`. It owns publisher-side composition ergonomics only and does not own publisher authentication, signing, transport, registry/federation, deployment/runtime, governance or execution.
+`application-federation` depends only on `application-distribution` and `protocol`. It owns public federation snapshot parsing, deterministic serialization, exact-release source provenance, exact lookup and fail-closed cross-source conflict detection.
 
-`application-ai-host-sdk` depends only on `application-distribution`, `application-package` and `protocol`. It owns host-side integration ergonomics: strict host descriptor parsing, explicit Distribution integrity-verifier delegation, canonical Vira-version/required-capability evaluation, and exact source/host protocol-projection intersection.
+`application-federation` does **not** own source authentication/identity proof, signatures/certificates, Distribution integrity verification, URLs/endpoints/transports, registry persistence, ranking/recommendation, source priority, implicit/latest resolution, deployment/runtime, governance/authorization/entitlement, protocol adapter execution, Capability invocation or protected Action execution.
 
-`application-ai-host-sdk` does **not** own host authentication/identity proof, network endpoints/transports, provider credentials, registry/federation, protocol adapter execution, projection artifact generation, deployment/runtime state, governance/authorization/entitlement, Capability invocation or protected Action execution. Compatibility success is not a permission receipt. Empty protocol intersection is not automatically runtime incompatibility.
+Public federation accepts only releases whose canonical Application distribution metadata is `visibility: "public"` and `discoverable: true`. A federation `sourceId` is provenance data only. Distribution digest declarations remain unverified until an existing integrity-verification owner explicitly verifies them.
 
-`protocol-gateway` remains the existing tool/protocol invocation adaptation owner.
+The same exact Application `id@version` across multiple sources is valid only when canonical Distribution serialization is identical. Divergent envelopes fail closed with no priority/majority/latest fallback.
 
-`application-canvas` remains the only owner of Canvas editor revision and atomic draft mutation. `application-canvas-ai` remains proposal-only. `application-canvas-simulation` remains dry-run authoring evidence only. `application-canvas-design-import` remains a provider-neutral DTCG authoring import boundary delegating token semantics to `design-system-compiler`.
+`experience-registry` remains the Experience Pack registry owner and is not extended into Application federation. `enterprise-registry` remains tenant/private registry infrastructure and is not the public Application Network federation owner.
 
 ## Future ownership constraints
 
-- Federated distribution must consume canonical Distribution envelopes and cannot grant execution/security authority.
-- AI-host SDKs must consume canonical Distribution/Application declarations rather than define a new wire schema.
-- AI-host compatibility must remain separate from authorization, entitlement, governance, deployment and runtime execution.
-- AI-host protocol overlap must use exact source-declared refs; no implicit/latest protocol negotiation or adapter execution.
-- Publisher SDKs must remain transport-neutral; registry/upload/provider credentials stay outside canonical SDK semantics.
-- Publisher identity parity is not authentication. Any external publisher authentication/signature mechanism stays an adapter/host concern unless a future explicitly-owned trust contract is frozen.
-- Digest computation and digest verification remain distinct.
-- Application Network registry/catalog/federation layers must consume `application-distribution` envelopes rather than define a second Application artifact format.
-- Distribution integrity verification is not deployment approval, governance approval, entitlement or execution permission.
-- Application protocol projection must consume exact source-declared projection refs; it cannot invent implicit/latest protocol targets.
-- Protocol projections must report `lossless`, `lossy`, or `unsupported` explicitly; lossy adapters enumerate canonical Application semantic losses.
+- Commercial/marketplace layers must consume canonical Application federation/distribution artifacts rather than define another Application wire schema.
+- Federation must remain discovery/distribution, never execution or security authority.
+- Federation source provenance must not be treated as authenticated identity without a separately owned trust mechanism.
+- Distribution integrity verification remains distinct from federation membership and discovery.
+- Public federation cannot leak private/organization/non-discoverable Application releases.
+- Exact release conflicts fail closed; no implicit latest, source priority or silent conflict winner.
+- AI-host compatibility remains separate from authorization, entitlement, governance, deployment and runtime execution.
+- Publisher SDKs remain transport-neutral; registry/upload/provider credentials stay outside canonical SDK semantics.
 - Protocol payload data cannot acquire transport/provider/deployment/governance/execution authority by projection success.
 - Provider bindings must map to exact provider-neutral semantics and remain outside Canvas draft authority.
 - WorkContext remains bounded work state/provenance, not chat history, user memory or prompt dump.
