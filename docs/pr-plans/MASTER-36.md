@@ -9,7 +9,7 @@ Add a provider-neutral Canvas authoring import boundary for external design syst
 - authoritative `main`: `70194c6415c7b66c5f2569733b6ed1aa88b59832`
 - previous phase: MASTER-35 merged via PR #195
 - branch: `master/36-design-system-external-import`
-- frozen executable head: `2909dd596a54b6e6602b0ea38135cb2a243ef4e8`
+- frozen executable head: `514f50e5a7c50bd8d93aecb63e401de5d5c9895a`
 
 ## Ownership
 
@@ -77,6 +77,19 @@ Executable dependencies are only `application-canvas`, `design-system-compiler` 
 
 Figma/Sketch/vendor adapters remain outside core and may only normalize to DTCG before this boundary.
 
+## Local Q7 history
+
+First attempt on `2909dd596a54b6e6602b0ea38135cb2a243ef4e8`:
+
+- `pnpm check:boundaries` PASS;
+- `pnpm typecheck` PASS;
+- `application-canvas-design-import.test.ts` 12/12 PASS;
+- `application-canvas-design-import-hardening.test.ts` 0/3 PASS because every test returned `INVALID_DRAFT` before reaching DTCG import.
+
+Reverse engineering showed the hardening fixture had empty Experiences, Capabilities, Actions and Flows, violating the canonical ApplicationPackage `EMPTY_APPLICATION` invariant. This was a test-fixture defect, not an import implementation defect. The fixture now includes one inert exact Capability reference (`vira.brand-capability@1.0.0`) so the tests exercise the intended import/compiler boundary. No production implementation changed.
+
+Corrected frozen executable head: `514f50e5a7c50bd8d93aecb63e401de5d5c9895a`.
+
 ## Q0–Q9
 
 - Q0 PASS — exact base `70194c6415c7b66c5f2569733b6ed1aa88b59832`.
@@ -86,9 +99,9 @@ Figma/Sketch/vendor adapters remain outside core and may only normalize to DTCG 
 - Q4 PASS — focused import/brand/provenance/security/non-authority + deterministic/prototype hardening coverage implemented.
 - Q5 PASS — security/fail-closed review.
 - Q6 PASS — architecture/ownership review.
-- Q7 REQUIRED — exact frozen-head local boundaries/typecheck/focused tests.
+- Q7 RETEST REQUIRED — exact corrected frozen-head local boundaries/typecheck/two focused suites.
 - Q8 PRE-Q7 PASS — actual executable scope reviewed; final post-Q7 executable-clean compare required.
-- Q9 BLOCKED until Q7/final Q8; then squash merge and start MASTER-37 from new authoritative `main`.
+- Q9 BLOCKED until corrected Q7/final Q8; then squash merge and start MASTER-37 from new authoritative `main`.
 
 Exact local Q7:
 
@@ -98,4 +111,4 @@ pnpm typecheck
 pnpm vitest run tests/contract/application-canvas-design-import.test.ts tests/contract/application-canvas-design-import-hardening.test.ts
 ```
 
-Hosted verify/iOS/Android jobs on the frozen executable head ended with `steps: null`; infrastructure non-signal only.
+Hosted verify/iOS/Android jobs with no steps remain infrastructure non-signal only.
