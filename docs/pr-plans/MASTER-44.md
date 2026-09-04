@@ -9,7 +9,9 @@ Introduce the canonical provider-neutral hosted execution boundary for **query**
 - authoritative `main`: `e987f3447953761b70c4aa548761bf359b3e07f0`
 - previous phase: MASTER-43 merged via PR #204
 - branch: `master/44-hosted-capability-runtime`
-- frozen executable head: `52dfb067904b34ffe055431232ed8e621a3b3d6f`
+- draft PR: #205
+- current frozen executable head: `c6b21360b6471f506fc7c9ec940f687c96de38af`
+- invalidated previous freeze: `52dfb067904b34ffe055431232ed8e621a3b3d6f`
 
 ## Q1 reverse engineering
 
@@ -222,17 +224,11 @@ Added `@vira-enterprise-genui/hosted-capability-runtime` with:
 - immutable non-authority execution evidence;
 - executable package-boundary declaration.
 
-Frozen executable SHA after Q3/Q4/static fixes:
-
-```text
-52dfb067904b34ffe055431232ed8e621a3b3d6f
-```
-
 ## Q4 focused verification coverage
 
-PASS by static contract review; exact local execution remains Q7.
+PASS by contract/static review; final executable validation remains Q7.
 
-Focused suites added:
+Focused suites:
 
 ```text
 tests/contract/hosted-capability-runtime.test.ts
@@ -258,7 +254,7 @@ Coverage includes:
 - malformed provider result/failure code rejection;
 - canonical Capability parser delegation.
 
-Static reverse engineering found and corrected one test-fixture issue before freeze: `refund.analysis` must use publisher id `refund` because Capability publisher namespace authority requires the first Capability-id segment to equal publisher id.
+Static reverse engineering found and corrected one test-fixture issue before the first freeze: `refund.analysis` must use publisher id `refund` because Capability publisher namespace authority requires the first Capability-id segment to equal publisher id.
 
 ## Q5 security / fail-closed review
 
@@ -287,17 +283,45 @@ hosted-capability-runtime → capability-contract, enterprise-context, protocol,
 
 Nearest existing owners retain their authority; hosted Capability runtime does not absorb Capability semantics, protocol/tool adaptation, Experience deployment/runtime, Action execution, commercial logic or provider/cloud infrastructure.
 
-Frozen executable → current branch compare after Q6 contains documentation/evidence changes only.
+## Q7 attempt 1
 
-## Q7 focused verification
-
-Run against exact frozen executable head:
+FAIL on exact frozen executable SHA:
 
 ```text
 52dfb067904b34ffe055431232ed8e621a3b3d6f
 ```
 
-Commands:
+Operator-reported exact results:
+
+- `pnpm check:boundaries` — PASS;
+- `pnpm typecheck` — FAIL with one TS7053 at `packages/hosted-capability-runtime/src/runtime.ts:132`;
+- focused suites — PASS, 2/2 files and 22/22 tests.
+
+Evidence: `docs/evidence/MASTER-44/Q7_ATTEMPT_1.md`.
+
+Root cause: shared protocol defines `JsonArray` as `readonly JsonValue[]`; built-in `Array.isArray()` did not sufficiently narrow `JsonArray | JsonObject` for string indexing in `freezeJson()` under the repository typecheck.
+
+Remediation is intentionally local and non-semantic:
+
+```ts
+function jsonArray(value: JsonValue): value is JsonArray {
+  return Array.isArray(value);
+}
+```
+
+`freezeJson()` now uses that explicit type guard. The shared protocol JSON contract, hosted request/result semantics, provider lifecycle, authority boundaries and tests are unchanged.
+
+The executable delta from the invalidated freeze to the remediation commit is confined to `packages/hosted-capability-runtime/src/runtime.ts` and is 6 additions / 2 deletions; all other intervening changes are docs/evidence.
+
+## Current Q7 freeze
+
+New frozen executable SHA:
+
+```text
+c6b21360b6471f506fc7c9ec940f687c96de38af
+```
+
+The entire local gate must be rerun detached at that exact SHA:
 
 ```bash
 pnpm check:boundaries
@@ -307,7 +331,7 @@ pnpm vitest run \
   tests/contract/hosted-capability-runtime-hardening.test.ts
 ```
 
-Q7 local execution evidence is pending.
+No result from the invalidated `52dfb067...` freeze may be reused as final Q7 PASS evidence.
 
 ## Q0–Q9
 
@@ -318,6 +342,6 @@ Q7 local execution evidence is pending.
 - Q4 PASS — focused and hardening coverage added; canonical fixture corrected before freeze.
 - Q5 PASS — security/fail-closed review.
 - Q6 PASS — architecture/ownership review.
-- Q7 PENDING — exact frozen-head local boundaries/typecheck/focused suites.
+- Q7 RERUN PENDING — exact new frozen-head local boundaries/typecheck/focused suites after TS7053 remediation.
 - Q8 — independent PR reverse engineering + executable-clean closure compare after Q7.
 - Q9 — exact-head squash merge, verify new authoritative main, then start next phase fresh from it.
