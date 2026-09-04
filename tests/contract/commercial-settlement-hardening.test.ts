@@ -124,6 +124,10 @@ describe("commercial settlement hardening", () => {
   });
 
   it("rejects invoice, payment, payout, tax, credential and authority smuggling", () => {
+    const allocation = allocateViraCommercialSettlement(schedule(), request());
+    expect(allocation.ok).toBe(true);
+    if (!allocation.ok) return;
+
     for (const field of [
       "invoiceId",
       "paymentIntent",
@@ -142,6 +146,10 @@ describe("commercial settlement hardening", () => {
       expect(allocateViraCommercialSettlement(schedule(), { ...request(), [field]: "smuggled" })).toMatchObject({
         ok: false,
         issue: { code: "INVALID_REQUEST" },
+      });
+      expect(parseViraCommercialSettlementAllocation({ ...allocation.value, [field]: "smuggled" })).toMatchObject({
+        ok: false,
+        issue: { code: "UNKNOWN_FIELD" },
       });
     }
   });
@@ -210,5 +218,24 @@ describe("commercial settlement hardening", () => {
       ok: false,
       issue: { code: "INVALID_REQUEST" },
     });
+
+    const allocation = allocateViraCommercialSettlement(schedule(), request());
+    expect(allocation.ok).toBe(true);
+    if (!allocation.ok) return;
+
+    let allocationGetterCalls = 0;
+    const maliciousAllocation: Record<string, unknown> = { ...allocation.value };
+    Object.defineProperty(maliciousAllocation, "publisherAmountNanos", {
+      enumerable: true,
+      get() {
+        allocationGetterCalls += 1;
+        return allocation.value.publisherAmountNanos;
+      },
+    });
+    expect(parseViraCommercialSettlementAllocation(maliciousAllocation).ok).toBe(false);
+    expect(allocationGetterCalls).toBe(0);
+
+    const customAllocation = Object.assign(Object.create({ inherited: true }), allocation.value);
+    expect(parseViraCommercialSettlementAllocation(customAllocation).ok).toBe(false);
   });
 });
