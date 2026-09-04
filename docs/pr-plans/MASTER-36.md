@@ -84,11 +84,32 @@ First attempt on `2909dd596a54b6e6602b0ea38135cb2a243ef4e8`:
 - `pnpm check:boundaries` PASS;
 - `pnpm typecheck` PASS;
 - `application-canvas-design-import.test.ts` 12/12 PASS;
-- `application-canvas-design-import-hardening.test.ts` 0/3 PASS because every test returned `INVALID_DRAFT` before reaching DTCG import.
+- `application-canvas-design-import-hardening.test.ts` 0/3 because every test returned `INVALID_DRAFT` before reaching DTCG import.
 
-Reverse engineering showed the hardening fixture had empty Experiences, Capabilities, Actions and Flows, violating the canonical ApplicationPackage `EMPTY_APPLICATION` invariant. This was a test-fixture defect, not an import implementation defect. The fixture now includes one inert exact Capability reference (`vira.brand-capability@1.0.0`) so the tests exercise the intended import/compiler boundary. No production implementation changed.
+Reverse engineering showed the hardening fixture had empty Experiences, Capabilities, Actions and Flows, violating the canonical ApplicationPackage `EMPTY_APPLICATION` invariant. This was a test-fixture defect, not an import implementation defect. The fixture was corrected with one inert exact Capability reference (`vira.brand-capability@1.0.0`). No production implementation changed.
 
 Corrected frozen executable head: `514f50e5a7c50bd8d93aecb63e401de5d5c9895a`.
+
+Corrected exact-head operator-reported Q7:
+
+```bash
+pnpm check:boundaries
+pnpm typecheck
+pnpm vitest run \
+  tests/contract/application-canvas-design-import.test.ts \
+  tests/contract/application-canvas-design-import-hardening.test.ts
+```
+
+PASS:
+
+- package boundaries PASS;
+- TypeScript PASS;
+- 2/2 test files PASS;
+- 15/15 tests PASS;
+- hardening 3/3 PASS;
+- primary import 12/12 PASS.
+
+Full evidence: `docs/evidence/MASTER-36/VERIFICATION.md`.
 
 ## Q0–Q9
 
@@ -99,16 +120,8 @@ Corrected frozen executable head: `514f50e5a7c50bd8d93aecb63e401de5d5c9895a`.
 - Q4 PASS — focused import/brand/provenance/security/non-authority + deterministic/prototype hardening coverage implemented.
 - Q5 PASS — security/fail-closed review.
 - Q6 PASS — architecture/ownership review.
-- Q7 RETEST REQUIRED — exact corrected frozen-head local boundaries/typecheck/two focused suites.
-- Q8 PRE-Q7 PASS — actual executable scope reviewed; final post-Q7 executable-clean compare required.
-- Q9 BLOCKED until corrected Q7/final Q8; then squash merge and start MASTER-37 from new authoritative `main`.
-
-Exact local Q7:
-
-```bash
-pnpm check:boundaries
-pnpm typecheck
-pnpm vitest run tests/contract/application-canvas-design-import.test.ts tests/contract/application-canvas-design-import-hardening.test.ts
-```
+- Q7 PASS — corrected exact frozen-head local boundaries/typecheck/two focused suites: 15/15 tests.
+- Q8 FINAL REQUIRED — compare corrected frozen executable head to final PR head and require evidence/status-doc-only drift.
+- Q9 BLOCKED only until final Q8; then squash merge and start MASTER-37 from new authoritative `main`.
 
 Hosted verify/iOS/Android jobs with no steps remain infrastructure non-signal only.
