@@ -3,6 +3,7 @@ import type { ViraApplicationDistributionEnvelope } from "@vira-enterprise-genui
 export const VIRA_APPLICATION_FEDERATION_SCHEMA_VERSION = "1" as const;
 export const VIRA_APPLICATION_FEDERATION_MAX_SOURCES = 64 as const;
 export const VIRA_APPLICATION_FEDERATION_MAX_APPLICATIONS_PER_SOURCE = 512 as const;
+export const VIRA_APPLICATION_FEDERATION_MAX_TOTAL_APPLICATIONS = 4_096 as const;
 
 export interface ViraApplicationFederationSource {
   readonly sourceId: string;
