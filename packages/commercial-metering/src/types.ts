@@ -9,7 +9,7 @@ import type {
 
 export const VIRA_COMMERCIAL_METERING_SCHEMA_VERSION = "1" as const;
 export const VIRA_COMMERCIAL_METERING_MAX_METERS = 256 as const;
-export const VIRA_COMMERCIAL_METERING_MAX_USAGE_RECORDS = 10_000 as const;
+export const VIRA_COMMERCIAL_METERING_MAX_USAGE_RECORDS = 2_048 as const;
 
 export const VIRA_COMMERCIAL_METER_UNITS = Object.freeze([
   "count",
