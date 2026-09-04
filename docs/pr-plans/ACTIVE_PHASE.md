@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-44 — Hosted Capability Runtime Foundation  
-**Status:** Q0–Q6 PASS / Q7 RERUN PENDING  
+**Status:** Q0–Q7 PASS / Q8 ACTIVE  
 **Base SHA:** `e987f3447953761b70c4aa548761bf359b3e07f0`  
 **Frozen executable SHA:** `c6b21360b6471f506fc7c9ec940f687c96de38af`  
 **Previous frozen SHA:** `52dfb067904b34ffe055431232ed8e621a3b3d6f` — invalidated by Q7 typecheck defect  
@@ -41,7 +41,8 @@ Foundation invariants:
 - canonical enterprise principal/scope is carried, but the runtime does not authenticate or authorize it;
 - request Context must exactly match declared Capability `contextRequirements`, with no ambient/extra Context leakage;
 - input/output type refs must exactly match the canonical CapabilityDefinition contracts;
-- adapter result is bounded execution evidence only and never means authorization, governance approval, entitlement, deployment approval or provider attestation;
+- execution-envelope success is evidence only and never means authorization, governance approval, entitlement, deployment approval or provider attestation;
+- typed `output.value` remains domain data under its exact type reference and does not acquire authority merely from field names;
 - `providerId`, binding and location evidence do not attest that an external query implementation is side-effect-free;
 - no implicit retry/failover/ranking;
 - no automatic commercial usage record from execution success;
@@ -49,8 +50,10 @@ Foundation invariants:
 
 Q3 implementation PASS and Q4 focused/hardening coverage added. Q5 security/fail-closed review PASS and Q6 architecture/ownership review PASS; evidence is recorded in `docs/evidence/MASTER-44/Q5_Q6_REVIEW.md`.
 
-Q7 attempt 1 on exact SHA `52dfb067904b34ffe055431232ed8e621a3b3d6f` found one real executable typecheck defect: package boundaries passed and focused tests were 22/22 PASS, but `pnpm typecheck` failed with TS7053 in `freezeJson()` because built-in `Array.isArray()` did not sufficiently narrow the readonly `JsonArray | JsonObject` union. Evidence is retained in `docs/evidence/MASTER-44/Q7_ATTEMPT_1.md`.
+Q7 attempt 1 on exact SHA `52dfb067904b34ffe055431232ed8e621a3b3d6f` found one real executable typecheck defect: package boundaries passed and focused tests were 22/22 PASS, but `pnpm typecheck` failed with TS7053 in `freezeJson()`. Evidence is retained in `docs/evidence/MASTER-44/Q7_ATTEMPT_1.md`.
 
-The remediation does not change runtime semantics or the shared protocol JSON contract. A local explicit `JsonArray` type guard now narrows the readonly union before object-key indexing.
+The remediation was local and non-semantic: an explicit `JsonArray` type guard now narrows the shared readonly JSON union before object-key indexing.
 
-New frozen executable SHA is `c6b21360b6471f506fc7c9ec940f687c96de38af`. The full Q7 boundaries/typecheck/focused suite must be rerun detached at this exact SHA. The previous Q7 attempt cannot be reused as final PASS evidence.
+Q7 rerun on exact frozen executable SHA `c6b21360b6471f506fc7c9ec940f687c96de38af` is operator-reported green and recorded in `docs/evidence/MASTER-44/Q7_LOCAL_PASS.md`. No counts or timings are reconstructed beyond what the operator reported.
+
+Q8 independent PR reverse engineering is active. Any executable change after the frozen SHA invalidates Q7 and requires a new local run.
