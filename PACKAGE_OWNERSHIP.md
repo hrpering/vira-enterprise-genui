@@ -15,6 +15,7 @@ If this document and the executable boundary graph disagree, the executable grap
 | Publisher-side Application distribution preparation ergonomics | `application-publisher-sdk` |
 | AI-host-side Application integrity + compatibility ergonomics | `application-ai-host-sdk` |
 | Public Application federation snapshot + exact-release discovery/conflict semantics | `application-federation` |
+| Commercial entitlement grant + deterministic eligibility semantics | `commercial-entitlement` |
 | Application semantic nodes/edges | `application-graph` |
 | Canvas draft identity/editor revision/non-semantic projection + mutation session | `application-canvas` |
 | Application-level Canvas AI semantic proposal/diff | `application-canvas-ai` |
@@ -60,6 +61,10 @@ The same exact Application `id@version` across multiple sources is valid only wh
 
 `experience-registry` remains the Experience Pack registry owner and is not extended into Application federation. `enterprise-registry` remains tenant/private registry infrastructure and is not the public Application Network federation owner.
 
+`commercial-entitlement` depends only on `application-package`, `enterprise-context` and `protocol`. It owns bounded commercial grant parsing, exact Application/Capability/entitlement matching, enterprise principal/scope selectors, opaque exact plan references, declarative `meteringRef + quantity` limits and the provider-neutral `entitled | not-entitled` commercial result.
+
+`commercial-entitlement` does **not** own authentication, authorization, governance, runtime/deployment permission, protected Action or Capability execution, registry/network transport, provider bindings, mutable usage counters, remaining-quota computation, meter unit/window definitions, rating, pricing, invoice/payment state or subscription-provider lifecycle. An `entitled` result is commercial eligibility evidence only and cannot override an independent security or execution authority.
+
 ## Future ownership constraints
 
 - Commercial/marketplace layers must consume canonical Application federation/distribution artifacts rather than define another Application wire schema.
@@ -74,6 +79,7 @@ The same exact Application `id@version` across multiple sources is valid only wh
 - Provider bindings must map to exact provider-neutral semantics and remain outside Canvas draft authority.
 - WorkContext remains bounded work state/provenance, not chat history, user memory or prompt dump.
 - Entitlement expresses commercial access and remains distinct from authorization/governance/runtime permission.
+- Meter unit/window semantics, usage accounting and rating must consume exact entitlement/metering references without moving those concerns into `commercial-entitlement`.
 
 ## Change rule
 
