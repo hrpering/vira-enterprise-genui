@@ -111,6 +111,16 @@ PASS:
 
 Full evidence: `docs/evidence/MASTER-36/VERIFICATION.md`.
 
+## Final Q8
+
+PASS. Comparing corrected frozen executable head `514f50e5a7c50bd8d93aecb63e401de5d5c9895a` to the closure branch state showed only:
+
+- `docs/evidence/MASTER-36/VERIFICATION.md`
+- `docs/pr-plans/ACTIVE_PHASE.md`
+- `docs/pr-plans/MASTER-36.md`
+
+No executable file changed after the corrected local Q7 head.
+
 ## Q0–Q9
 
 - Q0 PASS — exact base `70194c6415c7b66c5f2569733b6ed1aa88b59832`.
@@ -121,7 +131,7 @@ Full evidence: `docs/evidence/MASTER-36/VERIFICATION.md`.
 - Q5 PASS — security/fail-closed review.
 - Q6 PASS — architecture/ownership review.
 - Q7 PASS — corrected exact frozen-head local boundaries/typecheck/two focused suites: 15/15 tests.
-- Q8 FINAL REQUIRED — compare corrected frozen executable head to final PR head and require evidence/status-doc-only drift.
-- Q9 BLOCKED only until final Q8; then squash merge and start MASTER-37 from new authoritative `main`.
+- Q8 PASS — final executable-clean compare; post-Q7 drift is evidence/status documentation only.
+- Q9 READY — squash merge exact final PR head, verify new authoritative `main`, then start MASTER-37 fresh from that SHA.
 
 Hosted verify/iOS/Android jobs with no steps remain infrastructure non-signal only.
