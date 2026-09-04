@@ -9,7 +9,7 @@ Add a deterministic, framework-free Canvas dry-run trace + replay contract for e
 - authoritative `main`: `8d9c28d5ac70b20ea88556305977aafd9dc8f3f6`
 - previous phase: MASTER-33 merged via PR #193
 - branch: `master/34-canvas-simulation-replay`
-- frozen executable head: `cbfc5b8087d33e21b45f95283e28608a9b16cef2`
+- frozen executable head: `9a8591c741f59205caf371d9e34eafb8a6086861`
 
 ## Ownership
 
@@ -75,10 +75,12 @@ Replay reparses outer input, Canvas draft and trace through exact fail-closed da
 
 Q5 found two pre-freeze hardening gaps and closed both:
 
-1. outer simulation/replay inputs are now parsed through the shared safe JSON boundary with exact root shapes;
-2. trace/replay artifacts now require explicit `mode: "dry-run"`, preventing the artifact shape from silently presenting itself as executed/runtime evidence.
+1. outer simulation/replay inputs are parsed through the shared safe JSON boundary with exact root shapes;
+2. trace/replay artifacts require explicit `mode: "dry-run"`, preventing the artifact shape from silently presenting itself as executed/runtime evidence.
 
 Q6 confirms the package dependency surface is only `application-canvas` + `protocol`. There is no import path to runtime-core, policy/governance, WorkContext, Action Boundary/Ledger or publication/deployment owners.
+
+The first local Q7 run on `cbfc5b8087d33e21b45f95283e28608a9b16cef2` produced green package boundaries and TypeScript plus 11/12 focused tests. The sole failure was not implementation behavior: the test expected `INVALID_SCENARIO`, while the shared root safe-data parser correctly rejected the nested accessor earlier as `INVALID_INPUT`. Both nested scenario/trace unsafe-input expectations now match that root fail-closed contract. No production implementation changed in this correction.
 
 ## Q0–Q9
 
@@ -89,8 +91,8 @@ Q6 confirms the package dependency surface is only `application-canvas` + `proto
 - Q4 PASS — focused path/cycle/action-dry-run/replay/drift/tamper/security coverage implemented.
 - Q5 PASS — fail-closed/security review including root-input and dry-run evidence hardening.
 - Q6 PASS — architecture/authority review.
-- Q7 REQUIRED — exact frozen-head local package-boundary/type/focused test.
-- Q8 PRE-Q7 PASS — actual scope reviewed; final post-Q7 executable-clean compare still required.
+- Q7 REQUIRED — exact corrected frozen-head local package-boundary/type/focused test.
+- Q8 PRE-Q7 PASS — final post-Q7 executable-clean compare still required.
 - Q9 BLOCKED until Q7/final Q8; then squash merge and start MASTER-35 from new authoritative `main`.
 
 Exact local Q7:
