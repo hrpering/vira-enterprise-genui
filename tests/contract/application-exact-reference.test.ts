@@ -1,8 +1,29 @@
 import { describe, expect, it } from "vitest";
 import {
   parseViraApplicationExactReference,
+  parseViraApplicationPackage,
   serializeViraApplicationExactReference,
 } from "../../packages/application-package/src/index.js";
+
+function applicationWithCapability(versionRef: string) {
+  return {
+    schemaVersion: "1",
+    identity: { id: "vira.reference-test" },
+    version: "1.0.0",
+    publisher: { id: "vira", name: "Vira" },
+    experiences: [],
+    capabilities: [{ id: "plan.pro", versionRef }],
+    contextTypes: [],
+    actions: [],
+    flows: [],
+    brandRef: null,
+    governanceRequirements: [],
+    hostCompatibility: { minViraVersion: "1.0.0", requiredCapabilities: [] },
+    protocolProjections: [],
+    distribution: { name: "Reference Test", tags: [], visibility: "private", discoverable: false },
+    commercial: { entitlementRefs: [], meteringRefs: [] },
+  };
+}
 
 describe("Application exact-reference public API", () => {
   it("parses, freezes and deterministically serializes exact references", () => {
@@ -36,6 +57,21 @@ describe("Application exact-reference public API", () => {
       ok: false,
       issue: { code: "INVALID_REFERENCE" },
     });
+  });
+
+  it("keeps package reference validation delegated to the same canonical parser semantics", () => {
+    const valid = parseViraApplicationPackage(applicationWithCapability("2026-09+rev.1"));
+    expect(valid.ok).toBe(true);
+
+    for (const versionRef of ["latest", "1.x", "1-X"]) {
+      const direct = parseViraApplicationExactReference({ id: "plan.pro", versionRef });
+      const packageResult = parseViraApplicationPackage(applicationWithCapability(versionRef));
+      expect(direct.ok).toBe(false);
+      expect(packageResult.ok).toBe(false);
+      if (direct.ok || packageResult.ok) continue;
+      expect(packageResult.issue.code).toBe(direct.issue.code);
+      expect(packageResult.issue.path).toBe("$.capabilities[0].versionRef");
+    }
   });
 
   it("fails closed on accessor and custom-prototype inputs without invoking getters", () => {
