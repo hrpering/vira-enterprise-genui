@@ -9,7 +9,7 @@ Establish the first canonical Vira Network distribution boundary: distribute one
 - authoritative `main`: `2e1b509ca9d7c0c1c0179746bec95fa7f2bed016`
 - previous phase: MASTER-36 merged via PR #196
 - branch: `master/37-distribution-contract`
-- frozen executable head: `41fa04d7af4c5a68fa4eff1cb4a2403bff4dbaac`
+- corrected frozen executable head: `ad9745334e0cedfe2b7d28ee06435f498e62e7c4`
 
 ## Reverse-engineered owners
 
@@ -86,7 +86,7 @@ PASS.
 - canonical Application validation is delegated to `parseViraApplicationPackage()` and preserves canonical failure code/path context;
 - v1 integrity identity is restricted to one exact lowercase 64-hex SHA-256 digest;
 - parsing a digest declaration does not mark it verified;
-- integrity verification hashes/checks the canonical Application serialization through an injected verifier input, not mutable caller bytes;
+- integrity verification checks the canonical Application serialization through an injected verifier input, not mutable caller bytes;
 - verifier input is frozen and false, exception, missing verifier or any non-`true` result fails closed;
 - prototype-sensitive names remain inert data and exact-shape validation rejects them;
 - accessor/custom-prototype inputs fail before application logic executes.
@@ -100,6 +100,16 @@ PASS.
 - package discovery metadata, visibility, compatibility, protocol projections and commercial refs are consumed from the canonical Application package rather than duplicated;
 - deterministic envelope serialization composes `serializeViraApplicationPackage()` rather than creating a competing Application canonicalizer;
 - the public API has parse/serialize/integrity-verification only: no publish, deploy, resolve, execute, authorize, entitle, route or provider binding method exists.
+
+## Local Q7 history
+
+First exact-head run on `41fa04d7af4c5a68fa4eff1cb4a2403bff4dbaac`:
+
+- `pnpm check:boundaries` PASS;
+- focused `application-distribution` tests 13/13 PASS;
+- `pnpm typecheck` failed with one test-only TS7006 implicit-any parameter in the verifier callback.
+
+The correction changes only the focused test and annotates that callback parameter with the already-exported `ViraApplicationDistributionVerifierInput`. Production implementation is unchanged. Corrected frozen executable head: `ad9745334e0cedfe2b7d28ee06435f498e62e7c4`.
 
 ## Focused verification
 
@@ -118,8 +128,8 @@ pnpm vitest run tests/contract/application-distribution.test.ts
 - Q4 PASS — focused contract/integrity/security/non-authority coverage added.
 - Q5 PASS — security/fail-closed review.
 - Q6 PASS — architecture/ownership review.
-- Q7 REQUIRED — exact frozen-head local boundaries/typecheck/focused test.
-- Q8 PRE-Q7 PASS — actual executable scope reviewed; frozen executable head → branch drift is documentation only. Final post-Q7 compare still required.
-- Q9 BLOCKED until Q7/final Q8; then exact-head squash merge and next distribution phase starts from new authoritative `main`.
+- Q7 CORRECTED EXACT-HEAD RETEST REQUIRED.
+- Q8 PRE-Q7 PASS — executable scope reviewed; after corrected frozen head only docs/status changes are allowed. Final post-Q7 compare still required.
+- Q9 BLOCKED until corrected Q7/final Q8; then exact-head squash merge and next distribution phase starts from new authoritative `main`.
 
-Hosted verify/iOS/Android jobs on the current branch head ended with zero steps / runner id 0 and are infrastructure non-signal only.
+Hosted verify/iOS/Android jobs on the branch ended with zero steps / runner id 0 and remain infrastructure non-signal only.
