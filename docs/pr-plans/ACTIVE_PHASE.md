@@ -1,24 +1,38 @@
 # Active Phase
 
-**Phase:** MASTER-41 — Federated Distribution  
+**Phase:** MASTER-42 — Commercial Entitlement Contract  
 **Status:** Q0–Q8 PASS / Q9 READY TO MERGE  
-**Base SHA:** `b425e5e7104c1a6441671301a6ac262e4e15e1bb`  
-**Frozen executable SHA:** `8f488959478368c1b7887c39af30808c127f5a8a`  
-**Previous:** MASTER-40 merged via PR #200  
-**Branch:** `master/41-federated-distribution`  
-**PR:** #201  
-**Next after merge:** MASTER-42 commercial network / entitlement phase from new authoritative `main`
+**Base SHA:** `a0da432e0220cb550b13f11f4a4a8001d445e212`  
+**Frozen executable SHA:** `652793c2e57b62c11a28f6adf6b36e9356008560`  
+**Previous:** MASTER-41 merged via PR #201  
+**Branch:** `master/42-commercial-entitlements`  
+**PR:** #202  
+**Next after merge:** MASTER-43 usage / rating / metering from new authoritative `main`
 
-MASTER-41 introduces `@vira-enterprise-genui/application-federation` as a provider-neutral public federated discovery snapshot over canonical Application Distribution envelopes.
+MASTER-42 begins PROGRAM IV — Commercial Network + Capability Cloud by adding the provider-neutral commercial entitlement boundary for exact Application releases.
 
-Public federation admits only canonical Application metadata with `visibility: "public"` and `discoverable: true`. This is a metadata admission rule, not authentication or access-control proof. `sourceId` is provenance data, not authenticated identity. Distribution digests remain declarations; federation parsing does not claim integrity verification.
+Canonical `ViraApplicationPackage.commercial` already contains exact reference-only `entitlementRefs[]` and `meteringRefs[]`; MASTER-42 consumes those references and does not move grants, billing state, policy decisions or usage counters into Application metadata.
 
-The same exact Application `id@version` may appear from multiple sources only when deterministic canonical Distribution serialization is identical. Divergent envelopes fail closed with `FEDERATION_CONFLICT`; there is no priority, majority vote, implicit latest or fallback.
+Frozen commercial dimensions:
 
-Q5 security/fail-closed review PASS. Q6 architecture/ownership review PASS. Q7 exact frozen-head local gate is operator-reported PASS and recorded in `docs/evidence/MASTER-41/Q7_LOCAL.md`. Q8 independent PR reverse engineering is PASS and recorded in `docs/evidence/MASTER-41/Q8_REVIEW.md`.
+```text
+who + what + exact version + where + plan + declarative limit + commercial access
+```
 
-Exact executable dependency boundary: `application-federation → application-distribution, protocol`.
+The canonical package owner is `@vira-enterprise-genui/commercial-entitlement` with executable dependency boundary:
 
-Hosted verify/iOS/Android jobs on the frozen head ended without executable steps and remain infrastructure non-signal; they do not substitute for Q7.
+```text
+commercial-entitlement → application-package, enterprise-context, protocol
+```
 
-MASTER-41 is ready for final closure-head docs-only compare and exact-head squash merge.
+Commercial entitlement is explicitly separate from authorization, governance and runtime permission. An `entitled` result never means `allow`, `approved`, `authorized` or executable. Independent governance/authorization/runtime/action gates remain mandatory downstream.
+
+Evaluation is for one explicitly selected exact Application `entitlementRef` at a time, avoiding invented AND/OR semantics for the package's entitlement reference array. Exact Application release, optional exact Capability, canonical enterprise principal/scope, location, plan and declarative limits are matched deterministically. Duplicate exact selectors and overlapping matching grants fail closed rather than creating priority/override semantics.
+
+MASTER-42 limits are exactly `{ meteringRef, quantity }`; meter unit/window semantics, mutable usage accounting, remaining quota and rating are reserved for MASTER-43.
+
+Q5 security/fail-closed review PASS. Q6 architecture/ownership review PASS. Q7 exact frozen-head local gate is operator-reported PASS and recorded in `docs/evidence/MASTER-42/Q7_LOCAL.md`. Q8 independent PR reverse engineering PASS is recorded in `docs/evidence/MASTER-42/Q8_REVIEW.md`.
+
+Hosted PR-head verify/iOS/Android jobs contain zero executable steps and no runner assignment; they remain infrastructure non-signal and do not substitute for Q7.
+
+MASTER-42 is ready for final docs-only closure compare and exact-head squash merge.
