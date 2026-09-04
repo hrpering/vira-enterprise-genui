@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-35 — Canvas Multiplayer + Semantic Review  
-**Status:** Q0–Q6 PASS / LOCAL Q7 REQUIRED  
+**Status:** Q0–Q8 PASS / Q9 MERGE READY  
 **Base SHA:** `f17ae3cc920e672fcab1f97028dddcbe08040016`  
 **Frozen executable SHA:** `74d8a2c4dc7e1f573600ed52af908c0e10443fd7`  
 **Previous:** MASTER-34 merged via PR #194  
@@ -21,4 +21,6 @@ Q5/Q6 security and architecture review PASS. Executable dependencies remain only
 
 The first local Q7 attempt on `68583242ce8afb71e04d70d0843a9c81d54a9dad` had package boundaries and focused 12/12 tests green but TypeScript failed on one sort typo and one closure narrowing issue. Both were fixed without semantic behavior changes. Corrected frozen executable head is `74d8a2c4dc7e1f573600ed52af908c0e10443fd7`.
 
-Merge remains blocked until exact corrected-head local Q7 and final executable-clean Q8.
+The corrected frozen head was operator-reported fully green for boundaries, TypeScript and focused collaboration tests. Final Q8 compare from that head contains documentation/evidence changes only; executable drift is zero.
+
+PR #195 is Q9 merge-ready.
