@@ -21,6 +21,7 @@ export const allowedDependencies = Object.freeze({
   "application-canvas-ai": ["application-canvas", "application-package", "protocol"],
   "application-canvas-simulation": ["application-canvas", "protocol"],
   "application-canvas-collaboration": ["application-canvas", "protocol"],
+  "application-canvas-design-import": ["application-canvas", "design-system-compiler", "protocol"],
   "experience-packs": [],
   "experience-pack-compositions": ["protocol", "studio-schema"],
   "experience-registry": ["experience-packs"],
