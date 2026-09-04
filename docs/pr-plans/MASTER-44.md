@@ -9,6 +9,7 @@ Introduce the canonical provider-neutral hosted execution boundary for **query**
 - authoritative `main`: `e987f3447953761b70c4aa548761bf359b3e07f0`
 - previous phase: MASTER-43 merged via PR #204
 - branch: `master/44-hosted-capability-runtime`
+- frozen executable head: `52dfb067904b34ffe055431232ed8e621a3b3d6f`
 
 ## Q1 reverse engineering
 
@@ -168,6 +169,8 @@ The result includes exact Capability/binding/provider/location/invocation identi
 
 A successful query execution is execution evidence only. It cannot override any independent authentication, authorization, enterprise policy, entitlement or governance requirement imposed by the host/integration.
 
+A canonical `query` declaration also does not cryptographically prove that an external provider implementation is side-effect-free. The explicitly supplied adapter is a trusted integration boundary, not a new semantic/security authority.
+
 ## Failure invariants
 
 - malformed/untrusted input fails closed through safe JSON/object validation;
@@ -202,7 +205,99 @@ MASTER-44 does not implement:
 
 Those concerns must remain separately owned and only be added by later phases with explicit boundaries.
 
-## Planned focused verification
+## Q3 implementation
+
+PASS.
+
+Added `@vira-enterprise-genui/hosted-capability-runtime` with:
+
+- exact provider-neutral binding parser;
+- canonical CapabilityDefinition delegation;
+- canonical enterprise principal/scope reconstruction;
+- exact typed JSON input/output envelopes;
+- canonical WorkContext parsing/minimization;
+- query-only trusted-adapter invocation;
+- explicit `ACTION_BOUNDARY_REQUIRED` refusal for action-kind Capabilities;
+- exact `success | empty | error` provider result validation;
+- immutable non-authority execution evidence;
+- executable package-boundary declaration.
+
+Frozen executable SHA after Q3/Q4/static fixes:
+
+```text
+52dfb067904b34ffe055431232ed8e621a3b3d6f
+```
+
+## Q4 focused verification coverage
+
+PASS by static contract review; exact local execution remains Q7.
+
+Focused suites added:
+
+```text
+tests/contract/hosted-capability-runtime.test.ts
+tests/contract/hosted-capability-runtime-hardening.test.ts
+```
+
+Coverage includes:
+
+- exact binding parsing;
+- canonical query success/empty/error evidence;
+- action adapter non-invocation;
+- binding Capability mismatch;
+- exact required Context set + deterministic ordering;
+- missing/undeclared/duplicate Context rejection;
+- input/output typeRef mismatch;
+- adapter throw/rejection + no implicit retry;
+- floating refs;
+- authority/commercial/endpoint/credential smuggling rejection;
+- accessor/custom-prototype fail-closed behavior;
+- cross-organization principal rejection;
+- Context count ceiling;
+- invalid provider/location ids;
+- malformed provider result/failure code rejection;
+- canonical Capability parser delegation.
+
+Static reverse engineering found and corrected one test-fixture issue before freeze: `refund.analysis` must use publisher id `refund` because Capability publisher namespace authority requires the first Capability-id segment to equal publisher id.
+
+## Q5 security / fail-closed review
+
+PASS. Evidence: `docs/evidence/MASTER-44/Q5_Q6_REVIEW.md`.
+
+Key results:
+
+- all untrusted binding/request/provider-result payloads use shared safe JSON parsing;
+- canonical Capability/WorkContext/enterprise owners are reused rather than bypassed;
+- action-kind execution cannot reach adapter;
+- undeclared ambient Context cannot be forwarded;
+- exact provider result shape blocks authority/commercial/credential smuggling;
+- adapter errors/malformed output fail closed;
+- provider/binding/location evidence does not claim trust/attestation;
+- no implicit retry/failover or metering side effect.
+
+## Q6 architecture / ownership review
+
+PASS. Evidence: `docs/evidence/MASTER-44/Q5_Q6_REVIEW.md`.
+
+Executable dependency authority:
+
+```text
+hosted-capability-runtime → capability-contract, enterprise-context, protocol, work-context
+```
+
+Nearest existing owners retain their authority; hosted Capability runtime does not absorb Capability semantics, protocol/tool adaptation, Experience deployment/runtime, Action execution, commercial logic or provider/cloud infrastructure.
+
+Frozen executable → current branch compare after Q6 contains documentation/evidence changes only.
+
+## Q7 focused verification
+
+Run against exact frozen executable head:
+
+```text
+52dfb067904b34ffe055431232ed8e621a3b3d6f
+```
+
+Commands:
 
 ```bash
 pnpm check:boundaries
@@ -212,15 +307,17 @@ pnpm vitest run \
   tests/contract/hosted-capability-runtime-hardening.test.ts
 ```
 
+Q7 local execution evidence is pending.
+
 ## Q0–Q9
 
 - Q0 PASS — branch reset/verified at exact authoritative main `e987f3447953761b70c4aa548761bf359b3e07f0`.
 - Q1 PASS — Capability/protocol/tool/deployment/runtime/AI-host/Action/Context owner reverse engineering.
-- Q2 PASS — hosted query-runtime boundary frozen in this document.
-- Q3 NEXT — implement package and executable dependency boundary.
-- Q4 — focused + fail-closed tests.
-- Q5 — security/failure review.
-- Q6 — architecture/ownership review.
-- Q7 — exact frozen-head local boundaries/typecheck/focused suites.
-- Q8 — independent PR reverse engineering + executable-clean closure compare.
+- Q2 PASS — hosted query-runtime boundary frozen.
+- Q3 PASS — package + query runtime + dependency graph implemented.
+- Q4 PASS — focused and hardening coverage added; canonical fixture corrected before freeze.
+- Q5 PASS — security/fail-closed review.
+- Q6 PASS — architecture/ownership review.
+- Q7 PENDING — exact frozen-head local boundaries/typecheck/focused suites.
+- Q8 — independent PR reverse engineering + executable-clean closure compare after Q7.
 - Q9 — exact-head squash merge, verify new authoritative main, then start next phase fresh from it.
