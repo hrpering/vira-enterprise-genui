@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-04  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-35:** `f17ae3cc920e672fcab1f97028dddcbe08040016`
+**Authoritative main entering MASTER-36:** `70194c6415c7b66c5f2569733b6ed1aa88b59832`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -22,8 +22,8 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Canvas Mutation Session | MASTER-32 | MERGED / PR #192 |
 | Application Network — Canvas AI Co-author | MASTER-33 | MERGED / PR #193 |
 | Application Network — Canvas Simulation + Replay | MASTER-34 | MERGED / PR #194 |
-| Application Network — Canvas Multiplayer + Semantic Review | MASTER-35 | ACTIVE |
-| Application Network — Design System / External Design Import | MASTER-36 | PLANNED |
+| Application Network — Canvas Multiplayer + Semantic Review | MASTER-35 | MERGED / PR #195 |
+| Application Network — Design System / External Design Import | MASTER-36 | ACTIVE |
 | Application Network — Distribution | MASTER-37..41 | PLANNED |
 | Application Network — Commercial / Capability Cloud | MASTER-42..47 | PLANNED |
 | Application Network — External Proofs / Network RC | MASTER-48..51 | PLANNED |
@@ -51,7 +51,7 @@ MASTER-33 Canvas AI Co-author ✅
   ↓
 MASTER-34 Canvas Simulation + Replay ✅
   ↓
-MASTER-35 Canvas Multiplayer + Semantic Review
+MASTER-35 Canvas Multiplayer + Semantic Review ✅
   ↓
 MASTER-36 Design System / External Design Import
   ↓
@@ -76,6 +76,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 - Canvas collaboration presence is ephemeral and non-semantic; peer review gates editor draft mutation only and is not governance/authorization/publication approval.
 - Concurrent Canvas semantic proposals bind exact base revision; applying one through the canonical mutation owner makes competing proposals stale.
 - Canvas collaboration does not imply CRDT, network transport, persistence or distributed lock ownership.
+- Canvas external design import consumes provider-neutral normalized DTCG through the existing compiler; vendor formats, URLs and credentials remain adapter/transport concerns.
+- Imported design artifacts bind the Application's existing exact `brandRef` and are authoring data only; they cannot install renderers, mutate Canvas semantics, publish, deploy or execute.
+- Existing Studio design/brand/compiler owners remain canonical; Canvas does not create a competing design-system schema.
 - Canvas cannot directly publish, deploy, authorize, govern or execute protected effects by implication.
 - Capability semantics are provider-neutral; provider/API/MCP/SaaS bindings do not define canonical meaning.
 - WorkContext is bounded work state/provenance, not chat history/user memory/prompt storage/runtime lifecycle.
@@ -88,9 +91,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 
 ## Active records
 
-- `docs/pr-plans/MASTER-35.md`
+- `docs/pr-plans/MASTER-36.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-35/RE_REPORT.md`
+- `docs/evidence/MASTER-36/RE_REPORT.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`

@@ -2,11 +2,12 @@
 
 Current active record:
 
-- `MASTER-35.md` — Canvas multiplayer presence + semantic peer review.
+- `MASTER-36.md` — Canvas Design System / External Design Import.
 - `ACTIVE_PHASE.md` — machine/human-readable status pointer.
 
 Immediate provenance retained:
 
+- `MASTER-35.md` — merged Canvas multiplayer presence + semantic peer review.
 - `MASTER-34.md` — merged Canvas deterministic dry-run simulation + replay.
 - `MASTER-33.md` — merged Canvas AI Co-author proposal/diff gate.
 - `MASTER-32.md` — merged Canvas mutation/session + stale revision guard.
@@ -18,4 +19,4 @@ Immediate provenance retained:
 - `MASTER-26.md` — merged Application semantic freeze.
 - MASTER-25/25R native/release records — Enterprise GenUI RC1 provenance pending later archival cleanup.
 
-MASTER-35 has passed exact-head local Q7 and final executable-clean Q8. Squash merge PR #195 before starting MASTER-36 from the new authoritative `main`.
+Do not start MASTER-37 until MASTER-36 passes exact-head local Q7, final actual-diff Q8 and squash merge from the new authoritative `main`.

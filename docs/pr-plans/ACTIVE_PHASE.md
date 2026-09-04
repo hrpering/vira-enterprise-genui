@@ -1,26 +1,28 @@
 # Active Phase
 
-**Phase:** MASTER-35 — Canvas Multiplayer + Semantic Review  
-**Status:** Q0–Q8 PASS / Q9 MERGE READY  
-**Base SHA:** `f17ae3cc920e672fcab1f97028dddcbe08040016`  
-**Frozen executable SHA:** `74d8a2c4dc7e1f573600ed52af908c0e10443fd7`  
-**Previous:** MASTER-34 merged via PR #194  
-**Next after merge:** MASTER-36 — Design System / External Design Import
+**Phase:** MASTER-36 — Design System / External Design Import  
+**Status:** Q0–Q8 PASS / Q9 READY TO MERGE  
+**Base SHA:** `70194c6415c7b66c5f2569733b6ed1aa88b59832`  
+**Frozen executable SHA:** `514f50e5a7c50bd8d93aecb63e401de5d5c9895a`  
+**Previous:** MASTER-35 merged via PR #195  
+**Next after merge:** MASTER-37 — Distribution / protocol program
 
-MASTER-35 introduces `@vira-enterprise-genui/application-canvas-collaboration` as an authoring-only collaboration layer.
+MASTER-36 introduces `@vira-enterprise-genui/application-canvas-design-import` as a provider-neutral authoring import boundary.
 
-Registered participants can publish ephemeral graph-local presence and create concurrent semantic proposals against the same exact `editorRevision`. Presence never mutates the Canvas draft.
+External vendor adapters must normalize source material to DTCG 2025.10 before entering core. Canvas does not own Figma/Sketch/API payload parsing, URLs, credentials or provider bindings.
 
-Semantic reviews are immutable peer-review records. Authors cannot self-review, duplicate reviews fail closed, any rejection blocks apply, and distinct approvals must meet the session threshold.
+The import boundary validates the Canvas draft, requires the Application's existing exact `brandRef`, validates bounded source provenance, delegates token compilation to the canonical `design-system-compiler`, and returns a frozen `mode: "authoring-import"` artifact carrying canonicalized safe DTCG plus compiled Studio design options/metadata.
 
-Approved apply remains delegated to the existing Canvas mutation session. Stale proposal bases fail closed; projection-breaking proposals require reconciliation before apply. Successful semantic apply increments revision through the canonical owner and clears ephemeral presence.
+Q5 security review PASS. Exact input/source shapes reject provider/url/credential/apply/publish smuggling; raw DTCG is canonicalized with null-prototype objects before the existing compiler applies its own prototype-sensitive-name rejection. Compiler failures remain fail-closed and preserve compiler code/path.
 
-Participant `actorId` values are host-asserted identities, not authentication performed by this package. The review threshold is an editor collaboration rule only, not enterprise governance, authorization, publication approval or protected execution permission.
+Q6 architecture review PASS. Executable dependencies are only `application-canvas`, `design-system-compiler` and `protocol`. Full brand assembly remains with `studio-brand`; trusted renderer activation remains with `studio-brand-loader`; Canvas mutation/publish/deploy/runtime/governance/Action authority is unreachable.
 
-Q5/Q6 security and architecture review PASS. Executable dependencies remain only `application-canvas` + `protocol`; no network/CRDT/runtime/governance/deployment/Action authority is imported.
+First local Q7 on `2909dd596a54b6e6602b0ea38135cb2a243ef4e8` exposed a test-fixture defect: package boundaries and TypeScript passed, the primary suite passed 12/12, but the hardening fixture violated canonical Application `EMPTY_APPLICATION` and stopped with `INVALID_DRAFT` before DTCG import. Production import code was unchanged. The fixture was corrected by adding one inert exact Capability reference.
 
-The first local Q7 attempt on `68583242ce8afb71e04d70d0843a9c81d54a9dad` had package boundaries and focused 12/12 tests green but TypeScript failed on one sort typo and one closure narrowing issue. Both were fixed without semantic behavior changes. Corrected frozen executable head is `74d8a2c4dc7e1f573600ed52af908c0e10443fd7`.
+Corrected exact-head local Q7 on `514f50e5a7c50bd8d93aecb63e401de5d5c9895a` is operator-reported PASS: package boundaries PASS, TypeScript PASS, 2/2 test files PASS, 15/15 tests PASS (hardening 3/3; primary import 12/12).
 
-The corrected frozen head was operator-reported fully green for boundaries, TypeScript and focused collaboration tests. Final Q8 compare from that head contains documentation/evidence changes only; executable drift is zero.
+Q8 PASS. Final compare from corrected frozen executable head `514f50e5a7c50bd8d93aecb63e401de5d5c9895a` to the closure branch state contains only verification evidence and phase/status documentation; executable drift is zero.
 
-PR #195 is Q9 merge-ready.
+Hosted verify/iOS/Android jobs remain runner-allocation infrastructure non-signal when they contain no steps.
+
+MASTER-36 is ready for exact-head squash merge. MASTER-37 must start from the resulting new authoritative `main`, never from this phase branch.
