@@ -1,10 +1,12 @@
 # Active Phase
 
 **Phase:** MASTER-42 — Commercial Entitlement Contract  
-**Status:** Q0–Q2 PASS / Q3 IMPLEMENTATION  
+**Status:** Q0–Q7 PASS / Q8 ACTIVE  
 **Base SHA:** `a0da432e0220cb550b13f11f4a4a8001d445e212`  
+**Frozen executable SHA:** `652793c2e57b62c11a28f6adf6b36e9356008560`  
 **Previous:** MASTER-41 merged via PR #201  
 **Branch:** `master/42-commercial-entitlements`  
+**PR:** #202  
 **Next after merge:** MASTER-43 usage / rating / metering from new authoritative `main`
 
 MASTER-42 begins PROGRAM IV — Commercial Network + Capability Cloud by adding the provider-neutral commercial entitlement boundary for exact Application releases.
@@ -14,10 +16,10 @@ Canonical `ViraApplicationPackage.commercial` already contains exact reference-o
 Frozen commercial dimensions:
 
 ```text
-who + what + exact version + where + plan + quota/limit declaration + commercial access
+who + what + exact version + where + plan + declarative limit + commercial access
 ```
 
-The new package owner is `@vira-enterprise-genui/commercial-entitlement` with the intended executable dependency boundary:
+The canonical package owner is `@vira-enterprise-genui/commercial-entitlement` with executable dependency boundary:
 
 ```text
 commercial-entitlement → application-package, enterprise-context, protocol
@@ -25,8 +27,8 @@ commercial-entitlement → application-package, enterprise-context, protocol
 
 Commercial entitlement is explicitly separate from authorization, governance and runtime permission. An `entitled` result never means `allow`, `approved`, `authorized` or executable. Independent governance/authorization/runtime/action gates remain mandatory downstream.
 
-Evaluation is for one explicitly selected exact Application `entitlementRef` at a time, avoiding invented AND/OR semantics for the package's entitlement reference array. Exact Application release, optional exact Capability, canonical enterprise principal/scope, location, plan and declarative limits are matched deterministically. Overlapping matching grants have no priority winner and fail closed as ambiguous.
+Evaluation is for one explicitly selected exact Application `entitlementRef` at a time, avoiding invented AND/OR semantics for the package's entitlement reference array. Exact Application release, optional exact Capability, canonical enterprise principal/scope, location, plan and declarative limits are matched deterministically. Duplicate exact selectors and overlapping matching grants fail closed rather than creating priority/override semantics.
 
-Quota/limit declarations do not count usage or calculate remaining quota. Usage/rating/metering is reserved for MASTER-43.
+MASTER-42 limits are exactly `{ meteringRef, quantity }`; meter unit/window semantics, mutable usage accounting, remaining quota and rating are reserved for MASTER-43.
 
-Q0 fresh-base PASS. Q1 targeted owner reverse engineering PASS. Q2 contract freeze PASS in `docs/pr-plans/MASTER-42.md`. Q3 implementation is active.
+Q5 security/fail-closed review PASS. Q6 architecture/ownership review PASS. Q7 exact frozen-head local gate is operator-reported PASS and recorded in `docs/evidence/MASTER-42/Q7_LOCAL.md`. Q8 independent PR reverse engineering is active on PR #202.
