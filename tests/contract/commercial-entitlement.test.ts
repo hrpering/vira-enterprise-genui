@@ -50,7 +50,6 @@ function entitlement(overrides: Record<string, unknown> = {}) {
     limits: [{
       meteringRef: { id: "metering.refund-invocations", versionRef: "1" },
       quantity: 500_000,
-      period: "month",
     }],
     commercialAccess: "enabled",
     ...overrides,
@@ -100,7 +99,6 @@ describe("Vira Commercial Entitlement v1", () => {
     expect(result.value.limits).toEqual([{
       meteringRef: { id: "metering.refund-invocations", versionRef: "1" },
       quantity: 500_000,
-      period: "month",
     }]);
     expect("authorized" in result.value).toBe(false);
     expect("allow" in result.value).toBe(false);
@@ -222,7 +220,6 @@ describe("Vira Commercial Entitlement v1", () => {
         limits: [{
           meteringRef: { id: "metering.undeclared", versionRef: "1" },
           quantity: 10,
-          period: "day",
         }],
       })]),
       request(),
