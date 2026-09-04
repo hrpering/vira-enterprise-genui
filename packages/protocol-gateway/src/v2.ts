@@ -1,4 +1,4 @@
-import { parseJsonValue, type JsonValue } from "@vira-enterprise-genui/protocol";
+import { parseJsonValue, type JsonArray, type JsonValue } from "@vira-enterprise-genui/protocol";
 
 export const PROTOCOL_GATEWAY_V2_VERSION = "2" as const;
 export const PROTOCOL_GATEWAY_V2_PROTOCOLS = Object.freeze([
@@ -87,9 +87,13 @@ function ownData(object: object, key: PropertyKey): PropertyDescriptor | undefin
     : undefined;
 }
 
+function jsonArray(value: JsonValue): value is JsonArray {
+  return ARRAY_IS_ARRAY(value);
+}
+
 function freezeJson(value: JsonValue): JsonValue {
   if (value === null || typeof value !== "object" || OBJECT_IS_FROZEN(value)) return value;
-  if (ARRAY_IS_ARRAY(value)) {
+  if (jsonArray(value)) {
     for (let index = 0; index < value.length; index += 1) {
       freezeJson(value[index]!);
     }
