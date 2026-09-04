@@ -2,272 +2,146 @@
 
 ## Purpose
 
-This document defines what Vira may trust, what it must validate, and where security decisions must fail closed.
-
-It is an architectural contract, not a claim that every target control is already implemented. Current guarantees and planned MASTER-phase guarantees are identified separately.
+This document defines the current trust boundaries of the integrated Enterprise GenUI foundation. It describes canonical security invariants, not a claim that external production proof has completed; RC1 remains blocked on MASTER-25R exact-head evidence.
 
 ## Primary security objective
 
-No model, agent, renderer, protocol adapter, customer payload, Experience artifact, or provider integration may directly turn untrusted input into an enterprise side effect.
+No model, agent, renderer, protocol adapter, customer payload, Experience artifact or provider integration may directly turn untrusted input into a protected enterprise side effect.
 
 ```text
 UNTRUSTED / PARTIALLY TRUSTED
-model · agent · user input · tool result · network payload · artifact input
-                         │
-                         ▼
+model · agent · user input · tool result · network payload · artifact
+                         ↓
                validation / normalization
-                         │
-                         ▼
+                         ↓
                canonical Vira contracts
-                         │
-                         ▼
-                 governance boundary
-                         │
-                         ▼
+                         ↓
+             governance + Action Boundary
+                         ↓
                 trusted action adapter
-                         │
-                         ▼
+                         ↓
                  enterprise backend
 ```
 
 ## Trust zones
 
-### Zone U0 — External untrusted input
+### U0 — External input
+
+LLM output, agent proposals, user input, tool results, customer API responses, imported documents, protocol payloads and externally supplied Pack/Registry inputs are untrusted.
+
+Shape, prototype state, claimed version, identity, provider metadata or capability claims are never authority by themselves.
+
+### U1 — Authored Experience content
+
+An Experience is declarative application data, not executable privilege. A document cannot grant itself a component implementation, credential, host capability, action adapter, governance permission or backend authority.
+
+### T1 — Canonical validated contracts
+
+A successful parser/validator grants trust only for the semantics that owner validates.
 
 Examples:
 
-- LLM output;
-- agent proposals;
-- user-entered values;
-- MCP/other tool results;
-- customer API responses;
-- Registry/Pack input received from outside the trusted process;
-- imported authoring documents;
-- protocol payloads.
+- parsed Studio document validity is not business-action authorization;
+- valid Pack structure is not deployment/marketplace approval;
+- Registry membership is not tenant authorization;
+- structurally valid action input is not governance approval.
 
-Rule: external shape, object identity, prototype state, provider metadata, claimed version and claimed capability are not authority by themselves.
+### T2 — Trusted host / brand integration
 
-Current repository examples already follow this posture through canonical JSON parsing, unknown-field rejection, bounded inputs and hardened Pack/Registry parsing.
+Installed integrations provide trusted component implementations and registered adapters. Trusted code still receives data; it does not gain permission to bypass canonical action/governance owners.
 
-### Zone U1 — Authored Experience content
+### T3 — Governance and protected execution
 
-An authored Experience is declarative product data, not trusted executable code.
+`governance`, `enterprise-governance` and `action-boundary` form the canonical protected-action path. Provider-neutral identity/governance/approval results are composed with Vira's structural, tenant/instance, revision/idempotency and trusted-adapter constraints.
 
-Allowed semantics are constrained by registered component, binding, interaction and action contracts. A document cannot grant itself a new component implementation, host capability, credential or backend permission.
-
-### Zone T1 — Canonical validated contracts
-
-Values returned by canonical Vira parsers/validators are trusted only for the semantics owned by that parser.
-
-Examples:
-
-- a parsed `StudioExperienceDocument` proves document validity, not authorization to execute a business action;
-- a canonical Experience Pack proves manifest validity, not Marketplace visibility or deployment approval;
-- Registry membership proves an exact Pack is known, not that it is safe for every tenant/host;
-- a valid runtime action proves action shape, not policy approval.
-
-Never promote validation in one layer into authority for another layer.
-
-### Zone T2 — Trusted host / brand integration
-
-Installed application integrations provide trusted implementations for registered semantic components, data adapters and action adapters.
-
-A renderer implementation may display approved data and emit registered semantic interactions. It must not bypass the canonical runtime/action boundary to perform arbitrary protected side effects.
-
-### Zone T3 — Governance and action execution
-
-The target Vira Action Boundary combines validated intent with user/agent/Experience/deployment/instance/environment context before a trusted action adapter is invoked.
-
-This zone is the only intended route for protected enterprise side effects once MASTER-08 is complete.
+This is the intended path for protected enterprise side effects.
 
 ## Fail-closed rules
 
-The following conditions deny/reject rather than silently guess:
+Reject/deny rather than guess on at least:
 
-- unknown Experience/document fields at canonical boundaries;
-- invalid or unsupported versions;
-- unknown Pack/version;
-- unsupported host capability without an author-declared compatible fallback;
-- unknown component/action/capability;
-- ambiguous resolver match;
-- unknown or mismatched `instanceId`;
-- cross-tenant or cross-project access;
-- stale state revision where a side effect depends on a newer state;
-- invalid/missing identity required by policy;
-- policy evaluation error;
-- failed approval/challenge;
+- malformed or unknown canonical fields;
+- unsupported/unknown version;
+- unknown Pack/component/action/capability;
+- ambiguous resolution;
+- implicit-latest execution;
+- mismatched instance/deployment identity;
+- cross-tenant/project/environment access;
+- stale revision for a protected mutation;
+- missing/invalid required identity;
+- governance/provider evaluation error;
+- failed/expired approval or challenge;
 - unsigned/unverified artifact where verification is required;
-- provider adapter failure on a mandatory security decision.
+- malformed adapter result;
+- provider failure on a mandatory security decision.
 
-A security subsystem being unavailable does not mean allow.
+Unavailable security infrastructure does not mean allow.
 
-## Current fail-closed foundations
+## Identity and governance
 
-The current codebase already establishes several useful controls:
+A protected action decision can distinguish the relevant actor, agent/service, tenant/project/environment, Experience/Pack/publication/deployment, runtime instance, semantic action and bounded payload.
 
-- `runtime-core` permission evaluation defaults to deny when no rule matches;
-- runtime actions are validated into canonical JSON data with a closed field set;
-- Studio document validation rejects unknown/invalid structure;
-- host snapshots are validated and accepted monotonically;
-- duplicate Studio action forwarding is rejected per runtime session;
-- Experience Registry exact lookup does not select a mutable `latest` version;
-- generic security/policy wrappers do not execute protected actions themselves;
-- package boundaries prohibit generic layers from importing arbitrary domain/framework owners.
+Identity providers assert identity; they do not choose protected business outcome alone.
 
-These are foundations, not the complete MASTER-08/09 governance system.
+External governance providers are adapters. Their native concepts are translated into provider-neutral Vira verdicts/obligations. A provider cannot override Vira structural invalidity, exact isolation, required artifact integrity or other non-overridable core safety.
 
-## Identity model — target
+## Approval / challenge
 
-A protected action decision must be able to distinguish at least:
+Approval is a governed state transition bound to the material action context, not a UI shortcut. If material values, target, identity, version, instance or relevant revision changes, previously issued evidence is not silently reused where policy requires a fresh decision.
 
-```text
-WHO        user
-WHICH      agent / service
-WHICH      Experience
-WHICH      Pack / publication / deployment revision
-WHICH      runtime instance
-WHERE      platform / environment / tenant / project
-WHAT       action
-WITH       bounded validated data
-```
+Approval UX may be rendered as an Experience, but the UI itself does not execute the protected effect outside the boundary.
 
-Identity providers assert identity; they do not choose the protected business outcome by themselves.
+## Concurrency, retry and idempotency
 
-Unknown identity is not silently converted into an anonymous privileged principal.
+Vira does not promise impossible universal exactly-once execution. The action contract provides explicit identity/idempotency/revision concepts so double-clicks, reconnects, agent retries and network retries do not blindly repeat a protected mutation.
 
-## Provider-neutral governance — target
-
-External providers such as OPA, Cedar, Microsoft governance/identity systems or custom engines may participate through adapters.
-
-Provider output is mapped into a canonical Vira verdict. A target verdict model may include:
-
-- allow;
-- deny;
-- challenge/approval;
-- transform with explicit bounded obligations.
-
-Provider-specific concepts do not leak through every runtime package.
-
-### Non-overridable core safety
-
-A provider cannot authorize behavior that Vira itself considers structurally invalid or forbidden.
-
-Examples:
-
-- a provider cannot allow an unknown action to execute;
-- a provider cannot make an unsigned required artifact valid;
-- a provider cannot bypass exact instance/tenant isolation;
-- a provider cannot turn arbitrary remote code into a trusted component;
-- a provider cannot grant AI autonomous publish permission where the core product rule forbids it.
-
-## Approval / challenge — target
-
-An approval requirement is a governed state transition, not a UI popup shortcut.
-
-Approval evidence must bind to the action context being approved. A changed amount, target, version, instance or relevant state revision requires a new decision when the policy says those fields are material.
-
-Approval presentation itself should be representable as a Vira Experience across supported platforms.
-
-## Concurrency and idempotency — target
-
-Distributed systems cannot promise magical exactly-once execution. Vira instead requires explicit duplicate/stale defenses around side effects.
-
-Target action context includes concepts such as:
-
-- `actionId`;
-- `idempotencyKey`;
-- `expectedStateRevision`;
-- exact instance/deployment identity.
-
-The trusted adapter/receipt model must make retries deterministic enough to prevent a double-click, mobile reconnect, agent retry or network retry from blindly repeating a protected mutation.
-
-Existing Studio host-runtime at-most-once forwarding is preserved as a useful local guarantee but does not replace end-to-end backend idempotency.
+A duplicate and a different stale operation are distinct failure classes.
 
 ## Artifact trust
 
-### Passive artifact rule
+Canonical Experience distribution is passive declarative content plus references to trusted installed implementations.
 
-Experience distribution contains declarative, bounded content and references to trusted installed implementations.
+Forbidden as generic Experience privilege:
 
-Forbidden as a general native/web Experience mechanism:
-
-- arbitrary remote JavaScript;
-- arbitrary remote Swift/Kotlin;
-- arbitrary HTML/CSS with executable privilege;
+- arbitrary remote JavaScript/Swift/Kotlin;
+- executable HTML or hidden script delivery;
 - shell/native binaries;
-- hidden code fetched from Experience metadata.
+- code fetched from untrusted Experience metadata.
 
-### Integrity
+Artifact integrity, deployment approval, Pack version and runtime instance identity remain separate concepts.
 
-Later deployment phases will require digest/signature verification for production artifacts and verified mobile cache use.
+## Secret boundary
 
-Artifact identity, deployment approval and runtime instance identity are separate concepts.
+Raw secrets do not belong in Studio documents/publications, client Pack metadata, renderer state/props, client telemetry or model prompts used as execution transport.
 
-## Secret trust boundary
+Trusted server/control-plane adapters resolve server-side secret references at the latest safe point and expose only minimum non-secret data/capability to clients.
 
-Raw secrets do not belong in:
+## AI boundary
 
-- `StudioExperienceDocument`;
-- `StudioPublication`;
-- Experience Pack metadata intended for clients;
-- renderer props/state;
-- client telemetry attributes;
-- model prompts as an execution transport.
+AI is proposal authority, not publication/governance/execution authority.
 
-Trusted control-plane/server adapters resolve a `SecretRef` or equivalent server-side reference at the latest safe point.
+AI may draft semantics, select approved catalogs, propose actions and explain failures. AI may not register executable components, invent unsupported capability, bypass validation/governance, expose secrets, publish to production or execute a protected effect merely because it generated the request.
 
-A client receives only the minimum non-secret capability/data required to render and propose actions.
+## Renderer boundary
 
-## AI trust boundary
+Renderers are trusted installed code; renderer input remains data.
 
-AI is an untrusted proposer with useful capabilities, not the publication authority.
+Renderers must not:
 
-AI may:
-
-- draft Experience changes;
-- select from approved semantic catalogs;
-- propose actions;
-- explain policy/validation errors.
-
-AI may not, merely because it generated the content:
-
-- register new executable components;
-- bypass schema/capability/policy validation;
-- choose an implicit active instance;
-- invent a platform fallback;
-- expose a secret;
-- publish directly to production;
-- execute a protected side effect outside the Action Boundary.
-
-## Renderer trust boundary
-
-Renderers are trusted installed code, but renderer input is still data.
-
-Rules:
-
-- never interpret raw model/tool payloads directly;
-- never evaluate arbitrary HTML/JS from Experience data;
-- emit registered semantic interactions/actions only;
-- do not contain customer backend credentials;
-- do not become an alternate global state store;
-- do not bypass policy/action execution because a button lives in trusted code.
+- interpret raw model/tool payloads as authority;
+- evaluate arbitrary executable Experience content;
+- contain protected backend credentials;
+- become an alternate global semantic-state authority;
+- directly bypass governance/action execution.
 
 ## Telemetry and replay
 
-Telemetry and future replay are observation surfaces, not authority surfaces.
+Telemetry/replay are observation surfaces. They must not become authority, leak secrets by convenience, or re-execute historical side effects.
 
-Sensitive raw prompts, secrets or arbitrary customer content must not be captured merely for convenience.
+## Multi-tenant isolation
 
-Replay reconstructs the semantic decision/action chain but must not re-execute the original protected side effect.
-
-## Multi-tenant isolation — target
-
-Tenant/project/environment identity must be explicit at control-plane and action boundaries.
-
-No exact identifier from one tenant becomes valid in another tenant merely because the Pack/version/component ID strings match.
-
-Cross-tenant resolution or action execution fails closed.
+Tenant/project/environment identity is explicit at registry/deployment/action boundaries where relevant. Matching IDs across tenants do not grant cross-tenant validity.
 
 ## Security change rule
 
-When a future feature needs to weaken one of these controls, the implementation PR must stop. The architecture/trust contract must be deliberately revised and reviewed first; security exceptions are not introduced as hidden fallback code.
+Any feature that needs to weaken these invariants must stop and revise the trust/architecture contract explicitly. Security exceptions are never introduced as hidden fallback behavior.

@@ -2,23 +2,23 @@
 
 ## Purpose
 
-Web, iOS and Android are equal product surfaces in the Vira architecture. Native support is not a later wrapper around a web-only semantic contract.
+Web, iOS and Android are equal first-class product surfaces. One platform-neutral semantic Experience is rendered through trusted platform implementations; no platform owns a forked business-semantic schema.
 
-This document defines the cross-platform invariants that MASTER-02 through MASTER-19 must preserve.
+The integrated repository contains Web runtime/host surfaces plus native SDK source under `sdk/ios` and `sdk/android`. Portable/native conformance and simulator/emulator gates have been part of the Enterprise GenUI release program; MASTER-25R must re-bind final release evidence to the exact post-CLEAN-00 `main` SHA.
 
 ## One semantic Experience
 
-Vira persists one platform-neutral semantic Experience.
-
-Current canonical source:
+Canonical authoring/publication path:
 
 ```text
 StudioExperienceDocument
         ↓
 StudioPublication
+        ↓
+exact Pack / deployment / resolver
+        ↓
+Web / iOS / Android host mapping
 ```
-
-Future interoperability/codegen may create platform-native models for this same contract, but it must not create three independent authoring schemas.
 
 Forbidden:
 
@@ -28,263 +28,110 @@ experience.ios.json
 experience.android.json
 ```
 
-Required:
-
-```text
-canonical Experience
-        │
-        ├── Web host mapping
-        ├── iOS host mapping
-        └── Android host mapping
-```
+Platform-native models/adapters may project the same semantics but do not become independent authoring authorities.
 
 ## Semantic components, native implementations
 
-An Experience references semantic component identities, not implementation source code.
-
-Example target concept:
+An Experience references approved semantic component identities and contracts, not implementation source code.
 
 ```text
-brand.primaryButton
-    ├── web     → trusted React/DOM implementation
-    ├── ios     → trusted SwiftUI implementation
-    └── android → trusted Compose implementation
+semantic component
+    ├── web     → trusted web implementation
+    ├── ios     → trusted Swift/SwiftUI implementation
+    └── android → trusted Kotlin/Compose implementation
 ```
 
-The component's semantic purpose, props, events and accessibility meaning are part of the shared contract. Layout or interaction details may adapt to platform conventions when they preserve those semantics.
+Semantic purpose, bounded props/events/action meaning and accessibility meaning are shared. Presentation adapts to platform conventions only when semantics remain equivalent.
 
 ## Native means native
 
-A production Vira native Experience target is not defined as a WebView containing the web renderer.
+A first-class native Vira Experience is not defined as a WebView containing the web renderer. A separately labeled HTML/protocol compatibility surface may exist, but it is not silently represented as native Vira rendering.
 
-MASTER-07B and MASTER-07C target:
+Native hosts adapt platform lifecycle/events/accessibility into canonical Vira semantics and registered host component/action mappings.
 
-- Swift/SwiftUI on iOS;
-- Kotlin/Compose on Android;
-- native platform lifecycle integration;
-- native accessibility semantics;
-- native host component/action registries.
+## Host capability and compatibility
 
-Native Vira Experiences do not require a JavaScript runtime or WebView.
-
-A separately labeled web-compatibility surface may exist for external HTML-based protocols, but that is not equivalent to a native Vira Experience and must not be silently upgraded or represented as one.
-
-## Current implementation status
-
-Today the repository is web-first in implementation:
-
-- `runtime-web` owns DOM/browser rendering for the original runtime;
-- `react` and `web-component` wrap that runtime;
-- `genui` and `genui-web-component` expose the public Studio publication/runtime path on web;
-- Studio runtime React rendering is implemented;
-- iOS and Android native SDKs described by the master plan are not yet implemented.
-
-MASTER-01 does not change this code. It freezes the requirement that future architecture work must not make the existing web implementation the semantic definition of the product.
-
-## Common Host Contract — target
-
-All first-class hosts report compatible information through one platform-neutral host contract.
-
-A host is responsible for:
-
-- platform identity/version;
-- supported semantic components and versions/capabilities;
-- supported action/data capabilities;
-- lifecycle state;
-- renderer/action registry bindings;
-- telemetry bridge;
-- verified cached-artifact support where applicable.
-
-Platform-specific handles such as DOM nodes, UIKit objects or Android `Context` do not enter the canonical Experience schema or `runtime-core`.
-
-## Host Capability Manifest — target
-
-Before runtime mount, the resolver/host combination evaluates whether the exact Experience can run safely on that host.
-
-Conceptually:
-
-```text
-Experience requirements
-        +
-Host Capability Manifest
-        ↓
-compatible / incompatible
-```
+Hosts expose explicit platform/capability support sufficient for deterministic compatibility resolution. Required semantic components/actions/capabilities are checked before execution.
 
 Incompatible behavior is explicit:
 
 1. fail closed; or
-2. use an author-declared compatible fallback whose semantics were validated.
+2. use an author-declared compatible fallback that is itself validated.
 
-An agent cannot invent a fallback component or omit a required interaction because the current device lacks support.
-
-## Capability identity
-
-Capability identity must be deterministic and version-aware enough to avoid accidental compatibility from matching names alone.
-
-Later phase design may distinguish:
-
-- platform capability;
-- component semantic version/capability;
-- action capability;
-- offline/cache capability;
-- accessibility/localization capability.
-
-MASTER-04 owns the exact contract. MASTER-01 only freezes the requirement.
+An agent, renderer or resolver may not silently drop required interaction, invent a component or substitute a different business action because a device lacks support.
 
 ## Runtime kernel boundary
 
-`runtime-core` remains platform neutral.
+`runtime-core` remains platform neutral. DOM/UIKit/SwiftUI/Android/Compose handles and APIs do not enter the canonical Experience schema or platform-neutral kernel.
 
-It may model shared lifecycle concepts but not call platform APIs directly.
+Platform adapters translate lifecycle/event concepts into canonical runtime semantics.
 
-Target common lifecycle concepts include:
+## State and revision
 
-- foreground;
-- background;
-- resume;
-- disconnect;
-- reconnect;
-- session restore;
-- verified cached Experience activation.
+Renderers do not create separate enterprise semantic truth stores. Canonical runtime/host revision semantics remain authoritative; local presentation-only UI state is permitted only when it cannot change protected action meaning or bypass canonical state/action processing.
 
-Adapters translate:
+Host snapshot, runtime state revision, deployment revision and artifact/Pack version are distinct concepts and must not be ambiguously conflated.
+
+## Action parity
+
+Equivalent user intent across Web/iOS/Android produces the same semantic action contract and crosses the same governance/Action Boundary.
 
 ```text
-browser / UIKit / Android lifecycle
-              ↓
-canonical lifecycle semantics
-              ↓
-runtime kernel
+platform event
+      ↓
+registered semantic interaction
+      ↓
+canonical action / ActionIntent
+      ↓
+governance + Action Boundary
 ```
 
-## State and revision semantics
-
-A cross-platform Experience must not develop separate truth stores per renderer.
-
-Current architecture already treats runtime state as canonical and Studio host snapshots as revisioned. Native hosts must reuse the same semantic state/revision rules rather than introduce a competing Swift/Kotlin state machine that changes action meaning.
-
-Local UI-only presentation state is allowed when it does not become enterprise semantic state or bypass canonical actions.
-
-## Action semantics across platforms
-
-The same user intent on web, iOS and Android must produce semantically equivalent canonical action input.
-
-Example target invariant:
-
-```text
-select-flight on Web
-select-flight on iOS
-select-flight on Android
-          ↓
-same semantic action type/payload contract
-          ↓
-same Action Boundary
-```
-
-Platform events (`click`, gesture, accessibility action) are adapters. They are not the business action contract.
+Click/gesture/accessibility actions are platform adapters, not business-action semantics.
 
 ## Instance isolation
 
-Each mounted Experience has an exact instance identity.
+Every mounted Experience has explicit instance/deployment context. Hosts may not route commands/actions via last rendered Experience, active tab singleton, latest mounted instance or domain-global state.
 
-No host may route a command/action through:
+## Offline, reconnect and cache
 
-- last rendered Experience;
-- active tab global;
-- latest mounted instance;
-- current domain singleton.
+Verified passive artifacts may be cached/restored according to explicit policy. Offline rendering does not imply offline permission for every protected action.
 
-Resolver and action routing use explicit instance identity.
+Reconnect/retry must preserve artifact/version integrity, relevant deployment validity, revision semantics and idempotency rather than blind side-effect replay.
 
-## Offline and reconnect — target
+## Platform adaptation
 
-Native clients may cache verified passive Experience artifacts and restore UI state according to explicit policy.
-
-Offline support does not imply offline permission to execute every action.
-
-On reconnect:
-
-- artifact integrity is re-established where necessary;
-- relevant deployment/version validity is checked according to policy;
-- stale expected revisions fail closed for protected mutations;
-- retries use idempotency semantics rather than blind replay.
-
-## Platform-specific adaptation
-
-A renderer may adapt presentation to platform conventions without changing core semantics.
-
-Acceptable examples:
+Allowed when semantics remain equivalent:
 
 - native navigation affordances;
-- system date/time pickers;
-- platform typography metrics;
-- touch target sizing;
-- keyboard/IME integration.
+- system pickers and keyboard/IME integration;
+- platform typography and layout metrics;
+- touch target/focus behavior;
+- platform accessibility APIs.
 
-Not acceptable without a contract-level fallback:
+Not allowed as silent adaptation:
 
 - dropping a required action;
-- changing a required field into optional;
-- silently substituting a different business operation;
-- rendering an unsupported arbitrary component;
-- bypassing approval because a platform lacks an approval UI.
+- making a required field optional;
+- substituting a different business operation;
+- rendering unsupported arbitrary executable content;
+- bypassing approval/governance because a platform lacks matching UI.
 
-## Accessibility semantics
+## Accessibility and localization
 
-Cross-platform conformance includes accessibility meaning, not visual screenshot parity.
+Cross-platform conformance is semantic, not screenshot equality.
 
-Targets:
+Each platform exposes equivalent accessible meaning using its native mechanisms. Locale-sensitive data should retain semantic representation so hosts can correctly format locale/RTL/currency/date/time/number/pluralization behavior rather than relying on opaque preformatted strings where correctness would be lost.
 
-- web: keyboard, ARIA, screen-reader behavior;
-- iOS: VoiceOver, Dynamic Type, native focus/traits and HIG-consistent behavior;
-- Android: TalkBack, font scaling, Compose semantics and native focus behavior.
+## Preview and proof
 
-Semantic component definitions must carry enough information for each host to expose equivalent meaning.
+A resized browser is not proof of native compatibility. Native claims require simulator/emulator/device-host evidence against the exact relevant artifact/repository head.
 
-## Localization semantics
+Cross-platform conformance focuses on component interpretation, bindings/state, navigation, action payload/meaning, governance context, revision/lifecycle behavior, accessibility metadata and outcome semantics.
 
-Locale-sensitive values are semantic data with platform-native formatting, not preformatted opaque strings when that would destroy correctness.
+## Application Network extension
 
-Later phases must account for:
-
-- locale;
-- RTL;
-- currency;
-- date/time/time zone;
-- number formatting;
-- pluralization where relevant.
-
-## Preview model — target
-
-Studio supports two levels:
-
-### Fast preview
-
-A web-based semantic approximation for authoring speed.
-
-### Real preview
-
-The exact published preview artifact runs in the actual iOS simulator/test host or Android emulator/test host.
-
-A resized browser viewport is not sufficient proof of native compatibility.
-
-## Cross-platform conformance gate
-
-MASTER-18 will verify semantic parity using shared fixtures. Required checks include:
-
-- component interpretation;
-- bindings and state;
-- navigation/routes;
-- action type and payload;
-- policy invocation context;
-- revision behavior;
-- lifecycle behavior;
-- accessibility metadata;
-- outcome semantics.
-
-Visual snapshots may supplement this suite but cannot replace semantic assertions.
+Future Canvas/Network work must preserve this platform model. Canvas projection state is not semantic runtime state; Network distribution selects compatible projections/surfaces but does not redefine Experience or execution semantics.
 
 ## Platform change rule
 
-Any proposal that requires forking the persisted Experience schema to ship a new platform feature must first prove that the feature cannot be represented as a host capability, semantic component mapping, author-declared fallback or platform adapter. Schema forking is the last option and contradicts the default architecture.
+A proposal that requires forking the persisted Experience schema for a platform feature must first prove the feature cannot be represented through host capability, semantic component mapping, validated fallback or platform adapter. Schema forking is the last option and contradicts the default architecture.

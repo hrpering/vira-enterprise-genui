@@ -1,35 +1,42 @@
 # Package boundaries
 
-| Package | Responsibility | Must not own |
+This document is a human-readable architecture guide. The **executable dependency authority** is `tooling/package-boundaries.config.mjs`; when this guide and the executable graph differ, the graph wins and this document must be corrected.
+
+## Directional rule
+
+Dependencies point toward stable semantic owners, never back toward framework-, host-, provider- or customer-specific implementations.
+
+Representative current owners include:
+
+| Concern | Canonical owner / family | Must not become |
 | --- | --- | --- |
-| `protocol` | Versioned canonical contracts | DOM, React, CSS, network, customer APIs |
-| `runtime-core` | State, actions, patches, lifecycle, permissions, typed errors | DOM rendering, business APIs, intent inference |
-| `planner` | Resolve state/capabilities and produce semantic experience plans | HTML/CSS/DOM rendering, customer API execution |
-| `composer` | Organize plans into semantic regions using layout/disclosure policy | Business reasoning, network calls, DOM rendering |
-| `adapter-sdk` | Adapt brand/domain/intent/recipe/component/data/action/policy surfaces | Runtime state ownership |
-| `runtime-web` | Render composed experiences and bridge browser events | Intent resolution, business reasoning, raw tool interpretation |
-| `web-component` | Thin `<vira-experience>` wrapper | Duplicate runtime/planner logic |
-| `react` | Thin React wrapper | Duplicate runtime/planner logic |
-| `security` | Cross-cutting sanitization, allowlists, CSP and network policy contracts | Business execution |
-| `telemetry` | Provider-neutral telemetry interface | Raw prompt/PII collection by default |
-| `tool-bridge` | Normalize external tool results into domain data | Direct rendering |
+| Versioned base contracts | `protocol` | renderer/provider/customer implementation |
+| Runtime state/actions/lifecycle | `runtime-core` | DOM/UIKit/Compose or customer backend |
+| Planning/composition | `planner`, `composer` | protected business execution |
+| Original adaptation surfaces | `adapter-sdk`, `tool-bridge` | runtime or canonical action authority |
+| Web rendering/wrappers | `runtime-web`, `react`, `web-component` | semantic/runtime duplication |
+| Studio authoring/publication | `studio-schema`, `studio-publish`, `studio-workbench`, related compiler/binding/design/flow owners | second runtime or second Experience schema |
+| Experience distribution | `experience-packs`, `experience-registry`, `experience-resolver`, `deployment-plane` | implicit-latest execution |
+| Protected effects | `action-boundary`, `action-ledger` | renderer/provider bypass path |
+| Governance/context | `governance`, `enterprise-governance`, `enterprise-context` | provider-specific canonical semantics |
+| Enterprise distribution | `enterprise-registry` | Experience/Pack semantic duplication |
+| Protocol adaptation | `protocol-gateway` | canonical application semantics |
+| Native parity | `cross-platform-conformance`, `native-ux-gate`, `sdk/ios`, `sdk/android` | forked platform semantic schemas |
+| Security/policy support | `security`, `policy-engine`, `policy-simulation` | a new policy language or execution bypass |
 
-## Planned internal modules
+This list is descriptive, not an exhaustive allowlist. New/changed edges are accepted only if `pnpm check:boundaries` accepts the executable workspace graph.
 
-### runtime-core
-`state`, `actions`, `patches`, `lifecycle`, `permissions`, `errors`
+## Core invariants
 
-### protocol
-`intent`, `domain-data`, `capability`, `experience-plan`, `patch`
+- `protocol` and other low-level semantic owners do not depend on renderer/framework layers.
+- `runtime-core` stays platform neutral.
+- renderer/wrapper packages do not own planning, governance or protected-action semantics.
+- provider/customer/domain integrations do not become dependencies of generic canonical owners.
+- Studio/editor packages do not become runtime authority.
+- protocol adapters project/normalize semantics; they do not redefine them.
+- protected enterprise effects converge on `action-boundary`/governance owners rather than direct host or renderer networking.
+- exact version/instance/tenant semantics are explicit; no implicit-latest or global-active fallback edge is introduced.
 
-### planner
-`state-resolver`, `capability-resolver`, `experience-planner`, `composition-planner`
+## Future Application Network rule
 
-### composer
-`semantic-regions`, `layout-policy`, `disclosure-policy`, `composition-engine`
-
-### adapter-sdk
-`brand`, `domain`, `intent`, `recipe`, `component`, `data`, `action`, `policy`
-
-### runtime-web
-`renderer`, `DOM lifecycle`, `events`, `accessibility`, `responsive`, `state bindings`
+MASTER-26+ may add an owner only after reverse engineering shows the nearest existing owner cannot express the new semantic responsibility. Canvas and Network packages must consume existing Experience/runtime/action/governance authorities rather than invert dependency direction or duplicate them.
