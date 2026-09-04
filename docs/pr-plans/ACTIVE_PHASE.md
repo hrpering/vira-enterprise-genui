@@ -1,16 +1,20 @@
 # Active Phase
 
-**Phase:** MASTER-28 — Provider-Neutral Capability Contract  
+**Phase:** MASTER-29 — Bounded WorkContext Contract  
 **Status:** Q0–Q8 PASS / Q9 READY TO SQUASH MERGE  
-**Base SHA:** `c17d5016a00f915604de73b9797a94e72692c5a6`  
-**Frozen executable head:** `614467b91ba6c7798fe060c4e38fa51a914ddc1d`  
-**Previous:** MASTER-27 merged via PR #187  
-**Next after merge:** MASTER-29 — WorkContext
+**Base SHA:** `7c6716f90810528b4dfc4f2f040755ab5f96ecb1`  
+**Frozen executable head:** `68d1c1f48a68c6963fd8ba0be3e01fa4be66a428`  
+**Previous:** MASTER-28 merged via PR #188  
+**Next after merge:** MASTER-30 — Application Graph
 
-MASTER-28 introduces `@vira-enterprise-genui/capability-contract` as the canonical provider-neutral CapabilityDefinition owner while keeping existing `protocol.Capability` unchanged as the wire/projection identity envelope.
+MASTER-29 introduces `@vira-enterprise-genui/work-context` as the canonical provider-neutral Context definition + immutable snapshot owner.
 
-The new contract contains no provider binding, endpoint, credential, transport, effect catalog, policy or execution authority. Action-mediated capabilities bind an exact `actionType`; protected execution remains behind governance and the existing Action Boundary.
+Application `contextTypes[]` and Capability `contextRequirements[]` remain exact references into this semantic family; those owners are not modified into Context payload stores.
 
-Local `pnpm check:boundaries`, `pnpm typecheck`, and the focused Capability Contract test were reported green on the exact frozen executable head above.
+WorkContext explicitly excludes chat history, user memory, prompt dumps, provider state, tenant scope, governance/policy, runtime lifecycle and protected execution authority. Receipt items are evidence/data only.
 
-Final Q8 compares the frozen executable head to the PR head immediately before merge. Every post-Q7 change is restricted to documentation/evidence; executable content remains identical for Q9.
+The initial local attempt on `8ea036ccdfeb13a2ff42486a23ab939a19946e42` exposed TS7053 in the deterministic JSON canonicalizer. The semantic-neutral fix produced corrected frozen executable head `68d1c1f48a68c6963fd8ba0be3e01fa4be66a428`.
+
+Local `pnpm check:boundaries`, `pnpm typecheck`, and focused `work-context.test.ts` were then reported green on that exact corrected head; focused tests passed 11/11.
+
+Final Q8 compares the frozen executable head to the exact PR head immediately before merge. Every post-Q7 change is restricted to documentation/evidence; executable content remains identical for Q9.

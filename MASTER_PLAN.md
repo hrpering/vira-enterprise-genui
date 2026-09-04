@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-04  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-28:** `c17d5016a00f915604de73b9797a94e72692c5a6`
+**Authoritative main entering MASTER-29:** `7c6716f90810528b4dfc4f2f040755ab5f96ecb1`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -15,8 +15,9 @@ This file is the engineering execution authority. Long-range product strategy li
 | Reconciliation | CLEAN-00 | MERGED / PR #184 |
 | Application Network — Semantic freeze | MASTER-26 | MERGED / PR #186 |
 | Application Network — Application Package | MASTER-27 | MERGED / PR #187 |
-| Application Network — Capability Contract | MASTER-28 | ACTIVE |
-| Application Network — WorkContext / Graph | MASTER-29..30 | PLANNED |
+| Application Network — Capability Contract | MASTER-28 | MERGED / PR #188 |
+| Application Network — WorkContext | MASTER-29 | ACTIVE |
+| Application Network — Application Graph | MASTER-30 | PLANNED |
 | Application Network — Canvas | MASTER-31..36 | PLANNED |
 | Application Network — Distribution | MASTER-37..41 | PLANNED |
 | Application Network — Commercial / Capability Cloud | MASTER-42..47 | PLANNED |
@@ -31,7 +32,7 @@ MASTER-26 semantic freeze ✅
   ↓
 MASTER-27 Application Package ✅
   ↓
-MASTER-28 Capability Contract
+MASTER-28 Capability Contract ✅
   ↓
 MASTER-29 WorkContext
   ↓
@@ -53,7 +54,8 @@ MASTER-48 → 51 external proofs + Application Network RC
 - Experience, Pack, Studio publication, Action Boundary, governance and runtime authorities are referenced, not duplicated.
 - Capability semantics are provider-neutral. Provider/API/MCP/SaaS/hosted execution bindings do not define canonical meaning.
 - `protocol.Capability` remains protocol/wire identity, not the semantic CapabilityDefinition owner.
-- Protected effects remain behind governance + Action Boundary; Capability cannot create a direct effect bypass or duplicate effect/idempotency truth.
+- WorkContext is bounded work state/provenance; it is not chat history, user memory, prompt storage, EnterpriseContext scope, runtime lifecycle or execution authority.
+- Protected effects remain behind governance + Action Boundary; Capability/Context cannot create a direct effect bypass or duplicate effect/idempotency truth.
 - Canvas is authoring/proposal, never execution authority.
 - Network is discovery/distribution, never execution authority.
 - Exact identity/version resolution is explicit; no implicit latest or silent fallback.
@@ -64,9 +66,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 
 ## Active records
 
-- `docs/pr-plans/MASTER-28.md`
+- `docs/pr-plans/MASTER-29.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-28/RE_REPORT.md`
+- `docs/evidence/MASTER-29/RE_REPORT.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`

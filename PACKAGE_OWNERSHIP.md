@@ -11,17 +11,18 @@ If this document and the executable boundary graph disagree, the executable grap
 |---|---|
 | Application release identity/reference graph/distribution metadata | `application-package` |
 | Provider-neutral CapabilityDefinition semantics | `capability-contract` |
+| Bounded WorkContext definition/snapshot/provenance semantics | `work-context` |
 | Capability wire/protocol identity envelope | `protocol` |
 | Runtime state, lifecycle, patches, permissions, errors | `runtime-core` |
 | Protected effect boundary + Action effect/idempotency catalog | `action-boundary` |
 | Governance semantics | `governance`, `enterprise-governance` |
-| Enterprise scoped context | `enterprise-context` |
+| Enterprise organization/project/environment/principal/secret scope | `enterprise-context` |
 | Enterprise/private registry concerns | `enterprise-registry` |
 | Publication/deployment concerns | `deployment-plane` |
 | Experience resolution | `experience-resolver` |
 | Experience Pack semantics | `experience-packs` |
 | Experience registry | `experience-registry` |
-| Action receipts / ledger | `action-ledger` |
+| Action receipts / ledger truth | `action-ledger` |
 | Protocol adaptation | `protocol-gateway` |
 | Studio document schema | `studio-schema` |
 | Studio publication gate | `studio-publish` |
@@ -29,12 +30,14 @@ If this document and the executable boundary graph disagree, the executable grap
 | Studio AI proposal surface | `studio-ai` |
 | Web/native render/host surfaces | existing runtime and Studio host/renderer packages governed by the executable boundary graph |
 
-`application-package` and `capability-contract` each depend only on `protocol`. Capability semantics are provider-neutral; MCP/customer APIs/SaaS/hosted execution are future bindings/providers, not semantic owners. `capability-contract` also does not duplicate Action Boundary `effect`/`idempotency` truth.
+`application-package`, `capability-contract` and `work-context` each depend only on `protocol`. Application/Capability refer to exact Context identities; `work-context` owns the bounded Context definition/snapshot payloads those references target.
+
+WorkContext does not absorb EnterpriseContext tenant/security scope, runtime revision/lifecycle, Action execution/ledger authority, provider bindings, governance/policy or chat/memory/prompt semantics. A receipt represented inside WorkContext is evidence/data only and cannot become an execution permit.
 
 ## Future ownership constraints
 
 - Provider bindings must map to an exact `CapabilityDefinition` and fail explicitly when mapping is unsupported/lossy.
-- `WorkContext` is bounded work state and provenance; it is not chat history, user memory, prompt dump or agent-framework state.
+- `WorkContext` remains bounded work state/provenance; it is not chat history, user memory, prompt dump or agent-framework state.
 - `ApplicationGraph` owns application-semantic nodes/edges, not Canvas coordinates, zoom, selection or editor projection state.
 - Canvas may author/propose semantics but cannot become runtime, publication, governance or protected-action authority.
 - Distribution/Network may discover and resolve packages/capabilities but cannot become execution authority.
