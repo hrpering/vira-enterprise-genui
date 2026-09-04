@@ -40,59 +40,29 @@ Pricing consumes an explicitly selected exact `planRef`; producing or parsing a 
 
 ## Pricing model
 
-A price catalog contains exact plans with:
+A price catalog contains exact plans with exact `planRef`, lexical uppercase three-letter `currency`, non-negative safe-integer `fixedAmountNanos`, and bounded per-meter rates. One currency unit equals `1_000_000_000` pricing nanos. Monetary arithmetic is integer-only. Currency validation is lexical only; core does not claim ISO membership, FX or legal-tender authority.
 
-- exact `planRef`;
-- lexical three-letter uppercase `currency`;
-- non-negative safe-integer `fixedAmountNanos`;
-- bounded per-meter rates.
-
-One currency unit equals `1_000_000_000` pricing nanos. Monetary arithmetic is integer-only. Currency validation is lexical only; core does not claim ISO membership, FX or legal-tender authority.
-
-Each meter rate contains an exact `meteringRef`, basis `used | excess`, and non-negative safe-integer `amountNanosPerUnit`.
+Each meter rate contains exact `meteringRef`, basis `used | excess`, and non-negative safe-integer `amountNanosPerUnit`.
 
 ## Canonical rating evidence
 
-`commercial-metering` owns:
+`commercial-metering` owns `parseViraCommercialUsageRating` and `serializeViraCommercialUsageRating`.
 
-```text
-parseViraCommercialUsageRating
-serializeViraCommercialUsageRating
-```
+The parser validates exact metering reference, canonical unit/window/status, canonical UTC `asOf` and window bounds, safe-integer quantities, included-record ceiling, zero/nonzero count/usage consistency, `usedQuantity >= includedRecordCount`, and used/limit/remaining/excess/status consistency.
 
-The parser validates the canonical producer semantics rather than defining a pricing-local rating schema:
-
-- exact metering reference;
-- canonical unit/window/status;
-- canonical UTC `asOf` and window bounds;
-- safe-integer quantities;
-- included-record ceiling;
-- zero/nonzero record-count ↔ used-quantity consistency;
-- `usedQuantity >= includedRecordCount`, because every included usage record has positive integer quantity;
-- used/limit/remaining/excess/status consistency.
-
-Evidence parsing does not authenticate the source or prove integrity/attestation.
+Evidence parsing does not authenticate source or prove integrity/attestation.
 
 ## Quote request / quote evidence
 
-A pricing request contains an exact `planRef`, canonical UTC `asOf`, and canonical metering ratings. Every plan rate requires exactly one matching rating. Undeclared extra ratings, duplicate ratings, missing ratings or `asOf` mismatch fail closed.
+A pricing request contains exact `planRef`, canonical UTC `asOf`, and canonical metering ratings. Every plan rate requires exactly one matching rating. Extra, duplicate, missing or time-mismatched ratings fail closed.
 
-The deterministic quote contains exact plan ref, currency, as-of, fixed nanos, deterministic line items and total nanos. Multiplication overflow is guarded before multiplication; total overflow is guarded before addition.
+The deterministic quote contains exact plan ref, currency, as-of, fixed nanos, deterministic line items and total nanos. Multiplication overflow is guarded before multiplication; total overflow before addition.
 
-`commercial-pricing` owns:
-
-```text
-parseViraCommercialPriceQuote
-serializeViraCommercialPriceQuote
-```
-
-The quote parser independently validates exact shape, references, canonical time, line arithmetic, duplicate line identities and total arithmetic. A parsed quote is internally consistent pricing evidence only; it does not prove entitlement or authentic origin and is not invoice/payment/subscription/settlement authority.
+`commercial-pricing` owns `parseViraCommercialPriceQuote` and `serializeViraCommercialPriceQuote`. The parser independently validates exact shape, references, canonical time, line arithmetic, duplicate line identities and total arithmetic. A parsed quote is internally consistent pricing evidence only; it does not prove entitlement or authentic origin and is not invoice/payment/subscription/settlement authority.
 
 ## Q3 implementation
 
-PASS.
-
-Added canonical metering rating evidence parser/serializer, `commercial-pricing`, deterministic catalog serialization, used/excess/fixed pricing, quote evidence parser/serializer and executable dependency boundary.
+PASS. Added canonical metering rating evidence parser/serializer, `commercial-pricing`, deterministic catalog serialization, used/excess/fixed pricing, quote evidence parser/serializer and executable dependency boundary.
 
 ## Q4 focused/hardening coverage
 
@@ -110,8 +80,6 @@ Coverage includes rating roundtrip/canonical UTC/window/status semantics, produc
 
 PASS. Evidence: `docs/evidence/MASTER-45/Q5_Q6_REVIEW.md`.
 
-Untrusted input uses shared safe JSON parsing; exact shapes reject authority/payment smuggling; money is safe-integer only; quote arithmetic is revalidated; pricing does not authenticate evidence sources or mutate usage/entitlement/payment state.
-
 ## Q6 architecture/ownership review
 
 PASS. Dependency authority remains:
@@ -120,36 +88,17 @@ PASS. Dependency authority remains:
 commercial-pricing → application-package, commercial-metering, protocol
 ```
 
-Canonical owner chain:
-
-```text
-commercial-entitlement  → exact commercial eligibility + planRef
-commercial-metering     → usage truth + non-monetary rating evidence
-commercial-pricing      → rate-card + monetary quote evidence
-future layers           → invoice/payment/subscription/settlement/payout
-```
-
-No commercial layer inherits security/runtime authority.
+Canonical owner chain remains entitlement → metering → pricing; future invoice/payment/subscription/settlement layers stay downstream and separate. No commercial layer inherits security/runtime authority.
 
 ## Q7 attempt 1
 
-Operator-reported PASS on exact SHA `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`; evidence `docs/evidence/MASTER-45/Q7_LOCAL_PASS.md`.
-
-This PASS was invalidated for final merge after Q8 found an executable producer-consistency gap.
+Operator-reported PASS on `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`; later invalidated by Q8 executable finding. Evidence: `docs/evidence/MASTER-45/Q7_LOCAL_PASS.md`.
 
 ## Q8 attempt 1
 
 FAIL. Evidence: `docs/evidence/MASTER-45/Q8_ATTEMPT_1.md`.
 
-Independent reverse engineering found rating evidence could accept `usedQuantity < includedRecordCount`, impossible for canonical producer output because every included usage record quantity is a positive safe integer.
-
-The metering-owned parser was hardened to enforce:
-
-```text
-usedQuantity >= includedRecordCount
-```
-
-and focused coverage was added.
+Independent review found `usedQuantity < includedRecordCount` could be accepted even though canonical usage records require every included quantity to be positive. The canonical metering parser and focused test were hardened.
 
 ## Final Q7 rerun
 
@@ -159,31 +108,19 @@ PASS on exact final frozen executable SHA:
 0984b0145381f8344dc458cd28d3e1b26db79e78
 ```
 
-The repository operator reran the full local boundaries/typecheck/focused-suite command set detached at that exact SHA and reported it green. Evidence: `docs/evidence/MASTER-45/Q7_RERUN_PASS.md`. No counts/timings are reconstructed.
+Operator reran boundaries, typecheck and all three focused suites detached at that SHA and reported green. Evidence: `docs/evidence/MASTER-45/Q7_RERUN_PASS.md`. No counts/timings are reconstructed.
 
 ## Final Q8 independent review
 
 PASS. Evidence: `docs/evidence/MASTER-45/Q8_REVIEW.md`.
 
-Reviewed PR head:
+Reviewed PR head: `32ae25c2cbcf9bb6708d0449759db157a932a03f`.
 
-```text
-32ae25c2cbcf9bb6708d0449759db157a932a03f
-```
+Results: owner boundaries preserved; exact refs/no implicit latest; rating producer invariants fail closed; pricing arithmetic fails before precision loss; quote evidence revalidates line/total arithmetic; no entitlement/security/runtime authority acquisition; no invoice/payment/subscription/settlement/payout semantics; no dependency creep; no submitted reviews, review threads or comments; hosted jobs expose `steps=null` and remain infrastructure non-signal; frozen executable → reviewed head contains docs/evidence only.
 
-Results:
+## Final closure
 
-- canonical owner boundaries preserved;
-- exact refs / no implicit latest;
-- rating producer invariants fail closed;
-- pricing arithmetic fails before precision loss;
-- quote evidence revalidates line + total arithmetic;
-- no entitlement/security/runtime authority acquisition;
-- no invoice/payment/subscription/settlement/payout semantics;
-- no executable dependency creep;
-- no submitted reviews, review threads or PR comments at final review point;
-- latest checked hosted jobs expose `steps=null` and remain infrastructure non-signal;
-- final frozen executable → reviewed head contains docs/evidence only; executable drift zero.
+Final frozen executable `0984b0145381f8344dc458cd28d3e1b26db79e78` → closure head `8e155dbde86525e5ef7f8ded5b8e7141eafa4253` contains only documentation/evidence files. Executable/package/test/boundary drift is zero.
 
 ## Non-goals
 
@@ -191,13 +128,13 @@ MASTER-45 does not implement payment providers, invoices, taxes, FX, refunds, su
 
 ## Q0–Q9
 
-- Q0 PASS — fresh branch from exact authoritative main.
-- Q1 PASS — owner reverse engineering.
-- Q2 PASS — pricing owner + integer-nanos contract frozen.
-- Q3 PASS — implementation.
-- Q4 PASS — focused/hardening coverage.
-- Q5 PASS — security/fail-closed review.
-- Q6 PASS — architecture/ownership review.
-- Q7 PASS — final exact frozen-head rerun on `0984b0145381f8344dc458cd28d3e1b26db79e78`.
-- Q8 PASS — independent PR reverse engineering after remediation.
-- Q9 READY — exact-head squash merge subject to final closure compare.
+- Q0 PASS
+- Q1 PASS
+- Q2 PASS
+- Q3 PASS
+- Q4 PASS
+- Q5 PASS
+- Q6 PASS
+- Q7 PASS — final exact frozen-head rerun
+- Q8 PASS — independent PR reverse engineering after remediation
+- Q9 READY — exact-head squash merge at closure head `8e155dbde86525e5ef7f8ded5b8e7141eafa4253`
