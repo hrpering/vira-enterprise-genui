@@ -31,9 +31,10 @@ An Application can reference Experiences, Capabilities, Context and Actions, but
 | Application semantic composition | `application-package`, `application-graph` | absorb the authorities listed above |
 | Capability semantics | `capability-contract` | let MCP/SaaS/customer/provider bindings define canonical meaning |
 | Hosted query Capability execution | `hosted-capability-runtime` | become Action execution, authorization, provider attestation or generic cloud compute |
+| Capability supply discovery | `capability-supply` | become execution, provider trust, ranking/failover, commercial access or cloud scheduling authority |
 | Work Context semantics | `work-context` | treat chat history, prompt dump or user memory as canonical Context |
 | Canvas | `application-canvas` family | become runtime, publication, governance or effect authority |
-| Network | `application-distribution`, `application-federation` | become runtime/execution/governance authority |
+| Network | `application-distribution`, `application-federation`, `capability-supply` | become runtime/execution/governance authority |
 | Entitlement/commercial access | `commercial-entitlement` | be treated as authorization/governance/runtime permission |
 | Commercial usage metering/rating | `commercial-metering` | become monetary billing or execution authority |
 | Commercial plan/rate-card + quote evidence | `commercial-pricing` | become invoice/payment/subscription/settlement or security authority |
@@ -73,7 +74,7 @@ Network may:
 
 - discover Application releases and Capability supply;
 - distribute exact identities/artifacts;
-- expose compatibility/availability/provenance metadata;
+- expose compatibility/availability/provenance metadata where a canonical owner exists;
 - route demand toward resolvable supply.
 
 Network may not:
@@ -82,7 +83,8 @@ Network may not:
 - resolve `latest` implicitly for protected execution;
 - bypass enterprise registry/deployment/governance;
 - execute a protected effect because distribution succeeded;
-- conflate commercial entitlement with authorization.
+- conflate commercial entitlement with authorization;
+- treat supply-source repetition as provider trust, ranking, health or execution permission.
 
 ## Commercial entitlement authority
 
@@ -164,6 +166,38 @@ A Capability whose canonical invocation kind is `action` is rejected by this run
 
 The hosted Capability runtime owns no provider catalog, endpoint/transport, credentials, secret delivery, durable job queue, container/VM/Kubernetes/serverless scheduling, autoscaling, failover/ranking or generic cloud-compute semantics.
 
+## Capability supply authority
+
+`capability-supply` may compose canonical `ViraCapabilityDefinition` artifacts with canonical `ViraHostedCapabilityBinding` artifacts into bounded supply snapshots and provide deterministic exact discovery.
+
+A supply record means only:
+
+```text
+source provenance
++ exact Capability semantics
++ exact hosted binding identity/provider/location
+```
+
+It does **not** mean:
+
+- authenticated or attested provider identity;
+- provider health, availability or SLA;
+- authorization/governance approval;
+- commercial entitlement or price validity;
+- deployment approval;
+- endpoint/credential readiness;
+- provider ranking, failover preference or recommendation;
+- execution success;
+- protected Action permission.
+
+The same exact Capability `id@version` may appear across sources only when canonical Capability serialization is identical. The same exact `bindingRef` may appear across sources only when it resolves to the same canonical capability/provider/location binding. Divergence fails closed; there is no source priority, majority vote, implicit latest or silent fallback winner.
+
+Identical supply repeated across sources aggregates `sourceId` provenance only. Repetition never becomes trust/confidence/priority evidence.
+
+Hosted supply accepts only canonical `query` Capabilities. A canonical `action` Capability fails with `ACTION_BOUNDARY_REQUIRED`; protected effects stay behind the Action Boundary.
+
+`capability-supply` does not invoke providers and owns no endpoints, credentials, health checks, deployment placement, durable jobs, autoscaling, cloud scheduling, commercial pricing or security decisions.
+
 ## Provider authority
 
 Providers implement/bind functionality. They are never Vira canonical semantic owners merely because they expose an API, MCP server, SDK, model, SaaS integration or hosted execution environment.
@@ -179,19 +213,21 @@ Application exact release
       ↓
 exact semantic dependency references
       ↓
+Application / Capability discovery where needed
+      ↓
 canonical registry/resolver/deployment authorities
       ↓
 commercial entitlement / metering / pricing evidence where commercially required
       ↓
 enterprise scope + governance / authorization where required
       ↓
-hosted query Capability runtime OR Experience runtime / host
+exact hosted Capability binding + hosted query runtime OR Experience runtime / host
       ↓
 Action Boundary for protected effects
 ```
 
-An upstream composition, commercial layer or hosted provider binding cannot overrule a downstream security/execution authority. Hosted query execution is not an alternate path around protected Action execution. Monetary validity is never execution permission.
+Discovery can surface exact candidate supply, but it cannot select around a later denial or convert provenance into security/runtime authority. An upstream composition, commercial layer or hosted provider binding cannot overrule a downstream security/execution authority. Hosted query execution is not an alternate path around protected Action execution. Monetary validity is never execution permission.
 
 ## Failure rule
 
-Ambiguous, missing, stale, unapproved, incompatible or untrusted authority resolution fails closed. A higher-level Application declaration, entitlement, commercial usage rating, pricing quote or hosted binding cannot convert an underlying denial/failure into success.
+Ambiguous, missing, stale, conflicting, unapproved, incompatible or untrusted authority resolution fails closed. A higher-level Application declaration, discovered Capability supply, entitlement, commercial usage rating, pricing quote or hosted binding cannot convert an underlying denial/failure into success.

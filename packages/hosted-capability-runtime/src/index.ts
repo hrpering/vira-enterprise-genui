@@ -24,3 +24,9 @@ export {
   invokeViraHostedCapability,
   parseViraHostedCapabilityBinding,
 } from "./runtime.js";
+export {
+  serializeViraHostedCapabilityBinding,
+} from "./binding-serialization.js";
+export type {
+  ViraHostedCapabilityBindingSerializationResult,
+} from "./binding-serialization.js";
