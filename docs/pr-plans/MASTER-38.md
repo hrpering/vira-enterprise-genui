@@ -9,7 +9,7 @@ Add the first Application-level protocol egress contract so exact distributed Ap
 - authoritative `main`: `e03118833731c8483d0c42f648fefe446f0a103a`
 - previous phase: MASTER-37 merged via PR #197
 - branch: `master/38-application-protocol-projection`
-- frozen executable head: `0728072b19e4b73cb654bab1b724e2aefbbdb99b`
+- corrected frozen executable head: `73f99f85f9f0226591d6161825857b40541455b3`
 
 ## Existing owners
 
@@ -85,6 +85,16 @@ PASS.
 - projection payload is non-canonical interoperability data and cannot redefine Vira Application semantics;
 - projection success or `lossless` report grants no execution, authorization, governance or deployment authority.
 
+## Local Q7 history
+
+First exact-head local run on `0728072b19e4b73cb654bab1b724e2aefbbdb99b`:
+
+- `pnpm check:boundaries` PASS;
+- focused projection suites PASS, 16/16 tests;
+- `pnpm typecheck` failed with two TS7053 errors because TypeScript 6 did not narrow `JsonArray | JsonObject` to a string-indexable `JsonObject` after the array branch inside `freezeJson()` and `canonicalJson()`.
+
+The correction is semantic-neutral: each object branch now explicitly binds `const object = value as JsonObject` before key indexing. Commit `73f99f85f9f0226591d6161825857b40541455b3` changes only `packages/application-protocol-projection/src/validate.ts` at those two narrowing points.
+
 ## Focused verification
 
 ```bash
@@ -104,8 +114,8 @@ pnpm vitest run \
 - Q4 PASS — focused contract/security/determinism/hardening coverage added.
 - Q5 PASS — security/fail-closed review.
 - Q6 PASS — architecture/ownership review.
-- Q7 REQUIRED — exact frozen-head local boundaries/typecheck/focused tests.
-- Q8 PRE-Q7 PASS — actual executable scope reviewed; final post-Q7 executable-clean compare required.
-- Q9 BLOCKED until Q7/final Q8; then exact-head squash merge and MASTER-39 starts from resulting new authoritative `main`.
+- Q7 CORRECTED EXACT-HEAD RETEST REQUIRED.
+- Q8 PRE-Q7 PASS — actual executable scope reviewed; corrected frozen head must remain executable-clean until final post-Q7 compare.
+- Q9 BLOCKED until corrected Q7/final Q8; then exact-head squash merge and MASTER-39 starts from resulting new authoritative `main`.
 
-Hosted verify/iOS/Android jobs on the frozen head ended with `steps: null` and remain infrastructure non-signal.
+Hosted verify/iOS/Android jobs ended with `steps: null` and remain infrastructure non-signal.
