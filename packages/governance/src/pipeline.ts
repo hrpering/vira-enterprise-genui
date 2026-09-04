@@ -200,6 +200,9 @@ export function createViraGovernancePipeline(input: ViraGovernancePipelineInput)
           const challenge = makeChallenge(context, verdict);
           const matching = suppliedByChallenge.get(challenge.challengeId) ?? [];
           if (matching.length > 1) return { ok: false, issue: issue("APPROVAL_REPLAY", "$.approvals", "multiple approval decisions target the same exact challenge"), challenge };
+          if (matching.length === 0 && suppliedByChallenge.size > 0) {
+            return { ok: false, issue: issue("APPROVAL_REPLAY", "$.approvals", "approval was supplied for a stale or different challenge identity"), challenge };
+          }
           let approval: ViraApprovalDecision | undefined;
           if (matching.length === 1) {
             approval = parseApproval(matching[0], challenge);
