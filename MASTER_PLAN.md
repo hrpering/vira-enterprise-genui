@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-04  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-38:** `e03118833731c8483d0c42f648fefe446f0a103a`
+**Authoritative main entering MASTER-39:** `b8f009603407fea9a9115d735e9a144017fc654f`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -25,8 +25,10 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Canvas Multiplayer + Semantic Review | MASTER-35 | MERGED / PR #195 |
 | Application Network — Design System / External Design Import | MASTER-36 | MERGED / PR #196 |
 | Application Network — Application Distribution Contract | MASTER-37 | MERGED / PR #197 |
-| Application Network — Application Protocol Projection | MASTER-38 | ACTIVE |
-| Application Network — Distribution / protocol continuation | MASTER-39..41 | PLANNED |
+| Application Network — Application Protocol Projection | MASTER-38 | MERGED / PR #198 |
+| Application Network — Application Publisher SDK | MASTER-39 | ACTIVE |
+| Application Network — AI-host SDK | MASTER-40 | PLANNED |
+| Application Network — Federated Distribution | MASTER-41 | PLANNED |
 | Application Network — Commercial / Capability Cloud | MASTER-42..47 | PLANNED |
 | Application Network — External Proofs / Network RC | MASTER-48..51 | PLANNED |
 
@@ -35,33 +37,13 @@ This file is the engineering execution authority. Long-range product strategy li
 ```text
 Enterprise GenUI RC1 ✅
   ↓
-MASTER-26 semantic freeze ✅
+MASTER-26..38 ✅
   ↓
-MASTER-27 Application Package ✅
+MASTER-39 Application Publisher SDK
   ↓
-MASTER-28 Capability Contract ✅
+MASTER-40 AI-host SDK
   ↓
-MASTER-29 WorkContext ✅
-  ↓
-MASTER-30 Application Graph ✅
-  ↓
-MASTER-31 Canvas Foundation ✅
-  ↓
-MASTER-32 Canvas Mutation Session ✅
-  ↓
-MASTER-33 Canvas AI Co-author ✅
-  ↓
-MASTER-34 Canvas Simulation + Replay ✅
-  ↓
-MASTER-35 Canvas Multiplayer + Semantic Review ✅
-  ↓
-MASTER-36 Design System / External Design Import ✅
-  ↓
-MASTER-37 Application Distribution Contract ✅
-  ↓
-MASTER-38 Application Protocol Projection
-  ↓
-MASTER-39 → 41 distribution/protocol continuation
+MASTER-41 Federated Distribution
   ↓
 MASTER-42 → 47 commercial network + capability cloud
   ↓
@@ -75,25 +57,14 @@ MASTER-48 → 51 external proofs + Application Network RC
 - Experience, Pack, Studio publication, Action Boundary, governance and runtime authorities are referenced, not duplicated.
 - ApplicationGraph is relational semantics, not a workflow engine or runtime graph.
 - Canvas authors/proposes canonical semantics but editor projection is not Application semantics.
-- Canvas editor revision is not runtime/deployment/Application release revision.
-- Canvas mutation sessions require exact editor revision guards; stale writes fail closed and failed candidates cannot partially commit.
-- Canvas AI is proposal-only and cannot directly apply/publish/deploy/govern/execute.
-- Canvas simulation/replay is dry-run authoring evidence only and cannot invoke Capabilities/Actions or create runtime/policy/ledger truth.
-- Canvas collaboration presence is ephemeral and non-semantic; peer review gates editor draft mutation only and is not governance/authorization/publication approval.
-- Concurrent Canvas semantic proposals bind exact base revision; applying one through the canonical mutation owner makes competing proposals stale.
-- Canvas collaboration does not imply CRDT, network transport, persistence or distributed lock ownership.
-- Canvas external design import consumes provider-neutral normalized DTCG through the existing compiler; vendor formats, URLs and credentials remain adapter/transport concerns.
-- Imported design artifacts bind the Application's existing exact `brandRef` and are authoring data only; they cannot install renderers, mutate Canvas semantics, publish, deploy or execute.
-- Existing Studio design/brand/compiler owners remain canonical; Canvas does not create a competing design-system schema.
-- Application distribution wraps the canonical `ViraApplicationPackage`; it does not copy distribution metadata, compatibility, protocol projections or commercial semantics into a second owner.
-- Application distribution integrity is explicit and independently verified against canonical Application serialization; parsing a digest declaration alone does not assert verification.
-- Application protocol projections must bind one exact source distribution envelope and one exact source-declared projection ref.
-- Protocol projection fidelity is explicit: lossy mappings enumerate canonical Application semantic losses; unsupported mappings cannot masquerade as payloads; lossless mappings cannot hide loss metadata.
-- Protocol projection artifacts are interoperability data only and cannot claim source integrity verification, transport/provider authority, deployment, governance, entitlement or protected execution permission.
-- Network distribution contracts contain no implicit latest resolution, provider credentials, transport authority, deployment state, governance permission or protected execution authority.
-- Canvas cannot directly publish, deploy, authorize, govern or execute protected effects by implication.
-- Capability semantics are provider-neutral; provider/API/MCP/SaaS bindings do not define canonical meaning.
-- WorkContext is bounded work state/provenance, not chat history/user memory/prompt storage/runtime lifecycle.
+- Application distribution wraps the canonical `ViraApplicationPackage`; it does not duplicate Application metadata or authority.
+- Application distribution integrity declaration is distinct from integrity verification, deployment approval, governance approval, entitlement and execution permission.
+- Application protocol projections bind exact source distributions + exact source-declared projection refs and report `lossless | lossy | unsupported` explicitly.
+- Projection fidelity is adapter-reported interoperability state, not generic proof of arbitrary protocol equivalence.
+- Publisher SDKs compose canonical Application/Distribution owners; they do not define a second Application artifact or registry protocol.
+- Publisher SDK `publisherId` is host-asserted identity parity, not authentication or proof of publisher ownership.
+- Publisher SDK digest-provider output is a declared SHA-256 identity and does not by itself assert verification/trust.
+- Publisher SDK core contains no signing credentials, URL/transport, registry upload, federation, deployment, governance or protected execution authority.
 - Network is discovery/distribution, never execution authority.
 - Exact identity/version resolution is explicit; no implicit latest or silent fallback.
 - Untrusted/malformed input fails closed.
@@ -103,9 +74,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 
 ## Active records
 
-- `docs/pr-plans/MASTER-38.md`
+- `docs/pr-plans/MASTER-39.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-38/RE_REPORT.md`
+- `docs/evidence/MASTER-39/RE_REPORT.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`

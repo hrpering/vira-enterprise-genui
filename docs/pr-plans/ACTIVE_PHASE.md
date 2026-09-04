@@ -1,12 +1,20 @@
 # Active Phase
 
-**Phase:** MASTER-38 — Application Protocol Projection Contract  
+**Phase:** MASTER-39 — Application Publisher SDK  
 **Status:** Q0–Q8 PASS / Q9 READY TO MERGE  
-**Base SHA:** `e03118833731c8483d0c42f648fefe446f0a103a`  
-**Frozen executable SHA:** `73f99f85f9f0226591d6161825857b40541455b3`  
-**Previous:** MASTER-37 merged via PR #197  
-**Branch:** `master/38-application-protocol-projection`  
-**PR:** #198  
-**Next after merge:** MASTER-39 from new authoritative `main`
+**Base SHA:** `b8f009603407fea9a9115d735e9a144017fc654f`  
+**Frozen executable SHA:** `4f7df4b1e314121a4d16cbf5502896810447e1bd`  
+**Previous:** MASTER-38 merged via PR #198  
+**Branch:** `master/39-application-publisher-sdk`  
+**PR:** #199  
+**Next after merge:** MASTER-40 AI-host SDK phase from new authoritative `main`
 
-Corrected exact-head local Q7 PASS. Final Q8 docs/evidence-only compare PASS. Executable drift zero. MASTER-38 is ready for exact-head squash merge.
+MASTER-39 introduces `@vira-enterprise-genui/application-publisher-sdk` as a thin publisher-side integration layer over existing canonical Application and Distribution owners.
+
+Q5 security review PASS. Q6 architecture review PASS. Q7 exact frozen-head local verification is operator-reported PASS for package boundaries, TypeScript and focused Publisher SDK suites. Q8 final compare PASS: the frozen executable head to closure contains only MASTER-39 docs/evidence; executable drift is zero.
+
+`publisherId` remains a host assertion rather than authentication. Digest-provider output remains an integrity declaration rather than verification/trust. The SDK has no registry upload, URL/transport/federation, credential/signing, deployment/runtime/governance/authorization/entitlement or protected execution authority.
+
+Hosted verify/iOS/Android jobs with `steps: null` remain infrastructure non-signal.
+
+MASTER-39 is ready for exact-head squash merge.
