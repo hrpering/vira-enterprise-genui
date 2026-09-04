@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-05  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-43:** `e7598b99bd44b138911113a66179001946186f56`
+**Authoritative main entering MASTER-44:** `e987f3447953761b70c4aa548761bf359b3e07f0`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -30,8 +30,9 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — AI-host SDK | MASTER-40 | MERGED / PR #200 |
 | Application Network — Federated Distribution | MASTER-41 | MERGED / PR #201 |
 | Application Network — Commercial Entitlement Contract | MASTER-42 | MERGED / PR #202 |
-| Application Network — Commercial Usage Metering + Rating | MASTER-43 | ACTIVE |
-| Application Network — Commercial / Capability Cloud | MASTER-44..47 | PLANNED |
+| Application Network — Commercial Usage Metering + Rating | MASTER-43 | MERGED / PR #204 |
+| Application Network — Hosted Capability Runtime Foundation | MASTER-44 | ACTIVE |
+| Application Network — Remaining Commercial / Capability Cloud | MASTER-45..47 | PLANNED |
 | Application Network — External Proofs / Network RC | MASTER-48..51 | PLANNED |
 
 ## Active execution order
@@ -39,11 +40,11 @@ This file is the engineering execution authority. Long-range product strategy li
 ```text
 Enterprise GenUI RC1 ✅
   ↓
-MASTER-26..42 ✅
+MASTER-26..43 ✅
   ↓
-MASTER-43 Commercial Usage Metering + Rating
+MASTER-44 Hosted Capability Runtime Foundation
   ↓
-MASTER-44 → 47 remaining commercial network + capability cloud
+MASTER-45 → 47 remaining commercial network + capability cloud
   ↓
 MASTER-48 → 51 external proofs + Application Network RC
 ```
@@ -71,12 +72,17 @@ MASTER-48 → 51 external proofs + Application Network RC
 - Commercial usage records are explicit canonical inputs; telemetry, observability and Action receipts are not automatically billable usage.
 - Commercial metering may define provider-neutral units/windows and usage-to-entitlement rating, but monetary pricing/currency/invoice/payment/payout semantics remain separate.
 - Usage source provenance is not authentication or evidence verification.
+- Hosted Capability execution consumes canonical CapabilityDefinition, WorkContext and enterprise scope; it must not redefine them.
+- Hosted Capability provider/binding/location identities are routing/provenance evidence, not authentication, attestation, authorization or commercial entitlement.
+- Hosted query execution cannot directly execute a Capability declared as `action`; protected effects remain behind `action-boundary`.
+- Hosted Capability core does not own provider endpoints, credentials, durable jobs, container/VM/Kubernetes/serverless orchestration, autoscaling, failover/ranking or generic cloud compute.
+- A successful hosted query result is execution evidence only and cannot override independent authentication, authorization, governance, entitlement or deployment requirements.
 - Core does not become a generic agent framework, workflow engine, policy language, provider-integration empire, MCP/A2UI replacement, IDE/design clone, cloud-compute platform or foundation model.
 - PR creation is not phase completion. Merge requires contract review, security/architecture review, verification, independent reverse engineering and exact-head evidence appropriate to the diff.
 
 ## Active records
 
-- `docs/pr-plans/MASTER-43.md`
+- `docs/pr-plans/MASTER-44.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`

@@ -30,6 +30,7 @@ An Application can reference Experiences, Capabilities, Context and Actions, but
 | Platform host/render mapping | existing Web/native host/runtime owners | redefine business semantics per platform |
 | Application semantic composition | `application-package`, `application-graph` | absorb the authorities listed above |
 | Capability semantics | `capability-contract` | let MCP/SaaS/customer/provider bindings define canonical meaning |
+| Hosted query Capability execution | `hosted-capability-runtime` | become Action execution, authorization, provider attestation or generic cloud compute |
 | Work Context semantics | `work-context` | treat chat history, prompt dump or user memory as canonical Context |
 | Canvas | `application-canvas` family | become runtime, publication, governance or effect authority |
 | Network | `application-distribution`, `application-federation` | become runtime/execution/governance authority |
@@ -107,6 +108,26 @@ Operational telemetry, Experience observations and Action receipts are not billa
 
 Commercial metering also does not own monetary price/rate cards, currency, charges, invoice/payment/subscription lifecycle or publisher settlement. Those future economic layers must consume immutable entitlement/metering evidence rather than mutate security or usage truth.
 
+## Hosted Capability runtime authority
+
+`hosted-capability-runtime` may validate one exact provider binding against one canonical `ViraCapabilityDefinition`, carry canonical enterprise principal/scope, minimize Context disclosure to the exact declared `contextRequirements`, validate typed JSON input/output identity and invoke one explicitly supplied trusted provider adapter for a canonical **query** Capability.
+
+A hosted execution result is provider-neutral execution evidence only. It does **not** mean:
+
+- authenticated provider identity or attested isolation;
+- authorized principal;
+- governance approval;
+- commercial entitlement;
+- deployment approval;
+- monetary usage/charge;
+- protected Action permission.
+
+A Capability whose canonical invocation kind is `action` is rejected by this runtime before adapter invocation. Protected effect execution remains behind `action-boundary`; MASTER-44 does not reproduce Action permits, confirmations, idempotency or receipts.
+
+`providerId`, `bindingRef` and `locationId` are routing/provenance evidence only. A canonical `query` declaration also does not cryptographically prove that an external provider implementation is side-effect-free; the explicitly supplied adapter is a trusted integration boundary, not a new semantic/security authority.
+
+The hosted Capability runtime owns no provider catalog, endpoint/transport, credentials, secret delivery, durable job queue, container/VM/Kubernetes/serverless scheduling, autoscaling, failover/ranking or generic cloud-compute semantics.
+
 ## Provider authority
 
 Providers implement/bind functionality. They are never Vira canonical semantic owners merely because they expose an API, MCP server, SDK, model, SaaS integration or hosted execution environment.
@@ -126,15 +147,15 @@ canonical registry/resolver/deployment authorities
       ↓
 commercial entitlement / metering evidence where commercially required
       ↓
-enterprise scope + governance
+enterprise scope + governance / authorization where required
       ↓
-runtime / host
+hosted query Capability runtime OR Experience runtime / host
       ↓
 Action Boundary for protected effects
 ```
 
-An upstream composition or commercial layer cannot overrule a downstream security/execution authority.
+An upstream composition, commercial layer or hosted provider binding cannot overrule a downstream security/execution authority. Hosted query execution is not an alternate path around protected Action execution.
 
 ## Failure rule
 
-Ambiguous, missing, stale, unapproved, incompatible or untrusted authority resolution fails closed. A higher-level Application declaration, entitlement or commercial usage rating cannot convert an underlying denial/failure into success.
+Ambiguous, missing, stale, unapproved, incompatible or untrusted authority resolution fails closed. A higher-level Application declaration, entitlement, commercial usage rating or hosted binding cannot convert an underlying denial/failure into success.

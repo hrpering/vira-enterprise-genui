@@ -28,6 +28,7 @@ If this document and the executable boundary graph disagree, the executable grap
 | Full Studio brand definition/package assembly | `studio-brand` |
 | Trusted Studio brand renderer activation | `studio-brand-loader` |
 | Provider-neutral CapabilityDefinition semantics | `capability-contract` |
+| Provider-neutral hosted query Capability execution boundary | `hosted-capability-runtime` |
 | Bounded WorkContext definition/snapshot/provenance semantics | `work-context` |
 | Capability wire/protocol identity envelope | `protocol` |
 | Runtime state, lifecycle, patches, permissions, errors | `runtime-core` |
@@ -72,7 +73,15 @@ The same exact Application `id@version` across multiple sources is valid only wh
 
 `commercial-metering` deliberately does **not** depend on or redefine `telemetry`, `experience-observability` or `action-ledger`. Telemetry events and Action receipts may be evidence used by an external trusted ingestion adapter, but they are never automatically converted into billable usage by core. Usage `sourceId` is provenance only, not authenticated identity or integrity proof.
 
-`commercial-metering` also does **not** own monetary price/rate cards, currency, charges, invoices, payment/subscription state, publisher payouts, provider execution, authorization, governance or runtime/deployment permission. Its append-only ledger is a domain contract; durable storage/database infrastructure remains outside the package.
+`commercial-metering` also does **not** own monetary price/rate cards, currency, charges, invoices, payment/subscription state, publisher payouts, provider execution, authorization, governance or runtime/deployment permission. Its append-only ledger is a bounded domain helper; durable storage/database/partitioning infrastructure remains outside the package.
+
+`hosted-capability-runtime` depends only on `capability-contract`, `enterprise-context`, `protocol` and `work-context`. It owns exact hosted binding parsing, exact Capability binding verification, canonical enterprise execution context carriage, strict WorkContext minimization, typed JSON input/output identity checks and one-shot trusted-adapter invocation for canonical `query` Capabilities.
+
+`hosted-capability-runtime` does **not** own CapabilityDefinition semantics, provider catalog/discovery, provider authentication/attestation, network endpoints/transports, credentials/secrets, durable jobs, VM/container/Kubernetes/serverless scheduling, autoscaling, failover/provider ranking, commercial entitlement/metering, authorization/governance or monetary billing.
+
+A Capability declaring `invocation.kind: "action"` is never executed by `hosted-capability-runtime`; it fails closed with `ACTION_BOUNDARY_REQUIRED` before adapter invocation. Protected effects remain exclusively behind `action-boundary` and its canonical permit/idempotency/confirmation/receipt semantics.
+
+Hosted `providerId`, `bindingRef` and `locationId` are routing/provenance evidence only. A successful hosted query result does not authenticate the provider, attest isolation, authorize the principal, prove commercial entitlement or imply that an external provider implementation is cryptographically side-effect-free. The adapter remains an explicit trusted integration boundary.
 
 ## Future ownership constraints
 
@@ -86,6 +95,8 @@ The same exact Application `id@version` across multiple sources is valid only wh
 - Publisher SDKs remain transport-neutral; registry/upload/provider credentials stay outside canonical SDK semantics.
 - Protocol payload data cannot acquire transport/provider/deployment/governance/execution authority by projection success.
 - Provider bindings must map to exact provider-neutral semantics and remain outside Canvas draft authority.
+- Hosted Capability execution must not turn protocol adaptation, deployment, Experience runtime or CapabilityDefinition packages into generic cloud-compute owners.
+- Action-kind Capabilities remain behind the canonical Action Boundary; hosted query execution cannot become a protected-effect bypass.
 - WorkContext remains bounded work state/provenance, not chat history, user memory or prompt dump.
 - Entitlement expresses commercial access and remains distinct from authorization/governance/runtime permission.
 - Meter unit/window semantics, usage accounting and rating consume exact entitlement/metering references without moving those concerns into `commercial-entitlement`.

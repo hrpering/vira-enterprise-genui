@@ -1,0 +1,15 @@
+{
+  "name": "@vira-enterprise-genui/hosted-capability-runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/capability-contract": "workspace:*",
+    "@vira-enterprise-genui/enterprise-context": "workspace:*",
+    "@vira-enterprise-genui/protocol": "workspace:*",
+    "@vira-enterprise-genui/work-context": "workspace:*"
+  }
+}
