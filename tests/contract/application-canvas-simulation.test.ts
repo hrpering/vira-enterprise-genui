@@ -25,21 +25,15 @@ function application() {
   };
 }
 
-function graph() {
+function graph(name = "Flight Graph") {
   return {
     schemaVersion: "1",
     id: "vira.flight-application-graph",
     version: "1.0.0",
     publisher: { id: "vira", name: "Vira" },
-    metadata: { name: "Flight Graph" },
+    metadata: { name },
     nodes: [
-      {
-        id: "search-surface",
-        target: {
-          kind: "experience",
-          ref: { id: "travel.flight.search", packId: "vira/flight-booking", packVersion: "2.1.0", entrypoint: "main" },
-        },
-      },
+      { id: "search-surface", target: { kind: "experience", ref: { id: "travel.flight.search", packId: "vira/flight-booking", packVersion: "2.1.0", entrypoint: "main" } } },
       { id: "flight-search", target: { kind: "capability", ref: { id: "vira.flight-search", versionRef: "1.0.0" } } },
       { id: "trip-context", target: { kind: "context", ref: { id: "vira.trip-context", versionRef: "1.0.0" } } },
       { id: "book-flight", target: { kind: "action", actionType: "travel.flight.book" } },
@@ -53,21 +47,26 @@ function graph() {
   };
 }
 
-function draft(editorRevision = 7) {
+type ProjectionMode = "default" | "changed" | "empty";
+
+function draft(editorRevision = 7, projectionMode: ProjectionMode = "default", graphName = "Flight Graph") {
+  const projection = projectionMode === "empty"
+    ? { activeGraphRef: null, graphViews: [] }
+    : {
+        activeGraphRef: { id: "vira.flight-application-graph", version: "1.0.0" },
+        graphViews: [{
+          graphRef: { id: "vira.flight-application-graph", version: "1.0.0" },
+          nodeLayouts: [{ nodeId: "search-surface", x: projectionMode === "changed" ? 900 : 100, y: projectionMode === "changed" ? -400 : 80 }],
+          viewport: projectionMode === "changed" ? { x: 120, y: 60, zoom: 2 } : { x: 0, y: 0, zoom: 1 },
+          selection: { nodeIds: [], edgeIds: [] },
+        }],
+      };
   return {
     schemaVersion: "1",
     draftId: "flight-draft-1",
     editorRevision,
-    semantics: { application: application(), graphs: [graph()] },
-    projection: {
-      activeGraphRef: { id: "vira.flight-application-graph", version: "1.0.0" },
-      graphViews: [{
-        graphRef: { id: "vira.flight-application-graph", version: "1.0.0" },
-        nodeLayouts: [{ nodeId: "search-surface", x: 100, y: 80 }],
-        viewport: { x: 0, y: 0, zoom: 1 },
-        selection: { nodeIds: [], edgeIds: [] },
-      }],
-    },
+    semantics: { application: application(), graphs: [graph(graphName)] },
+    projection,
   };
 }
 
@@ -77,12 +76,7 @@ describe("Vira Canvas Simulation + Replay v1", () => {
   it("simulates an explicit semantic path without invoking runtime providers", () => {
     const result = simulateViraCanvasScenario({
       draft: draft(),
-      scenario: {
-        id: "search-path",
-        graphRef,
-        startNodeId: "search-surface",
-        edgeIds: ["surface-search", "search-context"],
-      },
+      scenario: { id: "search-path", graphRef, startNodeId: "search-surface", edgeIds: ["surface-search", "search-context"] },
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -96,56 +90,34 @@ describe("Vira Canvas Simulation + Replay v1", () => {
     expect(typeof result.value.semanticsSnapshot).toBe("string");
   });
 
-  it("treats Action nodes as dry-run semantic frames rather than executing protected effects", () => {
+  it("treats Action nodes as dry-run frames rather than executing protected effects", () => {
     const result = simulateViraCanvasScenario({
       draft: draft(),
       scenario: { id: "book-path", graphRef, startNodeId: "search-surface", edgeIds: ["surface-book"] },
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.frames[1]).toEqual({
-      index: 1,
-      nodeId: "book-flight",
-      nodeKind: "action",
-      viaEdgeId: "surface-book",
-    });
+    expect(result.value.frames[1]).toEqual({ index: 1, nodeId: "book-flight", nodeKind: "action", viaEdgeId: "surface-book" });
     expect(Object.keys(result.value).sort()).toEqual([
-      "applicationRef",
-      "frames",
-      "graphRef",
-      "scenarioId",
-      "semanticsSnapshot",
-      "sourceDraftId",
-      "version",
+      "applicationRef", "frames", "graphRef", "scenarioId", "semanticsSnapshot", "sourceDraftId", "version",
     ]);
   });
 
-  it("supports semantic cycles because ApplicationGraph is not a DAG workflow engine", () => {
+  it("supports cycles because ApplicationGraph is not a DAG workflow engine", () => {
     const result = simulateViraCanvasScenario({
       draft: draft(),
-      scenario: {
-        id: "context-cycle",
-        graphRef,
-        startNodeId: "flight-search",
-        edgeIds: ["search-context", "context-search", "search-context"],
-      },
+      scenario: { id: "context-cycle", graphRef, startNodeId: "flight-search", edgeIds: ["search-context", "context-search", "search-context"] },
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.frames.map((entry) => entry.nodeId)).toEqual([
-      "flight-search",
-      "trip-context",
-      "flight-search",
-      "trip-context",
-    ]);
+    expect(result.value.frames.map((entry) => entry.nodeId)).toEqual(["flight-search", "trip-context", "flight-search", "trip-context"]);
   });
 
-  it("fails closed when an explicit edge does not continue from the current node", () => {
-    const result = simulateViraCanvasScenario({
+  it("fails closed on non-contiguous explicit paths", () => {
+    expect(simulateViraCanvasScenario({
       draft: draft(),
       scenario: { id: "bad-path", graphRef, startNodeId: "search-surface", edgeIds: ["search-context"] },
-    });
-    expect(result).toMatchObject({ ok: false, issue: { code: "EDGE_PATH_MISMATCH" } });
+    })).toMatchObject({ ok: false, issue: { code: "EDGE_PATH_MISMATCH" } });
   });
 
   it("rejects missing graphs, nodes and edges without fallback", () => {
@@ -153,12 +125,10 @@ describe("Vira Canvas Simulation + Replay v1", () => {
       draft: draft(),
       scenario: { id: "missing-graph", graphRef: { id: "vira.missing", version: "1.0.0" }, startNodeId: "x", edgeIds: [] },
     })).toMatchObject({ ok: false, issue: { code: "GRAPH_NOT_FOUND" } });
-
     expect(simulateViraCanvasScenario({
       draft: draft(),
       scenario: { id: "missing-node", graphRef, startNodeId: "missing", edgeIds: [] },
     })).toMatchObject({ ok: false, issue: { code: "NODE_NOT_FOUND" } });
-
     expect(simulateViraCanvasScenario({
       draft: draft(),
       scenario: { id: "missing-edge", graphRef, startNodeId: "search-surface", edgeIds: ["missing"] },
@@ -166,7 +136,7 @@ describe("Vira Canvas Simulation + Replay v1", () => {
   });
 
   it("enforces the bounded scenario step limit", () => {
-    const result = simulateViraCanvasScenario({
+    expect(simulateViraCanvasScenario({
       draft: draft(),
       scenario: {
         id: "too-long",
@@ -174,44 +144,35 @@ describe("Vira Canvas Simulation + Replay v1", () => {
         startNodeId: "search-surface",
         edgeIds: Array.from({ length: VIRA_CANVAS_SIMULATION_MAX_STEPS + 1 }, () => "surface-search"),
       },
-    });
-    expect(result).toMatchObject({ ok: false, issue: { code: "STEP_LIMIT_EXCEEDED" } });
+    })).toMatchObject({ ok: false, issue: { code: "STEP_LIMIT_EXCEEDED" } });
   });
 
-  it("replays deterministically after projection-only and editorRevision changes", () => {
+  it("replays after projection-only and editorRevision changes", () => {
     const simulated = simulateViraCanvasScenario({
       draft: draft(),
       scenario: { id: "search-path", graphRef, startNodeId: "search-surface", edgeIds: ["surface-search"] },
     });
     expect(simulated.ok).toBe(true);
     if (!simulated.ok) return;
-
-    const changedProjection = draft(99);
-    changedProjection.projection.graphViews[0]!.nodeLayouts[0] = { nodeId: "search-surface", x: 900, y: -400 };
-    changedProjection.projection.graphViews[0]!.viewport = { x: 120, y: 60, zoom: 2 };
-
-    const replayed = replayViraCanvasSimulation({ draft: changedProjection, trace: simulated.value });
+    const replayed = replayViraCanvasSimulation({ draft: draft(99, "changed"), trace: simulated.value });
     expect(replayed.ok).toBe(true);
     if (!replayed.ok) return;
     expect(replayed.value.matched).toBe(true);
     expect(replayed.value.frames).toEqual(simulated.value.frames);
   });
 
-  it("detects semantic drift even when Application release identity was not bumped in the draft", () => {
+  it("detects semantic drift even without an Application version bump", () => {
     const simulated = simulateViraCanvasScenario({
       draft: draft(),
       scenario: { id: "search-path", graphRef, startNodeId: "search-surface", edgeIds: ["surface-search"] },
     });
     expect(simulated.ok).toBe(true);
     if (!simulated.ok) return;
-
-    const changed = draft();
-    changed.semantics.graphs[0]!.metadata = { name: "Changed Flight Graph" };
-    const replayed = replayViraCanvasSimulation({ draft: changed, trace: simulated.value });
-    expect(replayed).toMatchObject({ ok: false, issue: { code: "SEMANTIC_DRIFT" } });
+    expect(replayViraCanvasSimulation({ draft: draft(7, "default", "Changed Flight Graph"), trace: simulated.value }))
+      .toMatchObject({ ok: false, issue: { code: "SEMANTIC_DRIFT" } });
   });
 
-  it("rejects tampered trace frames instead of trusting replay evidence", () => {
+  it("rejects tampered trace frames", () => {
     const simulated = simulateViraCanvasScenario({
       draft: draft(),
       scenario: { id: "search-path", graphRef, startNodeId: "search-surface", edgeIds: ["surface-search"] },
@@ -221,21 +182,13 @@ describe("Vira Canvas Simulation + Replay v1", () => {
     const trace = JSON.parse(JSON.stringify(simulated.value)) as Record<string, unknown>;
     const frames = trace.frames as Array<Record<string, unknown>>;
     frames[1]!.nodeId = "book-flight";
-    const replayed = replayViraCanvasSimulation({ draft: draft(), trace });
-    expect(replayed).toMatchObject({ ok: false, issue: { code: "INVALID_TRACE" } });
+    expect(replayViraCanvasSimulation({ draft: draft(), trace })).toMatchObject({ ok: false, issue: { code: "INVALID_TRACE" } });
   });
 
-  it("rejects unsafe accessor scenario and trace inputs through the shared JSON boundary", () => {
-    const scenario: Record<string, unknown> = {
-      graphRef,
-      startNodeId: "search-surface",
-      edgeIds: [],
-    };
+  it("rejects unsafe accessor scenario and trace inputs", () => {
+    const scenario: Record<string, unknown> = { graphRef, startNodeId: "search-surface", edgeIds: [] };
     Object.defineProperty(scenario, "id", { enumerable: true, get: () => "unsafe" });
-    expect(simulateViraCanvasScenario({ draft: draft(), scenario })).toMatchObject({
-      ok: false,
-      issue: { code: "INVALID_SCENARIO" },
-    });
+    expect(simulateViraCanvasScenario({ draft: draft(), scenario })).toMatchObject({ ok: false, issue: { code: "INVALID_SCENARIO" } });
 
     const simulated = simulateViraCanvasScenario({
       draft: draft(),
@@ -245,22 +198,16 @@ describe("Vira Canvas Simulation + Replay v1", () => {
     if (!simulated.ok) return;
     const trace: Record<string, unknown> = { ...simulated.value };
     Object.defineProperty(trace, "scenarioId", { enumerable: true, get: () => "unsafe" });
-    expect(replayViraCanvasSimulation({ draft: draft(), trace })).toMatchObject({
-      ok: false,
-      issue: { code: "INVALID_TRACE" },
-    });
+    expect(replayViraCanvasSimulation({ draft: draft(), trace })).toMatchObject({ ok: false, issue: { code: "INVALID_TRACE" } });
   });
 
-  it("serializes the same semantic scenario deterministically regardless of projection metadata", () => {
+  it("produces the same semantic evidence regardless of projection metadata", () => {
     const first = simulateViraCanvasScenario({
       draft: draft(1),
       scenario: { id: "same", graphRef, startNodeId: "flight-search", edgeIds: ["search-context", "context-search"] },
     });
-    const secondDraft = draft(500);
-    secondDraft.projection.activeGraphRef = null;
-    secondDraft.projection.graphViews = [];
     const second = simulateViraCanvasScenario({
-      draft: secondDraft,
+      draft: draft(500, "empty"),
       scenario: { id: "same", graphRef, startNodeId: "flight-search", edgeIds: ["search-context", "context-search"] },
     });
     expect(first.ok).toBe(true);
