@@ -11,6 +11,7 @@ If this document and the executable boundary graph disagree, the executable grap
 |---|---|
 | Application release identity/reference graph/distribution metadata | `application-package` |
 | Application distribution envelope + artifact-integrity binding | `application-distribution` |
+| Application protocol projection fidelity artifact | `application-protocol-projection` |
 | Application semantic nodes/edges | `application-graph` |
 | Canvas draft identity/editor revision/non-semantic projection + mutation session | `application-canvas` |
 | Application-level Canvas AI semantic proposal/diff | `application-canvas-ai` |
@@ -35,7 +36,7 @@ If this document and the executable boundary graph disagree, the executable grap
 | Experience Pack semantics | `experience-packs` |
 | Experience registry | `experience-registry` |
 | Action receipts / ledger truth | `action-ledger` |
-| Protocol adaptation | `protocol-gateway` |
+| Tool/protocol invocation adaptation | `protocol-gateway` |
 | Studio document schema | `studio-schema` |
 | Studio publication gate | `studio-publish` |
 | Human Studio authoring inside one Experience | `studio-workbench` |
@@ -43,6 +44,10 @@ If this document and the executable boundary graph disagree, the executable grap
 | Web/native render/host surfaces | existing runtime and Studio host/renderer packages governed by the executable boundary graph |
 
 `application-distribution` depends only on `application-package` and `protocol`. It owns the strict provider-neutral distribution envelope, exact SHA-256 integrity identity, deterministic envelope serialization around canonical Application serialization, and the explicit fail-closed integrity-verification gate. It does not own Application discovery metadata, compatibility, protocol projections, commercial semantics, registry persistence, transport/URLs, provider credentials, deployment/runtime, governance/authorization or execution.
+
+`application-protocol-projection` depends only on `application-distribution` and `protocol`. It owns the strict Application-level protocol projection artifact, exact membership binding to the source Application's `protocolProjections[]`, explicit `lossless | lossy | unsupported` fidelity, bounded canonical semantic-loss reporting and deterministic arbitrary-protocol-payload serialization. It does not own protocol adapter implementation, transport/federation, provider credentials, source integrity verification, registries, deployment/runtime, governance/authorization/entitlement or execution.
+
+`protocol-gateway` remains the owner of existing tool/protocol invocation adaptation. MASTER-38 does not turn it into the Application-level egress semantic owner.
 
 `application-canvas` remains the only owner of Canvas editor revision and atomic draft mutation. Collaboration final apply delegates to its mutation session rather than replacing or duplicating stale-write/canonical validation logic.
 
@@ -54,7 +59,7 @@ If this document and the executable boundary graph disagree, the executable grap
 
 `application-canvas-design-import` depends only on `application-canvas`, `design-system-compiler` and `protocol`. It owns strict provider-neutral DTCG import envelopes, bounded external source provenance, exact current Application brand binding and the frozen authoring import artifact. It delegates token semantics and compilation to `design-system-compiler` and does not own vendor payload parsing, network transport, credentials, full brand assembly, renderer installation, Canvas mutation, publication/deployment or runtime execution.
 
-`design-system-compiler`, `studio-design`, `studio-brand` and `studio-brand-loader` remain the canonical design/brand owners. MASTER-36 does not duplicate their schema or activation responsibilities.
+`design-system-compiler`, `studio-design`, `studio-brand` and `studio-brand-loader` remain the canonical design/brand owners.
 
 Presence is non-semantic editor state and never increments `editorRevision`. Semantic review approval is only permission to mutate the local Canvas draft; it is not enterprise governance or authorization.
 
@@ -66,6 +71,10 @@ Canvas `editorRevision` remains editor metadata only and cannot substitute for A
 - Distribution may expose/index metadata already owned by `application-package`, but it must not silently fork or mutate those values.
 - Distribution integrity verification is not deployment approval, governance approval, entitlement or execution permission.
 - Network transports/providers may carry a distribution envelope but must not become canonical Application semantic owners.
+- Application protocol projection must consume exact source-declared projection refs; it cannot invent implicit/latest protocol targets.
+- Protocol projections must report `lossless`, `lossy`, or `unsupported` explicitly. Lossy adapters must enumerate canonical Application semantic losses; adapters must never silently redefine Vira semantics.
+- Projection artifacts must not claim source integrity verification merely because they contain the source digest declaration.
+- Protocol payload data remains non-canonical interoperability output; it cannot acquire transport/provider/deployment/governance/execution authority by being projected successfully.
 - External design adapters may normalize Figma/Sketch/vendor sources to DTCG, but provider formats/URLs/credentials must not become canonical Canvas design semantics.
 - Canvas design import artifacts must bind an existing exact Application `brandRef`; no implicit/latest brand resolution.
 - Imported design artifacts are authoring data only and cannot directly install renderers, mutate Canvas semantics, publish, deploy or execute.

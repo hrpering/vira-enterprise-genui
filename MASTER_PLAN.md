@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-04  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-37:** `2e1b509ca9d7c0c1c0179746bec95fa7f2bed016`
+**Authoritative main entering MASTER-38:** `e03118833731c8483d0c42f648fefe446f0a103a`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -24,8 +24,9 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Canvas Simulation + Replay | MASTER-34 | MERGED / PR #194 |
 | Application Network — Canvas Multiplayer + Semantic Review | MASTER-35 | MERGED / PR #195 |
 | Application Network — Design System / External Design Import | MASTER-36 | MERGED / PR #196 |
-| Application Network — Application Distribution Contract | MASTER-37 | ACTIVE |
-| Application Network — Distribution / protocol continuation | MASTER-38..41 | PLANNED |
+| Application Network — Application Distribution Contract | MASTER-37 | MERGED / PR #197 |
+| Application Network — Application Protocol Projection | MASTER-38 | ACTIVE |
+| Application Network — Distribution / protocol continuation | MASTER-39..41 | PLANNED |
 | Application Network — Commercial / Capability Cloud | MASTER-42..47 | PLANNED |
 | Application Network — External Proofs / Network RC | MASTER-48..51 | PLANNED |
 
@@ -56,9 +57,11 @@ MASTER-35 Canvas Multiplayer + Semantic Review ✅
   ↓
 MASTER-36 Design System / External Design Import ✅
   ↓
-MASTER-37 Application Distribution Contract
+MASTER-37 Application Distribution Contract ✅
   ↓
-MASTER-38 → 41 protocol + distribution continuation
+MASTER-38 Application Protocol Projection
+  ↓
+MASTER-39 → 41 distribution/protocol continuation
   ↓
 MASTER-42 → 47 commercial network + capability cloud
   ↓
@@ -84,6 +87,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 - Existing Studio design/brand/compiler owners remain canonical; Canvas does not create a competing design-system schema.
 - Application distribution wraps the canonical `ViraApplicationPackage`; it does not copy distribution metadata, compatibility, protocol projections or commercial semantics into a second owner.
 - Application distribution integrity is explicit and independently verified against canonical Application serialization; parsing a digest declaration alone does not assert verification.
+- Application protocol projections must bind one exact source distribution envelope and one exact source-declared projection ref.
+- Protocol projection fidelity is explicit: lossy mappings enumerate canonical Application semantic losses; unsupported mappings cannot masquerade as payloads; lossless mappings cannot hide loss metadata.
+- Protocol projection artifacts are interoperability data only and cannot claim source integrity verification, transport/provider authority, deployment, governance, entitlement or protected execution permission.
 - Network distribution contracts contain no implicit latest resolution, provider credentials, transport authority, deployment state, governance permission or protected execution authority.
 - Canvas cannot directly publish, deploy, authorize, govern or execute protected effects by implication.
 - Capability semantics are provider-neutral; provider/API/MCP/SaaS bindings do not define canonical meaning.
@@ -97,9 +103,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 
 ## Active records
 
-- `docs/pr-plans/MASTER-37.md`
+- `docs/pr-plans/MASTER-38.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-37/RE_REPORT.md`
+- `docs/evidence/MASTER-38/RE_REPORT.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`

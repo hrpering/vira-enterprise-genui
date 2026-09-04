@@ -2,11 +2,12 @@
 
 Current active record:
 
-- `MASTER-37.md` — Application Distribution Contract.
+- `MASTER-38.md` — Application Protocol Projection Contract.
 - `ACTIVE_PHASE.md` — machine/human-readable status pointer.
 
 Immediate provenance retained:
 
+- `MASTER-37.md` — merged Application Distribution Contract via PR #197.
 - `MASTER-36.md` — merged Canvas Design System / External Design Import via PR #196.
 - `MASTER-35.md` — merged Canvas multiplayer presence + semantic peer review.
 - `MASTER-34.md` — merged Canvas deterministic dry-run simulation + replay.
@@ -20,4 +21,4 @@ Immediate provenance retained:
 - `MASTER-26.md` — merged Application semantic freeze.
 - MASTER-25/25R native/release records — Enterprise GenUI RC1 provenance pending later archival cleanup.
 
-Do not start MASTER-38 until MASTER-37 passes exact-head local Q7, final actual-diff Q8 and squash merge from the new authoritative `main`.
+Do not start MASTER-39 until MASTER-38 passes exact-head local Q7, final actual-diff Q8 and squash merge from the new authoritative `main`.
