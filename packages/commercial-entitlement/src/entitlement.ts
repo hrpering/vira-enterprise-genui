@@ -22,7 +22,6 @@ import {
   VIRA_COMMERCIAL_ENTITLEMENT_MAX_ENTITLEMENTS,
   VIRA_COMMERCIAL_ENTITLEMENT_MAX_LIMITS_PER_ENTITLEMENT,
   VIRA_COMMERCIAL_ENTITLEMENT_SCHEMA_VERSION,
-  VIRA_COMMERCIAL_LIMIT_PERIODS,
   type ViraCommercialEntitlement,
   type ViraCommercialEntitlementDecision,
   type ViraCommercialEntitlementEvaluationResult,
@@ -59,7 +58,7 @@ const SUBJECT_FIELDS = ["organizationId", "principal"] as const;
 const PRINCIPAL_FIELDS = ["kind", "id"] as const;
 const TARGET_FIELDS = ["applicationId", "applicationVersion", "capabilityRef"] as const;
 const SCOPE_FIELDS = ["projectId", "environment", "locationId"] as const;
-const LIMIT_FIELDS = ["meteringRef", "quantity", "period"] as const;
+const LIMIT_FIELDS = ["meteringRef", "quantity"] as const;
 const REFERENCE_FIELDS = ["id", "versionRef"] as const;
 const REQUEST_FIELDS = [
   "application",
@@ -273,26 +272,16 @@ function parseLimits(value: JsonValue | undefined, path: string): Parsed<readonl
     ) {
       return failure("INVALID_LIMIT", `${itemPath}.quantity`, "limit quantity must be a positive safe integer");
     }
-    if (
-      typeof object.period !== "string"
-      || !VIRA_COMMERCIAL_LIMIT_PERIODS.includes(object.period as ViraCommercialEntitlementLimit["period"])
-    ) {
-      return failure("INVALID_LIMIT", `${itemPath}.period`, "limit period is invalid");
-    }
-    const key = `${referenceKey(meteringRef.value)}\u0000${object.period}`;
-    if (seen.has(key)) return failure("INVALID_LIMIT", itemPath, "duplicate meteringRef and period limit");
+    const key = referenceKey(meteringRef.value);
+    if (seen.has(key)) return failure("INVALID_LIMIT", itemPath, "duplicate meteringRef limit");
     seen.add(key);
     limits.push(Object.freeze({
       meteringRef: meteringRef.value,
       quantity: object.quantity,
-      period: object.period as ViraCommercialEntitlementLimit["period"],
     }));
   }
 
-  limits.sort((left, right) => {
-    const ref = compareText(referenceKey(left.meteringRef), referenceKey(right.meteringRef));
-    return ref !== 0 ? ref : compareText(left.period, right.period);
-  });
+  limits.sort((left, right) => compareText(referenceKey(left.meteringRef), referenceKey(right.meteringRef)));
   return { ok: true, value: Object.freeze(limits) };
 }
 
