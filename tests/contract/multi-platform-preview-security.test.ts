@@ -1,4 +1,4 @@
-import test from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { createViraMultiPlatformPreview, type ViraPreviewPackProvider } from "../../packages/genui/src/multi-platform-preview.js";
 import type { StudioWorkbenchSession } from "../../packages/studio-workbench/src/index.js";
