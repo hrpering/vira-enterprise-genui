@@ -11,19 +11,11 @@ Implement the canonical versioned ApplicationGraph semantic owner without becomi
 - branch: `master/30-application-graph`
 - frozen executable head: `f9c70fe20e2764de2e701b8c44e9cd1114d20eb9`
 
-## Reverse-engineered ownership
+## Ownership
 
-Nearest existing graph/flow-like owners are intentionally different:
+`application-graph` owns immutable graph identity/release metadata, stable local semantic node/edge IDs, exact Experience/Capability/Context/Action targets, a closed compatibility-checked relation vocabulary, and deterministic serialization.
 
-- `planner/composition-planner` derives ephemeral execution/composition directives from an ExperiencePlan; it is not published Application semantics.
-- `studio-flow` validates routes/events inside one `StudioExperienceDocument`; it does not own cross-Experience/Capability/Context/Action relationships.
-- `runtime-core` owns execution state/revision/lifecycle; ApplicationGraph cannot become runtime state.
-- Canvas is a future authoring projection and cannot make x/y/zoom/selection canonical Application semantics.
-- Action Boundary owns effect/idempotency/execution authority; ApplicationGraph only names exact Action relationships.
-
-`application-graph` OWNS immutable graph identity/release metadata, stable local semantic node/edge IDs, exact Experience/Capability/Context/Action targets, a closed compatibility-checked relation vocabulary, and deterministic serialization.
-
-It DOES NOT OWN workflow start/end nodes, branch conditions, scheduler/retry/timeout/backoff/concurrency/executor behavior, runtime state, Studio view/event routing, provider bindings, Action execution/effect/idempotency authority, Canvas projection state, or governance/policy contents.
+It does not own workflow start/end nodes, branch conditions, scheduler/retry/timeout/backoff/concurrency/executor behavior, runtime state, Studio view/event routing, provider bindings, Action execution/effect/idempotency authority, Canvas projection state, or governance/policy contents.
 
 ## Node families
 
@@ -71,14 +63,14 @@ MASTER-27 intentionally kept `application-package.flows[]` as exact opaque refs 
 ## Q0–Q9
 
 - Q0 PASS — exact base `62e0fe0...`.
-- Q1 PASS — reverse engineered semantic freeze, MASTER-27 deferred `flows[]`, planner, studio-flow, runtime and Action authority.
+- Q1 PASS — semantic freeze, MASTER-27 deferred `flows[]`, planner, studio-flow, runtime and Action authority reverse engineered.
 - Q2 PASS — ownership/relation matrix frozen.
 - Q3 PASS — graph types/parser/serializer + boundary edge implemented.
 - Q4 PASS — focused exact-ref/bounds/duplicate/missing-node/relation/workflow-smuggling/cycle/security coverage implemented.
 - Q5 PASS — fail-closed security review.
 - Q6 PASS — architecture review proves graph does not absorb planner/runtime/Studio flow/Canvas/Action authorities.
-- Q7 PASS — operator-reported local `pnpm check:boundaries`, `pnpm typecheck`, and focused `application-graph.test.ts` on exact frozen executable head `f9c70fe20e2764de2e701b8c44e9cd1114d20eb9`.
-- Q8 READY — compare frozen executable head to exact PR closure head; only docs/evidence may differ.
-- Q9 BLOCKED until final Q8 proves executable-clean closure; then squash merge and start MASTER-31 from new `main`.
+- Q7 PASS — operator-reported local package boundaries, TypeScript typecheck and focused `application-graph.test.ts` on exact frozen executable head `f9c70fe20e2764de2e701b8c44e9cd1114d20eb9`.
+- Q8 PASS — final compare from frozen executable head to closure head changes only `docs/evidence/MASTER-30/VERIFICATION.md`, `docs/pr-plans/ACTIVE_PHASE.md`, and this phase plan; executable content is unchanged.
+- Q9 READY — squash merge must use the exact current PR head; then MASTER-31 starts from the new authoritative `main`.
 
 Hosted zero-step Actions failures are infrastructure non-signal and are not counted as code verification.
