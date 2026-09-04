@@ -11,103 +11,47 @@ Add the first Application-level protocol egress contract so exact distributed Ap
 - branch: `master/38-application-protocol-projection`
 - corrected frozen executable head: `73f99f85f9f0226591d6161825857b40541455b3`
 
-## Existing owners
-
-- `application-package` owns exact `protocolProjections[]` declarations.
-- `application-distribution` owns exact source Application distribution envelope + declared artifact integrity identity.
-- `protocol-gateway` owns existing tool/protocol adaptation only.
-- runtime, deployment, governance, entitlement and Action owners retain their existing authority.
-
-## New owner
-
-`@vira-enterprise-genui/application-protocol-projection` owns only strict Application protocol projection artifact shape, exact source distribution delegation, exact projection-ref membership, explicit fidelity variants, bounded canonical semantic-loss reporting, deterministic projection serialization and safe/frozen arbitrary protocol payload data.
-
-It does not own protocol-specific adapter implementation, URLs/endpoints/transports/federation, provider/credential binding, source integrity verification, Application projection declarations, registry/search/ranking, deployment/runtime state, governance/authorization/entitlement, Capability invocation or protected Action execution.
-
 ## Contract
 
-```text
-ViraApplicationProtocolProjectionArtifact {
-  schemaVersion: "1"
-  source: ViraApplicationDistributionEnvelope
-  projectionRef: exact source.application.protocolProjections[] ref
-  result:
-    | { fidelity: "lossless", payload }
-    | { fidelity: "lossy", payload, losses[] }
-    | { fidelity: "unsupported", reason }
-}
-```
+`ViraApplicationProtocolProjectionArtifact` binds one canonical `ViraApplicationDistributionEnvelope` to one exact source-declared `projectionRef` and one explicit result:
 
-Loss entries use a strict canonical Application path grammar:
+- `lossless` with payload;
+- `lossy` with payload + bounded unique canonical Application loss paths;
+- `unsupported` with reason and no payload.
 
-```text
-$.application
-$.application.field
-$.application.array[0].field
-```
+`fidelity` is an adapter report, not a generic proof of arbitrary protocol-specific semantic equivalence.
 
-Paths are bounded, unique and sorted deterministically. `lossless` cannot include loss metadata. `unsupported` cannot include a payload.
+## Ownership
 
-## Fidelity interpretation
+`application-protocol-projection` owns only Application-level projection artifact shape, source distribution delegation, exact declared projection membership, explicit fidelity result variants, semantic loss reporting, deterministic serialization and safe frozen protocol payload data.
 
-`fidelity` is an explicit adapter projection report. This generic contract validates that an adapter cannot silently hide a reported loss or unsupported outcome; it does not mathematically prove arbitrary protocol-specific semantic equivalence. Protocol-specific conformance proof remains a separate adapter/conformance concern.
+It does not own protocol-specific adapters, transport/federation, provider credentials, source integrity verification, registry/discovery, deployment/runtime, governance/authorization/entitlement, Capability invocation or protected Action execution.
 
-## Package boundary
+Executable dependency boundary:
 
 ```text
 application-protocol-projection → application-distribution, protocol
 ```
 
-## Q5 security / fail-closed review
+## Q5/Q6
 
-PASS.
+PASS. Safe JSON/exact shapes, undeclared projection rejection, strict fidelity variants, canonical path grammar, explicit loss bounds, deterministic payload serialization, prototype-safe handling and authority-smuggling rejection were reviewed. Architecture review confirms no registry/gateway/deployment/runtime/governance/Action authority is imported or modified.
 
-- full input passes shared `parseJsonValue()` before inspection;
-- source parsing delegates to `application-distribution` and preserves owner failure context;
-- `projectionRef` must exactly equal a ref declared in source Application `protocolProjections[]`; implicit/latest aliases cannot resolve;
-- exact result variants reject unknown loss/control fields;
-- lossy projection requires at least one bounded unique semantic loss;
-- canonical loss path grammar rejects prefix collisions and malformed indexes/segments;
-- loss collection is explicitly bounded;
-- arbitrary protocol payload is detached/deeply frozen and deterministic serialization sorts object keys;
-- prototype-sensitive payload names remain inert data through the shared JSON boundary;
-- root/result transport/provider/credential/execute/authorize/deploy smuggling fails closed;
-- source digest declaration is not upgraded into a `verified` trust assertion.
+## Q7 history
 
-## Q6 architecture / ownership review
+Initial executable head `0728072b19e4b73cb654bab1b724e2aefbbdb99b`:
 
-PASS.
+- package boundaries PASS;
+- 16/16 focused tests PASS;
+- TypeScript FAIL with two TS7053 object-index narrowing errors.
 
-- executable dependency boundary is exactly `application-distribution` + `protocol`;
-- source Application declarations remain owned by `application-package` through the distribution envelope;
-- existing `protocol-gateway` remains tool/protocol invocation adaptation owner and is not modified;
-- no registry, network transport, provider, deployment, runtime, governance, entitlement or Action owner is imported or changed;
-- projection payload is non-canonical interoperability data and cannot redefine Vira Application semantics;
-- projection success or `lossless` report grants no execution, authorization, governance or deployment authority.
+Semantic-neutral correction `73f99f85f9f0226591d6161825857b40541455b3` adds explicit `JsonObject` binding in the two post-array object branches only.
 
-## Local Q7 history
+Corrected exact-head local Q7 on `73f99f85f9f0226591d6161825857b40541455b3` is operator-reported PASS for package boundaries, TypeScript, and both focused projection suites. Evidence: `docs/evidence/MASTER-38/VERIFICATION.md`.
 
-First exact-head local run on `0728072b19e4b73cb654bab1b724e2aefbbdb99b`:
+## Q8
 
-- `pnpm check:boundaries` PASS;
-- focused projection suites PASS, 16/16 tests;
-- `pnpm typecheck` failed with two TS7053 errors because TypeScript 6 did not narrow `JsonArray | JsonObject` to a string-indexable `JsonObject` after the array branch inside `freezeJson()` and `canonicalJson()`.
-
-The correction is semantic-neutral: each object branch now explicitly binds `const object = value as JsonObject` before key indexing. Commit `73f99f85f9f0226591d6161825857b40541455b3` changes only `packages/application-protocol-projection/src/validate.ts` at those two narrowing points.
-
-Corrected exact-head local run on `73f99f85f9f0226591d6161825857b40541455b3` is operator-reported PASS for package boundaries, TypeScript, and both focused projection suites. Verification evidence is recorded in `docs/evidence/MASTER-38/VERIFICATION.md`.
-
-## Final Q8
-
-PASS.
-
-Final compare from corrected frozen executable head `73f99f85f9f0226591d6161825857b40541455b3` to closure state contains only:
-
-- `docs/evidence/MASTER-38/VERIFICATION.md`
-- `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/pr-plans/MASTER-38.md`
-
-Executable drift after the corrected local gate is zero.
+PASS. Final compare from corrected frozen executable head to closure state contains documentation/evidence only; executable drift is zero.
 
 ## Q0–Q9
 
@@ -118,8 +62,8 @@ Executable drift after the corrected local gate is zero.
 - Q4 PASS
 - Q5 PASS
 - Q6 PASS
-- Q7 PASS — corrected exact-head local gate
-- Q8 PASS — final executable-clean compare
+- Q7 PASS
+- Q8 PASS
 - Q9 READY — exact-head squash merge, then MASTER-39 from resulting authoritative `main`
 
-Hosted verify/iOS/Android jobs ended with `steps: null` and remain infrastructure non-signal.
+Hosted verify/iOS/Android zero-step jobs remain infrastructure non-signal.
