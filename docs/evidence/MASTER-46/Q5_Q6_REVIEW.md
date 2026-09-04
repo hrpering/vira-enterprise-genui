@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-05  
 **Base:** `88a05193c189ce02a214bf0acb74743144981cc5`  
-**Reviewed executable head:** `069b855141701297f0c5007f556de5452ad96ebc`  
+**Reviewed executable head:** `8a01eb001949327d1d34aaa780fd72f2687012ac`  
 **Result:** PASS
 
 ## Q5 — Security / fail-closed review
@@ -14,7 +14,8 @@ PASS.
 - supply snapshot and lookup query enter through shared `parseJsonValue`;
 - exact-object shapes reject unknown fields;
 - accessor/custom-prototype inputs are covered by hardening tests and must fail without getter execution;
-- source and supply collections are bounded.
+- source, per-source supply and aggregate supply collections are bounded;
+- aggregate limit `2048` remains below the shared JSON node budget for the focused boundary fixture, so the domain `SUPPLY_LIMIT_EXCEEDED` path is testable without being shadowed by the shared parser ceiling.
 
 ### Canonical owner delegation
 
@@ -105,8 +106,10 @@ tests/contract/capability-supply.test.ts
 tests/contract/capability-supply-hardening.test.ts
 ```
 
+Coverage includes canonical composition, deterministic serialization, provenance aggregation, exact filtering/miss behavior, action rejection, Capability/binding mismatch, semantic/binding conflicts, unknown-field authority smuggling, accessor/custom-prototype safety, source/per-source/aggregate ceilings and no-latest/fallback queries.
+
 Local execution remains Q7. This review is static architecture/security evidence only and does not fabricate runtime test results.
 
 ## Conclusion
 
-Q5 PASS / Q6 PASS. MASTER-46 may proceed to executable freeze and exact-head local Q7 after ownership/authority documentation is synchronized. Any later executable/package/test/boundary change invalidates this reviewed head and requires re-review before Q7.
+Q5 PASS / Q6 PASS on executable/test/boundary head `8a01eb001949327d1d34aaa780fd72f2687012ac`. MASTER-46 may proceed to executable freeze and exact-head local Q7 after documentation synchronization. Any later executable/package/test/boundary change invalidates this reviewed head and requires re-review before Q7.
