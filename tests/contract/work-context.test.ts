@@ -289,11 +289,11 @@ describe("Vira WorkContext v1", () => {
     const firstItems = first.items as Array<Record<string, unknown>>;
     const secondItems = second.items as Array<Record<string, unknown>>;
     firstItems[0] = {
-      ...firstItems[0],
+      ...firstItems[0]!,
       value: { currency: "TRY", price: 3250, destination: "IST" },
     };
     secondItems[0] = {
-      ...secondItems[0],
+      ...secondItems[0]!,
       value: { destination: "IST", price: 3250, currency: "TRY" },
     };
 
