@@ -9,6 +9,7 @@ Create the portable Vira Canvas foundation contract as an authoring draft envelo
 - authoritative `main`: `84ab9f8e75508e7975a8a1eaae74e3fae4c98d95`
 - previous phase: MASTER-30 merged via PR #190
 - branch: `master/31-canvas-foundation`
+- frozen executable head: `0e4aef91cff43f935db9af03b1a92d5e14acd0e2`
 
 ## Reverse-engineered ownership
 
@@ -72,15 +73,29 @@ CanvasDraft
 - Parsed values are detached/deeply frozen.
 - Package dependencies are exactly `application-canvas → application-package + application-graph + protocol`.
 
+## Verification history
+
+The first local Q7 attempt on `b21784a89458edbab63098247960b28477dce58f` passed package boundaries and all 11 focused Canvas tests, but TypeScript exposed TS2345 because `Map` inferred a template-literal key type. The only executable correction was `0e4aef91cff43f935db9af03b1a92d5e14acd0e2`, which explicitly types the lookup as `Map<string, ViraApplicationGraph>`.
+
+The operator then reported exact corrected-head Q7 green for:
+
+```bash
+pnpm check:boundaries
+pnpm typecheck
+pnpm vitest run tests/contract/application-canvas.test.ts
+```
+
+Hosted zero-step Action jobs remain infrastructure non-signal.
+
 ## Q0–Q9
 
-- Q0: exact base `84ab9f8...`.
-- Q1: reverse engineer Canvas constitution, Application/Graph owners, Studio Workbench and runtime authority.
-- Q2: freeze draft/projection ownership above.
-- Q3: implement draft/projection types, parser, semantic extraction and serializers.
-- Q4: focused delegation/projection/bounds/authority-smuggling/security/determinism tests.
-- Q5: security review of cross-authority field smuggling and projection references.
-- Q6: architecture review proving Canvas remains authoring/projection, not runtime/publication/execution.
-- Q7: local `pnpm check:boundaries && pnpm typecheck && pnpm vitest run tests/contract/application-canvas.test.ts`.
-- Q8: independent actual PR diff review.
-- Q9: squash merge only after exact-head Q7 and final executable-clean compare; then start MASTER-32 from new `main`.
+- Q0: PASS — exact base `84ab9f8...`.
+- Q1: PASS — reverse engineered Canvas constitution, Application/Graph owners, Studio Workbench and runtime authority.
+- Q2: PASS — draft/projection ownership frozen.
+- Q3: PASS — draft/projection types, parser, semantic extraction and serializers implemented.
+- Q4: PASS — focused delegation/projection/bounds/authority-smuggling/security/determinism coverage implemented.
+- Q5: PASS — security review of cross-authority field smuggling and projection references.
+- Q6: PASS — architecture review proves Canvas remains authoring/projection, not runtime/publication/execution.
+- Q7: PASS — operator-reported exact corrected-head local package boundary, TypeScript and focused tests.
+- Q8: FINAL ACTUAL-DIFF REVIEW REQUIRED — prove post-freeze changes are docs/evidence only.
+- Q9: BLOCKED until Q8; then squash merge and start MASTER-32 from new `main`.
