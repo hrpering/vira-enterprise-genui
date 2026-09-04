@@ -14,6 +14,7 @@ export const allowedDependencies = Object.freeze({
   composer: ["protocol", "planner"],
   "adapter-sdk": ["protocol"],
   "application-package": ["protocol"],
+  "capability-contract": ["protocol"],
   "experience-packs": [],
   "experience-pack-compositions": ["protocol", "studio-schema"],
   "experience-registry": ["experience-packs"],
