@@ -90,7 +90,7 @@ function canonicalizeJson(value: JsonValue): JsonValue {
   }
   if (value !== null && typeof value === "object") {
     const source = value as JsonObject;
-    const result: Record<string, JsonValue> = {};
+    const result = Object.create(null) as Record<string, JsonValue>;
     for (const key of Object.keys(source).sort()) {
       const child = source[key];
       if (child !== undefined) result[key] = canonicalizeJson(child);
