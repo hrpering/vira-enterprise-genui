@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   VIRA_APPLICATION_FEDERATION_MAX_APPLICATIONS_PER_SOURCE,
   VIRA_APPLICATION_FEDERATION_MAX_SOURCES,
+  VIRA_APPLICATION_FEDERATION_MAX_TOTAL_APPLICATIONS,
   lookupViraFederatedApplication,
   parseViraApplicationFederationSnapshot,
 } from "../../packages/application-federation/src/index.js";
@@ -31,11 +32,7 @@ function envelope() {
 describe("Vira Application Federation hardening", () => {
   it("rejects URL, transport, credential, priority and execution fields at snapshot/source boundaries", () => {
     for (const field of ["url", "endpoint", "transport", "credential", "token", "priority", "execute", "authorize", "deploy"]) {
-      const rootResult = parseViraApplicationFederationSnapshot({
-        schemaVersion: "1",
-        sources: [],
-        [field]: "forbidden",
-      });
+      const rootResult = parseViraApplicationFederationSnapshot({ schemaVersion: "1", sources: [], [field]: "forbidden" });
       expect(rootResult).toMatchObject({ ok: false, issue: { code: "UNKNOWN_FIELD" } });
 
       const sourceResult = parseViraApplicationFederationSnapshot({
@@ -52,22 +49,16 @@ describe("Vira Application Federation hardening", () => {
       enumerable: true,
       get() { throw new Error("must not execute"); },
     });
-    expect(parseViraApplicationFederationSnapshot(accessor)).toMatchObject({
-      ok: false,
-      issue: { code: "INVALID_INPUT" },
-    });
+    expect(parseViraApplicationFederationSnapshot(accessor)).toMatchObject({ ok: false, issue: { code: "INVALID_INPUT" } });
 
     const custom = Object.assign(Object.create({ inherited: true }) as Record<string, unknown>, {
       schemaVersion: "1",
       sources: [],
     });
-    expect(parseViraApplicationFederationSnapshot(custom)).toMatchObject({
-      ok: false,
-      issue: { code: "INVALID_INPUT" },
-    });
+    expect(parseViraApplicationFederationSnapshot(custom)).toMatchObject({ ok: false, issue: { code: "INVALID_INPUT" } });
   });
 
-  it("enforces source and applications-per-source bounds", () => {
+  it("enforces source, per-source and total application bounds", () => {
     const tooManySources = Array.from({ length: VIRA_APPLICATION_FEDERATION_MAX_SOURCES + 1 }, (_, index) => ({
       sourceId: `network.source-${index}`,
       applications: [],
@@ -82,9 +73,20 @@ describe("Vira Application Federation hardening", () => {
       schemaVersion: "1",
       sources: [{ sourceId: "network.alpha", applications: tooManyApps }],
     })).toMatchObject({ ok: false, issue: { code: "APPLICATION_LIMIT_EXCEEDED" } });
+
+    const fullSources = Math.floor(VIRA_APPLICATION_FEDERATION_MAX_TOTAL_APPLICATIONS / VIRA_APPLICATION_FEDERATION_MAX_APPLICATIONS_PER_SOURCE);
+    const sources = Array.from({ length: fullSources }, (_, index) => ({
+      sourceId: `network.full-${index}`,
+      applications: Array.from({ length: VIRA_APPLICATION_FEDERATION_MAX_APPLICATIONS_PER_SOURCE }, () => envelope()),
+    }));
+    sources.push({ sourceId: "network.overflow", applications: [envelope()] });
+    expect(parseViraApplicationFederationSnapshot({ schemaVersion: "1", sources })).toMatchObject({
+      ok: false,
+      issue: { code: "APPLICATION_LIMIT_EXCEEDED", path: "$.sources" },
+    });
   });
 
-  it("rejects malformed source ids and exact-query authority smuggling", () => {
+  it("rejects malformed source ids, oversized versions and exact-query authority smuggling", () => {
     expect(parseViraApplicationFederationSnapshot({
       schemaVersion: "1",
       sources: [{ sourceId: "https://registry.example", applications: [] }],
@@ -95,6 +97,11 @@ describe("Vira Application Federation hardening", () => {
       applicationId: "demo.hardened-app",
       applicationVersion: "1.0.0",
       sourcePriority: "network.alpha",
+    })).toMatchObject({ ok: false, issue: { code: "INVALID_QUERY" } });
+
+    expect(lookupViraFederatedApplication(snapshot, {
+      applicationId: "demo.hardened-app",
+      applicationVersion: `${"1".repeat(63)}.0.0`,
     })).toMatchObject({ ok: false, issue: { code: "INVALID_QUERY" } });
   });
 });
