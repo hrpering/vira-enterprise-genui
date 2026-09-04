@@ -6,6 +6,7 @@
 **Frozen executable SHA:** `52dfb067904b34ffe055431232ed8e621a3b3d6f`  
 **Previous:** MASTER-43 merged via PR #204  
 **Branch:** `master/44-hosted-capability-runtime`  
+**PR:** #205 (draft)  
 **Next:** MASTER-45 after MASTER-44 merge from new authoritative `main`
 
 MASTER-44 introduces the provider-neutral hosted **query Capability** execution boundary without turning Vira into generic cloud compute or duplicating existing semantic/security owners.
@@ -47,4 +48,4 @@ Foundation invariants:
 
 Q3 implementation PASS and Q4 focused/hardening coverage added. Q5 security/fail-closed review PASS and Q6 architecture/ownership review PASS; evidence is recorded in `docs/evidence/MASTER-44/Q5_Q6_REVIEW.md`.
 
-Frozen executable SHA is `52dfb067904b34ffe055431232ed8e621a3b3d6f`. Changes after that SHA are documentation/evidence only. Q7 exact frozen-head local boundaries/typecheck/focused test execution is pending.
+Frozen executable SHA is `52dfb067904b34ffe055431232ed8e621a3b3d6f`. Changes after that SHA are documentation/evidence only. Q7 exact frozen-head local boundaries/typecheck/focused test execution is pending on draft PR #205.
