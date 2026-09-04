@@ -17,4 +17,4 @@ export type {
   ViraCanvasAiRequest,
   ViraCanvasAiSupportedReferences,
 } from "./types.js";
-export { generateViraCanvasAiProposal } from "./propose.js";
+export { generateViraCanvasAiProposal } from "./guard.js";
