@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-30 — Semantic ApplicationGraph Contract  
-**Status:** Q0–Q7 PASS / FINAL Q8 READY  
+**Status:** Q0–Q8 PASS / Q9 READY TO SQUASH MERGE  
 **Base SHA:** `62e0fe0a3101001ea4a69cb2732311094e5ebf2e`  
 **Frozen executable head:** `f9c70fe20e2764de2e701b8c44e9cd1114d20eb9`  
 **Previous:** MASTER-29 merged via PR #189  
@@ -13,4 +13,6 @@ It composes exact Experience, Capability, Context and Action identities without 
 
 Canvas projection state and runtime state remain explicitly outside the graph.
 
-Operator-reported local Q7 is PASS on the exact frozen executable head for package boundaries, TypeScript typecheck and focused `application-graph.test.ts`. Final Q8 must prove every post-Q7 change is documentation/evidence only before exact-head squash merge.
+Operator-reported local Q7 is PASS on the exact frozen executable head for package boundaries, TypeScript typecheck and focused `application-graph.test.ts`.
+
+Final Q8 compare from `f9c70fe20e2764de2e701b8c44e9cd1114d20eb9` to the closure head contains only `docs/evidence/MASTER-30/VERIFICATION.md`, `docs/pr-plans/ACTIVE_PHASE.md`, and `docs/pr-plans/MASTER-30.md`; executable content is unchanged. Q9 is ready for exact-head squash merge.
