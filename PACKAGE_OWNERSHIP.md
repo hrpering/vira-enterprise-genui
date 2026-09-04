@@ -12,6 +12,7 @@ If this document and the executable boundary graph disagree, the executable grap
 | Application release identity/reference graph/distribution metadata | `application-package` |
 | Application semantic nodes/edges | `application-graph` |
 | Canvas draft identity/editor revision/non-semantic projection + mutation session | `application-canvas` |
+| Application-level Canvas AI semantic proposal/diff | `application-canvas-ai` |
 | Provider-neutral CapabilityDefinition semantics | `capability-contract` |
 | Bounded WorkContext definition/snapshot/provenance semantics | `work-context` |
 | Capability wire/protocol identity envelope | `protocol` |
@@ -29,12 +30,16 @@ If this document and the executable boundary graph disagree, the executable grap
 | Studio document schema | `studio-schema` |
 | Studio publication gate | `studio-publish` |
 | Human Studio authoring inside one Experience | `studio-workbench` |
-| Studio AI proposal surface | `studio-ai` |
+| Experience-level Studio AI proposal surface | `studio-ai` |
 | Web/native render/host surfaces | existing runtime and Studio host/renderer packages governed by the executable boundary graph |
 
 `application-canvas` depends only on `application-package`, `application-graph` and `protocol`. It delegates semantic parsing to the first two owners and keeps graph layout/viewport/selection outside canonical semantics.
 
 Canvas mutation/session APIs remain in the same owner. They may hold an in-memory canonical draft, require exact `expectedRevision`, atomically revalidate candidates and increment `editorRevision`, but they do not acquire runtime/publication/deployment/governance/Action authority.
+
+`application-canvas-ai` depends only on `application-canvas`, `application-package` and `protocol`. It owns provider-neutral Application-level semantic proposal generation, bounded host-supported reference catalogs, canonical candidate validation, deterministic semantic diff and projection-compatibility reporting. It cannot apply a proposal or reach publication, deployment, runtime, governance or Action execution owners.
+
+`studio-ai` remains the AI proposal owner inside one Experience; it is not reused as the Application-level semantic owner.
 
 Canvas `editorRevision` is editor metadata only. It cannot be substituted for Application release version, deployment revision, runtime state revision or ledger ordering.
 
@@ -42,6 +47,8 @@ Canvas `editorRevision` is editor metadata only. It cannot be substituted for Ap
 
 - Canvas mutation/session layers must call canonical Application/Graph/Canvas parsers after semantic edits instead of maintaining parallel schemas.
 - Stale Canvas writes must fail closed; failed mutation candidates cannot partially commit.
+- Canvas AI must remain a proposal engine: unsupported semantic authority fails closed, provider failure has no silent fallback, and human review remains outside provider control.
+- Canvas AI provider requests must not make editor projection, credentials, authorization, governance verdicts or protected execution authority canonical AI-owned state.
 - Canvas UI/render libraries may project editor state but cannot redefine semantic nodes/edges based on coordinates.
 - Provider bindings must map to exact provider-neutral semantics and remain outside Canvas draft authority.
 - WorkContext remains bounded work state/provenance, not chat history, user memory or prompt dump.
