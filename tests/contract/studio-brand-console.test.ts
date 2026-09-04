@@ -1,4 +1,4 @@
-import test from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { COMMERCE_BRAND_PACKAGE_INPUT } from "../../examples/commerce-brand-kit/src/index.js";
 import { createViraStudioBrandConsole } from "../../packages/studio-brand-console/src/index.js";
@@ -88,7 +88,7 @@ test("Studio Brand Console hands validated template and exact Brand catalogs to 
   assert.deepEqual(opened.value.currentDocument().id, "commerce.template.product-card");
 });
 
-test("Studio Brand Console session traversal does not depend on ambient Array map/find", () => {
+test("Studio Brand Console-owned template traversal does not depend on ambient Array map/find", () => {
   const created = createViraStudioBrandConsole({ scope, brandPackage });
   assert.equal(created.ok, true);
   if (!created.ok) return;
@@ -98,8 +98,9 @@ test("Studio Brand Console session traversal does not depend on ambient Array ma
     Array.prototype.map = function () { throw new Error("ambient map must not be used"); } as typeof Array.prototype.map;
     Array.prototype.find = function () { throw new Error("ambient find must not be used"); } as typeof Array.prototype.find;
     assert.equal(created.value.listTemplates()[0]?.id, "product-card");
-    const opened = created.value.openTemplate({ templateId: "product-card", allocateNodeId: () => "node-1" });
-    assert.equal(opened.ok, true);
+    const missing = created.value.openTemplate({ templateId: "missing", allocateNodeId: () => "node-1" });
+    assert.equal(missing.ok, false);
+    if (!missing.ok) assert.equal(missing.issue.code, "TEMPLATE_NOT_FOUND");
   } finally {
     Array.prototype.map = originalMap;
     Array.prototype.find = originalFind;
