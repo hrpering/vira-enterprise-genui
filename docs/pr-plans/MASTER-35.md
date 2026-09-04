@@ -74,7 +74,9 @@ First attempt on `68583242ce8afb71e04d70d0843a9c81d54a9dad`:
 - focused collaboration suite 12/12 PASS;
 - `pnpm typecheck` failed on two TS6-only issues: a sort callback typo (`localeCompare(right)` instead of `right.id`) and union narrowing not surviving into nested closures.
 
-Both were corrected without semantic behavior changes by sorting on `right.id` and binding the successful mutation session value before nested functions. New frozen executable head is `74d8a2c4dc7e1f573600ed52af908c0e10443fd7`.
+Both were corrected without semantic behavior changes by sorting on `right.id` and binding the successful mutation session value before nested functions. Corrected frozen executable head is `74d8a2c4dc7e1f573600ed52af908c0e10443fd7`.
+
+The corrected head was operator-reported green for boundaries, TypeScript and the focused suite.
 
 ## Q0–Q9
 
@@ -85,14 +87,6 @@ Both were corrected without semantic behavior changes by sorting on `right.id` a
 - Q4 PASS — focused participant/presence/concurrency/review/apply/security coverage implemented.
 - Q5 PASS — fail-closed/security review.
 - Q6 PASS — architecture/authority review.
-- Q7 REQUIRED — exact corrected frozen-head local package-boundary/type/focused suite.
-- Q8 PRE-Q7 PASS — executable scope reviewed; final post-Q7 compare required.
-- Q9 BLOCKED until Q7/final Q8; then squash merge and start MASTER-36 from new authoritative `main`.
-
-Exact local Q7:
-
-```bash
-pnpm check:boundaries
-pnpm typecheck
-pnpm vitest run tests/contract/application-canvas-collaboration.test.ts
-```
+- Q7 PASS — operator-reported exact corrected frozen-head local boundary/type/focused gate.
+- Q8 PASS — final compare from frozen executable head contains documentation/evidence changes only.
+- Q9 READY — squash merge PR #195, fetch new authoritative `main`, then start MASTER-36.
