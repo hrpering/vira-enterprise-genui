@@ -57,15 +57,6 @@ Success means only that source integrity verification succeeded and the host sat
 
 PASS. See `docs/evidence/MASTER-40/REVIEW.md`.
 
-- shared safe JSON boundary before inspection;
-- invalid host rejected before external verifier invocation;
-- exact root/host shapes reject authority-smuggling fields;
-- bounded/unique host declarations;
-- explicit Distribution integrity verification with literal success only;
-- verifier/digest failures fail closed with caller-facing path normalization;
-- unsafe accessor/custom-prototype inputs fail before verifier invocation;
-- compatibility output is detached/frozen and exposes no execution/security authority.
-
 ## Q6 architecture / ownership review
 
 PASS.
@@ -78,17 +69,11 @@ No dependency on projection adapter/fidelity implementation, registry/federation
 
 ## Q7 exact local verification
 
-PASS — operator-reported against exact frozen executable head `4b2350f9090d5b74e46f56a0478b12b25080ef3e` for:
+PASS — operator-reported against exact frozen executable head `4b2350f9090d5b74e46f56a0478b12b25080ef3e` for package boundaries, TypeScript and both focused AI-host SDK suites. Exact counts were not supplied and are not inferred. See `docs/evidence/MASTER-40/VERIFICATION.md`.
 
-```bash
-pnpm check:boundaries
-pnpm typecheck
-pnpm vitest run \
-  tests/contract/application-ai-host-sdk.test.ts \
-  tests/contract/application-ai-host-sdk-hardening.test.ts
-```
+## Q8 final actual-diff review
 
-Exact counts were not provided in the final green message and are not inferred. See `docs/evidence/MASTER-40/VERIFICATION.md`.
+PASS. Final compare from frozen executable head `4b2350f9090d5b74e46f56a0478b12b25080ef3e` to closure contains only MASTER-40 docs/evidence. Executable drift is zero.
 
 ## Q0–Q9
 
@@ -100,7 +85,7 @@ Exact counts were not provided in the final green message and are not inferred. 
 - Q5 PASS — final security/fail-closed review.
 - Q6 PASS — final architecture/ownership review.
 - Q7 PASS — exact frozen-head local boundaries/typecheck/focused tests, operator reported.
-- Q8 PRE-Q7 PASS — actual executable scope reviewed; final post-Q7 executable-clean compare required.
-- Q9 BLOCKED until final Q8; then exact-head squash merge and MASTER-41 federation starts from resulting new authoritative `main`.
+- Q8 PASS — final executable-clean compare.
+- Q9 READY — exact-head squash merge; MASTER-41 federation starts from resulting new authoritative `main`.
 
 Hosted verify/iOS/Android jobs on the frozen executable head ended with `steps: null` and remain infrastructure non-signal.
