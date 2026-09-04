@@ -17,8 +17,6 @@ Replay is anchored to exact canonical Canvas semantic serialization. It survives
 
 Q5/Q6 security and architecture review PASS. The reviewed package depends only on `application-canvas` and `protocol`; runtime, policy/governance, WorkContext, Action Boundary/Ledger and publication/deployment authorities remain unreachable.
 
-The first local Q7 attempt on `cbfc5b8087d33e21b45f95283e28608a9b16cef2` had package boundaries and TypeScript green plus 11/12 focused tests. The only failure was a test expectation mismatch; production behavior did not change. The corrected frozen head `9a8591c741f59205caf371d9e34eafb8a6086861` was then operator-reported fully green for boundaries, typecheck and the focused suite.
-
-Final Q8 compare from the corrected frozen executable head contains documentation/evidence changes only; executable drift is zero.
+The corrected frozen head `9a8591c741f59205caf371d9e34eafb8a6086861` was operator-reported fully green for boundaries, typecheck and the focused suite. Final Q8 compare from that head contains documentation/evidence changes only; executable drift is zero.
 
 PR #194 is Q9 merge-ready.
