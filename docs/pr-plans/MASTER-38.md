@@ -9,37 +9,20 @@ Add the first Application-level protocol egress contract so exact distributed Ap
 - authoritative `main`: `e03118833731c8483d0c42f648fefe446f0a103a`
 - previous phase: MASTER-37 merged via PR #197
 - branch: `master/38-application-protocol-projection`
+- frozen executable head: `0728072b19e4b73cb654bab1b724e2aefbbdb99b`
 
 ## Existing owners
 
 - `application-package` owns exact `protocolProjections[]` declarations.
 - `application-distribution` owns exact source Application distribution envelope + declared artifact integrity identity.
-- `protocol-gateway` owns existing tool/protocol adaptation only.
+- `protocol-gateway` owns existing tool/protocol invocation adaptation only.
 - runtime, deployment, governance, entitlement and Action owners retain their existing authority.
 
 ## New owner
 
-`@vira-enterprise-genui/application-protocol-projection` owns only:
+`@vira-enterprise-genui/application-protocol-projection` owns only strict Application protocol projection artifact shape, exact source distribution delegation, exact projection-ref membership, explicit fidelity variants, bounded canonical semantic-loss reporting, deterministic projection serialization and safe/frozen arbitrary protocol payload data.
 
-- strict Application protocol projection artifact shape;
-- exact source `ViraApplicationDistributionEnvelope` delegation;
-- exact `projectionRef` membership against source `application.protocolProjections[]`;
-- explicit fidelity result variants;
-- bounded canonical semantic loss reporting for lossy projection;
-- deterministic projection artifact serialization;
-- safe/frozen arbitrary protocol payload data.
-
-It does not own:
-
-- protocol-specific adapter implementation;
-- URLs/endpoints/transports/federation;
-- provider or credential binding;
-- source integrity verification;
-- Application discovery metadata or projection declarations;
-- registry/search/ranking;
-- deployment/runtime state;
-- governance/authorization/entitlement;
-- Capability or protected Action execution.
+It does not own protocol-specific adapter implementation, URLs/endpoints/transports/federation, provider/credential binding, source integrity verification, Application projection declarations, registry/search/ranking, deployment/runtime state, governance/authorization/entitlement, Capability invocation or protected Action execution.
 
 ## Contract
 
@@ -55,16 +38,19 @@ ViraApplicationProtocolProjectionArtifact {
 }
 ```
 
-Loss entries:
+Loss entries use a strict canonical Application path grammar:
 
 ```text
-{
-  path: canonical $.application semantic path
-  reason: bounded safe text
-}
+$.application
+$.application.field
+$.application.array[0].field
 ```
 
-Loss paths are unique, bounded and sorted deterministically. `lossless` cannot include loss metadata. `unsupported` cannot include a payload.
+Paths are bounded, unique and sorted deterministically. `lossless` cannot include loss metadata. `unsupported` cannot include a payload.
+
+## Fidelity interpretation
+
+`fidelity` is an explicit adapter projection report. This generic contract validates that an adapter cannot silently hide a reported loss or unsupported outcome; it does not mathematically prove arbitrary protocol-specific semantic equivalence. Protocol-specific conformance proof remains a separate adapter/conformance concern.
 
 ## Package boundary
 
@@ -72,18 +58,32 @@ Loss paths are unique, bounded and sorted deterministically. `lossless` cannot i
 application-protocol-projection → application-distribution, protocol
 ```
 
-## Security / semantic invariants
+## Q5 security / fail-closed review
 
-- full input passes shared safe JSON boundary before inspection;
+PASS.
+
+- full input passes shared `parseJsonValue()` before inspection;
 - source parsing delegates to `application-distribution` and preserves owner failure context;
-- projection ref must exactly match one source-declared projection ref; no implicit/floating alias resolution;
-- fidelity must be exactly `lossless`, `lossy`, or `unsupported`;
-- lossy projection requires at least one explicit canonical Application semantic loss;
-- arbitrary payload remains non-canonical protocol data and is deeply frozen;
-- deterministic serialization sorts payload object keys and semantic loss entries;
-- source digest declaration is carried but not promoted to a `verified` trust claim;
-- transport/provider/credential/execute/authorize/deploy smuggling fails closed;
-- projection success grants no runtime, governance, entitlement or effect authority.
+- `projectionRef` must exactly equal a ref declared in source Application `protocolProjections[]`; implicit/latest aliases cannot resolve;
+- exact result variants reject unknown loss/control fields;
+- lossy projection requires at least one bounded unique semantic loss;
+- canonical loss path grammar rejects prefix collisions and malformed indexes/segments;
+- loss collection is explicitly bounded;
+- arbitrary protocol payload is detached/deeply frozen and deterministic serialization sorts object keys;
+- prototype-sensitive payload names remain inert data through the shared JSON boundary;
+- root/result transport/provider/credential/execute/authorize/deploy smuggling fails closed;
+- source digest declaration is not upgraded into a `verified` trust assertion.
+
+## Q6 architecture / ownership review
+
+PASS.
+
+- executable dependency boundary is exactly `application-distribution` + `protocol`;
+- source Application declarations remain owned by `application-package` through the distribution envelope;
+- existing `protocol-gateway` remains tool/protocol invocation adaptation owner and is not modified;
+- no registry, network transport, provider, deployment, runtime, governance, entitlement or Action owner is imported or changed;
+- projection payload is non-canonical interoperability data and cannot redefine Vira Application semantics;
+- projection success or `lossless` report grants no execution, authorization, governance or deployment authority.
 
 ## Focused verification
 
@@ -102,8 +102,10 @@ pnpm vitest run \
 - Q2 PASS — ownership/fidelity/non-authority invariants frozen.
 - Q3 PASS — projection contract implementation added.
 - Q4 PASS — focused contract/security/determinism/hardening coverage added.
-- Q5 REQUIRED — final security/fail-closed review.
-- Q6 REQUIRED — final architecture/ownership review.
-- Q7 REQUIRED — exact-head local boundaries/typecheck/focused tests.
-- Q8 REQUIRED — actual PR diff review and post-Q7 executable-clean compare.
-- Q9 BLOCKED until Q7/Q8; then exact-head squash merge and MASTER-39 starts from resulting new authoritative `main`.
+- Q5 PASS — security/fail-closed review.
+- Q6 PASS — architecture/ownership review.
+- Q7 REQUIRED — exact frozen-head local boundaries/typecheck/focused tests.
+- Q8 PRE-Q7 PASS — actual executable scope reviewed; final post-Q7 executable-clean compare required.
+- Q9 BLOCKED until Q7/final Q8; then exact-head squash merge and MASTER-39 starts from resulting new authoritative `main`.
+
+Hosted verify/iOS/Android jobs on the frozen head ended with `steps: null` and remain infrastructure non-signal.
