@@ -5,6 +5,7 @@ import {
   type JsonValue,
 } from "@vira-enterprise-genui/protocol";
 import {
+  VIRA_COMMERCIAL_METERING_MAX_USAGE_RECORDS,
   VIRA_COMMERCIAL_METER_UNITS,
   VIRA_COMMERCIAL_METER_WINDOWS,
   VIRA_COMMERCIAL_USAGE_RATING_STATUSES,
@@ -169,8 +170,22 @@ export function parseViraCommercialUsageRating(input: unknown): ViraCommercialUs
 
   const includedRecordCount = nonNegativeSafeInteger(root.includedRecordCount, "$.includedRecordCount");
   if (!includedRecordCount.ok) return includedRecordCount;
+  if (includedRecordCount.value > VIRA_COMMERCIAL_METERING_MAX_USAGE_RECORDS) {
+    return fail(
+      "USAGE_LIMIT_EXCEEDED",
+      "$.includedRecordCount",
+      `rating included record count exceeds ${VIRA_COMMERCIAL_METERING_MAX_USAGE_RECORDS}`,
+    );
+  }
   const usedQuantity = nonNegativeSafeInteger(root.usedQuantity, "$.usedQuantity");
   if (!usedQuantity.ok) return usedQuantity;
+  if ((includedRecordCount.value === 0) !== (usedQuantity.value === 0)) {
+    return fail(
+      "INVALID_INPUT",
+      "$",
+      "rating includedRecordCount and usedQuantity must both be zero or both be positive",
+    );
+  }
   const limitQuantity = nullableQuantity(root.limitQuantity, "$.limitQuantity");
   if (!limitQuantity.ok) return limitQuantity;
   const remainingQuantity = nullableQuantity(root.remainingQuantity, "$.remainingQuantity");
