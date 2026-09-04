@@ -1,22 +1,19 @@
 # Active Phase
 
-**Phase:** MASTER-34 — Canvas Simulation + Replay  
-**Status:** Q0–Q8 PASS / Q9 MERGE READY  
-**Base SHA:** `8d9c28d5ac70b20ea88556305977aafd9dc8f3f6`  
-**Frozen executable SHA:** `9a8591c741f59205caf371d9e34eafb8a6086861`  
-**Previous:** MASTER-33 merged via PR #193  
-**Next after merge:** MASTER-35 — Canvas Multiplayer + Semantic Review
+**Phase:** MASTER-35 — Canvas Multiplayer + Semantic Review  
+**Status:** Q0–Q4 IMPLEMENTED / Q5–Q6 REVIEW IN PROGRESS  
+**Base SHA:** `f17ae3cc920e672fcab1f97028dddcbe08040016`  
+**Previous:** MASTER-34 merged via PR #194  
+**Next after merge:** MASTER-36 — Design System / External Design Import
 
-MASTER-34 introduces `@vira-enterprise-genui/application-canvas-simulation` as a deterministic authoring-time dry-run trace/replay layer.
+MASTER-35 introduces `@vira-enterprise-genui/application-canvas-collaboration` as an authoring-only collaboration layer.
 
-Scenario paths are explicit caller-supplied `startNodeId + edgeIds[]`; the simulator validates canonical graph continuity but never schedules nodes, evaluates conditions, invokes Capabilities, executes Actions or produces policy/governance decisions.
+Registered participants can publish ephemeral graph-local presence and create concurrent semantic proposals against the same exact `editorRevision`. Presence never mutates the Canvas draft.
 
-Simulation and replay artifacts are explicitly marked `mode: "dry-run"`. Outer simulation/replay inputs, scenarios and traces pass through fail-closed safe-data boundaries. A trace is authoring-time evidence only; it is not an Action receipt, policy decision, audit signature or runtime record.
+Semantic reviews are immutable peer-review records. Authors cannot self-review, duplicate reviews fail closed, any rejection blocks apply, and distinct approvals must meet the session threshold.
 
-Replay is anchored to exact canonical Canvas semantic serialization. It survives projection-only/editorRevision changes but fails closed on semantic drift or inconsistent/tampered trace frames. `sourceDraftId` is informational and does not replace semantic identity.
+Approved apply remains delegated to the existing Canvas mutation session. Stale proposal bases fail closed; projection-breaking proposals require reconciliation before apply. Successful semantic apply increments revision through the canonical owner and clears ephemeral presence.
 
-Q5/Q6 security and architecture review PASS. The reviewed package depends only on `application-canvas` and `protocol`; runtime, policy/governance, WorkContext, Action Boundary/Ledger and publication/deployment authorities remain unreachable.
+This review gate is editor collaboration only, not enterprise governance, authorization, publication approval or execution authority.
 
-The corrected frozen head `9a8591c741f59205caf371d9e34eafb8a6086861` was operator-reported fully green for boundaries, typecheck and the focused suite. Final Q8 compare from that head contains documentation/evidence changes only; executable drift is zero.
-
-PR #194 is Q9 merge-ready.
+Merge remains blocked until Q5/Q6, exact-head local Q7 and final actual-diff Q8.
