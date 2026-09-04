@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-40 — Application AI-host SDK  
-**Status:** Q0–Q6 PASS / LOCAL Q7 REQUIRED  
+**Status:** Q0–Q7 PASS / FINAL Q8 REQUIRED  
 **Base SHA:** `86def2e33f3f845fff8e3fb234099e60ffbdaf20`  
 **Frozen executable SHA:** `4b2350f9090d5b74e46f56a0478b12b25080ef3e`  
 **Previous:** MASTER-39 merged via PR #199  
@@ -13,10 +13,12 @@ MASTER-40 introduces `@vira-enterprise-genui/application-ai-host-sdk` as a thin 
 
 The SDK consumes one Distribution source, one host descriptor (`viraVersion`, capability IDs, exact protocol projection refs), and one injected integrity verifier. It validates host input before verifier invocation, requires source integrity verification through `application-distribution`, enforces canonical Application host compatibility, and reports exact protocol projection intersection.
 
-Q5 security/fail-closed review PASS. Q6 architecture/ownership review PASS. Caller-facing integrity failure paths are normalized to the AI-host SDK surface. Empty protocol intersection does not itself imply runtime incompatibility. Compatibility success is not authorization, entitlement, governance approval, deployment approval or runtime execution permission. No protocol adapter is invoked.
+Q5 security/fail-closed review PASS. Q6 architecture/ownership review PASS. Q7 PASS: operator-reported exact frozen-head package boundaries, TypeScript and both focused AI-host SDK suites all passed. Exact test counts were not supplied in the final green message and are not inferred. Evidence is recorded in `docs/evidence/MASTER-40/VERIFICATION.md`.
+
+Caller-facing integrity failure paths are normalized to the AI-host SDK surface. Empty protocol intersection does not itself imply runtime incompatibility. Compatibility success is not authorization, entitlement, governance approval, deployment approval or runtime execution permission. No protocol adapter is invoked.
 
 Exact executable dependency boundary: `application-ai-host-sdk → application-distribution, application-package, protocol`.
 
 Hosted verify/iOS/Android jobs on the frozen head ended with `steps: null`, so they remain infrastructure non-signal.
 
-Merge remains blocked until exact frozen-head local Q7 and final executable-clean actual-diff Q8.
+Merge remains blocked only on final executable-clean actual-diff Q8.
