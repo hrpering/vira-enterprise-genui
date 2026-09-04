@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-45 — Commercial Pricing + Rate Card  
-**Status:** Q0–Q6 PASS / Q7 PENDING  
+**Status:** Q0–Q7 PASS / Q8 ACTIVE  
 **Base SHA:** `f1ee6ec68b9c1a53f3413b9f201eae355517fc52`  
 **Frozen executable SHA:** `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`  
 **Previous:** MASTER-44 merged via PR #205  
@@ -45,4 +45,6 @@ Pricing invariants:
 
 Q5 security/fail-closed review PASS and Q6 architecture/ownership review PASS. Evidence: `docs/evidence/MASTER-45/Q5_Q6_REVIEW.md`.
 
-Frozen executable SHA is `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`. Q7 exact frozen-head local boundaries/typecheck/focused suites are pending on draft PR #206. Any executable change after the freeze invalidates Q5/Q6 and requires a new local Q7.
+Q7 PASS on exact frozen executable SHA `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`. The repository operator reran the full local boundaries/typecheck/focused-suite command set detached at that exact SHA and reported it green. Evidence: `docs/evidence/MASTER-45/Q7_LOCAL_PASS.md`. No counts or timings are reconstructed.
+
+Q8 independent PR reverse engineering is active. Any executable change after the freeze invalidates Q7 and blocks merge until a new freeze/rerun.
