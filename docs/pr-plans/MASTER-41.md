@@ -73,7 +73,7 @@ application-federation → application-distribution, protocol
 PASS. See `docs/evidence/MASTER-41/REVIEW.md`.
 
 - shared safe JSON boundary before federation logic;
-- explicit 64-source, 512-apps-per-source and 2048-total-release bounds;
+- explicit source/per-source/total-release bounds;
 - exact root/source/query shapes reject authority-smuggling fields;
 - unsafe accessors/custom prototypes fail closed;
 - exact release lookup only; no implicit latest or source priority;
@@ -95,6 +95,14 @@ pnpm vitest run \
   tests/contract/application-federation-hardening.test.ts
 ```
 
+Q7 exact frozen-head local verification is operator-reported PASS and recorded in `docs/evidence/MASTER-41/Q7_LOCAL.md`.
+
+## Final Q8
+
+Independent PR reverse engineering verdict: **PASS**. See `docs/evidence/MASTER-41/Q8_REVIEW.md`.
+
+Frozen executable `8f488959478368c1b7887c39af30808c127f5a8a` to evidence closure is documentation/evidence-only; executable drift is zero. A final closure-head compare is required immediately before squash merge.
+
 ## Q0–Q9
 
 - Q0 PASS — fresh branch from exact authoritative main.
@@ -104,8 +112,8 @@ pnpm vitest run \
 - Q4 PASS — focused conflict/public-leakage/hardening coverage added.
 - Q5 PASS — final security/fail-closed review.
 - Q6 PASS — architecture/ownership review.
-- Q7 REQUIRED — exact frozen-head local boundaries/typecheck/focused tests.
-- Q8 PRE-Q7 PASS pending executable-clean compare; final post-Q7 compare required.
-- Q9 BLOCKED until Q7/final Q8; then MASTER-42 starts from resulting authoritative main.
+- Q7 PASS — operator-reported exact frozen-head local boundaries/typecheck/focused tests.
+- Q8 PASS — independent PR reverse engineering + executable-clean closure compare.
+- Q9 READY — final exact-head squash merge, then record new authoritative main and start MASTER-42 from it.
 
-Hosted verify/iOS/Android jobs on the frozen executable head ended with `steps: null` and remain infrastructure non-signal.
+Hosted verify/iOS/Android jobs on the frozen executable head ended without executable steps and remain infrastructure non-signal.
