@@ -1,22 +1,18 @@
 # Active Phase
 
-**Phase:** MASTER-40 — Application AI-host SDK  
-**Status:** Q0–Q8 PASS / Q9 READY TO MERGE  
-**Base SHA:** `86def2e33f3f845fff8e3fb234099e60ffbdaf20`  
-**Frozen executable SHA:** `4b2350f9090d5b74e46f56a0478b12b25080ef3e`  
-**Previous:** MASTER-39 merged via PR #199  
-**Branch:** `master/40-application-ai-host-sdk`  
-**PR:** #200  
-**Next after merge:** MASTER-41 federated distribution phase from new authoritative `main`
+**Phase:** MASTER-41 — Federated Distribution  
+**Status:** Q0–Q4 IMPLEMENTED / Q5–Q6 REVIEW REQUIRED / LOCAL Q7 REQUIRED  
+**Base SHA:** `b425e5e7104c1a6441671301a6ac262e4e15e1bb`  
+**Previous:** MASTER-40 merged via PR #200  
+**Branch:** `master/41-federated-distribution`  
+**Next after merge:** MASTER-42 commercial network phase from new authoritative `main`
 
-MASTER-40 introduces `@vira-enterprise-genui/application-ai-host-sdk` as a thin host-side compatibility/integrity integration layer over existing canonical Application and Distribution owners.
+MASTER-41 introduces `@vira-enterprise-genui/application-federation` as a provider-neutral public federated discovery snapshot over canonical Application Distribution envelopes.
 
-Q5 security/fail-closed review PASS. Q6 architecture/ownership review PASS. Q7 exact frozen-head local verification is operator-reported PASS for package boundaries, TypeScript and both focused AI-host SDK suites. Q8 final compare PASS: frozen executable head to closure contains only MASTER-40 docs/evidence; executable drift is zero.
+Public federation accepts only canonical Application releases with `visibility: "public"` and `discoverable: true`. `sourceId` is provenance data, not authentication. Distribution digests remain declarations; federation parsing does not claim integrity verification.
 
-Caller-facing integrity failure paths remain normalized to the AI-host SDK surface. Empty protocol intersection does not itself imply runtime incompatibility. Compatibility success is not authorization, entitlement, governance approval, deployment approval or runtime execution permission. No protocol adapter is invoked.
+The same exact Application `id@version` may appear from multiple sources only when deterministic canonical Distribution serialization is identical. Divergent envelopes fail closed with `FEDERATION_CONFLICT`; there is no priority, majority vote, implicit latest or fallback.
 
-Exact executable dependency boundary: `application-ai-host-sdk → application-distribution, application-package, protocol`.
+Exact executable dependency boundary: `application-federation → application-distribution, protocol`.
 
-Hosted verify/iOS/Android jobs with `steps: null` remain infrastructure non-signal.
-
-MASTER-40 is ready for exact-head squash merge.
+Merge remains blocked until Q5 security review, Q6 architecture review, exact-head local Q7 and final executable-clean actual-diff Q8.
