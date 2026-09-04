@@ -30,6 +30,7 @@ If this document and the executable boundary graph disagree, the executable grap
 | Trusted Studio brand renderer activation | `studio-brand-loader` |
 | Provider-neutral CapabilityDefinition semantics | `capability-contract` |
 | Provider-neutral hosted query Capability execution boundary | `hosted-capability-runtime` |
+| Provider-neutral Capability supply snapshot + exact binding discovery/conflict semantics | `capability-supply` |
 | Bounded WorkContext definition/snapshot/provenance semantics | `work-context` |
 | Capability wire/protocol identity envelope | `protocol` |
 | Runtime state, lifecycle, patches, permissions, errors | `runtime-core` |
@@ -92,6 +93,14 @@ A Capability declaring `invocation.kind: "action"` is never executed by `hosted-
 
 Hosted `providerId`, `bindingRef` and `locationId` are routing/provenance evidence only. A successful hosted query result does not authenticate the provider, attest isolation, authorize the principal, prove commercial entitlement or imply that an external provider implementation is cryptographically side-effect-free. The adapter remains an explicit trusted integration boundary.
 
+`capability-supply` depends only on `capability-contract`, `hosted-capability-runtime` and `protocol`. It owns bounded supply-source provenance, canonical CapabilityDefinition + HostedCapabilityBinding composition, deterministic snapshot serialization, exact lookup and fail-closed cross-source semantic/binding conflict detection.
+
+A supply record is valid only when the canonical hosted binding `capabilityRef` exactly matches the enclosed canonical Capability definition `id@version`. Hosted supply accepts only canonical `query` Capabilities; `action` Capabilities fail with `ACTION_BOUNDARY_REQUIRED` and remain behind the existing Action Boundary.
+
+The same exact Capability `id@version` across sources is valid only when canonical Capability serialization is identical. The same exact `bindingRef` across sources is valid only when the canonical binding maps to the same capability/provider/location. Divergence fails closed with no source priority, majority vote, implicit latest or fallback winner. Identical supply may repeat across sources and retains all `sourceId` provenance.
+
+`capability-supply` does **not** own provider authentication/attestation, health/SLA, ranking/recommendation, failover, endpoints/transports, credentials/secrets, deployment placement, commercial entitlement/pricing, generic cloud scheduling or provider execution. `sourceId`, `providerId`, `bindingRef` and `locationId` remain provenance/routing identities only.
+
 ## Future ownership constraints
 
 - Commercial/marketplace layers must consume canonical Application federation/distribution artifacts rather than define another Application wire schema.
@@ -105,7 +114,10 @@ Hosted `providerId`, `bindingRef` and `locationId` are routing/provenance eviden
 - Protocol payload data cannot acquire transport/provider/deployment/governance/execution authority by projection success.
 - Provider bindings must map to exact provider-neutral semantics and remain outside Canvas draft authority.
 - Hosted Capability execution must not turn protocol adaptation, deployment, Experience runtime or CapabilityDefinition packages into generic cloud-compute owners.
-- Action-kind Capabilities remain behind the canonical Action Boundary; hosted query execution cannot become a protected-effect bypass.
+- Capability supply discovery must remain separate from hosted execution, provider authentication/attestation, health/ranking/failover, commercial entitlement/pricing and cloud scheduling.
+- Capability supply source repetition is provenance only; it must not become confidence, priority or authenticated identity.
+- Same exact Capability or binding conflicts fail closed; no majority/source-priority/latest/fallback winner.
+- Action-kind Capabilities remain behind the canonical Action Boundary; hosted supply/execution cannot become a protected-effect bypass.
 - WorkContext remains bounded work state/provenance, not chat history, user memory or prompt dump.
 - Entitlement expresses commercial access and remains distinct from authorization/governance/runtime permission.
 - Meter unit/window semantics, usage accounting and rating consume exact entitlement/metering references without moving those concerns into `commercial-entitlement`.
