@@ -118,9 +118,9 @@ Reviewed PR head: `32ae25c2cbcf9bb6708d0449759db157a932a03f`.
 
 Results: owner boundaries preserved; exact refs/no implicit latest; rating producer invariants fail closed; pricing arithmetic fails before precision loss; quote evidence revalidates line/total arithmetic; no entitlement/security/runtime authority acquisition; no invoice/payment/subscription/settlement/payout semantics; no dependency creep; no submitted reviews, review threads or comments; hosted jobs expose `steps=null` and remain infrastructure non-signal; frozen executable → reviewed head contains docs/evidence only.
 
-## Final closure
+## Final closure rule
 
-Final frozen executable `0984b0145381f8344dc458cd28d3e1b26db79e78` → closure head `8e155dbde86525e5ef7f8ded5b8e7141eafa4253` contains only documentation/evidence files. Executable/package/test/boundary drift is zero.
+After Q8, only documentation/evidence changes are permitted. The authoritative final closure check is the connector compare from frozen executable `0984b0145381f8344dc458cd28d3e1b26db79e78` to the current PR head immediately before merge. The exact merge head is enforced with `expected_head_sha`; it is intentionally not embedded here because changing this document itself advances the branch head.
 
 ## Non-goals
 
@@ -137,4 +137,4 @@ MASTER-45 does not implement payment providers, invoices, taxes, FX, refunds, su
 - Q6 PASS
 - Q7 PASS — final exact frozen-head rerun
 - Q8 PASS — independent PR reverse engineering after remediation
-- Q9 READY — exact-head squash merge at closure head `8e155dbde86525e5ef7f8ded5b8e7141eafa4253`
+- Q9 READY — exact-head squash merge subject to final connector closure compare
