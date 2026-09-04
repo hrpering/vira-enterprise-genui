@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-05  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-45:** `f1ee6ec68b9c1a53f3413b9f201eae355517fc52`
+**Authoritative main entering MASTER-46:** `88a05193c189ce02a214bf0acb74743144981cc5`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -32,8 +32,9 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Commercial Entitlement Contract | MASTER-42 | MERGED / PR #202 |
 | Application Network — Commercial Usage Metering + Rating | MASTER-43 | MERGED / PR #204 |
 | Application Network — Hosted Capability Runtime Foundation | MASTER-44 | MERGED / PR #205 |
-| Application Network — Commercial Pricing + Rate Card | MASTER-45 | ACTIVE |
-| Application Network — Remaining Commercial / Capability Cloud | MASTER-46..47 | PLANNED |
+| Application Network — Commercial Pricing + Rate Card | MASTER-45 | MERGED / PR #206 |
+| Application Network — Capability Supply Catalog + Exact Discovery | MASTER-46 | ACTIVE |
+| Application Network — Remaining Commercial / Capability Cloud | MASTER-47 | PLANNED |
 | Application Network — External Proofs / Network RC | MASTER-48..51 | PLANNED |
 
 ## Active execution order
@@ -41,11 +42,11 @@ This file is the engineering execution authority. Long-range product strategy li
 ```text
 Enterprise GenUI RC1 ✅
   ↓
-MASTER-26..44 ✅
+MASTER-26..45 ✅
   ↓
-MASTER-45 Commercial Pricing + Rate Card
+MASTER-46 Capability Supply Catalog + Exact Discovery
   ↓
-MASTER-46 → 47 remaining commercial network + capability cloud
+MASTER-47 remaining commercial / capability cloud
   ↓
 MASTER-48 → 51 external proofs + Application Network RC
 ```
@@ -81,14 +82,20 @@ MASTER-48 → 51 external proofs + Application Network RC
 - Hosted query execution cannot directly execute a Capability declared as `action`; protected effects remain behind `action-boundary`.
 - Hosted Capability core does not own provider endpoints, credentials, durable jobs, container/VM/Kubernetes/serverless orchestration, autoscaling, failover/ranking or generic cloud compute.
 - A successful hosted query result is execution evidence only and cannot override independent authentication, authorization, governance, entitlement or deployment requirements.
+- Capability supply composes canonical CapabilityDefinition + HostedCapabilityBinding artifacts; it does not redefine either owner.
+- Capability supply accepts hosted `query` Capabilities only; `action` Capabilities remain behind `action-boundary`.
+- The same exact Capability `id@version` cannot diverge semantically across supply sources, and the same exact `bindingRef` cannot map to divergent capability/provider/location bindings.
+- Capability supply source repetition is provenance only, not authentication, attestation, confidence, health or ranking.
+- Capability supply lookup is exact and deterministic; no implicit latest, source priority, majority winner, ranking, substitute provider or fallback.
+- Capability supply owns no endpoints, credentials, provider health/SLA, commercial entitlement/pricing, deployment scheduling or generic cloud-compute semantics.
 - Core does not become a generic agent framework, workflow engine, policy language, provider-integration empire, MCP/A2UI replacement, IDE/design clone, cloud-compute platform or foundation model.
 - PR creation is not phase completion. Merge requires contract review, security/architecture review, verification, independent reverse engineering and exact-head evidence appropriate to the diff.
 
 ## Active records
 
-- `docs/pr-plans/MASTER-45.md`
+- `docs/pr-plans/MASTER-46.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-45/Q5_Q6_REVIEW.md`
+- `docs/evidence/MASTER-46/Q5_Q6_REVIEW.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
