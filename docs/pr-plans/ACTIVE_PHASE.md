@@ -1,9 +1,10 @@
 # Active Phase
 
 **Phase:** MASTER-45 — Commercial Pricing + Rate Card  
-**Status:** Q0–Q7 PASS / Q8 ACTIVE  
+**Status:** Q0–Q6 PASS / Q7 RERUN PENDING / Q8 BLOCKED  
 **Base SHA:** `f1ee6ec68b9c1a53f3413b9f201eae355517fc52`  
-**Frozen executable SHA:** `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`  
+**Frozen executable SHA:** `0984b0145381f8344dc458cd28d3e1b26db79e78`  
+**Previous frozen SHA:** `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2` — invalidated by Q8 producer-consistency finding  
 **Previous:** MASTER-44 merged via PR #205  
 **Branch:** `master/45-commercial-pricing`  
 **PR:** #206 (draft)  
@@ -34,6 +35,7 @@ Pricing invariants:
 - lexical uppercase three-letter currency only; no ISO/FX/legal-tender authority claim;
 - bounded fixed amount and per-meter `used | excess` nanos-per-unit rates;
 - canonical rating evidence is revalidated by the metering owner;
+- canonical rating `usedQuantity >= includedRecordCount` because every included usage record has positive quantity;
 - impossible rating record-count/usage combinations fail closed;
 - every plan rate requires exactly one matching canonical rating;
 - missing, duplicate or undeclared ratings fail closed;
@@ -43,8 +45,10 @@ Pricing invariants:
 - quote evaluation never mutates usage/entitlement/payment state;
 - pricing evidence is not entitlement/invoice/payment/subscription/settlement/tax/authorization/governance/runtime authority.
 
-Q5 security/fail-closed review PASS and Q6 architecture/ownership review PASS. Evidence: `docs/evidence/MASTER-45/Q5_Q6_REVIEW.md`.
+Q5 security/fail-closed review PASS and Q6 architecture/ownership review PASS on the original executable surface. Evidence: `docs/evidence/MASTER-45/Q5_Q6_REVIEW.md`.
 
-Q7 PASS on exact frozen executable SHA `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`. The repository operator reran the full local boundaries/typecheck/focused-suite command set detached at that exact SHA and reported it green. Evidence: `docs/evidence/MASTER-45/Q7_LOCAL_PASS.md`. No counts or timings are reconstructed.
+Q7 originally PASS on exact SHA `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2` by operator-reported green. During Q8, independent reverse engineering found one real producer-consistency gap in the new rating evidence parser: forged evidence with `usedQuantity < includedRecordCount` could pass despite canonical usage records requiring positive quantities. Evidence: `docs/evidence/MASTER-45/Q8_ATTEMPT_1.md`.
 
-Q8 independent PR reverse engineering is active. Any executable change after the freeze invalidates Q7 and blocks merge until a new freeze/rerun.
+The parser and focused test were hardened. New frozen executable SHA is `0984b0145381f8344dc458cd28d3e1b26db79e78`. The previous Q7 PASS is invalidated for final merge purposes. Full local Q7 must be rerun at this exact SHA before Q8 restarts.
+
+Hosted `verify`, `ios-native`, and `android-native` failures remain infrastructure non-signal because the latest jobs expose no executed steps. PR #206 has no submitted reviews or inline review threads at the latest Q8 check.
