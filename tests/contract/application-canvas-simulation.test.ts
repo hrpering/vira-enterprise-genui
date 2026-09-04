@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   VIRA_CANVAS_SIMULATION_MAX_STEPS,
+  VIRA_CANVAS_SIMULATION_MODE,
   replayViraCanvasSimulation,
   simulateViraCanvasScenario,
 } from "../../packages/application-canvas-simulation/src/index.js";
@@ -80,6 +81,7 @@ describe("Vira Canvas Simulation + Replay v1", () => {
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
+    expect(result.value.mode).toBe(VIRA_CANVAS_SIMULATION_MODE);
     expect(result.value.frames).toEqual([
       { index: 0, nodeId: "search-surface", nodeKind: "experience", viaEdgeId: null },
       { index: 1, nodeId: "flight-search", nodeKind: "capability", viaEdgeId: "surface-search" },
@@ -90,16 +92,17 @@ describe("Vira Canvas Simulation + Replay v1", () => {
     expect(typeof result.value.semanticsSnapshot).toBe("string");
   });
 
-  it("treats Action nodes as dry-run frames rather than executing protected effects", () => {
+  it("treats Action nodes as explicitly dry-run frames rather than executing protected effects", () => {
     const result = simulateViraCanvasScenario({
       draft: draft(),
       scenario: { id: "book-path", graphRef, startNodeId: "search-surface", edgeIds: ["surface-book"] },
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
+    expect(result.value.mode).toBe("dry-run");
     expect(result.value.frames[1]).toEqual({ index: 1, nodeId: "book-flight", nodeKind: "action", viaEdgeId: "surface-book" });
     expect(Object.keys(result.value).sort()).toEqual([
-      "applicationRef", "frames", "graphRef", "scenarioId", "semanticsSnapshot", "sourceDraftId", "version",
+      "applicationRef", "frames", "graphRef", "mode", "scenarioId", "semanticsSnapshot", "sourceDraftId", "version",
     ]);
   });
 
@@ -157,6 +160,7 @@ describe("Vira Canvas Simulation + Replay v1", () => {
     const replayed = replayViraCanvasSimulation({ draft: draft(99, "changed"), trace: simulated.value });
     expect(replayed.ok).toBe(true);
     if (!replayed.ok) return;
+    expect(replayed.value.mode).toBe("dry-run");
     expect(replayed.value.matched).toBe(true);
     expect(replayed.value.frames).toEqual(simulated.value.frames);
   });
@@ -172,17 +176,35 @@ describe("Vira Canvas Simulation + Replay v1", () => {
       .toMatchObject({ ok: false, issue: { code: "SEMANTIC_DRIFT" } });
   });
 
-  it("rejects tampered trace frames", () => {
+  it("rejects tampered trace frames and non-dry-run trace claims", () => {
     const simulated = simulateViraCanvasScenario({
       draft: draft(),
       scenario: { id: "search-path", graphRef, startNodeId: "search-surface", edgeIds: ["surface-search"] },
     });
     expect(simulated.ok).toBe(true);
     if (!simulated.ok) return;
-    const trace = JSON.parse(JSON.stringify(simulated.value)) as Record<string, unknown>;
-    const frames = trace.frames as Array<Record<string, unknown>>;
+
+    const badFrameTrace = JSON.parse(JSON.stringify(simulated.value)) as Record<string, unknown>;
+    const frames = badFrameTrace.frames as Array<Record<string, unknown>>;
     frames[1]!.nodeId = "book-flight";
-    expect(replayViraCanvasSimulation({ draft: draft(), trace })).toMatchObject({ ok: false, issue: { code: "INVALID_TRACE" } });
+    expect(replayViraCanvasSimulation({ draft: draft(), trace: badFrameTrace }))
+      .toMatchObject({ ok: false, issue: { code: "INVALID_TRACE" } });
+
+    const claimedExecution = JSON.parse(JSON.stringify(simulated.value)) as Record<string, unknown>;
+    claimedExecution.mode = "executed";
+    expect(replayViraCanvasSimulation({ draft: draft(), trace: claimedExecution }))
+      .toMatchObject({ ok: false, issue: { code: "INVALID_TRACE", path: "$.trace.mode" } });
+  });
+
+  it("rejects unsafe accessor and custom-prototype outer inputs through the shared JSON boundary", () => {
+    const root: Record<string, unknown> = { scenario: { id: "safe", graphRef, startNodeId: "search-surface", edgeIds: [] } };
+    Object.defineProperty(root, "draft", { enumerable: true, get: () => draft() });
+    expect(simulateViraCanvasScenario(root)).toMatchObject({ ok: false, issue: { code: "INVALID_INPUT" } });
+
+    const customPrototype = Object.create({ hidden: true }) as Record<string, unknown>;
+    customPrototype.draft = draft();
+    customPrototype.scenario = { id: "safe", graphRef, startNodeId: "search-surface", edgeIds: [] };
+    expect(simulateViraCanvasScenario(customPrototype)).toMatchObject({ ok: false, issue: { code: "INVALID_INPUT" } });
   });
 
   it("rejects unsafe accessor scenario and trace inputs", () => {
