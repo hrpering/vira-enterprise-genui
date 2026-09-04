@@ -10,6 +10,7 @@ If this document and the executable boundary graph disagree, the executable grap
 | Concern | Canonical owner / family |
 |---|---|
 | Application release identity/reference graph/distribution metadata | `application-package` |
+| Application distribution envelope + artifact-integrity binding | `application-distribution` |
 | Application semantic nodes/edges | `application-graph` |
 | Canvas draft identity/editor revision/non-semantic projection + mutation session | `application-canvas` |
 | Application-level Canvas AI semantic proposal/diff | `application-canvas-ai` |
@@ -41,6 +42,8 @@ If this document and the executable boundary graph disagree, the executable grap
 | Experience-level Studio AI proposal surface | `studio-ai` |
 | Web/native render/host surfaces | existing runtime and Studio host/renderer packages governed by the executable boundary graph |
 
+`application-distribution` depends only on `application-package` and `protocol`. It owns the strict provider-neutral distribution envelope, exact SHA-256 integrity identity, deterministic envelope serialization around canonical Application serialization, and the explicit fail-closed integrity-verification gate. It does not own Application discovery metadata, compatibility, protocol projections, commercial semantics, registry persistence, transport/URLs, provider credentials, deployment/runtime, governance/authorization or execution.
+
 `application-canvas` remains the only owner of Canvas editor revision and atomic draft mutation. Collaboration final apply delegates to its mutation session rather than replacing or duplicating stale-write/canonical validation logic.
 
 `application-canvas-ai` remains proposal-only and provider-facing. `application-canvas-collaboration` is provider-neutral, so human or AI-originated candidate semantics can be reviewed without granting AI apply authority.
@@ -59,6 +62,10 @@ Canvas `editorRevision` remains editor metadata only and cannot substitute for A
 
 ## Future ownership constraints
 
+- Application Network registry/catalog/federation layers must consume `application-distribution` envelopes rather than define a second Application artifact format.
+- Distribution may expose/index metadata already owned by `application-package`, but it must not silently fork or mutate those values.
+- Distribution integrity verification is not deployment approval, governance approval, entitlement or execution permission.
+- Network transports/providers may carry a distribution envelope but must not become canonical Application semantic owners.
 - External design adapters may normalize Figma/Sketch/vendor sources to DTCG, but provider formats/URLs/credentials must not become canonical Canvas design semantics.
 - Canvas design import artifacts must bind an existing exact Application `brandRef`; no implicit/latest brand resolution.
 - Imported design artifacts are authoring data only and cannot directly install renderers, mutate Canvas semantics, publish, deploy or execute.

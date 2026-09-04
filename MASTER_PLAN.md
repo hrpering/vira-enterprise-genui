@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-04  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-36:** `70194c6415c7b66c5f2569733b6ed1aa88b59832`
+**Authoritative main entering MASTER-37:** `2e1b509ca9d7c0c1c0179746bec95fa7f2bed016`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -23,8 +23,9 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Canvas AI Co-author | MASTER-33 | MERGED / PR #193 |
 | Application Network — Canvas Simulation + Replay | MASTER-34 | MERGED / PR #194 |
 | Application Network — Canvas Multiplayer + Semantic Review | MASTER-35 | MERGED / PR #195 |
-| Application Network — Design System / External Design Import | MASTER-36 | ACTIVE |
-| Application Network — Distribution | MASTER-37..41 | PLANNED |
+| Application Network — Design System / External Design Import | MASTER-36 | MERGED / PR #196 |
+| Application Network — Application Distribution Contract | MASTER-37 | ACTIVE |
+| Application Network — Distribution / protocol continuation | MASTER-38..41 | PLANNED |
 | Application Network — Commercial / Capability Cloud | MASTER-42..47 | PLANNED |
 | Application Network — External Proofs / Network RC | MASTER-48..51 | PLANNED |
 
@@ -53,9 +54,11 @@ MASTER-34 Canvas Simulation + Replay ✅
   ↓
 MASTER-35 Canvas Multiplayer + Semantic Review ✅
   ↓
-MASTER-36 Design System / External Design Import
+MASTER-36 Design System / External Design Import ✅
   ↓
-MASTER-37 → 41 protocol + distribution
+MASTER-37 Application Distribution Contract
+  ↓
+MASTER-38 → 41 protocol + distribution continuation
   ↓
 MASTER-42 → 47 commercial network + capability cloud
   ↓
@@ -79,6 +82,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 - Canvas external design import consumes provider-neutral normalized DTCG through the existing compiler; vendor formats, URLs and credentials remain adapter/transport concerns.
 - Imported design artifacts bind the Application's existing exact `brandRef` and are authoring data only; they cannot install renderers, mutate Canvas semantics, publish, deploy or execute.
 - Existing Studio design/brand/compiler owners remain canonical; Canvas does not create a competing design-system schema.
+- Application distribution wraps the canonical `ViraApplicationPackage`; it does not copy distribution metadata, compatibility, protocol projections or commercial semantics into a second owner.
+- Application distribution integrity is explicit and independently verified against canonical Application serialization; parsing a digest declaration alone does not assert verification.
+- Network distribution contracts contain no implicit latest resolution, provider credentials, transport authority, deployment state, governance permission or protected execution authority.
 - Canvas cannot directly publish, deploy, authorize, govern or execute protected effects by implication.
 - Capability semantics are provider-neutral; provider/API/MCP/SaaS bindings do not define canonical meaning.
 - WorkContext is bounded work state/provenance, not chat history/user memory/prompt storage/runtime lifecycle.
@@ -91,9 +97,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 
 ## Active records
 
-- `docs/pr-plans/MASTER-36.md`
+- `docs/pr-plans/MASTER-37.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-36/RE_REPORT.md`
+- `docs/evidence/MASTER-37/RE_REPORT.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
