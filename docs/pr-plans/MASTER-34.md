@@ -76,11 +76,11 @@ Replay reparses outer input, Canvas draft and trace through exact fail-closed da
 Q5 found two pre-freeze hardening gaps and closed both:
 
 1. outer simulation/replay inputs are parsed through the shared safe JSON boundary with exact root shapes;
-2. trace/replay artifacts require explicit `mode: "dry-run"`, preventing the artifact shape from silently presenting itself as executed/runtime evidence.
+2. trace/replay artifacts require explicit `mode: "dry-run"`, preventing the artifact shape from presenting itself as executed/runtime evidence.
 
 Q6 confirms the package dependency surface is only `application-canvas` + `protocol`. There is no import path to runtime-core, policy/governance, WorkContext, Action Boundary/Ledger or publication/deployment owners.
 
-The first local Q7 run on `cbfc5b8087d33e21b45f95283e28608a9b16cef2` produced green package boundaries and TypeScript plus 11/12 focused tests. The sole failure was not implementation behavior: the test expected `INVALID_SCENARIO`, while the shared root safe-data parser correctly rejected the nested accessor earlier as `INVALID_INPUT`. Both nested scenario/trace unsafe-input expectations now match that root fail-closed contract. No production implementation changed in this correction.
+The first local Q7 attempt exposed only a test expectation mismatch: root safe-data parsing correctly classified a nested unsafe accessor as `INVALID_INPUT`. The test was aligned with this behavior; production code did not change. The corrected frozen head was then operator-reported fully green.
 
 ## Q0–Q9
 
@@ -91,14 +91,6 @@ The first local Q7 run on `cbfc5b8087d33e21b45f95283e28608a9b16cef2` produced gr
 - Q4 PASS — focused path/cycle/action-dry-run/replay/drift/tamper/security coverage implemented.
 - Q5 PASS — fail-closed/security review including root-input and dry-run evidence hardening.
 - Q6 PASS — architecture/authority review.
-- Q7 REQUIRED — exact corrected frozen-head local package-boundary/type/focused test.
-- Q8 PRE-Q7 PASS — final post-Q7 executable-clean compare still required.
-- Q9 BLOCKED until Q7/final Q8; then squash merge and start MASTER-35 from new authoritative `main`.
-
-Exact local Q7:
-
-```bash
-pnpm check:boundaries
-pnpm typecheck
-pnpm vitest run tests/contract/application-canvas-simulation.test.ts
-```
+- Q7 PASS — operator-reported exact corrected frozen-head local boundaries/typecheck/focused suite.
+- Q8 PASS — final compare after frozen executable head is documentation/evidence-only.
+- Q9 READY — squash merge PR #194, then start MASTER-35 from new authoritative `main`.
