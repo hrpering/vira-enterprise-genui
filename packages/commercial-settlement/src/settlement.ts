@@ -234,9 +234,6 @@ export function allocateViraCommercialSettlement(
   ) {
     return fail("APPLICATION_MISMATCH", "$request.application", "settlement rule does not target this exact Application release");
   }
-  if (rule.publisherId !== application.value.publisher.id) {
-    return fail("PUBLISHER_MISMATCH", "$request.application.publisher.id", "settlement rule publisher does not match canonical Application publisher");
-  }
   if (!sameRef(rule.planRef, quote.value.planRef)) {
     return fail("PLAN_MISMATCH", "$request.quote.planRef", "settlement rule planRef does not match canonical pricing quote planRef");
   }
