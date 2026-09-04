@@ -1,13 +1,13 @@
 # Active Phase
 
 **Phase:** MASTER-37 — Application Distribution Contract  
-**Status:** Q0–Q7 PASS / FINAL Q8 REQUIRED  
+**Status:** Q0–Q8 PASS / Q9 READY TO MERGE  
 **Base SHA:** `2e1b509ca9d7c0c1c0179746bec95fa7f2bed016`  
 **Frozen executable SHA:** `ad9745334e0cedfe2b7d28ee06435f498e62e7c4`  
 **Previous:** MASTER-36 merged via PR #196  
 **Branch:** `master/37-distribution-contract`  
 **PR:** #197  
-**Next after merge:** next MASTER-38 distribution/protocol phase from new authoritative `main`
+**Next after merge:** MASTER-38 distribution/protocol phase from new authoritative `main`
 
 MASTER-37 establishes `@vira-enterprise-genui/application-distribution` as the first provider-neutral Vira Network artifact boundary.
 
@@ -15,14 +15,14 @@ The envelope embeds one canonical `ViraApplicationPackage` and binds it to an ex
 
 Integrity parsing validates only the declared identity shape. Actual integrity verification is explicit through an injected verifier over canonical `serializeViraApplicationPackage()` output and fails closed on false/throw/non-`true`.
 
-Q5 security review PASS: safe JSON boundary, exact shapes, canonical Application delegation, strict SHA-256 identity, explicit verification, fail-closed verifier handling and prototype/accessor hardening.
+Q5 security review PASS. Q6 architecture review PASS.
 
-Q6 architecture review PASS: dependencies are only `application-package` and `protocol`; no registry/gateway/deployment/runtime/governance/Action authority is imported or modified; canonical Application serialization is reused.
-
-First exact-head local Q7 on `41fa04d7af4c5a68fa4eff1cb4a2403bff4dbaac` reported package boundaries PASS and focused tests 13/13 PASS, but TypeScript failed on one test-only `noImplicitAny` callback parameter. Production implementation was unchanged. The focused test was corrected by annotating the verifier callback with exported `ViraApplicationDistributionVerifierInput`; corrected frozen executable head is `ad9745334e0cedfe2b7d28ee06435f498e62e7c4`.
+First exact-head local Q7 on `41fa04d7af4c5a68fa4eff1cb4a2403bff4dbaac` exposed one test-only TS7006 implicit-any callback parameter while package boundaries and 13/13 focused tests passed. Production implementation was unchanged. The test was corrected and frozen executable head became `ad9745334e0cedfe2b7d28ee06435f498e62e7c4`.
 
 Corrected exact-head local Q7 is operator-reported PASS: package boundaries PASS, TypeScript PASS, focused Application Distribution contract suite PASS. Evidence is recorded in `docs/evidence/MASTER-37/VERIFICATION.md`.
 
-Hosted verify/iOS/Android jobs on the branch contained zero steps and runner id 0, so they remain infrastructure non-signal.
+Q8 PASS. Final compare from corrected frozen executable head `ad9745334e0cedfe2b7d28ee06435f498e62e7c4` to closure state contains only verification evidence and phase/status documentation; executable drift is zero.
 
-Merge remains blocked only on final executable-clean Q8 compare from corrected frozen executable head to final PR head.
+Hosted verify/iOS/Android jobs remain zero-step / runner-id-0 infrastructure non-signal.
+
+MASTER-37 is ready for exact-head squash merge. MASTER-38 must start only from the resulting new authoritative `main`.
