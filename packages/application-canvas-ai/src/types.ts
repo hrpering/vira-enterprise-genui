@@ -53,6 +53,8 @@ export interface ViraCanvasAiDiffEntry {
   readonly graphRef?: ViraCanvasGraphRef;
 }
 
+export type ViraCanvasAiProjectionCompatibility = "compatible" | "requires-reconcile";
+
 export interface ViraCanvasAiProposal {
   readonly version: typeof VIRA_CANVAS_AI_VERSION;
   readonly draftId: string;
@@ -61,6 +63,7 @@ export interface ViraCanvasAiProposal {
   readonly candidateSemantics: ViraCanvasSemantics;
   readonly explanation: string;
   readonly diff: readonly ViraCanvasAiDiffEntry[];
+  readonly projectionCompatibility: ViraCanvasAiProjectionCompatibility;
 }
 
 export type ViraCanvasAiIssueCode =
