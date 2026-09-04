@@ -1,18 +1,15 @@
 # Active Phase
 
-**Phase:** MASTER-30 — Semantic ApplicationGraph Contract  
-**Status:** Q0–Q8 PASS / Q9 READY TO SQUASH MERGE  
-**Base SHA:** `62e0fe0a3101001ea4a69cb2732311094e5ebf2e`  
-**Frozen executable head:** `f9c70fe20e2764de2e701b8c44e9cd1114d20eb9`  
-**Previous:** MASTER-29 merged via PR #189  
-**Next after merge:** MASTER-31 — Canvas Foundation
+**Phase:** MASTER-31 — Canvas Foundation  
+**Status:** Q0–Q6 IMPLEMENTED / LOCAL Q7 REQUIRED  
+**Base SHA:** `84ab9f8e75508e7975a8a1eaae74e3fae4c98d95`  
+**Previous:** MASTER-30 merged via PR #190  
+**Next after merge:** MASTER-32 — Canvas Mutation Session
 
-MASTER-30 introduces `@vira-enterprise-genui/application-graph` as the canonical versioned Application semantic relationship owner.
+MASTER-31 introduces `@vira-enterprise-genui/application-canvas` as a framework-free authoring draft + editor projection contract.
 
-It composes exact Experience, Capability, Context and Action identities without owning their payloads or execution authorities. Graph cycles are legal; there is no start node, condition, retry, scheduler, timeout or executor semantic in the contract.
+Canonical ApplicationPackage and ApplicationGraph semantics are delegated to their existing parsers. Canvas owns only draft identity/editor revision and non-semantic projection such as active graph, node positions, viewport and selection.
 
-Canvas projection state and runtime state remain explicitly outside the graph.
+Projection changes are explicitly separated from canonical semantic serialization. Runtime, deployment, publication, provider, governance and protected Action execution authority remain outside Canvas.
 
-Operator-reported local Q7 is PASS on the exact frozen executable head for package boundaries, TypeScript typecheck and focused `application-graph.test.ts`.
-
-Final Q8 compare from `f9c70fe20e2764de2e701b8c44e9cd1114d20eb9` to the closure head contains only `docs/evidence/MASTER-30/VERIFICATION.md`, `docs/pr-plans/ACTIVE_PHASE.md`, and `docs/pr-plans/MASTER-30.md`; executable content is unchanged. Q9 is ready for exact-head squash merge.
+Merge remains blocked until exact branch head passes local boundary/type/focused tests and final actual-diff Q8.
