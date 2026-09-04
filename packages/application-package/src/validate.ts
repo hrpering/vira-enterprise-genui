@@ -28,13 +28,14 @@ import {
   type ViraApplicationPackageValidationIssue,
   type ViraApplicationPublisher,
 } from "./types.js";
+import {
+  parseViraApplicationExactReference,
+} from "./reference.js";
 
 const RELEASE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
-const VERSION_REF = /^[A-Za-z0-9][A-Za-z0-9._:+-]{0,127}$/;
 const PACK_ID = /^[a-z0-9](?:[a-z0-9._-]{0,62})\/[a-z0-9](?:[a-z0-9._-]{0,62})$/;
 const ENTRYPOINT = /^[a-z][a-z0-9._-]{0,127}$/;
 const TAG = /^[a-z0-9](?:[a-z0-9._-]{0,63})$/;
-const FLOATING_ALIASES = new Set(["latest", "current", "stable", "head", "main", "next"]);
 
 type Failure = {
   readonly ok: false;
@@ -67,14 +68,6 @@ function boundedText(value: JsonValue | undefined, max: number): value is string
 
 function releaseVersion(value: JsonValue | undefined): value is string {
   return typeof value === "string" && value.length <= 64 && RELEASE_VERSION.test(value);
-}
-
-function exactVersionRef(value: JsonValue | undefined): value is string {
-  if (typeof value !== "string" || !VERSION_REF.test(value)) return false;
-  const normalized = value.toLowerCase();
-  if (FLOATING_ALIASES.has(normalized)) return false;
-  return !/(?:^|[._:+-])[xX](?:$|[._:+-])/.test(value)
-    && !/\d[xX](?:$|[._:+-])/.test(value);
 }
 
 function compareRelease(left: string, right: string): number {
@@ -113,19 +106,14 @@ function parsePublisher(value: JsonValue | undefined): Parsed<ViraApplicationPub
 }
 
 function parseExactReference(value: JsonValue, path: string): Parsed<ViraApplicationExactReference> {
-  if (!object(value)) return fail("INVALID_REFERENCE", path, "reference must be an exact object");
-  const unexpected = shape(value, ["id", "versionRef"]);
-  if (unexpected) return fail("INVALID_REFERENCE", `${path}.${unexpected}`, "reference shape is invalid");
-  if (typeof value.id !== "string" || !isSemanticNamespace(value.id)) {
-    return fail("INVALID_REFERENCE", `${path}.id`, "reference id must be a canonical semantic namespace");
-  }
-  if (!exactVersionRef(value.versionRef)) {
-    const code = typeof value.versionRef === "string" && VERSION_REF.test(value.versionRef)
-      ? "FLOATING_REFERENCE"
-      : "INVALID_REFERENCE";
-    return fail(code, `${path}.versionRef`, "reference version must be exact and must not use a floating alias or range");
-  }
-  return { ok: true, value: Object.freeze({ id: value.id, versionRef: value.versionRef }) };
+  const parsed = parseViraApplicationExactReference(value);
+  if (parsed.ok) return parsed;
+  const nestedPath = parsed.issue.path === "$"
+    ? path
+    : parsed.issue.path.startsWith("$.")
+      ? `${path}${parsed.issue.path.slice(1)}`
+      : path;
+  return fail(parsed.issue.code, nestedPath, parsed.issue.message);
 }
 
 function parseReferenceArray(
