@@ -34,10 +34,12 @@ function artifact(losses: unknown[]) {
 }
 
 describe("Vira Application Protocol Projection hardening", () => {
-  it("rejects prefix-collision paths that are not actually rooted at $.application", () => {
-    expect(parseViraApplicationProtocolProjection(artifact([
-      { path: "$.applicationx.actions[0]", reason: "prefix collision" },
-    ]))).toMatchObject({ ok: false, issue: { code: "INVALID_LOSS_PATH" } });
+  it("rejects prefix-collision and malformed paths outside the canonical Application path grammar", () => {
+    for (const path of ["$.applicationx.actions[0]", "$.application..actions", "$.application[foo]"]) {
+      expect(parseViraApplicationProtocolProjection(artifact([
+        { path, reason: "invalid path" },
+      ]))).toMatchObject({ ok: false, issue: { code: "INVALID_LOSS_PATH" } });
+    }
   });
 
   it("enforces the explicit semantic-loss collection bound", () => {
