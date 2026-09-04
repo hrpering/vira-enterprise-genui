@@ -10,7 +10,7 @@ Introduce the canonical provider-neutral hosted execution boundary for **query**
 - previous phase: MASTER-43 merged via PR #204
 - branch: `master/44-hosted-capability-runtime`
 - draft PR: #205
-- current frozen executable head: `c6b21360b6471f506fc7c9ec940f687c96de38af`
+- final frozen executable head: `c6b21360b6471f506fc7c9ec940f687c96de38af`
 - invalidated previous freeze: `52dfb067904b34ffe055431232ed8e621a3b3d6f`
 
 ## Q1 reverse engineering
@@ -27,33 +27,23 @@ Extending `capability-contract` with provider/runtime state would mix semantic m
 
 `tool-bridge` owns canonical external-tool result adaptation/freshness/domain helpers. Its `ExternalToolResult` is not a `ViraCapabilityDefinition` execution contract and does not carry enterprise hosted-execution identity.
 
-Hosted Capability execution therefore must not turn either package into a provider runtime.
+### Deployment / Studio / AI-host owners
 
-### Deployment Plane
-
-`deployment-plane` owns signed **Experience Pack** publication, promotion, rollback, cached-pack integrity and environment deployment records. It is not a generic workload scheduler or Capability provider deployment plane.
-
-### Studio Host Runtime / Runtime Core
-
-`studio-host-runtime` bridges Studio UI runtime dispatch to a Studio host. `runtime-core` owns Experience runtime state/lifecycle/permissions. Neither is a server-side Capability execution owner.
-
-### AI-host SDK
-
-`application-ai-host-sdk` validates Application Distribution integrity/host compatibility. It does not expose Capability invocation or provider execution and must remain a thin compatibility SDK.
+`deployment-plane` owns signed **Experience Pack** publication/promotion/rollback, not generic Capability workloads. `studio-host-runtime` bridges Studio UI runtime to a Studio host. `runtime-core` owns Experience runtime state/lifecycle/permissions. `application-ai-host-sdk` owns Distribution integrity + host compatibility ergonomics only. None is a server-side Capability execution owner.
 
 ### Action Boundary
 
-`action-boundary` is the canonical protected-effect execution authority with permit, idempotency, confirmation and receipt semantics.
+`action-boundary` remains the canonical protected-effect execution authority with permit, idempotency, confirmation and receipt semantics.
 
-A Capability whose canonical definition declares `invocation.kind: "action"` must **never** be directly executed by the hosted query runtime. MASTER-44 fails closed before adapter invocation with `ACTION_BOUNDARY_REQUIRED`.
+A Capability whose canonical definition declares `invocation.kind: "action"` must never be directly executed by the hosted query runtime. MASTER-44 fails closed before adapter invocation with `ACTION_BOUNDARY_REQUIRED`.
 
 ### WorkContext / Enterprise Context
 
-`work-context` already owns bounded Context instances, exact type references, items and provenance. MASTER-44 consumes canonical WorkContext and requires the invocation Context set to match the Capability's exact declared `contextRequirements` with no undeclared extra Context types.
+`work-context` owns bounded Context instances, exact type references, items and provenance. MASTER-44 consumes canonical WorkContext and requires the invocation Context set to match the Capability's exact declared `contextRequirements` with no undeclared extra Context types.
 
 `enterprise-context` remains organization/project/environment/principal authority. MASTER-44 carries canonical principal/scope to the trusted provider adapter but does not authenticate the principal or decide authorization.
 
-## Q2 frozen owner
+## Q2 canonical owner
 
 New package:
 
@@ -71,19 +61,11 @@ hosted-capability-runtime
   → work-context
 ```
 
-No dependency on:
-
-- `action-boundary` (action Capabilities are rejected, not executed);
-- governance/authorization owners;
-- commercial entitlement/metering;
-- protocol gateway/tool bridge;
-- deployment plane;
-- runtime-core/Studio runtime;
-- provider SDKs, containers, Kubernetes, serverless vendors or cloud APIs.
+No dependency on Action Boundary, governance/authorization owners, commercial entitlement/metering, protocol gateway/tool bridge, deployment plane, runtime-core/Studio runtime, provider SDKs, containers, Kubernetes, serverless vendors or cloud APIs.
 
 ## Provider binding
 
-A hosted binding is provider-neutral configuration evidence only:
+A hosted binding is provider-neutral configuration/execution evidence only:
 
 ```text
 version
@@ -108,16 +90,13 @@ One request carries:
 
 The runtime separately receives the canonical `ViraCapabilityDefinition` and hosted binding. It verifies exact Capability identity/version equality rather than resolving latest/fallback aliases.
 
-### Typed values
-
 Execution values use:
 
 ```text
 { typeRef: exact-ref | null, value: JsonValue }
 ```
 
-The request input `typeRef` must exactly match `CapabilityDefinition.input.typeRef`.
-The trusted adapter output `typeRef` must exactly match `CapabilityDefinition.output.typeRef`.
+The request input `typeRef` must exactly match `CapabilityDefinition.input.typeRef`. The trusted adapter output `typeRef` must exactly match `CapabilityDefinition.output.typeRef`.
 
 MASTER-44 does not invent a second schema/type system. Type references remain opaque exact semantic references; JSON safety and type-reference identity are enforced here while referenced schema semantics remain owned elsewhere.
 
@@ -125,13 +104,13 @@ MASTER-44 does not invent a second schema/type system. Type references remain op
 
 Capability `contextRequirements[]` is treated as the exact allowed Context-type set for the hosted request:
 
-- each supplied WorkContext must pass the canonical WorkContext parser;
+- each supplied WorkContext passes the canonical WorkContext parser;
 - duplicate supplied Context type refs fail closed;
-- every required type must be present exactly once;
+- every required type is present exactly once;
 - undeclared extra Context types fail closed;
-- no chat history, prompt dump, user memory or arbitrary ambient context is forwarded.
+- no chat history, prompt dump, user memory or arbitrary ambient context is forwarded by core.
 
-This makes Context disclosure explicit and bounded.
+Accepted Contexts are deterministically ordered before provider invocation.
 
 ## Query execution lifecycle
 
@@ -159,15 +138,9 @@ success | empty | error
 
 Success evidence may contain the validated typed output. Empty contains no output. Error contains a bounded provider failure code.
 
-The result includes exact Capability/binding/provider/location/invocation identity evidence but contains **no**:
+The **execution evidence envelope** contains no authorization/governance/entitlement/deployment/commercial authority fields such as `authorized`, `allow`, `deny`, Action permit/receipt, entitlement decision, price/currency/charge, deployment approval or provider attestation claim.
 
-- `authorized`, `allow`, `deny`, `approved`;
-- governance verdict;
-- Action permit/receipt;
-- entitlement decision;
-- commercial usage/price/currency/charge;
-- deployment approval;
-- provider authentication or attestation claim.
+A typed domain payload inside `output.value` remains ordinary domain data governed by its exact type reference. Arbitrary JSON field names inside that payload do not acquire Vira authority merely because they are named `authorized`, `price`, or similar.
 
 A successful query execution is execution evidence only. It cannot override any independent authentication, authorization, enterprise policy, entitlement or governance requirement imposed by the host/integration.
 
@@ -190,43 +163,17 @@ A canonical `query` declaration also does not cryptographically prove that an ex
 
 ## Non-goals
 
-MASTER-44 does not implement:
-
-- provider catalog/discovery;
-- durable job queue/scheduler;
-- containers/VMs/Kubernetes/serverless orchestration;
-- autoscaling/concurrency placement;
-- network transport/endpoints;
-- secret distribution;
-- action execution;
-- authorization/governance;
-- entitlement enforcement;
-- commercial usage ingestion/pricing/payment;
-- provider failover/ranking;
-- generic workflow/agent runtime.
-
-Those concerns must remain separately owned and only be added by later phases with explicit boundaries.
+MASTER-44 does not implement provider catalog/discovery, durable job queues, containers/VMs/Kubernetes/serverless orchestration, autoscaling/concurrency placement, network transports/endpoints, secret distribution, action execution, authorization/governance, entitlement enforcement, commercial usage ingestion/pricing/payment, provider failover/ranking or a generic workflow/agent runtime.
 
 ## Q3 implementation
 
 PASS.
 
-Added `@vira-enterprise-genui/hosted-capability-runtime` with:
+Added `@vira-enterprise-genui/hosted-capability-runtime` with exact provider-neutral binding parsing, canonical CapabilityDefinition delegation, canonical enterprise principal/scope reconstruction, exact typed JSON input/output envelopes, canonical WorkContext parsing/minimization, query-only trusted-adapter invocation, explicit action refusal, exact provider result validation, immutable non-authority execution evidence and an executable package-boundary declaration.
 
-- exact provider-neutral binding parser;
-- canonical CapabilityDefinition delegation;
-- canonical enterprise principal/scope reconstruction;
-- exact typed JSON input/output envelopes;
-- canonical WorkContext parsing/minimization;
-- query-only trusted-adapter invocation;
-- explicit `ACTION_BOUNDARY_REQUIRED` refusal for action-kind Capabilities;
-- exact `success | empty | error` provider result validation;
-- immutable non-authority execution evidence;
-- executable package-boundary declaration.
+## Q4 focused coverage
 
-## Q4 focused verification coverage
-
-PASS by contract/static review; final executable validation remains Q7.
+PASS.
 
 Focused suites:
 
@@ -235,28 +182,11 @@ tests/contract/hosted-capability-runtime.test.ts
 tests/contract/hosted-capability-runtime-hardening.test.ts
 ```
 
-Coverage includes:
+Coverage includes exact binding parsing; query success/empty/error evidence; action adapter non-invocation; binding Capability mismatch; required/missing/undeclared/duplicate Context behavior; deterministic Context ordering; input/output typeRef mismatch; adapter throw/rejection and no retry; floating refs; authority/commercial/endpoint/credential envelope smuggling rejection; accessor/custom-prototype fail-closed behavior; cross-organization principal rejection; Context count ceiling; malformed provider results/failure codes; and canonical Capability parser delegation.
 
-- exact binding parsing;
-- canonical query success/empty/error evidence;
-- action adapter non-invocation;
-- binding Capability mismatch;
-- exact required Context set + deterministic ordering;
-- missing/undeclared/duplicate Context rejection;
-- input/output typeRef mismatch;
-- adapter throw/rejection + no implicit retry;
-- floating refs;
-- authority/commercial/endpoint/credential smuggling rejection;
-- accessor/custom-prototype fail-closed behavior;
-- cross-organization principal rejection;
-- Context count ceiling;
-- invalid provider/location ids;
-- malformed provider result/failure code rejection;
-- canonical Capability parser delegation.
+Static review corrected the fixture publisher namespace before the first freeze: `refund.analysis` uses publisher id `refund`, matching canonical Capability owner rules.
 
-Static reverse engineering found and corrected one test-fixture issue before the first freeze: `refund.analysis` must use publisher id `refund` because Capability publisher namespace authority requires the first Capability-id segment to equal publisher id.
-
-## Q5 security / fail-closed review
+## Q5 security review
 
 PASS. Evidence: `docs/evidence/MASTER-44/Q5_Q6_REVIEW.md`.
 
@@ -266,16 +196,16 @@ Key results:
 - canonical Capability/WorkContext/enterprise owners are reused rather than bypassed;
 - action-kind execution cannot reach adapter;
 - undeclared ambient Context cannot be forwarded;
-- exact provider result shape blocks authority/commercial/credential smuggling;
+- exact provider result envelope blocks authority/commercial/credential smuggling;
 - adapter errors/malformed output fail closed;
 - provider/binding/location evidence does not claim trust/attestation;
 - no implicit retry/failover or metering side effect.
 
-## Q6 architecture / ownership review
+## Q6 architecture review
 
 PASS. Evidence: `docs/evidence/MASTER-44/Q5_Q6_REVIEW.md`.
 
-Executable dependency authority:
+Executable dependency authority remains exactly:
 
 ```text
 hosted-capability-runtime → capability-contract, enterprise-context, protocol, work-context
@@ -293,35 +223,25 @@ FAIL on exact frozen executable SHA:
 
 Operator-reported exact results:
 
-- `pnpm check:boundaries` — PASS;
-- `pnpm typecheck` — FAIL with one TS7053 at `packages/hosted-capability-runtime/src/runtime.ts:132`;
-- focused suites — PASS, 2/2 files and 22/22 tests.
+- package boundaries PASS;
+- typecheck FAIL with TS7053 in `freezeJson()`;
+- focused suites PASS, 2/2 files and 22/22 tests.
 
 Evidence: `docs/evidence/MASTER-44/Q7_ATTEMPT_1.md`.
 
-Root cause: shared protocol defines `JsonArray` as `readonly JsonValue[]`; built-in `Array.isArray()` did not sufficiently narrow `JsonArray | JsonObject` for string indexing in `freezeJson()` under the repository typecheck.
+Root cause: shared protocol defines `JsonArray` as `readonly JsonValue[]`; built-in `Array.isArray()` did not sufficiently narrow `JsonArray | JsonObject` for string indexing under repository typecheck.
 
-Remediation is intentionally local and non-semantic:
+Remediation was intentionally local and non-semantic: an explicit `JsonArray` type guard was added. The executable delta was confined to `packages/hosted-capability-runtime/src/runtime.ts` and shared JSON semantics were unchanged.
 
-```ts
-function jsonArray(value: JsonValue): value is JsonArray {
-  return Array.isArray(value);
-}
-```
+## Q7 final local gate
 
-`freezeJson()` now uses that explicit type guard. The shared protocol JSON contract, hosted request/result semantics, provider lifecycle, authority boundaries and tests are unchanged.
-
-The executable delta from the invalidated freeze to the remediation commit is confined to `packages/hosted-capability-runtime/src/runtime.ts` and is 6 additions / 2 deletions; all other intervening changes are docs/evidence.
-
-## Current Q7 freeze
-
-New frozen executable SHA:
+PASS on exact frozen executable SHA:
 
 ```text
 c6b21360b6471f506fc7c9ec940f687c96de38af
 ```
 
-The entire local gate must be rerun detached at that exact SHA:
+Commands:
 
 ```bash
 pnpm check:boundaries
@@ -331,17 +251,33 @@ pnpm vitest run \
   tests/contract/hosted-capability-runtime-hardening.test.ts
 ```
 
-No result from the invalidated `52dfb067...` freeze may be reused as final Q7 PASS evidence.
+The operator reran the full gate at the exact SHA and reported it green. Evidence: `docs/evidence/MASTER-44/Q7_LOCAL_PASS.md`. Counts/timings are not reconstructed from the invalidated first attempt.
+
+Any executable change after this SHA invalidates Q7.
+
+## Q8 independent PR reverse engineering
+
+PASS. Evidence: `docs/evidence/MASTER-44/Q8_REVIEW.md`.
+
+Reviewed PR head:
+
+```text
+99e80da0f41f06ccd52dc497e2ba7dd92d9ed7b1
+```
+
+Independent review re-read PR metadata, changed-file list, runtime/types/package/boundary patches and both focused suites. No owner duplication, authority leak, implicit latest/fallback, Action Boundary bypass, ambient Context leak, retry/failover behavior or commercial/governance authority creep was found.
+
+Frozen executable `c6b21360...` → reviewed head contained documentation/evidence changes only. Hosted `verify`, `android-native` and `ios-native` jobs remain infrastructure non-signal because they expose no executed steps.
 
 ## Q0–Q9
 
-- Q0 PASS — branch reset/verified at exact authoritative main `e987f3447953761b70c4aa548761bf359b3e07f0`.
-- Q1 PASS — Capability/protocol/tool/deployment/runtime/AI-host/Action/Context owner reverse engineering.
+- Q0 PASS — branch started from exact authoritative main `e987f3447953761b70c4aa548761bf359b3e07f0`.
+- Q1 PASS — nearest-owner reverse engineering.
 - Q2 PASS — hosted query-runtime boundary frozen.
-- Q3 PASS — package + query runtime + dependency graph implemented.
-- Q4 PASS — focused and hardening coverage added; canonical fixture corrected before freeze.
+- Q3 PASS — package + runtime + dependency graph implemented.
+- Q4 PASS — focused/hardening coverage added.
 - Q5 PASS — security/fail-closed review.
 - Q6 PASS — architecture/ownership review.
-- Q7 RERUN PENDING — exact new frozen-head local boundaries/typecheck/focused suites after TS7053 remediation.
-- Q8 — independent PR reverse engineering + executable-clean closure compare after Q7.
-- Q9 — exact-head squash merge, verify new authoritative main, then start next phase fresh from it.
+- Q7 PASS — exact final frozen-head local gate on `c6b21360b6471f506fc7c9ec940f687c96de38af`.
+- Q8 PASS — independent PR reverse engineering and executable-clean reviewed-head compare.
+- Q9 READY — requires final frozen-executable → closure-head compare, ready transition, exact-head squash merge and verification of new authoritative main.
