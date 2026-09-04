@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -86,8 +86,7 @@ function createFakePnpm(root: string) {
   const bin = join(root, "bin");
   const fake = join(bin, "pnpm-fake.cjs");
   const pnpm = join(bin, process.platform === "win32" ? "pnpm.cmd" : "pnpm");
-  const mkdir = spawnSync(process.execPath, ["-e", `require("node:fs").mkdirSync(${JSON.stringify(bin)}, { recursive: true })`]);
-  assert.equal(mkdir.status, 0);
+  mkdirSync(bin, { recursive: true });
 
   writeFileSync(fake, [
     'const fs = require("node:fs");',
@@ -122,6 +121,23 @@ test("external brand proof verifier fails closed when evidence is missing", () =
     const result = runExternalVerifier(repo);
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /VIRA_EXTERNAL_BRAND_PROOF_EVIDENCE must point to external brand proof evidence JSON/);
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test("external brand proof verifier fails closed on malformed JSON", () => {
+  const { repo } = createGitRepo();
+  try {
+    const path = join(repo, "external-brand-proof.json");
+    writeFileSync(path, "{not-json", "utf8");
+    const result = spawnSync(process.execPath, [externalProofVerifier], {
+      cwd: repo,
+      env: { ...process.env, VIRA_EXTERNAL_BRAND_PROOF_EVIDENCE: path },
+      encoding: "utf8",
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /external brand proof evidence could not be read/);
   } finally {
     rmSync(repo, { recursive: true, force: true });
   }
