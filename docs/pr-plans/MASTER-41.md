@@ -9,6 +9,8 @@ Add a provider-neutral Application federation snapshot/discovery contract over c
 - authoritative `main`: `b425e5e7104c1a6441671301a6ac262e4e15e1bb`
 - previous phase: MASTER-40 merged via PR #200
 - branch: `master/41-federated-distribution`
+- PR: #201
+- frozen executable head: `8f488959478368c1b7887c39af30808c127f5a8a`
 
 ## Contract
 
@@ -22,12 +24,14 @@ FederationSnapshot {
 }
 ```
 
-Public federation accepts only releases whose canonical Application metadata says:
+Public federation admits only releases whose canonical Application metadata says:
 
 ```text
 visibility = "public"
 discoverable = true
 ```
+
+This is a metadata admission rule, not source authentication, publisher proof or an access-control decision.
 
 Exact lookup:
 
@@ -52,6 +56,7 @@ No floating/latest alias is accepted.
 
 - `sourceId` is host-asserted provenance, not authenticated identity;
 - federation parsing does not verify Distribution digests or claim trust;
+- public/discoverable admission is not authentication or access-control proof;
 - no URL/endpoint/transport/provider/credential fields;
 - no persistence/registry server/ranking/recommendation;
 - no deployment/runtime/governance/authorization/entitlement;
@@ -62,6 +67,23 @@ No floating/latest alias is accepted.
 ```text
 application-federation → application-distribution, protocol
 ```
+
+## Q5 security / fail-closed review
+
+PASS. See `docs/evidence/MASTER-41/REVIEW.md`.
+
+- shared safe JSON boundary before federation logic;
+- explicit 64-source, 512-apps-per-source and 2048-total-release bounds;
+- exact root/source/query shapes reject authority-smuggling fields;
+- unsafe accessors/custom prototypes fail closed;
+- exact release lookup only; no implicit latest or source priority;
+- divergent exact releases fail closed instead of selecting a winner.
+
+## Q6 architecture / ownership review
+
+PASS.
+
+`application-federation` depends only on `application-distribution` and `protocol`. Experience registry, enterprise/private registry, AI-host SDK, transport, projection adapters, deployment/runtime, governance/authorization/entitlement and execution owners remain unchanged.
 
 ## Focused verification
 
@@ -80,8 +102,10 @@ pnpm vitest run \
 - Q2 PASS — federation/non-authority contract frozen.
 - Q3 PASS — implementation added.
 - Q4 PASS — focused conflict/public-leakage/hardening coverage added.
-- Q5 REQUIRED — final security/fail-closed review.
-- Q6 REQUIRED — architecture/ownership review.
-- Q7 REQUIRED — exact-head local boundaries/typecheck/focused tests.
-- Q8 REQUIRED — final actual-diff + post-Q7 executable-clean compare.
-- Q9 BLOCKED until Q7/Q8; then MASTER-42 starts from resulting authoritative main.
+- Q5 PASS — final security/fail-closed review.
+- Q6 PASS — architecture/ownership review.
+- Q7 REQUIRED — exact frozen-head local boundaries/typecheck/focused tests.
+- Q8 PRE-Q7 PASS pending executable-clean compare; final post-Q7 compare required.
+- Q9 BLOCKED until Q7/final Q8; then MASTER-42 starts from resulting authoritative main.
+
+Hosted verify/iOS/Android jobs on the frozen executable head ended with `steps: null` and remain infrastructure non-signal.
