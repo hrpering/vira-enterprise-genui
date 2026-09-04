@@ -31,50 +31,21 @@ It does not own direct proposal application, publication/promotion/deployment, r
 
 The provider receives only `version`, `prompt`, `draftId`, `editorRevision`, `baseSemantics` and exact host-supported references. It does not receive Canvas projection.
 
-The provider must return exactly:
-
-```text
-{
-  semantics,
-  explanation
-}
-```
-
-Extra publish/execute/control fields fail closed.
+The provider must return exactly `{ semantics, explanation }`; extra publish/execute/control fields fail closed.
 
 ## Supported-reference and integrity policy
 
 A candidate may reuse exact references already present in the base Application or add references explicitly supplied by the host for Experiences, Capabilities, Context Types, Actions, Flows, Brand refs, Governance requirements, Protocol projections, Entitlements, Metering and Host capability ids.
 
-New ApplicationGraph releases may be authored only inside the current Application publisher namespace. Graph node references must satisfy both conditions:
-
-1. the reference is base-existing or host-supported; and
-2. the candidate Application itself declares the referenced Experience/Capability/Context/Action.
-
-Every embedded candidate ApplicationGraph release must also be declared by candidate `application.flows`. This prevents individually valid Application/Graph payloads from producing dangling cross-semantic proposals.
+New ApplicationGraph releases may be authored only inside the current Application publisher namespace. Graph node references must be both base-existing/host-supported and declared by the candidate Application. Every embedded candidate ApplicationGraph release must also be declared by candidate `application.flows`.
 
 ## Human-review proposal
 
-The returned proposal contains only data:
-
-```text
-version
-draftId
-expectedRevision
-baseSemantics
-candidateSemantics
-explanation
-diff[]
-projectionCompatibility
-```
-
-`projectionCompatibility` is `compatible` or `requires-reconcile`. The proposal contains no apply/publish/deploy/execute method.
+The proposal is data-only and contains `version`, `draftId`, `expectedRevision`, `baseSemantics`, `candidateSemantics`, `explanation`, `diff[]` and `projectionCompatibility`. It contains no apply/publish/deploy/execute method.
 
 ## Review outcome
 
-Q5 security review found one pre-freeze integrity gap: a Graph node could retain a base-supported reference after the candidate Application removed its declaration. The final executable implementation closes this with a cross-semantic guard and dedicated focused coverage. No support-catalog bypass, provider projection leak, credential authority path, publish/deploy/runtime/Action dependency, or silent provider fallback remains in the reviewed surface.
-
-Q6 architecture review confirms `application-canvas-ai` depends only on `application-canvas`, `application-package` and `protocol`; canonical semantics stay with existing owners and proposal application stays with the separate human-controlled Canvas mutation flow.
+Q5 found one pre-freeze cross-semantic dangling-reference gap and closed it with a dedicated guard + regression suite. Q6 confirmed proposal-only package boundaries with no runtime/publication/deployment/governance/Action authority dependency.
 
 ## Q0–Q9
 
@@ -83,18 +54,10 @@ Q6 architecture review confirms `application-canvas-ai` depends only on `applica
 - Q2 PASS — provider/support/proposal ownership frozen.
 - Q3 PASS — `application-canvas-ai` proposal gate implemented.
 - Q4 PASS — focused authority/support/diff/integrity coverage implemented.
-- Q5 PASS — fail-closed security review, including cross-semantic integrity fix.
+- Q5 PASS — fail-closed security review including cross-semantic integrity fix.
 - Q6 PASS — architecture/authority review.
-- Q7 REQUIRED — local exact frozen-head package-boundary/type/focused tests.
-- Q8 PRE-Q7 PASS — actual scope reviewed; final post-Q7 executable-clean compare still required.
-- Q9 BLOCKED until Q7/final Q8; then squash merge and start MASTER-34 Canvas Simulation + Replay from new `main`.
-
-Exact local Q7:
-
-```bash
-pnpm check:boundaries
-pnpm typecheck
-pnpm vitest run tests/contract/application-canvas-ai.test.ts tests/contract/application-canvas-ai-integrity.test.ts
-```
+- Q7 PASS — operator-reported exact frozen-head package-boundary, TypeScript and both focused Canvas AI suites green.
+- Q8 PASS — final compare from frozen executable head contains docs/evidence changes only; no executable drift.
+- Q9 READY — exact-head squash merge, then MASTER-34 from new authoritative `main`.
 
 Hosted Actions on the frozen head produced verify/iOS/Android jobs with `steps: null`; these are infrastructure non-signal.
