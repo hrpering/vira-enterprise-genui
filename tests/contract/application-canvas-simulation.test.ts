@@ -207,10 +207,10 @@ describe("Vira Canvas Simulation + Replay v1", () => {
     expect(simulateViraCanvasScenario(customPrototype)).toMatchObject({ ok: false, issue: { code: "INVALID_INPUT" } });
   });
 
-  it("rejects unsafe accessor scenario and trace inputs", () => {
+  it("rejects unsafe accessor scenario and trace inputs at the shared root boundary", () => {
     const scenario: Record<string, unknown> = { graphRef, startNodeId: "search-surface", edgeIds: [] };
     Object.defineProperty(scenario, "id", { enumerable: true, get: () => "unsafe" });
-    expect(simulateViraCanvasScenario({ draft: draft(), scenario })).toMatchObject({ ok: false, issue: { code: "INVALID_SCENARIO" } });
+    expect(simulateViraCanvasScenario({ draft: draft(), scenario })).toMatchObject({ ok: false, issue: { code: "INVALID_INPUT" } });
 
     const simulated = simulateViraCanvasScenario({
       draft: draft(),
@@ -220,7 +220,7 @@ describe("Vira Canvas Simulation + Replay v1", () => {
     if (!simulated.ok) return;
     const trace: Record<string, unknown> = { ...simulated.value };
     Object.defineProperty(trace, "scenarioId", { enumerable: true, get: () => "unsafe" });
-    expect(replayViraCanvasSimulation({ draft: draft(), trace })).toMatchObject({ ok: false, issue: { code: "INVALID_TRACE" } });
+    expect(replayViraCanvasSimulation({ draft: draft(), trace })).toMatchObject({ ok: false, issue: { code: "INVALID_INPUT" } });
   });
 
   it("produces the same semantic evidence regardless of projection metadata", () => {
