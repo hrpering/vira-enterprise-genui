@@ -16,7 +16,7 @@ function draft() {
         version: "1.0.0",
         publisher: { id: "vira", name: "Vira" },
         experiences: [],
-        capabilities: [],
+        capabilities: [{ id: "vira.brand-capability", versionRef: "1.0.0" }],
         contextTypes: [],
         actions: [],
         flows: [],
