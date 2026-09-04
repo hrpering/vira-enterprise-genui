@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-04  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-32:** `12aede59f4d034883ff4a2fe5ff8b5fe0887544b`
+**Authoritative main entering MASTER-33:** `6bd8072852c758a6369a84c8ce4e19eefd154afb`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -19,8 +19,11 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — WorkContext | MASTER-29 | MERGED / PR #189 |
 | Application Network — Application Graph | MASTER-30 | MERGED / PR #190 |
 | Application Network — Canvas Foundation | MASTER-31 | MERGED / PR #191 |
-| Application Network — Canvas Mutation Session | MASTER-32 | ACTIVE |
-| Application Network — Canvas continuation | MASTER-33..36 | PLANNED |
+| Application Network — Canvas Mutation Session | MASTER-32 | MERGED / PR #192 |
+| Application Network — Canvas AI Co-author | MASTER-33 | ACTIVE |
+| Application Network — Canvas Simulation + Replay | MASTER-34 | PLANNED |
+| Application Network — Canvas Multiplayer + Semantic Review | MASTER-35 | PLANNED |
+| Application Network — Design System / External Design Import | MASTER-36 | PLANNED |
 | Application Network — Distribution | MASTER-37..41 | PLANNED |
 | Application Network — Commercial / Capability Cloud | MASTER-42..47 | PLANNED |
 | Application Network — External Proofs / Network RC | MASTER-48..51 | PLANNED |
@@ -42,9 +45,15 @@ MASTER-30 Application Graph ✅
   ↓
 MASTER-31 Canvas Foundation ✅
   ↓
-MASTER-32 Canvas Mutation Session
+MASTER-32 Canvas Mutation Session ✅
   ↓
-MASTER-33 → 36 Canvas continuation
+MASTER-33 Canvas AI Co-author
+  ↓
+MASTER-34 Canvas Simulation + Replay
+  ↓
+MASTER-35 Canvas Multiplayer + Semantic Review
+  ↓
+MASTER-36 Design System / External Design Import
   ↓
 MASTER-37 → 41 protocol + distribution
   ↓
@@ -62,6 +71,7 @@ MASTER-48 → 51 external proofs + Application Network RC
 - Canvas authors/proposes canonical semantics but editor projection (coordinates, viewport, selection) is not Application semantics.
 - Canvas editor revision is not runtime/deployment/Application release revision.
 - Canvas mutation sessions require exact editor revision guards; stale writes fail closed and failed candidates cannot partially commit.
+- Canvas AI is a proposal engine only: provider output must pass canonical validation, unsupported authority cannot be invented, and proposals cannot directly apply, publish, deploy, govern or execute protected effects.
 - Canvas cannot directly publish, deploy, authorize, govern or execute protected effects by implication.
 - Capability semantics are provider-neutral; provider/API/MCP/SaaS bindings do not define canonical meaning.
 - WorkContext is bounded work state/provenance, not chat history/user memory/prompt storage/runtime lifecycle.
@@ -74,9 +84,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 
 ## Active records
 
-- `docs/pr-plans/MASTER-32.md`
+- `docs/pr-plans/MASTER-33.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-32/RE_REPORT.md`
+- `docs/evidence/MASTER-33/RE_REPORT.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
