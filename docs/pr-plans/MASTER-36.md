@@ -9,6 +9,7 @@ Add a provider-neutral Canvas authoring import boundary for external design syst
 - authoritative `main`: `70194c6415c7b66c5f2569733b6ed1aa88b59832`
 - previous phase: MASTER-35 merged via PR #195
 - branch: `master/36-design-system-external-import`
+- frozen executable head: `2909dd596a54b6e6602b0ea38135cb2a243ef4e8`
 
 ## Ownership
 
@@ -22,25 +23,9 @@ Existing owners remain canonical:
 
 MASTER-36 introduces `application-canvas-design-import` only for authoring-time import provenance + compilation binding.
 
-It owns:
+It owns strict normalized DTCG import input, bounded source provenance, exact current Application `brandRef` binding, delegation to `compileDtcgDesignTokens()`, deterministic safe raw-source canonicalization, and the frozen authoring import artifact.
 
-- strict external design import input shape;
-- normalized DTCG source format requirement;
-- bounded source id/revision provenance;
-- exact current Application `brandRef` requirement;
-- delegation to `compileDtcgDesignTokens()`;
-- frozen authoring import artifact carrying source + compiled Studio design options.
-
-It does not own:
-
-- Figma/Sketch/vendor payload parsing;
-- URLs, tokens, credentials or provider bindings;
-- renderer/component implementation installation;
-- full brand package assembly;
-- Canvas semantic mutation/application;
-- publication/deployment/runtime;
-- governance/authorization;
-- Action/Capability execution.
+It does not own vendor payload parsing, URLs/tokens/credentials/provider bindings, renderer/component implementation installation, full brand package assembly, Canvas semantic mutation, publication/deployment/runtime, governance/authorization or Action/Capability execution.
 
 ## Import flow
 
@@ -68,7 +53,29 @@ human/host-controlled downstream brand workflow
 - unknown source fields such as provider/url/credential/apply/publish fail closed;
 - compiler failures are forwarded with source-document path + compiler code;
 - sources with no supported literal color/font tokens fail closed;
+- raw DTCG object keys are recursively sorted for deterministic artifact evidence;
+- canonicalization uses null-prototype objects so prototype-sensitive keys remain inert data until the canonical compiler rejects them;
 - import never mutates the caller draft or source.
+
+## Q5 security review
+
+PASS.
+
+- root and source envelopes use shared safe JSON parsing and exact shapes;
+- provider/URL/credential/apply/publish authority smuggling is rejected;
+- source ids/revisions are bounded and control-character free;
+- exact existing Application `brandRef` is mandatory; there is no implicit/latest brand;
+- DTCG reference/extension/unsafe-name semantics continue to fail closed through the canonical compiler;
+- deterministic canonicalization does not introduce prototype setters;
+- output is deeply frozen authoring data only.
+
+## Q6 architecture review
+
+PASS.
+
+Executable dependencies are only `application-canvas`, `design-system-compiler` and `protocol`. No Studio brand owner is duplicated and no renderer trust, runtime, deployment, governance, Action or network/provider authority is reachable.
+
+Figma/Sketch/vendor adapters remain outside core and may only normalize to DTCG before this boundary.
 
 ## Q0–Q9
 
@@ -76,17 +83,19 @@ human/host-controlled downstream brand workflow
 - Q1 PASS — targeted reverse engineering of compiler/design/brand/loader/Canvas owners.
 - Q2 PASS — provider-neutral DTCG import boundary frozen.
 - Q3 PASS — `application-canvas-design-import` implemented.
-- Q4 PASS — focused import/brand/provenance/security/non-authority coverage implemented.
-- Q5 REQUIRED — security/fail-closed review.
-- Q6 REQUIRED — architecture/ownership review.
-- Q7 REQUIRED — exact-head local boundaries/typecheck/focused tests.
-- Q8 REQUIRED — actual PR diff review and final executable-clean compare.
-- Q9 BLOCKED until Q7/Q8; then squash merge and start MASTER-37 from new authoritative `main`.
+- Q4 PASS — focused import/brand/provenance/security/non-authority + deterministic/prototype hardening coverage implemented.
+- Q5 PASS — security/fail-closed review.
+- Q6 PASS — architecture/ownership review.
+- Q7 REQUIRED — exact frozen-head local boundaries/typecheck/focused tests.
+- Q8 PRE-Q7 PASS — actual executable scope reviewed; final post-Q7 executable-clean compare required.
+- Q9 BLOCKED until Q7/final Q8; then squash merge and start MASTER-37 from new authoritative `main`.
 
-Exact local Q7 target:
+Exact local Q7:
 
 ```bash
 pnpm check:boundaries
 pnpm typecheck
-pnpm vitest run tests/contract/application-canvas-design-import.test.ts
+pnpm vitest run tests/contract/application-canvas-design-import.test.ts tests/contract/application-canvas-design-import-hardening.test.ts
 ```
+
+Hosted verify/iOS/Android jobs on the frozen executable head ended with `steps: null`; infrastructure non-signal only.
