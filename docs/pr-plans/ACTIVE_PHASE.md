@@ -1,8 +1,9 @@
 # Active Phase
 
 **Phase:** MASTER-47 — Commercial Settlement Allocation + Publisher Economics  
-**Status:** Q0–Q2 PASS / Q3 ACTIVE  
+**Status:** Q0–Q6 PASS / Q7 PENDING  
 **Base SHA:** `a7083edbb3bafc9326546fbba10286e696f86a06`  
+**Frozen executable SHA:** `25ee1c25223863f3ceeb53210142acd1da331405`  
 **Previous:** MASTER-46 merged via PR #207  
 **Branch:** `master/47-commercial-settlement`  
 **Next:** MASTER-48 after MASTER-47 merge from new authoritative `main`
@@ -12,27 +13,35 @@ MASTER-47 adds deterministic publisher/platform allocation evidence downstream o
 Canonical composition:
 
 ```text
-application-package      → Application id/version + publisher + exact-reference semantics
-commercial-pricing      → canonical quote evidence
-commercial-settlement   → quote-linked publisher/platform allocation evidence
+application-package      → Application release + publisher + exact-reference semantics
+commercial-pricing       → canonical quote evidence
+commercial-settlement    → quote-linked publisher/platform allocation evidence
 ```
 
-Executable dependency target:
+Executable dependency boundary:
 
 ```text
 commercial-settlement → application-package, commercial-pricing, protocol
 ```
 
-Core invariants:
+Final pre-Q7 invariants:
 
+- exact Application reference parsing/serialization stays in `application-package`;
 - settlement rules are selected by exact `settlementRef` only;
-- exact rule Application id/version and publisherId must match canonical Application package;
-- rule planRef must exactly match canonical quote planRef;
-- allocation uses integer basis points only;
-- publisher allocation is deterministic floor; fractional nano remainder stays with platform;
-- unsafe intermediate multiplication is avoided by quotient/remainder arithmetic;
-- allocation evidence embeds canonical pricing quote rather than copying quote semantics;
-- no entitlement proof, invoice/payment state, payout/funds movement, tax/FX/accounting or runtime/security authority;
-- no default/latest/fallback settlement policy.
+- publisherId must match the Application identity namespace;
+- exact rule Application release must match canonical Application input;
+- exact rule planRef must match canonical quote planRef;
+- no default/latest/fallback settlement policy;
+- publisherShareBps is integer `0..10000`;
+- allocation uses quotient/remainder safe-integer arithmetic, not direct unsafe gross×bps multiplication;
+- fractional nano remainder deterministically stays with platform;
+- allocation evidence embeds and reparses canonical pricing quote instead of copying quote semantics;
+- allocation evidence independently verifies split arithmetic;
+- parsing evidence does not authenticate settlement-policy provenance;
+- no entitlement proof, invoice/payment state, payout/funds movement, subscription/refund, tax/FX/accounting or runtime/security authority.
 
-Full Q1/Q2 contract: `docs/pr-plans/MASTER-47.md`.
+Q5 security/fail-closed review PASS and Q6 architecture/ownership review PASS on frozen executable/test/boundary head `25ee1c25223863f3ceeb53210142acd1da331405`.
+
+Evidence: `docs/evidence/MASTER-47/Q5_Q6_REVIEW.md`.
+
+Q7 exact frozen-head local boundaries/typecheck/focused suites are pending. Any executable/package/test/boundary change after the freeze invalidates Q5/Q6 and requires a new freeze and local Q7.
