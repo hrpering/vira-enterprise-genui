@@ -172,8 +172,9 @@ export function createViraCanvasCollaborationSession(
 
   const mutation = createViraCanvasMutationSession(draft.value);
   if (!mutation.ok) return failure("INVALID_INPUT", "$.draft", mutation.issue.message);
+  const mutationSession = mutation.value;
 
-  const participantList = Object.freeze([...participants].sort((left, right) => left.id.localeCompare(right)));
+  const participantList = Object.freeze([...participants].sort((left, right) => left.id.localeCompare(right.id)));
   const presenceByActor = new Map<string, ViraCanvasPresence>();
   const proposalById = new Map<string, ViraCanvasSemanticProposal>();
   const reviewsByProposal = new Map<string, Map<string, ViraCanvasSemanticReview>>();
@@ -186,7 +187,7 @@ export function createViraCanvasCollaborationSession(
   }
 
   function currentDraft(): ViraCanvasDraft {
-    return mutation.value.currentDraft();
+    return mutationSession.currentDraft();
   }
 
   function resolveGraphRef(value: JsonValue | undefined, path: string): Parsed<ViraCanvasGraphRef | null> {
@@ -484,7 +485,7 @@ export function createViraCanvasCollaborationSession(
         );
       }
 
-      const applied = mutation.value.replaceSemantics({
+      const applied = mutationSession.replaceSemantics({
         expectedRevision: current.editorRevision,
         semantics: proposal.candidateSemantics,
       });
