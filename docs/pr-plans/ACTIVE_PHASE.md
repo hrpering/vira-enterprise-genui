@@ -3,7 +3,7 @@
 **Phase:** MASTER-35 — Canvas Multiplayer + Semantic Review  
 **Status:** Q0–Q6 PASS / LOCAL Q7 REQUIRED  
 **Base SHA:** `f17ae3cc920e672fcab1f97028dddcbe08040016`  
-**Frozen executable SHA:** `68583242ce8afb71e04d70d0843a9c81d54a9dad`  
+**Frozen executable SHA:** `74d8a2c4dc7e1f573600ed52af908c0e10443fd7`  
 **Previous:** MASTER-34 merged via PR #194  
 **Next after merge:** MASTER-36 — Design System / External Design Import
 
@@ -19,4 +19,6 @@ Participant `actorId` values are host-asserted identities, not authentication pe
 
 Q5/Q6 security and architecture review PASS. Executable dependencies remain only `application-canvas` + `protocol`; no network/CRDT/runtime/governance/deployment/Action authority is imported.
 
-Pre-Q7 compare from frozen executable head contains docs only. Merge remains blocked until exact-head local Q7 and final executable-clean Q8.
+The first local Q7 attempt on `68583242ce8afb71e04d70d0843a9c81d54a9dad` had package boundaries and focused 12/12 tests green but TypeScript failed on one sort typo and one closure narrowing issue. Both were fixed without semantic behavior changes. Corrected frozen executable head is `74d8a2c4dc7e1f573600ed52af908c0e10443fd7`.
+
+Merge remains blocked until exact corrected-head local Q7 and final executable-clean Q8.
