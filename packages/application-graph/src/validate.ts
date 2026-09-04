@@ -233,6 +233,7 @@ function validRelation(kind: ViraApplicationGraphEdgeKind, from: ViraApplication
     case "semantic-transition":
       return fromKind === "experience" && toKind === "experience";
   }
+  return false;
 }
 
 function parseEdges(
