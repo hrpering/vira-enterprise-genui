@@ -1,11 +1,11 @@
 # Active Phase
 
-**Phase:** MASTER-25R — Enterprise RC Evidence Closure  
-**Status:** Q0–Q6 ACTIVE / EXTERNAL EXACT-HEAD EVIDENCE REQUIRED  
-**Base SHA:** `9d451b809e14538edcf2c0ed2d913de8fc724377`  
-**Previous:** CLEAN-00 merged via PR #184  
-**Next after merge:** Enterprise GenUI RC1 → MASTER-26
+**Phase:** MASTER-26 — Application Semantic Freeze  
+**Status:** Q0–Q3 ACTIVE / DOCS-ONLY SEMANTIC FREEZE  
+**Base SHA:** `e566ea2ee1d3794a3c23585323a48741de140eab`  
+**Previous:** MASTER-25R merged via PR #185 — Enterprise GenUI RC1 closed  
+**Next after merge:** MASTER-27
 
-MASTER-25 implementation already exists in `main`. MASTER-25R does not add a second release path: it re-binds the existing repository/browser, native conformance, real iOS Simulator, real Android Emulator and external-brand proof gates to the exact post-CLEAN-00 release tree.
+MASTER-26 freezes Application model, authority, lifecycle and version semantics before Application Network implementation begins.
 
-Current blocker is external proof evidence whose `viraHead` must equal the exact executable checkout. No RC1 declaration and no MASTER-26 branch is allowed until `pnpm verify:enterprise-rc` passes with that evidence and the resulting PR completes independent Q8 review.
+No runtime, SDK, package, executable schema, Canvas or Network implementation belongs in this phase. Existing Experience, Experience Pack, Studio publication, deployment, runtime, governance and Action Boundary authorities remain canonical and are referenced rather than duplicated.
