@@ -2,10 +2,7 @@ import {
   parseViraApplicationGraph,
   type ViraApplicationGraph,
 } from "@vira-enterprise-genui/application-graph";
-import {
-  parseViraApplicationPackage,
-  type ViraApplicationPackage,
-} from "@vira-enterprise-genui/application-package";
+import { parseViraApplicationPackage } from "@vira-enterprise-genui/application-package";
 import {
   isSemanticNamespace,
   isSemanticSegment,
