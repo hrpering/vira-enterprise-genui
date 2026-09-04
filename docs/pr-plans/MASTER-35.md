@@ -9,7 +9,7 @@ Add deterministic authoring collaboration for Canvas: bounded participants, ephe
 - authoritative `main`: `f17ae3cc920e672fcab1f97028dddcbe08040016`
 - previous phase: MASTER-34 merged via PR #194
 - branch: `master/35-canvas-multiplayer-semantic-review`
-- frozen executable head: `68583242ce8afb71e04d70d0843a9c81d54a9dad`
+- frozen executable head: `74d8a2c4dc7e1f573600ed52af908c0e10443fd7`
 
 ## Ownership
 
@@ -66,6 +66,16 @@ Executable dependencies are only `application-canvas` and `protocol`. No runtime
 
 This package is not a CRDT or collaboration server. A future transport may carry these contracts but cannot redefine Canvas semantic/revision authority.
 
+## Local Q7 history
+
+First attempt on `68583242ce8afb71e04d70d0843a9c81d54a9dad`:
+
+- `pnpm check:boundaries` PASS;
+- focused collaboration suite 12/12 PASS;
+- `pnpm typecheck` failed on two TS6-only issues: a sort callback typo (`localeCompare(right)` instead of `right.id`) and union narrowing not surviving into nested closures.
+
+Both were corrected without semantic behavior changes by sorting on `right.id` and binding the successful mutation session value before nested functions. New frozen executable head is `74d8a2c4dc7e1f573600ed52af908c0e10443fd7`.
+
 ## Q0–Q9
 
 - Q0 PASS — exact base `f17ae3cc920e672fcab1f97028dddcbe08040016`.
@@ -75,7 +85,7 @@ This package is not a CRDT or collaboration server. A future transport may carry
 - Q4 PASS — focused participant/presence/concurrency/review/apply/security coverage implemented.
 - Q5 PASS — fail-closed/security review.
 - Q6 PASS — architecture/authority review.
-- Q7 REQUIRED — exact frozen-head local package-boundary/type/focused suite.
+- Q7 REQUIRED — exact corrected frozen-head local package-boundary/type/focused suite.
 - Q8 PRE-Q7 PASS — executable scope reviewed; final post-Q7 compare required.
 - Q9 BLOCKED until Q7/final Q8; then squash merge and start MASTER-36 from new authoritative `main`.
 
