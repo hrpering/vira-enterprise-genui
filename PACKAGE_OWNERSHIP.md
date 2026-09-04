@@ -13,6 +13,7 @@ If this document and the executable boundary graph disagree, the executable grap
 | Application distribution envelope + artifact-integrity binding | `application-distribution` |
 | Application protocol projection fidelity artifact | `application-protocol-projection` |
 | Publisher-side Application distribution preparation ergonomics | `application-publisher-sdk` |
+| AI-host-side Application integrity + compatibility ergonomics | `application-ai-host-sdk` |
 | Application semantic nodes/edges | `application-graph` |
 | Canvas draft identity/editor revision/non-semantic projection + mutation session | `application-canvas` |
 | Application-level Canvas AI semantic proposal/diff | `application-canvas-ai` |
@@ -48,27 +49,25 @@ If this document and the executable boundary graph disagree, the executable grap
 
 `application-protocol-projection` remains the Application-level projection fidelity owner; protocol payloads remain non-canonical interoperability data.
 
-`application-publisher-sdk` depends only on `application-package`, `application-distribution` and `protocol`. It owns publisher-side composition ergonomics: safe input, host-asserted publisher-id parity, canonical Application serialization delegation, injected SHA-256 digest-provider invocation, digest shape validation and canonical distribution-envelope parse/serialization delegation.
+`application-publisher-sdk` depends only on `application-package`, `application-distribution` and `protocol`. It owns publisher-side composition ergonomics only and does not own publisher authentication, signing, transport, registry/federation, deployment/runtime, governance or execution.
 
-`application-publisher-sdk` does **not** own publisher authentication, identity proof, signatures/certificates/credentials, digest verification, registry upload, URL/transport/federation, protocol-specific adapters, deployment/runtime, governance/authorization/entitlement or Capability/Action execution. Its returned `publisherId` and digest are not trust assertions beyond the canonical data they represent.
+`application-ai-host-sdk` depends only on `application-distribution`, `application-package` and `protocol`. It owns host-side integration ergonomics: strict host descriptor parsing, explicit Distribution integrity-verifier delegation, canonical Vira-version/required-capability evaluation, and exact source/host protocol-projection intersection.
+
+`application-ai-host-sdk` does **not** own host authentication/identity proof, network endpoints/transports, provider credentials, registry/federation, protocol adapter execution, projection artifact generation, deployment/runtime state, governance/authorization/entitlement, Capability invocation or protected Action execution. Compatibility success is not a permission receipt. Empty protocol intersection is not automatically runtime incompatibility.
 
 `protocol-gateway` remains the existing tool/protocol invocation adaptation owner.
 
-`application-canvas` remains the only owner of Canvas editor revision and atomic draft mutation. Collaboration final apply delegates to its mutation session rather than replacing or duplicating stale-write/canonical validation logic.
-
-`application-canvas-ai` remains proposal-only and provider-facing. `application-canvas-collaboration` is provider-neutral.
-
-`application-canvas-simulation` remains dry-run authoring evidence only.
-
-`application-canvas-design-import` remains a provider-neutral DTCG authoring import boundary delegating token semantics to `design-system-compiler`.
+`application-canvas` remains the only owner of Canvas editor revision and atomic draft mutation. `application-canvas-ai` remains proposal-only. `application-canvas-simulation` remains dry-run authoring evidence only. `application-canvas-design-import` remains a provider-neutral DTCG authoring import boundary delegating token semantics to `design-system-compiler`.
 
 ## Future ownership constraints
 
-- AI-host SDKs must consume canonical `application-distribution` / `application-protocol-projection` artifacts rather than define a new Application wire schema.
-- Federated distribution must consume canonical distribution envelopes and cannot grant execution/security authority.
+- Federated distribution must consume canonical Distribution envelopes and cannot grant execution/security authority.
+- AI-host SDKs must consume canonical Distribution/Application declarations rather than define a new wire schema.
+- AI-host compatibility must remain separate from authorization, entitlement, governance, deployment and runtime execution.
+- AI-host protocol overlap must use exact source-declared refs; no implicit/latest protocol negotiation or adapter execution.
 - Publisher SDKs must remain transport-neutral; registry/upload/provider credentials stay outside canonical SDK semantics.
 - Publisher identity parity is not authentication. Any external publisher authentication/signature mechanism stays an adapter/host concern unless a future explicitly-owned trust contract is frozen.
-- Digest computation and digest verification remain distinct. Publisher preparation may obtain a declared digest but cannot claim verification merely because the SDK produced an envelope.
+- Digest computation and digest verification remain distinct.
 - Application Network registry/catalog/federation layers must consume `application-distribution` envelopes rather than define a second Application artifact format.
 - Distribution integrity verification is not deployment approval, governance approval, entitlement or execution permission.
 - Application protocol projection must consume exact source-declared projection refs; it cannot invent implicit/latest protocol targets.

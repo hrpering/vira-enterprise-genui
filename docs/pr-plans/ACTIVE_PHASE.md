@@ -1,20 +1,22 @@
 # Active Phase
 
-**Phase:** MASTER-39 — Application Publisher SDK  
+**Phase:** MASTER-40 — Application AI-host SDK  
 **Status:** Q0–Q8 PASS / Q9 READY TO MERGE  
-**Base SHA:** `b8f009603407fea9a9115d735e9a144017fc654f`  
-**Frozen executable SHA:** `4f7df4b1e314121a4d16cbf5502896810447e1bd`  
-**Previous:** MASTER-38 merged via PR #198  
-**Branch:** `master/39-application-publisher-sdk`  
-**PR:** #199  
-**Next after merge:** MASTER-40 AI-host SDK phase from new authoritative `main`
+**Base SHA:** `86def2e33f3f845fff8e3fb234099e60ffbdaf20`  
+**Frozen executable SHA:** `4b2350f9090d5b74e46f56a0478b12b25080ef3e`  
+**Previous:** MASTER-39 merged via PR #199  
+**Branch:** `master/40-application-ai-host-sdk`  
+**PR:** #200  
+**Next after merge:** MASTER-41 federated distribution phase from new authoritative `main`
 
-MASTER-39 introduces `@vira-enterprise-genui/application-publisher-sdk` as a thin publisher-side integration layer over existing canonical Application and Distribution owners.
+MASTER-40 introduces `@vira-enterprise-genui/application-ai-host-sdk` as a thin host-side compatibility/integrity integration layer over existing canonical Application and Distribution owners.
 
-Q5 security review PASS. Q6 architecture review PASS. Q7 exact frozen-head local verification is operator-reported PASS for package boundaries, TypeScript and focused Publisher SDK suites. Q8 final compare PASS: the frozen executable head to closure contains only MASTER-39 docs/evidence; executable drift is zero.
+Q5 security/fail-closed review PASS. Q6 architecture/ownership review PASS. Q7 exact frozen-head local verification is operator-reported PASS for package boundaries, TypeScript and both focused AI-host SDK suites. Q8 final compare PASS: frozen executable head to closure contains only MASTER-40 docs/evidence; executable drift is zero.
 
-`publisherId` remains a host assertion rather than authentication. Digest-provider output remains an integrity declaration rather than verification/trust. The SDK has no registry upload, URL/transport/federation, credential/signing, deployment/runtime/governance/authorization/entitlement or protected execution authority.
+Caller-facing integrity failure paths remain normalized to the AI-host SDK surface. Empty protocol intersection does not itself imply runtime incompatibility. Compatibility success is not authorization, entitlement, governance approval, deployment approval or runtime execution permission. No protocol adapter is invoked.
+
+Exact executable dependency boundary: `application-ai-host-sdk → application-distribution, application-package, protocol`.
 
 Hosted verify/iOS/Android jobs with `steps: null` remain infrastructure non-signal.
 
-MASTER-39 is ready for exact-head squash merge.
+MASTER-40 is ready for exact-head squash merge.
