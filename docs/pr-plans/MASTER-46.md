@@ -9,6 +9,7 @@ Add the missing provider-neutral Capability supply/discovery layer for the Appli
 - authoritative `main`: `88a05193c189ce02a214bf0acb74743144981cc5`
 - previous phase: MASTER-45 merged via PR #206
 - branch: `master/46-capability-supply`
+- draft PR: #207
 - frozen executable SHA: `8a01eb001949327d1d34aaa780fd72f2687012ac`
 
 ## Q1 reverse engineering
@@ -185,6 +186,6 @@ Supply discovery evidence is not provider authentication/attestation, provider a
 - Q4 PASS — focused/hardening coverage added and statically reviewed.
 - Q5 PASS — security/fail-closed review.
 - Q6 PASS — architecture/ownership review.
-- Q7 PENDING — exact frozen-head local gate.
+- Q7 PENDING — exact frozen-head local gate on draft PR #207.
 - Q8 — independent PR reverse engineering + closure compare.
 - Q9 — exact-head squash merge and verify new authoritative main.
