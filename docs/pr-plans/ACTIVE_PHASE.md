@@ -1,20 +1,18 @@
 # Active Phase
 
-**Phase:** MASTER-29 — Bounded WorkContext Contract  
+**Phase:** MASTER-30 — Semantic ApplicationGraph Contract  
 **Status:** Q0–Q8 PASS / Q9 READY TO SQUASH MERGE  
-**Base SHA:** `7c6716f90810528b4dfc4f2f040755ab5f96ecb1`  
-**Frozen executable head:** `68d1c1f48a68c6963fd8ba0be3e01fa4be66a428`  
-**Previous:** MASTER-28 merged via PR #188  
-**Next after merge:** MASTER-30 — Application Graph
+**Base SHA:** `62e0fe0a3101001ea4a69cb2732311094e5ebf2e`  
+**Frozen executable head:** `f9c70fe20e2764de2e701b8c44e9cd1114d20eb9`  
+**Previous:** MASTER-29 merged via PR #189  
+**Next after merge:** MASTER-31 — Canvas Foundation
 
-MASTER-29 introduces `@vira-enterprise-genui/work-context` as the canonical provider-neutral Context definition + immutable snapshot owner.
+MASTER-30 introduces `@vira-enterprise-genui/application-graph` as the canonical versioned Application semantic relationship owner.
 
-Application `contextTypes[]` and Capability `contextRequirements[]` remain exact references into this semantic family; those owners are not modified into Context payload stores.
+It composes exact Experience, Capability, Context and Action identities without owning their payloads or execution authorities. Graph cycles are legal; there is no start node, condition, retry, scheduler, timeout or executor semantic in the contract.
 
-WorkContext explicitly excludes chat history, user memory, prompt dumps, provider state, tenant scope, governance/policy, runtime lifecycle and protected execution authority. Receipt items are evidence/data only.
+Canvas projection state and runtime state remain explicitly outside the graph.
 
-The initial local attempt on `8ea036ccdfeb13a2ff42486a23ab939a19946e42` exposed TS7053 in the deterministic JSON canonicalizer. The semantic-neutral fix produced corrected frozen executable head `68d1c1f48a68c6963fd8ba0be3e01fa4be66a428`.
+Operator-reported local Q7 is PASS on the exact frozen executable head for package boundaries, TypeScript typecheck and focused `application-graph.test.ts`.
 
-Local `pnpm check:boundaries`, `pnpm typecheck`, and focused `work-context.test.ts` were then reported green on that exact corrected head; focused tests passed 11/11.
-
-Final Q8 compares the frozen executable head to the exact PR head immediately before merge. Every post-Q7 change is restricted to documentation/evidence; executable content remains identical for Q9.
+Final Q8 compare from `f9c70fe20e2764de2e701b8c44e9cd1114d20eb9` to the closure head contains only `docs/evidence/MASTER-30/VERIFICATION.md`, `docs/pr-plans/ACTIVE_PHASE.md`, and `docs/pr-plans/MASTER-30.md`; executable content is unchanged. Q9 is ready for exact-head squash merge.
