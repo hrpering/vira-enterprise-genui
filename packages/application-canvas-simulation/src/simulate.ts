@@ -6,6 +6,8 @@ import {
   type ViraCanvasSemantics,
 } from "@vira-enterprise-genui/application-canvas";
 import {
+  isSemanticNamespace,
+  isSemanticSegment,
   parseJsonValue,
   type JsonObject,
   type JsonValue,
@@ -14,6 +16,7 @@ import {
   VIRA_CANVAS_SIMULATION_MAX_ID_LENGTH,
   VIRA_CANVAS_SIMULATION_MAX_SEMANTICS_SNAPSHOT_LENGTH,
   VIRA_CANVAS_SIMULATION_MAX_STEPS,
+  VIRA_CANVAS_SIMULATION_MODE,
   VIRA_CANVAS_SIMULATION_VERSION,
   type ViraCanvasSimulationFrame,
   type ViraCanvasSimulationIssue,
@@ -26,6 +29,7 @@ import {
 } from "./types.js";
 
 const OPAQUE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+const RELEASE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const NODE_KINDS = new Set(["experience", "capability", "context", "action"] as const);
 
 type Graph = ViraCanvasSemantics["graphs"][number];
@@ -52,19 +56,42 @@ function shape(value: JsonObject, allowed: readonly string[], required: readonly
     ?? required.find((key) => !Object.hasOwn(value, key));
 }
 
-function boundedId(value: JsonValue | undefined): value is string {
+function boundedOpaqueId(value: JsonValue | undefined): value is string {
   return typeof value === "string"
     && value.length > 0
     && value.length <= VIRA_CANVAS_SIMULATION_MAX_ID_LENGTH
     && OPAQUE_ID.test(value);
 }
 
-function parseGraphRef(value: JsonValue | undefined, path: string): Parsed<ViraCanvasGraphRef> {
-  if (!object(value)) return failure("INVALID_SCENARIO", path, "graphRef must be an exact object");
+function releaseVersion(value: JsonValue | undefined): value is string {
+  return typeof value === "string" && value.length <= 64 && RELEASE_VERSION.test(value);
+}
+
+function parseExactInput(input: unknown, allowed: readonly string[], path: string): Parsed<JsonObject> {
+  const parsed = parseJsonValue(input, path);
+  if (!parsed.ok || !object(parsed.value)) {
+    return failure(
+      "INVALID_INPUT",
+      parsed.ok ? path : parsed.issue.path,
+      parsed.ok ? "simulation input must be an exact data object" : parsed.issue.reason,
+    );
+  }
+  const unexpected = shape(parsed.value, allowed);
+  if (unexpected) return failure("INVALID_INPUT", `${path}.${unexpected}`, "unknown or missing simulation input field");
+  return { ok: true, value: parsed.value };
+}
+
+function parseGraphRef(value: JsonValue | undefined, path: string, code: "INVALID_SCENARIO" | "INVALID_TRACE"): Parsed<ViraCanvasGraphRef> {
+  if (!object(value)) return failure(code, path, "graphRef must be an exact object");
   const unexpected = shape(value, ["id", "version"]);
-  if (unexpected) return failure("INVALID_SCENARIO", `${path}.${unexpected}`, "graphRef shape is invalid");
-  if (!boundedId(value.id) || typeof value.version !== "string" || !/^\d+\.\d+\.\d+$/.test(value.version)) {
-    return failure("INVALID_SCENARIO", path, "graphRef must contain a bounded id and exact semver version");
+  if (unexpected) return failure(code, `${path}.${unexpected}`, "graphRef shape is invalid");
+  if (
+    typeof value.id !== "string"
+    || !isSemanticNamespace(value.id)
+    || !value.id.includes(".")
+    || !releaseVersion(value.version)
+  ) {
+    return failure(code, path, "graphRef must contain a canonical namespaced graph id and exact release semver");
   }
   return { ok: true, value: Object.freeze({ id: value.id, version: value.version }) };
 }
@@ -81,10 +108,12 @@ function parseScenario(input: unknown): Parsed<ViraCanvasSimulationScenario> {
   const root = parsed.value;
   const unexpected = shape(root, ["id", "graphRef", "startNodeId", "edgeIds"]);
   if (unexpected) return failure("INVALID_SCENARIO", `$.scenario.${unexpected}`, "scenario shape is invalid");
-  if (!boundedId(root.id)) return failure("INVALID_SCENARIO", "$.scenario.id", "scenario id is invalid");
-  const graphRef = parseGraphRef(root.graphRef, "$.scenario.graphRef");
+  if (!boundedOpaqueId(root.id)) return failure("INVALID_SCENARIO", "$.scenario.id", "scenario id is invalid");
+  const graphRef = parseGraphRef(root.graphRef, "$.scenario.graphRef", "INVALID_SCENARIO");
   if (!graphRef.ok) return graphRef;
-  if (!boundedId(root.startNodeId)) return failure("INVALID_SCENARIO", "$.scenario.startNodeId", "startNodeId is invalid");
+  if (typeof root.startNodeId !== "string" || !isSemanticSegment(root.startNodeId)) {
+    return failure("INVALID_SCENARIO", "$.scenario.startNodeId", "startNodeId must be a canonical graph-local node id");
+  }
   if (!Array.isArray(root.edgeIds)) return failure("INVALID_SCENARIO", "$.scenario.edgeIds", "edgeIds must be an array");
   if (root.edgeIds.length > VIRA_CANVAS_SIMULATION_MAX_STEPS) {
     return failure("STEP_LIMIT_EXCEEDED", "$.scenario.edgeIds", `simulation step limit is ${VIRA_CANVAS_SIMULATION_MAX_STEPS}`);
@@ -92,7 +121,9 @@ function parseScenario(input: unknown): Parsed<ViraCanvasSimulationScenario> {
   const edgeIds: string[] = [];
   for (let index = 0; index < root.edgeIds.length; index += 1) {
     const edgeId = root.edgeIds[index];
-    if (!boundedId(edgeId)) return failure("INVALID_SCENARIO", `$.scenario.edgeIds[${index}]`, "edge id is invalid");
+    if (typeof edgeId !== "string" || !isSemanticSegment(edgeId)) {
+      return failure("INVALID_SCENARIO", `$.scenario.edgeIds[${index}]`, "edge id must be a canonical graph-local edge id");
+    }
     edgeIds.push(edgeId);
   }
   return {
@@ -168,11 +199,13 @@ function parseFrame(value: JsonValue, path: string): Parsed<ViraCanvasSimulation
   if (typeof value.index !== "number" || !Number.isSafeInteger(value.index) || value.index < 0) {
     return failure("INVALID_TRACE", `${path}.index`, "trace frame index must be a non-negative safe integer");
   }
-  if (!boundedId(value.nodeId)) return failure("INVALID_TRACE", `${path}.nodeId`, "trace frame nodeId is invalid");
+  if (typeof value.nodeId !== "string" || !isSemanticSegment(value.nodeId)) {
+    return failure("INVALID_TRACE", `${path}.nodeId`, "trace frame nodeId is invalid");
+  }
   if (typeof value.nodeKind !== "string" || !NODE_KINDS.has(value.nodeKind as ViraCanvasSimulationFrame["nodeKind"])) {
     return failure("INVALID_TRACE", `${path}.nodeKind`, "trace frame nodeKind is invalid");
   }
-  if (value.viaEdgeId !== null && !boundedId(value.viaEdgeId)) {
+  if (value.viaEdgeId !== null && (typeof value.viaEdgeId !== "string" || !isSemanticSegment(value.viaEdgeId))) {
     return failure("INVALID_TRACE", `${path}.viaEdgeId`, "trace frame viaEdgeId is invalid");
   }
   return {
@@ -196,18 +229,25 @@ function parseTrace(input: unknown): Parsed<ViraCanvasSimulationTrace> {
     );
   }
   const root = parsed.value;
-  const unexpected = shape(root, ["version", "scenarioId", "sourceDraftId", "applicationRef", "graphRef", "semanticsSnapshot", "frames"]);
+  const unexpected = shape(root, ["version", "mode", "scenarioId", "sourceDraftId", "applicationRef", "graphRef", "semanticsSnapshot", "frames"]);
   if (unexpected) return failure("INVALID_TRACE", `$.trace.${unexpected}`, "trace shape is invalid");
   if (root.version !== VIRA_CANVAS_SIMULATION_VERSION) return failure("INVALID_TRACE", "$.trace.version", "trace version is unsupported");
-  if (!boundedId(root.scenarioId) || !boundedId(root.sourceDraftId)) return failure("INVALID_TRACE", "$.trace", "trace identity is invalid");
+  if (root.mode !== VIRA_CANVAS_SIMULATION_MODE) return failure("INVALID_TRACE", "$.trace.mode", "trace must be explicitly marked dry-run");
+  if (!boundedOpaqueId(root.scenarioId) || !boundedOpaqueId(root.sourceDraftId)) {
+    return failure("INVALID_TRACE", "$.trace", "trace identity is invalid");
+  }
   if (!object(root.applicationRef)) return failure("INVALID_TRACE", "$.trace.applicationRef", "applicationRef must be exact object");
   const appUnexpected = shape(root.applicationRef, ["id", "version"]);
   if (appUnexpected) return failure("INVALID_TRACE", `$.trace.applicationRef.${appUnexpected}`, "applicationRef shape is invalid");
-  if (!boundedId(root.applicationRef.id) || typeof root.applicationRef.version !== "string" || !/^\d+\.\d+\.\d+$/.test(root.applicationRef.version)) {
+  if (
+    typeof root.applicationRef.id !== "string"
+    || !isSemanticNamespace(root.applicationRef.id)
+    || !releaseVersion(root.applicationRef.version)
+  ) {
     return failure("INVALID_TRACE", "$.trace.applicationRef", "applicationRef is invalid");
   }
-  const graphRef = parseGraphRef(root.graphRef, "$.trace.graphRef");
-  if (!graphRef.ok) return failure("INVALID_TRACE", graphRef.issue.path, graphRef.issue.message);
+  const graphRef = parseGraphRef(root.graphRef, "$.trace.graphRef", "INVALID_TRACE");
+  if (!graphRef.ok) return graphRef;
   if (
     typeof root.semanticsSnapshot !== "string"
     || root.semanticsSnapshot.length < 2
@@ -218,19 +258,28 @@ function parseTrace(input: unknown): Parsed<ViraCanvasSimulationTrace> {
   if (!Array.isArray(root.frames) || root.frames.length < 1 || root.frames.length > VIRA_CANVAS_SIMULATION_MAX_STEPS + 1) {
     return failure("INVALID_TRACE", "$.trace.frames", "trace frames are missing or exceed simulation bounds");
   }
+
   const frames: ViraCanvasSimulationFrame[] = [];
   for (let index = 0; index < root.frames.length; index += 1) {
     const parsedFrame = parseFrame(root.frames[index] as JsonValue, `$.trace.frames[${index}]`);
     if (!parsedFrame.ok) return parsedFrame;
-    if (parsedFrame.value.index !== index) return failure("INVALID_TRACE", `$.trace.frames[${index}].index`, "trace frame indexes must be contiguous and zero-based");
-    if (index === 0 && parsedFrame.value.viaEdgeId !== null) return failure("INVALID_TRACE", "$.trace.frames[0].viaEdgeId", "first trace frame must not name an incoming edge");
-    if (index > 0 && parsedFrame.value.viaEdgeId === null) return failure("INVALID_TRACE", `$.trace.frames[${index}].viaEdgeId`, "non-initial trace frames must name their incoming edge");
+    if (parsedFrame.value.index !== index) {
+      return failure("INVALID_TRACE", `$.trace.frames[${index}].index`, "trace frame indexes must be contiguous and zero-based");
+    }
+    if (index === 0 && parsedFrame.value.viaEdgeId !== null) {
+      return failure("INVALID_TRACE", "$.trace.frames[0].viaEdgeId", "first trace frame must not name an incoming edge");
+    }
+    if (index > 0 && parsedFrame.value.viaEdgeId === null) {
+      return failure("INVALID_TRACE", `$.trace.frames[${index}].viaEdgeId`, "non-initial trace frames must name their incoming edge");
+    }
     frames.push(parsedFrame.value);
   }
+
   return {
     ok: true,
     value: Object.freeze({
       version: VIRA_CANVAS_SIMULATION_VERSION,
+      mode: VIRA_CANVAS_SIMULATION_MODE,
       scenarioId: root.scenarioId,
       sourceDraftId: root.sourceDraftId,
       applicationRef: Object.freeze({ id: root.applicationRef.id, version: root.applicationRef.version }),
@@ -251,16 +300,14 @@ function sameFrames(left: readonly ViraCanvasSimulationFrame[], right: readonly 
   return true;
 }
 
-export function simulateViraCanvasScenario(input: {
-  readonly draft: unknown;
-  readonly scenario: unknown;
-}): ViraCanvasSimulationResult {
-  if (input === null || typeof input !== "object" || Array.isArray(input)) {
-    return failure("INVALID_INPUT", "$", "simulation input must be an object");
+export function simulateViraCanvasScenario(input: unknown): ViraCanvasSimulationResult {
+  const root = parseExactInput(input, ["draft", "scenario"], "$");
+  if (!root.ok) return root;
+  const draft = parseViraCanvasDraft(root.value.draft);
+  if (!draft.ok) {
+    return failure("INVALID_INPUT", `$.draft${draft.issue.path === "$" ? "" : draft.issue.path.slice(1)}`, draft.issue.message);
   }
-  const draft = parseViraCanvasDraft(input.draft);
-  if (!draft.ok) return failure("INVALID_INPUT", `$.draft${draft.issue.path === "$" ? "" : draft.issue.path.slice(1)}`, draft.issue.message);
-  const scenario = parseScenario(input.scenario);
+  const scenario = parseScenario(root.value.scenario);
   if (!scenario.ok) return scenario;
   const graph = findGraph(draft.value, scenario.value.graphRef);
   if (!graph) return failure("GRAPH_NOT_FOUND", "$.scenario.graphRef", "selected simulation graph release does not exist in Canvas semantics");
@@ -271,6 +318,7 @@ export function simulateViraCanvasScenario(input: {
 
   const trace: ViraCanvasSimulationTrace = Object.freeze({
     version: VIRA_CANVAS_SIMULATION_VERSION,
+    mode: VIRA_CANVAS_SIMULATION_MODE,
     scenarioId: scenario.value.id,
     sourceDraftId: draft.value.draftId,
     applicationRef: Object.freeze({
@@ -284,16 +332,14 @@ export function simulateViraCanvasScenario(input: {
   return { ok: true, value: trace };
 }
 
-export function replayViraCanvasSimulation(input: {
-  readonly draft: unknown;
-  readonly trace: unknown;
-}): ViraCanvasSimulationReplayResult {
-  if (input === null || typeof input !== "object" || Array.isArray(input)) {
-    return failure("INVALID_INPUT", "$", "replay input must be an object");
+export function replayViraCanvasSimulation(input: unknown): ViraCanvasSimulationReplayResult {
+  const root = parseExactInput(input, ["draft", "trace"], "$");
+  if (!root.ok) return root;
+  const draft = parseViraCanvasDraft(root.value.draft);
+  if (!draft.ok) {
+    return failure("INVALID_INPUT", `$.draft${draft.issue.path === "$" ? "" : draft.issue.path.slice(1)}`, draft.issue.message);
   }
-  const draft = parseViraCanvasDraft(input.draft);
-  if (!draft.ok) return failure("INVALID_INPUT", `$.draft${draft.issue.path === "$" ? "" : draft.issue.path.slice(1)}`, draft.issue.message);
-  const trace = parseTrace(input.trace);
+  const trace = parseTrace(root.value.trace);
   if (!trace.ok) return trace;
   const snapshot = semanticSnapshot(draft.value);
   if (!snapshot.ok) return snapshot;
@@ -324,6 +370,7 @@ export function replayViraCanvasSimulation(input: {
 
   const replay: ViraCanvasSimulationReplay = Object.freeze({
     version: VIRA_CANVAS_SIMULATION_VERSION,
+    mode: VIRA_CANVAS_SIMULATION_MODE,
     scenarioId: trace.value.scenarioId,
     applicationRef: trace.value.applicationRef,
     graphRef: trace.value.graphRef,
