@@ -3,6 +3,7 @@ import type {
 } from "@vira-enterprise-genui/application-canvas";
 
 export const VIRA_CANVAS_SIMULATION_VERSION = "1" as const;
+export const VIRA_CANVAS_SIMULATION_MODE = "dry-run" as const;
 export const VIRA_CANVAS_SIMULATION_MAX_STEPS = 1_024 as const;
 export const VIRA_CANVAS_SIMULATION_MAX_ID_LENGTH = 128 as const;
 export const VIRA_CANVAS_SIMULATION_MAX_SEMANTICS_SNAPSHOT_LENGTH = 2_000_000 as const;
@@ -23,6 +24,7 @@ export interface ViraCanvasSimulationFrame {
 
 export interface ViraCanvasSimulationTrace {
   readonly version: typeof VIRA_CANVAS_SIMULATION_VERSION;
+  readonly mode: typeof VIRA_CANVAS_SIMULATION_MODE;
   readonly scenarioId: string;
   readonly sourceDraftId: string;
   readonly applicationRef: {
@@ -36,6 +38,7 @@ export interface ViraCanvasSimulationTrace {
 
 export interface ViraCanvasSimulationReplay {
   readonly version: typeof VIRA_CANVAS_SIMULATION_VERSION;
+  readonly mode: typeof VIRA_CANVAS_SIMULATION_MODE;
   readonly scenarioId: string;
   readonly applicationRef: {
     readonly id: string;
