@@ -10,37 +10,18 @@ Add the missing provider-neutral Capability supply/discovery layer for the Appli
 - previous phase: MASTER-45 merged via PR #206
 - branch: `master/46-capability-supply`
 - draft PR: #207
-- frozen executable SHA: `8a01eb001949327d1d34aaa780fd72f2687012ac`
+- current frozen executable SHA: `b44f2363571f59369e450cf4571c27635709f2b9`
+- invalidated previous freeze: `8a01eb001949327d1d34aaa780fd72f2687012ac`
 
-## Q1 reverse engineering
-
-### Capability semantics
-
-`capability-contract` owns canonical `ViraCapabilityDefinition`: exact id/version, publisher, input/output contracts, Context requirements and `query | action` invocation meaning.
-
-MASTER-46 consumes that definition and never defines provider-owned Capability meaning.
-
-### Hosted binding/runtime
-
-`hosted-capability-runtime` owns exact `ViraHostedCapabilityBinding` parsing and one-shot trusted-adapter execution for canonical query Capabilities. The binding already carries exact `bindingRef`, exact `capabilityRef`, `providerId` and optional `locationId`.
-
-That runtime explicitly does not own provider catalog/discovery, ranking, failover, endpoints, credentials, health, attestation or generic cloud compute.
-
-### Network gap
-
-`application-federation` provides deterministic public Application release discovery/conflict semantics. There was no equivalent canonical supply snapshot for Capability execution providers even though the Application Network thesis requires the Network to distribute Applications and Capabilities.
-
-Legacy `experience-marketplace` remains Experience catalog/search and is not the Capability supply owner.
-
-## Q2 owner freeze
-
-New canonical owner:
+## Canonical ownership
 
 ```text
-@vira-enterprise-genui/capability-supply
+capability-contract       → CapabilityDefinition meaning + canonical serialization
+hosted-capability-runtime → hosted binding meaning/parse/serialize + query execution
+capability-supply         → bounded source provenance + exact discovery/conflict semantics
 ```
 
-Executable dependencies:
+Executable dependency boundary:
 
 ```text
 capability-supply
@@ -49,11 +30,11 @@ capability-supply
   → protocol
 ```
 
-No executable dependency on Application federation/distribution, commercial entitlement/metering/pricing, governance/runtime/Action owners, telemetry, deployment, provider/cloud SDKs or Experience marketplace packages.
+No executable dependency on Application federation/distribution, commercial packages, governance/runtime/Action owners, telemetry/action-ledger, deployment, Experience marketplace or provider/cloud/payment SDKs.
 
 ## Supply model
 
-A supply snapshot contains bounded provenance sources. Each source contains bounded supply records:
+A supply snapshot contains bounded provenance sources. Each source contains bounded records composed only from canonical artifacts:
 
 ```text
 sourceId
@@ -71,11 +52,11 @@ Within one source, the same exact `bindingRef` cannot appear twice.
 
 Across sources:
 
-- the same exact Capability `id@version` must canonical-serialize identically or fail `CAPABILITY_CONFLICT`;
-- the same exact `bindingRef` must map to the same exact capability/provider/location binding or fail `BINDING_CONFLICT`;
-- identical supply repeated by multiple sources is allowed and retains all source provenance.
+- same exact Capability `id@version` must canonical-serialize identically or fail `CAPABILITY_CONFLICT`;
+- same exact `bindingRef` must canonical-serialize identically or fail `BINDING_CONFLICT`;
+- identical supply repeated by multiple sources is allowed and retains source provenance only.
 
-There is no source priority, majority vote, implicit latest, fallback or silent conflict winner.
+There is no source priority, majority vote, confidence, implicit latest, fallback or silent conflict winner.
 
 ## Lookup
 
@@ -86,7 +67,23 @@ Lookup is exact and deterministic:
 - nullable `providerId` filter (`null` = any provider);
 - nullable `locationId` filter (`null` = any location).
 
-Lookup returns all matching canonical supplies sorted deterministically and aggregates source provenance for identical bindings. An exact miss succeeds with an empty supply list; it never falls back or substitutes another version/provider.
+Lookup returns all matching canonical supplies sorted deterministically and aggregates source provenance for identical bindings. A miss succeeds with an empty list. No fallback or substitution occurs.
+
+## Authority / non-goals
+
+Supply discovery evidence is not:
+
+- provider authentication or attestation;
+- provider availability/health/SLA;
+- authorization/governance/runtime permission;
+- commercial entitlement or pricing;
+- endpoint/transport/credential/secret state;
+- deployment placement or generic cloud scheduling;
+- failover/ranking/recommendation;
+- execution success;
+- proof that a provider implementation is side-effect-free.
+
+`sourceId`, `providerId`, `bindingRef` and `locationId` remain provenance/routing identities only.
 
 ## Q3 implementation
 
@@ -102,80 +99,70 @@ Added:
 - deterministic exact lookup and provenance aggregation;
 - executable package-boundary declaration.
 
-The implementation never invokes a provider. It imports canonical Capability and hosted-binding parsers/serialization semantics rather than defining competing semantic owners.
-
 ## Q4 focused/hardening coverage
-
-PASS by static coverage review; local execution remains Q7.
 
 Focused suites:
 
 ```text
 tests/contract/capability-supply.test.ts
 tests/contract/capability-supply-hardening.test.ts
+tests/contract/hosted-capability-binding-serialization.test.ts
 ```
 
-Coverage includes deterministic parsing/serialization, immutable outputs, identical-binding provenance aggregation, multi-binding no-ranking behavior, provider/location filters, exact miss/no fallback, action rejection, binding/Capability mismatch, Capability conflicts, binding conflicts, duplicate source/binding rejection, canonical parser delegation, authority/endpoint/credential/health/commercial smuggling rejection, source repetition as provenance only, accessor/custom-prototype safety, source/per-source/aggregate collection ceilings, and malformed/latest/fallback query rejection.
+Coverage includes deterministic parsing/serialization, immutable outputs, identical-binding provenance aggregation, multi-binding no-ranking behavior, provider/location filters, exact miss/no fallback, action rejection, binding/Capability mismatch, Capability conflicts, binding conflicts, duplicate source/binding rejection, canonical parser delegation, authority/endpoint/credential/health/commercial smuggling rejection, source repetition as provenance only, accessor/custom-prototype safety, source/per-source/aggregate collection ceilings, malformed/latest/fallback query rejection and canonical hosted-binding serialization roundtrip/fail-closed behavior.
 
-## Q5 security review
+## Q5/Q6
 
-PASS. Evidence: `docs/evidence/MASTER-46/Q5_Q6_REVIEW.md`.
+PASS on current frozen executable head `b44f2363571f59369e450cf4571c27635709f2b9` after Q8 remediation. Evidence: `docs/evidence/MASTER-46/Q5_Q6_REVIEW.md`.
 
-Key results:
+## Q7 attempt 1
 
-- untrusted input enters through shared safe JSON parsing;
-- exact shapes reject authority/provider-secret smuggling;
-- action Capabilities cannot enter hosted supply;
-- Capability/binding conflicts fail closed with no winner;
-- source repetition remains provenance only;
-- collection ceilings are bounded, including aggregate `2048` supply limit;
-- no provider execution, endpoint, credential, health, ranking, commercial or cloud authority is introduced.
-
-## Q6 architecture/ownership review
-
-PASS. Evidence: `docs/evidence/MASTER-46/Q5_Q6_REVIEW.md`.
-
-Executable dependency authority remains:
-
-```text
-capability-supply → capability-contract, hosted-capability-runtime, protocol
-```
-
-Canonical owner chain remains:
-
-```text
-capability-contract       → CapabilityDefinition meaning
-hosted-capability-runtime → exact binding + query execution
-capability-supply         → supply provenance + exact discovery/conflict semantics
-```
-
-Supply discovery does not inherit execution/security/commercial authority.
-
-## Frozen executable
-
-Final executable/test/boundary SHA for Q7:
+PASS on exact frozen executable SHA:
 
 ```text
 8a01eb001949327d1d34aaa780fd72f2687012ac
 ```
 
-All changes after this SHA must be documentation/evidence only. Any executable/package/test/boundary change invalidates Q5/Q6 and requires a new freeze plus local Q7.
+The repository operator reran the full local boundaries/typecheck/focused-suite command set detached at that exact SHA and reported it green. Evidence: `docs/evidence/MASTER-46/Q7_LOCAL_PASS.md`.
 
-## Q7 local gate
+That PASS is retained as historical evidence but is invalidated for final merge purposes because Q8 found an executable owner-drift issue and implementation/tests changed afterward.
+
+## Q8 attempt 1
+
+FAIL. Evidence: `docs/evidence/MASTER-46/Q8_ATTEMPT_1.md`.
+
+Independent review found that capability-supply used the canonical Capability serializer but manually reconstructed Hosted binding JSON for conflict fingerprints and snapshot serialization. That duplicated wire semantics owned by `hosted-capability-runtime`.
+
+Remediation:
+
+```text
+hosted-capability-runtime
+  → serializeViraHostedCapabilityBinding
+
+capability-supply
+  → delegates binding conflict fingerprint + snapshot serialization to that API
+```
+
+The local binding serializer was removed. Focused serializer coverage was added. Dependency/authority boundaries did not expand.
+
+## Current frozen executable
+
+```text
+b44f2363571f59369e450cf4571c27635709f2b9
+```
+
+Any changes after this SHA must be documentation/evidence only. Full local Q7 must be rerun detached at this exact SHA before Q8 restarts.
+
+## Q7 rerun command
 
 ```bash
 pnpm check:boundaries
 pnpm typecheck
 pnpm vitest run \
+  tests/contract/hosted-capability-binding-serialization.test.ts \
   tests/contract/capability-supply.test.ts \
   tests/contract/capability-supply-hardening.test.ts
 ```
-
-## Authority / non-goals
-
-Supply discovery evidence is not provider authentication/attestation, provider availability/health/SLA, authorization/governance/runtime permission, commercial entitlement/pricing, endpoint/transport/credential state, deployment placement/cloud scheduling, failover/ranking/recommendation, execution success or proof that an implementation is side-effect-free.
-
-`sourceId`, `providerId`, `bindingRef` and `locationId` remain provenance/routing identities only.
 
 ## Q0–Q9
 
@@ -183,9 +170,9 @@ Supply discovery evidence is not provider authentication/attestation, provider a
 - Q1 PASS — Capability/hosted runtime/federation/marketplace owner reverse engineering.
 - Q2 PASS — capability-supply owner and conflict/discovery contract frozen.
 - Q3 PASS — package implementation.
-- Q4 PASS — focused/hardening coverage added and statically reviewed.
-- Q5 PASS — security/fail-closed review.
-- Q6 PASS — architecture/ownership review.
-- Q7 PENDING — exact frozen-head local gate on draft PR #207.
-- Q8 — independent PR reverse engineering + closure compare.
+- Q4 PASS — focused/hardening coverage.
+- Q5 PASS — security/fail-closed review on current freeze.
+- Q6 PASS — architecture/ownership review on current freeze.
+- Q7 RERUN PENDING — exact new frozen-head local gate required after Q8 executable remediation.
+- Q8 BLOCKED — restart only after new Q7 PASS.
 - Q9 — exact-head squash merge and verify new authoritative main.
