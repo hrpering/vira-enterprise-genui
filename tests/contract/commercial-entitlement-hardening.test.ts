@@ -77,7 +77,7 @@ describe("Vira Commercial Entitlement v1 hardening", () => {
     })]))).toMatchObject({ ok: false, issue: { code: "FLOATING_REFERENCE" } });
 
     expect(parseViraCommercialEntitlementSet(set([grant({
-      limits: [{ meteringRef: { id: "metering.refund-invocations", versionRef: "next" }, quantity: 1, period: "day" }],
+      limits: [{ meteringRef: { id: "metering.refund-invocations", versionRef: "next" }, quantity: 1 }],
     })]))).toMatchObject({ ok: false, issue: { code: "FLOATING_REFERENCE" } });
   });
 
@@ -152,7 +152,6 @@ describe("Vira Commercial Entitlement v1 hardening", () => {
       (_, index) => ({
         meteringRef: { id: `metering.metric-${index}`, versionRef: "1" },
         quantity: 1,
-        period: "day",
       }),
     );
     expect(parseViraCommercialEntitlementSet(set([grant({ limits: tooManyLimits })]))).toMatchObject({
@@ -166,14 +165,13 @@ describe("Vira Commercial Entitlement v1 hardening", () => {
       limits: [{
         meteringRef: { id: "metering.refund-invocations", versionRef: "1" },
         quantity: Number.MAX_SAFE_INTEGER + 1,
-        period: "month",
       }],
     })]))).toMatchObject({ ok: false, issue: { code: "INVALID_LIMIT" } });
 
     expect(parseViraCommercialEntitlementSet(set([grant({
       limits: [
-        { meteringRef: { id: "metering.refund-invocations", versionRef: "1" }, quantity: 10, period: "month" },
-        { meteringRef: { id: "metering.refund-invocations", versionRef: "1" }, quantity: 20, period: "month" },
+        { meteringRef: { id: "metering.refund-invocations", versionRef: "1" }, quantity: 10 },
+        { meteringRef: { id: "metering.refund-invocations", versionRef: "1" }, quantity: 20 },
       ],
     })]))).toMatchObject({ ok: false, issue: { code: "INVALID_LIMIT" } });
   });
