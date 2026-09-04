@@ -6,6 +6,7 @@
 **Frozen executable SHA:** `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`  
 **Previous:** MASTER-44 merged via PR #205  
 **Branch:** `master/45-commercial-pricing`  
+**PR:** #206 (draft)  
 **Next:** MASTER-46 after MASTER-45 merge from new authoritative `main`
 
 MASTER-45 introduces the canonical provider-neutral monetary pricing boundary downstream of entitlement/metering without becoming billing/payment/subscription/payout authority.
@@ -44,4 +45,4 @@ Pricing invariants:
 
 Q5 security/fail-closed review PASS and Q6 architecture/ownership review PASS. Evidence: `docs/evidence/MASTER-45/Q5_Q6_REVIEW.md`.
 
-Frozen executable SHA is `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`. Q7 exact frozen-head local boundaries/typecheck/focused suites are pending. Any executable change after the freeze invalidates Q5/Q6 and requires a new local Q7.
+Frozen executable SHA is `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`. Q7 exact frozen-head local boundaries/typecheck/focused suites are pending on draft PR #206. Any executable change after the freeze invalidates Q5/Q6 and requires a new local Q7.
