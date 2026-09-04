@@ -1,33 +1,18 @@
 # Active Phase
 
 **Phase:** MASTER-44 — Hosted Capability Runtime Foundation  
-**Status:** Q0–Q7 PASS / Q8 ACTIVE  
+**Status:** Q0–Q8 PASS / Q9 READY  
 **Base SHA:** `e987f3447953761b70c4aa548761bf359b3e07f0`  
 **Frozen executable SHA:** `c6b21360b6471f506fc7c9ec940f687c96de38af`  
 **Previous frozen SHA:** `52dfb067904b34ffe055431232ed8e621a3b3d6f` — invalidated by Q7 typecheck defect  
 **Previous:** MASTER-43 merged via PR #204  
 **Branch:** `master/44-hosted-capability-runtime`  
-**PR:** #205 (draft)  
+**PR:** #205 (draft until final closure compare)  
 **Next:** MASTER-45 after MASTER-44 merge from new authoritative `main`
 
 MASTER-44 introduces the provider-neutral hosted **query Capability** execution boundary without turning Vira into generic cloud compute or duplicating existing semantic/security owners.
 
-Nearest-owner review concluded:
-
-- `capability-contract` owns Capability meaning, input/output type refs, Context requirements and `query | action` invocation semantics;
-- `protocol-gateway` / `tool-bridge` own protocol/tool adaptation, not hosted provider execution;
-- `deployment-plane` owns signed Experience Pack deployment, not generic workloads;
-- `studio-host-runtime` and `runtime-core` own Experience/Studio runtime concerns, not server Capability execution;
-- `application-ai-host-sdk` owns Distribution integrity + compatibility ergonomics only;
-- `action-boundary` remains the protected-effect authority.
-
-New canonical owner:
-
-```text
-@vira-enterprise-genui/hosted-capability-runtime
-```
-
-Executable dependency boundary:
+Canonical owner boundary:
 
 ```text
 hosted-capability-runtime → capability-contract, enterprise-context, protocol, work-context
@@ -39,21 +24,21 @@ Foundation invariants:
 - `action` Capabilities fail with `ACTION_BOUNDARY_REQUIRED` before adapter invocation;
 - exact binding ↔ Capability identity/version only;
 - canonical enterprise principal/scope is carried, but the runtime does not authenticate or authorize it;
-- request Context must exactly match declared Capability `contextRequirements`, with no ambient/extra Context leakage;
-- input/output type refs must exactly match the canonical CapabilityDefinition contracts;
-- execution-envelope success is evidence only and never means authorization, governance approval, entitlement, deployment approval or provider attestation;
-- typed `output.value` remains domain data under its exact type reference and does not acquire authority merely from field names;
-- `providerId`, binding and location evidence do not attest that an external query implementation is side-effect-free;
+- request Context exactly matches declared Capability `contextRequirements`, with no ambient/extra Context leakage;
+- input/output type refs exactly match canonical CapabilityDefinition contracts;
+- the execution evidence envelope never becomes authorization, governance, entitlement, deployment or commercial authority;
+- typed `output.value` remains domain data under its exact type reference and does not acquire authority from field names;
+- provider/binding/location evidence is not authentication or attestation;
 - no implicit retry/failover/ranking;
 - no automatic commercial usage record from execution success;
 - no endpoints, credentials, containers, Kubernetes/serverless/cloud scheduling or generic workload orchestration.
 
-Q3 implementation PASS and Q4 focused/hardening coverage added. Q5 security/fail-closed review PASS and Q6 architecture/ownership review PASS; evidence is recorded in `docs/evidence/MASTER-44/Q5_Q6_REVIEW.md`.
+Q5/Q6 security and architecture review PASS. Q7 attempt 1 correctly failed and invalidated the old freeze because of TS7053 in `freezeJson()`; evidence is retained in `docs/evidence/MASTER-44/Q7_ATTEMPT_1.md`.
 
-Q7 attempt 1 on exact SHA `52dfb067904b34ffe055431232ed8e621a3b3d6f` found one real executable typecheck defect: package boundaries passed and focused tests were 22/22 PASS, but `pnpm typecheck` failed with TS7053 in `freezeJson()`. Evidence is retained in `docs/evidence/MASTER-44/Q7_ATTEMPT_1.md`.
+The local explicit `JsonArray` type-guard remediation produced the final frozen executable SHA `c6b21360b6471f506fc7c9ec940f687c96de38af`. The operator reran the full local Q7 command set at that exact SHA and reported it green; final evidence is `docs/evidence/MASTER-44/Q7_LOCAL_PASS.md`.
 
-The remediation was local and non-semantic: an explicit `JsonArray` type guard now narrows the shared readonly JSON union before object-key indexing.
+Q8 independent PR reverse engineering PASS at reviewed head `99e80da0f41f06ccd52dc497e2ba7dd92d9ed7b1`; evidence is `docs/evidence/MASTER-44/Q8_REVIEW.md`. Frozen executable → reviewed head contained documentation/evidence only.
 
-Q7 rerun on exact frozen executable SHA `c6b21360b6471f506fc7c9ec940f687c96de38af` is operator-reported green and recorded in `docs/evidence/MASTER-44/Q7_LOCAL_PASS.md`. No counts or timings are reconstructed beyond what the operator reported.
+Hosted `verify`, `android-native` and `ios-native` failures remain infrastructure non-signal because their jobs expose no executed steps.
 
-Q8 independent PR reverse engineering is active. Any executable change after the frozen SHA invalidates Q7 and requires a new local run.
+MASTER-44 is Q9 READY subject to one final frozen-executable → closure-head compare proving executable drift remains zero. Any executable change invalidates Q7/Q8 and blocks merge.
