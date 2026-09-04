@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-36 — Design System / External Design Import  
-**Status:** Q0–Q7 PASS / FINAL Q8 REQUIRED  
+**Status:** Q0–Q8 PASS / Q9 READY TO MERGE  
 **Base SHA:** `70194c6415c7b66c5f2569733b6ed1aa88b59832`  
 **Frozen executable SHA:** `514f50e5a7c50bd8d93aecb63e401de5d5c9895a`  
 **Previous:** MASTER-35 merged via PR #195  
@@ -21,6 +21,8 @@ First local Q7 on `2909dd596a54b6e6602b0ea38135cb2a243ef4e8` exposed a test-fixt
 
 Corrected exact-head local Q7 on `514f50e5a7c50bd8d93aecb63e401de5d5c9895a` is operator-reported PASS: package boundaries PASS, TypeScript PASS, 2/2 test files PASS, 15/15 tests PASS (hardening 3/3; primary import 12/12).
 
+Q8 PASS. Final compare from corrected frozen executable head `514f50e5a7c50bd8d93aecb63e401de5d5c9895a` to the closure branch state contains only verification evidence and phase/status documentation; executable drift is zero.
+
 Hosted verify/iOS/Android jobs remain runner-allocation infrastructure non-signal when they contain no steps.
 
-Merge remains blocked only on final executable-clean Q8 from corrected frozen executable head to final PR head.
+MASTER-36 is ready for exact-head squash merge. MASTER-37 must start from the resulting new authoritative `main`, never from this phase branch.
