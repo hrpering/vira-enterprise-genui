@@ -4,6 +4,7 @@ import {
   VIRA_COMMERCIAL_PRICING_MAX_RATES_PER_PLAN,
   VIRA_COMMERCIAL_PRICING_MAX_RATINGS,
   parseViraCommercialPriceCatalog,
+  parseViraCommercialPriceQuote,
   priceViraCommercialUsage,
 } from "../../packages/commercial-pricing/src/index.js";
 
@@ -53,6 +54,26 @@ function request(overrides: Record<string, unknown> = {}) {
     planRef: { id: "plan.pro", versionRef: "1" },
     asOf: "2026-09-05T12:30:00.000Z",
     ratings: [rating()],
+    ...overrides,
+  };
+}
+
+function quote(overrides: Record<string, unknown> = {}) {
+  return {
+    planRef: { id: "plan.pro", versionRef: "1" },
+    currency: "USD",
+    asOf: "2026-09-05T12:30:00.000Z",
+    fixedAmountNanos: 100,
+    lines: [{
+      meteringRef: { id: "meter.tokens", versionRef: "1" },
+      unit: "token",
+      window: "utc-day",
+      basis: "used",
+      quantity: 10,
+      amountNanosPerUnit: 10,
+      amountNanos: 100,
+    }],
+    totalAmountNanos: 200,
     ...overrides,
   };
 }
@@ -142,11 +163,61 @@ describe("commercial pricing hardening", () => {
     });
   });
 
+  it("rejects forged quote line arithmetic and total evidence", () => {
+    expect(parseViraCommercialPriceQuote(quote({
+      lines: [{
+        meteringRef: { id: "meter.tokens", versionRef: "1" },
+        unit: "token",
+        window: "utc-day",
+        basis: "used",
+        quantity: 10,
+        amountNanosPerUnit: 10,
+        amountNanos: 99,
+      }],
+    }))).toMatchObject({ ok: false, issue: { code: "INVALID_QUOTE" } });
+
+    expect(parseViraCommercialPriceQuote(quote({ totalAmountNanos: 201 }))).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_QUOTE" },
+    });
+  });
+
+  it("rejects duplicate quote meter lines and quote arithmetic overflow", () => {
+    const duplicateLine = {
+      meteringRef: { id: "meter.tokens", versionRef: "1" },
+      unit: "token",
+      window: "utc-day",
+      basis: "used",
+      quantity: 10,
+      amountNanosPerUnit: 10,
+      amountNanos: 100,
+    };
+    expect(parseViraCommercialPriceQuote(quote({
+      lines: [duplicateLine, duplicateLine],
+      totalAmountNanos: 300,
+    }))).toMatchObject({ ok: false, issue: { code: "INVALID_QUOTE" } });
+
+    expect(parseViraCommercialPriceQuote(quote({
+      fixedAmountNanos: 0,
+      lines: [{
+        ...duplicateLine,
+        quantity: 2,
+        amountNanosPerUnit: Number.MAX_SAFE_INTEGER,
+        amountNanos: Number.MAX_SAFE_INTEGER,
+      }],
+      totalAmountNanos: Number.MAX_SAFE_INTEGER,
+    }))).toMatchObject({ ok: false, issue: { code: "AMOUNT_OVERFLOW" } });
+  });
+
   it("rejects billing, payment, tax, authority and credential smuggling fields", () => {
     for (const field of ["invoiceId", "paymentIntent", "subscription", "taxRate", "authorized", "endpoint", "token"]) {
       expect(parseViraCommercialPriceCatalog({ ...catalog(), [field]: "smuggled" })).toMatchObject({
         ok: false,
         issue: { code: "UNKNOWN_FIELD" },
+      });
+      expect(parseViraCommercialPriceQuote({ ...quote(), [field]: "smuggled" })).toMatchObject({
+        ok: false,
+        issue: { code: "INVALID_QUOTE" },
       });
     }
 
