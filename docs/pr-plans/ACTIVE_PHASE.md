@@ -1,9 +1,10 @@
 # Active Phase
 
 **Phase:** MASTER-44 — Hosted Capability Runtime Foundation  
-**Status:** Q0–Q6 PASS / Q7 PENDING  
+**Status:** Q0–Q6 PASS / Q7 RERUN PENDING  
 **Base SHA:** `e987f3447953761b70c4aa548761bf359b3e07f0`  
-**Frozen executable SHA:** `52dfb067904b34ffe055431232ed8e621a3b3d6f`  
+**Frozen executable SHA:** `c6b21360b6471f506fc7c9ec940f687c96de38af`  
+**Previous frozen SHA:** `52dfb067904b34ffe055431232ed8e621a3b3d6f` — invalidated by Q7 typecheck defect  
 **Previous:** MASTER-43 merged via PR #204  
 **Branch:** `master/44-hosted-capability-runtime`  
 **PR:** #205 (draft)  
@@ -48,4 +49,8 @@ Foundation invariants:
 
 Q3 implementation PASS and Q4 focused/hardening coverage added. Q5 security/fail-closed review PASS and Q6 architecture/ownership review PASS; evidence is recorded in `docs/evidence/MASTER-44/Q5_Q6_REVIEW.md`.
 
-Frozen executable SHA is `52dfb067904b34ffe055431232ed8e621a3b3d6f`. Changes after that SHA are documentation/evidence only. Q7 exact frozen-head local boundaries/typecheck/focused test execution is pending on draft PR #205.
+Q7 attempt 1 on exact SHA `52dfb067904b34ffe055431232ed8e621a3b3d6f` found one real executable typecheck defect: package boundaries passed and focused tests were 22/22 PASS, but `pnpm typecheck` failed with TS7053 in `freezeJson()` because built-in `Array.isArray()` did not sufficiently narrow the readonly `JsonArray | JsonObject` union. Evidence is retained in `docs/evidence/MASTER-44/Q7_ATTEMPT_1.md`.
+
+The remediation does not change runtime semantics or the shared protocol JSON contract. A local explicit `JsonArray` type guard now narrows the readonly union before object-key indexing.
+
+New frozen executable SHA is `c6b21360b6471f506fc7c9ec940f687c96de38af`. The full Q7 boundaries/typecheck/focused suite must be rerun detached at this exact SHA. The previous Q7 attempt cannot be reused as final PASS evidence.
