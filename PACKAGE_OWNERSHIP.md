@@ -7,10 +7,11 @@ If this document and the executable boundary graph disagree, the executable grap
 
 ## Current canonical owners
 
-The repository already contains canonical owners for the current Enterprise GenUI foundation. Future phases must consume or extend these owners rather than recreate them.
+The repository already contains canonical owners for the current Enterprise GenUI foundation and the first Application Network semantic owner. Future phases must consume or extend these owners rather than recreate them.
 
 | Concern | Canonical owner / family |
 |---|---|
+| Application release identity/reference graph/distribution metadata | `application-package` |
 | Runtime state, lifecycle, patches, permissions, errors | `runtime-core` |
 | Protected effect boundary | `action-boundary` |
 | Governance semantics | `governance`, `enterprise-governance` |
@@ -28,13 +29,10 @@ The repository already contains canonical owners for the current Enterprise GenU
 | Studio AI proposal surface | `studio-ai` |
 | Web/native render/host surfaces | existing runtime and Studio host/renderer packages governed by the executable boundary graph |
 
-This table is intentionally descriptive and non-exhaustive. New dependencies must satisfy `pnpm check:boundaries`.
+`application-package` depends only on `protocol`. It owns exact Application-level references and metadata, not the payload or execution authority of anything referenced.
 
 ## Future ownership constraints
 
-Planned Application Network phases introduce semantics only after reverse engineering proves the nearest existing owner cannot express them cleanly.
-
-- `ViraApplicationPackage` is a higher-order distribution unit that references existing Experience, Experience Pack, Studio publication, brand, action and governance identities. It does not replace them.
 - `CapabilityDefinition` is provider-neutral. MCP, customer APIs, hosted Vira execution and SaaS vendors are bindings/providers, not semantic owners.
 - `WorkContext` is bounded work state and provenance; it is not chat history, user memory, prompt dump or agent-framework state.
 - `ApplicationGraph` owns application-semantic nodes/edges, not Canvas coordinates, zoom, selection or other editor projection state.
