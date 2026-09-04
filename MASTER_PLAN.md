@@ -1,8 +1,8 @@
 # Vira Enterprise GenUI — Engineering Execution Plan
 
-**Authority date:** 2026-09-04  
+**Authority date:** 2026-09-05  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-42:** `a0da432e0220cb550b13f11f4a4a8001d445e212`
+**Authoritative main entering MASTER-43:** `e7598b99bd44b138911113a66179001946186f56`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -29,8 +29,9 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Application Publisher SDK | MASTER-39 | MERGED / PR #199 |
 | Application Network — AI-host SDK | MASTER-40 | MERGED / PR #200 |
 | Application Network — Federated Distribution | MASTER-41 | MERGED / PR #201 |
-| Application Network — Commercial Entitlement Contract | MASTER-42 | ACTIVE |
-| Application Network — Commercial / Capability Cloud | MASTER-43..47 | PLANNED |
+| Application Network — Commercial Entitlement Contract | MASTER-42 | MERGED / PR #202 |
+| Application Network — Commercial Usage Metering + Rating | MASTER-43 | ACTIVE |
+| Application Network — Commercial / Capability Cloud | MASTER-44..47 | PLANNED |
 | Application Network — External Proofs / Network RC | MASTER-48..51 | PLANNED |
 
 ## Active execution order
@@ -38,11 +39,11 @@ This file is the engineering execution authority. Long-range product strategy li
 ```text
 Enterprise GenUI RC1 ✅
   ↓
-MASTER-26..41 ✅
+MASTER-26..42 ✅
   ↓
-MASTER-42 Commercial Entitlement Contract
+MASTER-43 Commercial Usage Metering + Rating
   ↓
-MASTER-43 → 47 usage/rating/metering + remaining commercial network/capability cloud
+MASTER-44 → 47 remaining commercial network + capability cloud
   ↓
 MASTER-48 → 51 external proofs + Application Network RC
 ```
@@ -66,13 +67,16 @@ MASTER-48 → 51 external proofs + Application Network RC
 - Exact identity/version resolution is explicit; no implicit latest or silent fallback.
 - Untrusted/malformed input fails closed.
 - Commercial entitlement remains distinct from authorization/governance/runtime permission.
-- Entitlement limit declarations reference exact metering identities only; meter units/windows, usage accounting and rating remain separately owned downstream.
+- Entitlement limit declarations reference exact metering identities only.
+- Commercial usage records are explicit canonical inputs; telemetry, observability and Action receipts are not automatically billable usage.
+- Commercial metering may define provider-neutral units/windows and usage-to-entitlement rating, but monetary pricing/currency/invoice/payment/payout semantics remain separate.
+- Usage source provenance is not authentication or evidence verification.
 - Core does not become a generic agent framework, workflow engine, policy language, provider-integration empire, MCP/A2UI replacement, IDE/design clone, cloud-compute platform or foundation model.
 - PR creation is not phase completion. Merge requires contract review, security/architecture review, verification, independent reverse engineering and exact-head evidence appropriate to the diff.
 
 ## Active records
 
-- `docs/pr-plans/MASTER-42.md`
+- `docs/pr-plans/MASTER-43.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
