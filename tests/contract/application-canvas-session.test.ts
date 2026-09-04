@@ -95,6 +95,27 @@ describe("Vira Canvas Mutation Session v1", () => {
     expect(after.value).toBe(before.value);
   });
 
+  it("commits a valid semantic replacement through canonical revalidation", () => {
+    const created = createViraCanvasMutationSession(fixture());
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const nextApplication = {
+      ...application(),
+      distribution: {
+        ...application().distribution,
+        name: "Flight Assistant Draft 2",
+      },
+    };
+    const result = created.value.replaceSemantics({
+      expectedRevision: 3,
+      semantics: { application: nextApplication, graphs: [graph()] } as never,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.editorRevision).toBe(4);
+    expect(result.value.semantics.application.distribution.name).toBe("Flight Assistant Draft 2");
+  });
+
   it("rejects stale writes without mutating current state", () => {
     const created = createViraCanvasMutationSession(fixture());
     expect(created.ok).toBe(true);
@@ -125,7 +146,7 @@ describe("Vira Canvas Mutation Session v1", () => {
     expect(created.value.currentDraft().editorRevision).toBe(3);
   });
 
-  it("delegates semantic replacement back through canonical Application validation", () => {
+  it("delegates invalid semantic replacement back through canonical Application validation", () => {
     const created = createViraCanvasMutationSession(fixture());
     expect(created.ok).toBe(true);
     if (!created.ok) return;
