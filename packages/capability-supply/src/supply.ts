@@ -5,6 +5,7 @@ import {
 } from "@vira-enterprise-genui/capability-contract";
 import {
   parseViraHostedCapabilityBinding,
+  serializeViraHostedCapabilityBinding,
   type ViraHostedCapabilityBinding,
 } from "@vira-enterprise-genui/hosted-capability-runtime";
 import {
@@ -70,14 +71,6 @@ function bindingKey(binding: ViraHostedCapabilityBinding): string {
   return `${binding.bindingRef.id}\u0000${binding.bindingRef.versionRef}`;
 }
 
-function serializeReference(reference: { readonly id: string; readonly versionRef: string }): string {
-  return `{"id":${JSON.stringify(reference.id)},"versionRef":${JSON.stringify(reference.versionRef)}}`;
-}
-
-function serializeBinding(binding: ViraHostedCapabilityBinding): string {
-  return `{"version":${JSON.stringify(binding.version)},"bindingRef":${serializeReference(binding.bindingRef)},"capabilityRef":${serializeReference(binding.capabilityRef)},"providerId":${JSON.stringify(binding.providerId)},"locationId":${binding.locationId === null ? "null" : JSON.stringify(binding.locationId)}}`;
-}
-
 function compareSupply(left: ViraCapabilitySupplyRecord, right: ViraCapabilitySupplyRecord): number {
   const capabilityId = compareText(left.capability.id, right.capability.id);
   if (capabilityId !== 0) return capabilityId;
@@ -101,6 +94,11 @@ function compareResolved(left: ViraResolvedCapabilitySupply, right: ViraResolved
 
 function canonicalCapability(capability: ViraCapabilityDefinition): string | null {
   const serialized = serializeViraCapabilityDefinition(capability);
+  return serialized.ok ? serialized.value : null;
+}
+
+function canonicalBinding(binding: ViraHostedCapabilityBinding): string | null {
+  const serialized = serializeViraHostedCapabilityBinding(binding);
   return serialized.ok ? serialized.value : null;
 }
 
@@ -212,7 +210,10 @@ export function parseViraCapabilitySupplySnapshot(input: unknown): ViraCapabilit
       }
       globalCapabilities.set(exactCapabilityKey, capabilitySerialized);
 
-      const bindingSerialized = serializeBinding(binding.value);
+      const bindingSerialized = canonicalBinding(binding.value);
+      if (bindingSerialized === null) {
+        return fail("INVALID_BINDING", `${supplyPath}.binding`, "hosted Capability binding serialization failed");
+      }
       const existingBinding = globalBindings.get(exactBindingKey);
       if (existingBinding !== undefined && existingBinding !== bindingSerialized) {
         return fail(
@@ -250,7 +251,9 @@ export function serializeViraCapabilitySupplySnapshot(input: unknown): ViraCapab
     for (const supply of source.supplies) {
       const capability = serializeViraCapabilityDefinition(supply.capability);
       if (!capability.ok) return fail("INVALID_CAPABILITY", "$.sources", "CapabilityDefinition serialization failed");
-      supplyStrings.push(`{"capability":${capability.value},"binding":${serializeBinding(supply.binding)}}`);
+      const binding = serializeViraHostedCapabilityBinding(supply.binding);
+      if (!binding.ok) return fail("INVALID_BINDING", "$.sources", "hosted Capability binding serialization failed");
+      supplyStrings.push(`{"capability":${capability.value},"binding":${binding.value}}`);
     }
     sourceStrings.push(`{"sourceId":${JSON.stringify(source.sourceId)},"supplies":[${supplyStrings.join(",")}]}`);
   }
