@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-38 — Application Protocol Projection Contract  
-**Status:** Q0–Q6 PASS / CORRECTED LOCAL Q7 REQUIRED  
+**Status:** Q0–Q7 PASS / FINAL Q8 REQUIRED  
 **Base SHA:** `e03118833731c8483d0c42f648fefe446f0a103a`  
 **Frozen executable SHA:** `73f99f85f9f0226591d6161825857b40541455b3`  
 **Previous:** MASTER-37 merged via PR #197  
@@ -21,8 +21,10 @@ Q6 architecture review PASS: exact executable dependencies are only `application
 
 `fidelity` is an explicit adapter projection report, not a Vira proof of arbitrary protocol-specific semantic equivalence. The source digest declaration is carried as distribution data but MASTER-38 does not claim source integrity verification or execution trust.
 
-First exact-head local Q7 on `0728072b19e4b73cb654bab1b724e2aefbbdb99b` reported package boundaries PASS and focused tests 16/16 PASS, but TypeScript failed with two TS7053 object-index errors in `freezeJson()` and `canonicalJson()`. The correction adds explicit `JsonObject` narrowing after the array branches; semantic behavior and tests are unchanged. Corrected frozen executable head is `73f99f85f9f0226591d6161825857b40541455b3`.
+First exact-head local Q7 on `0728072b19e4b73cb654bab1b724e2aefbbdb99b` reported package boundaries PASS and focused tests 16/16 PASS, but TypeScript failed with two TS7053 object-index errors in `freezeJson()` and `canonicalJson()`. The semantic-neutral correction adds explicit `JsonObject` narrowing after the array branches.
+
+Corrected exact-head local Q7 on `73f99f85f9f0226591d6161825857b40541455b3` is operator-reported PASS for package boundaries, TypeScript, and both focused projection suites. Evidence is recorded in `docs/evidence/MASTER-38/VERIFICATION.md`.
 
 Hosted verify/iOS/Android jobs ended with `steps: null`, so they remain infrastructure non-signal.
 
-Merge remains blocked until exact corrected-head local Q7 and final executable-clean actual-diff Q8.
+Merge remains blocked only on final executable-clean Q8 compare.
