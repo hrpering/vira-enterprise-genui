@@ -17,6 +17,7 @@ It does **not** own authorization, governance, runtime permission, usage account
 - authoritative `main`: `a0da432e0220cb550b13f11f4a4a8001d445e212`
 - previous phase: MASTER-41 merged via PR #201
 - branch: `master/42-commercial-entitlements`
+- PR: #202
 - frozen executable head: `652793c2e57b62c11a28f6adf6b36e9356008560`
 - next phase: MASTER-43 usage / rating / metering
 
@@ -174,7 +175,7 @@ Base-to-branch diff remains scoped to the new package, two focused contract suit
 
 ## Q7 focused verification
 
-Run against frozen executable head `652793c2e57b62c11a28f6adf6b36e9356008560`:
+Exact frozen-head local gate on `652793c2e57b62c11a28f6adf6b36e9356008560`:
 
 ```bash
 pnpm check:boundaries
@@ -184,7 +185,7 @@ pnpm vitest run \
   tests/contract/commercial-entitlement-hardening.test.ts
 ```
 
-Q7 local execution evidence is pending.
+Operator-reported verdict: PASS. Full evidence: `docs/evidence/MASTER-42/Q7_LOCAL.md`.
 
 ## Q0–Q9
 
@@ -195,6 +196,6 @@ Q7 local execution evidence is pending.
 - Q4 PASS — focused commercial matching/conflict/non-authority/hardening coverage added.
 - Q5 PASS — security/fail-closed static review.
 - Q6 PASS — architecture/ownership review + executable dependency boundary.
-- Q7 PENDING — exact frozen-head local boundaries/typecheck/focused tests.
-- Q8 — independent PR reverse engineering + executable-clean closure compare after Q7 evidence.
+- Q7 PASS — exact frozen-head local boundaries/typecheck/two focused suites.
+- Q8 ACTIVE — independent PR reverse engineering + executable-clean closure compare.
 - Q9 — exact-head squash merge, verify new authoritative main, then start MASTER-43 fresh from it.
