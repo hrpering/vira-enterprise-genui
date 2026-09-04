@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   VIRA_CAPABILITY_SUPPLY_MAX_SOURCES,
   VIRA_CAPABILITY_SUPPLY_MAX_SUPPLIES_PER_SOURCE,
+  VIRA_CAPABILITY_SUPPLY_MAX_TOTAL_SUPPLIES,
   lookupViraCapabilitySupply,
   parseViraCapabilitySupplySnapshot,
 } from "../../packages/capability-supply/src/index.js";
@@ -177,6 +178,26 @@ describe("capability supply hardening", () => {
     expect(parseViraCapabilitySupplySnapshot(snapshot([
       source("source.alpha", tooManySupplies),
     ]))).toMatchObject({ ok: false, issue: { code: "SUPPLY_LIMIT_EXCEEDED" } });
+  });
+
+  it("enforces the aggregate supply ceiling before processing an oversized federation", () => {
+    const perSource = Array.from({ length: VIRA_CAPABILITY_SUPPLY_MAX_SUPPLIES_PER_SOURCE }, (_, index) =>
+      supply({}, {
+        bindingRef: { id: `binding.search.total-${index}`, versionRef: "1" },
+      }));
+    const fullSourceCount = Math.floor(
+      VIRA_CAPABILITY_SUPPLY_MAX_TOTAL_SUPPLIES / VIRA_CAPABILITY_SUPPLY_MAX_SUPPLIES_PER_SOURCE,
+    );
+    const sources = Array.from({ length: fullSourceCount }, (_, index) =>
+      source(`source.full-${index}`, perSource));
+    sources.push(source("source.overflow", [supply({}, {
+      bindingRef: { id: "binding.search.overflow", versionRef: "1" },
+    })]));
+
+    expect(parseViraCapabilitySupplySnapshot(snapshot(sources))).toMatchObject({
+      ok: false,
+      issue: { code: "SUPPLY_LIMIT_EXCEEDED" },
+    });
   });
 
   it("rejects malformed exact queries and never accepts latest aliases", () => {
