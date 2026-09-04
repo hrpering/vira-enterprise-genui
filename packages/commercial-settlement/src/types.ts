@@ -59,7 +59,6 @@ export type ViraCommercialSettlementIssueCode =
   | "INVALID_QUOTE"
   | "RULE_NOT_FOUND"
   | "APPLICATION_MISMATCH"
-  | "PUBLISHER_MISMATCH"
   | "PLAN_MISMATCH"
   | "INVALID_ALLOCATION"
   | "ALLOCATION_MISMATCH";
