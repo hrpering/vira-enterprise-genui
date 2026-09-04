@@ -2,11 +2,12 @@
 
 Current active record:
 
-- `MASTER-40.md` — Application AI-host SDK.
+- `MASTER-41.md` — Federated Distribution.
 - `ACTIVE_PHASE.md` — machine/human-readable status pointer.
 
 Immediate provenance retained:
 
+- `MASTER-40.md` — merged Application AI-host SDK via PR #200.
 - `MASTER-39.md` — merged Application Publisher SDK via PR #199.
 - `MASTER-38.md` — merged Application Protocol Projection Contract via PR #198.
 - `MASTER-37.md` — merged Application Distribution Contract via PR #197.
@@ -22,4 +23,4 @@ Immediate provenance retained:
 - `MASTER-27.md` — merged Application Package implementation.
 - `MASTER-26.md` — merged Application semantic freeze.
 
-Do not start MASTER-41 until MASTER-40 passes exact-head local Q7, final actual-diff Q8 and squash merge from the resulting authoritative `main`.
+Do not start MASTER-42 until MASTER-41 passes exact-head local Q7, final actual-diff Q8 and squash merge from the resulting authoritative `main`.
