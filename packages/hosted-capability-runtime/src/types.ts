@@ -113,6 +113,10 @@ export interface ViraHostedCapabilityRuntimeIssue {
   readonly message: string;
 }
 
+export type ViraHostedCapabilityBindingResult =
+  | { readonly ok: true; readonly value: ViraHostedCapabilityBinding }
+  | { readonly ok: false; readonly issue: ViraHostedCapabilityRuntimeIssue };
+
 export type ViraHostedCapabilityExecutionResult =
   | { readonly ok: true; readonly value: ViraHostedCapabilityExecutionEvidence }
   | { readonly ok: false; readonly issue: ViraHostedCapabilityRuntimeIssue };
