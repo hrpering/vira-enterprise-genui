@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-39 — Application Publisher SDK  
-**Status:** Q0–Q7 PASS / FINAL Q8 REQUIRED  
+**Status:** Q0–Q8 PASS / Q9 READY TO MERGE  
 **Base SHA:** `b8f009603407fea9a9115d735e9a144017fc654f`  
 **Frozen executable SHA:** `4f7df4b1e314121a4d16cbf5502896810447e1bd`  
 **Previous:** MASTER-38 merged via PR #198  
@@ -11,16 +11,10 @@
 
 MASTER-39 introduces `@vira-enterprise-genui/application-publisher-sdk` as a thin publisher-side integration layer over existing canonical Application and Distribution owners.
 
-The SDK takes one host-asserted `publisherId`, one Application candidate and one injected SHA-256 digest provider. It delegates Application parsing/serialization to `application-package`, requires exact publisher-id parity, obtains a strict lowercase digest over canonical Application serialization, then delegates envelope parse/serialization to `application-distribution`.
+Q5 security review PASS. Q6 architecture review PASS. Q7 exact frozen-head local verification is operator-reported PASS for package boundaries, TypeScript and focused Publisher SDK suites. Q8 final compare PASS: the frozen executable head to closure contains only MASTER-39 docs/evidence; executable drift is zero.
 
-Q5 security review PASS: exact safe input, authority-smuggling rejection, canonical owner delegation, publisher mismatch before provider invocation, fail-closed digest provider, strict digest data, no fallback and accessor/prototype hardening.
+`publisherId` remains a host assertion rather than authentication. Digest-provider output remains an integrity declaration rather than verification/trust. The SDK has no registry upload, URL/transport/federation, credential/signing, deployment/runtime/governance/authorization/entitlement or protected execution authority.
 
-Q6 architecture review PASS: dependency boundary is only `application-package`, `application-distribution`, `protocol`; no registry/transport/signing/deployment/runtime/governance/Action authority.
+Hosted verify/iOS/Android jobs with `steps: null` remain infrastructure non-signal.
 
-Q7 PASS: operator-reported exact frozen-head package boundary, TypeScript and focused Publisher SDK suites all passed. Exact counts were not supplied in the final green message and are not inferred. Evidence is recorded in `docs/evidence/MASTER-39/VERIFICATION.md`.
-
-`publisherId` is not authentication. Digest-provider output is a declared integrity identity, not a trust/verification claim.
-
-Hosted verify/iOS/Android jobs on the frozen head ended with `steps: null`, so they are infrastructure non-signal.
-
-Merge remains blocked only on final executable-clean actual-diff Q8.
+MASTER-39 is ready for exact-head squash merge.
