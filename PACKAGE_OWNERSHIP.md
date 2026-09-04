@@ -18,6 +18,7 @@ If this document and the executable boundary graph disagree, the executable grap
 | Commercial entitlement grant + deterministic eligibility semantics | `commercial-entitlement` |
 | Commercial meter definitions + append-only usage records + entitlement-limit rating | `commercial-metering` |
 | Commercial plan/rate-card semantics + deterministic monetary quote evidence | `commercial-pricing` |
+| Publisher/platform settlement-allocation evidence | `commercial-settlement` |
 | Application semantic nodes/edges | `application-graph` |
 | Canvas draft identity/editor revision/non-semantic projection + mutation session | `application-canvas` |
 | Application-level Canvas AI semantic proposal/diff | `application-canvas-ai` |
@@ -53,6 +54,8 @@ If this document and the executable boundary graph disagree, the executable grap
 | Experience-level Studio AI proposal surface | `studio-ai` |
 | Web/native render/host surfaces | existing runtime and Studio host/renderer packages governed by the executable boundary graph |
 
+`application-package` remains the canonical Application identity/reference owner. MASTER-47 exposes owner-local `parseViraApplicationExactReference` / `serializeViraApplicationExactReference` APIs so downstream commercial owners consume the same exact-reference semantics instead of defining another reference parser.
+
 `application-distribution` remains the canonical provider-neutral distribution envelope/integrity owner.
 
 `application-publisher-sdk` and `application-ai-host-sdk` remain thin integration layers over canonical Application/Distribution owners. They do not own registries, transports, deployment/runtime, governance or protected execution.
@@ -85,7 +88,15 @@ The same exact Application `id@version` across multiple sources is valid only wh
 
 `commercial-pricing` does **not** own entitlement, authentication, authorization, governance, runtime/deployment permission, telemetry/usage truth, tax, FX, invoices, payment intents/captures, subscription lifecycle, refunds, settlement, revenue share, publisher/provider payouts or accounting. An exact `planRef` quote does not prove that the principal is entitled to that plan. Currency validation is lexical only and does not assert ISO/legal-tender or FX authority.
 
-`hosted-capability-runtime` depends only on `capability-contract`, `enterprise-context`, `protocol` and `work-context`. It owns exact hosted binding parsing, exact Capability binding verification, canonical enterprise execution context carriage, strict WorkContext minimization, typed JSON input/output identity checks and one-shot trusted-adapter invocation for canonical `query` Capabilities.
+`commercial-settlement` depends only on `application-package`, `commercial-pricing` and `protocol`. It owns bounded exact settlement schedules, deterministic publisher-share basis-point allocation over one canonical pricing quote, and canonical publisher/platform allocation evidence.
+
+A settlement rule is selected by exact `settlementRef` only and binds one exact Application release namespace/publisher, one exact `planRef` and one integer `publisherShareBps` from `0..10000`. There is no implicit default/latest/fallback settlement rule.
+
+`commercial-settlement` consumes canonical Application identity/publisher/reference semantics and canonical pricing quote parse/serialization rather than duplicating them. Allocation evidence embeds the canonical quote. Publisher allocation uses safe-integer basis-point arithmetic with explicit floor rounding; fractional nano remainder stays with platform.
+
+`commercial-settlement` does **not** prove entitlement, create invoices, authorize/capture payments, move funds, create publisher payouts, own processor/bank settlement, subscription/refund lifecycle, tax/VAT, FX, accounting/revenue recognition, authentication, authorization, governance or runtime/deployment permission. Parsing allocation evidence validates internal semantics/arithmetic only and does not authenticate the settlement-rule provenance that produced it.
+
+`hosted-capability-runtime` depends only on `capability-contract`, `enterprise-context`, `protocol` and `work-context`. It owns exact hosted binding parsing/serialization, exact Capability binding verification, canonical enterprise execution context carriage, strict WorkContext minimization, typed JSON input/output identity checks and one-shot trusted-adapter invocation for canonical `query` Capabilities.
 
 `hosted-capability-runtime` does **not** own CapabilityDefinition semantics, provider catalog/discovery, provider authentication/attestation, network endpoints/transports, credentials/secrets, durable jobs, VM/container/Kubernetes/serverless scheduling, autoscaling, failover/provider ranking, commercial entitlement/metering, authorization/governance or monetary billing.
 
@@ -97,7 +108,7 @@ Hosted `providerId`, `bindingRef` and `locationId` are routing/provenance eviden
 
 A supply record is valid only when the canonical hosted binding `capabilityRef` exactly matches the enclosed canonical Capability definition `id@version`. Hosted supply accepts only canonical `query` Capabilities; `action` Capabilities fail with `ACTION_BOUNDARY_REQUIRED` and remain behind the existing Action Boundary.
 
-The same exact Capability `id@version` across sources is valid only when canonical Capability serialization is identical. The same exact `bindingRef` across sources is valid only when the canonical binding maps to the same capability/provider/location. Divergence fails closed with no source priority, majority vote, implicit latest or fallback winner. Identical supply may repeat across sources and retains all `sourceId` provenance.
+The same exact Capability `id@version` across sources is valid only when canonical Capability serialization is identical. The same exact `bindingRef` across sources is valid only when canonical Hosted binding serialization is identical. Divergence fails closed with no source priority, majority vote, implicit latest or fallback winner. Identical supply may repeat across sources and retains all `sourceId` provenance.
 
 `capability-supply` does **not** own provider authentication/attestation, health/SLA, ranking/recommendation, failover, endpoints/transports, credentials/secrets, deployment placement, commercial entitlement/pricing, generic cloud scheduling or provider execution. `sourceId`, `providerId`, `bindingRef` and `locationId` remain provenance/routing identities only.
 
@@ -123,8 +134,9 @@ The same exact Capability `id@version` across sources is valid only when canonic
 - Meter unit/window semantics, usage accounting and rating consume exact entitlement/metering references without moving those concerns into `commercial-entitlement`.
 - Operational telemetry and audit/replay evidence remain distinct from commercial usage truth.
 - Pricing consumes canonical rating evidence and cannot rewrite usage, entitlement or security truth.
-- Invoice/payment/subscription/settlement/payout layers must consume canonical pricing quote evidence rather than redefine rate-card arithmetic.
-- Monetary pricing, settlement and publisher economics remain distinct semantic owners; no commercial artifact acquires runtime/security authority by being monetarily valid.
+- Settlement consumes canonical pricing quote evidence and cannot redefine quote/rate-card arithmetic or infer entitlement/payment truth.
+- Payment/subscription/payout/tax/FX/accounting layers, if added outside or downstream of core, must consume canonical commercial evidence rather than redefine entitlement/metering/pricing/settlement semantics.
+- Monetary pricing, settlement allocation and actual funds movement remain distinct semantic owners; no commercial artifact acquires runtime/security authority by being monetarily valid.
 
 ## Change rule
 
