@@ -93,6 +93,15 @@ describe("commercial metering rating evidence", () => {
     }))).toMatchObject({ ok: false, issue: { code: "INVALID_INPUT" } });
 
     expect(parseViraCommercialUsageRating(rating({
+      includedRecordCount: 3,
+      usedQuantity: 2,
+      limitQuantity: 100,
+      remainingQuantity: 98,
+      excessQuantity: 0,
+      status: "within-limit",
+    }))).toMatchObject({ ok: false, issue: { code: "INVALID_INPUT" } });
+
+    expect(parseViraCommercialUsageRating(rating({
       includedRecordCount: VIRA_COMMERCIAL_METERING_MAX_USAGE_RECORDS + 1,
     }))).toMatchObject({ ok: false, issue: { code: "USAGE_LIMIT_EXCEEDED" } });
   });
