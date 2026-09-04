@@ -83,6 +83,7 @@ export type ViraCommercialPricingIssueCode =
   | "MISSING_RATING"
   | "UNPRICED_RATING"
   | "RATING_TIME_MISMATCH"
+  | "INVALID_QUOTE"
   | "AMOUNT_OVERFLOW";
 
 export interface ViraCommercialPricingIssue {
