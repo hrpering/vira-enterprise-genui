@@ -17,6 +17,6 @@ run("Repository + browser gates", "pnpm", ["verify:all"]);
 run("Portable native conformance", "pnpm", ["check:studio-native"]);
 run("iOS Simulator gate", "pnpm", ["verify:ios-simulator"]);
 run("Android Emulator gate", "pnpm", ["verify:android-emulator"]);
-run("External Pegasus proof evidence", "pnpm", ["verify:pegasus-proof"]);
+run("External brand proof evidence", "pnpm", ["verify:external-brand-proof"]);
 
 console.log("\nVira Enterprise RC gate PASS on the exact current checkout.");
