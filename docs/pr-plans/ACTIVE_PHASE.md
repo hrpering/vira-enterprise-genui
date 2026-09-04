@@ -9,6 +9,4 @@
 **PR:** #198  
 **Next after merge:** MASTER-39 from new authoritative `main`
 
-Corrected exact-head local Q7 is operator-reported PASS. Final Q8 compare is docs/evidence-only with zero executable drift. Hosted zero-step jobs remain infrastructure non-signal.
-
-MASTER-38 is ready for exact-head squash merge.
+Corrected exact-head local Q7 PASS. Final Q8 docs/evidence-only compare PASS. Executable drift zero. MASTER-38 is ready for exact-head squash merge.
