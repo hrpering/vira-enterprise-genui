@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-04  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-39:** `b8f009603407fea9a9115d735e9a144017fc654f`
+**Authoritative main entering MASTER-40:** `86def2e33f3f845fff8e3fb234099e60ffbdaf20`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -26,8 +26,8 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Design System / External Design Import | MASTER-36 | MERGED / PR #196 |
 | Application Network — Application Distribution Contract | MASTER-37 | MERGED / PR #197 |
 | Application Network — Application Protocol Projection | MASTER-38 | MERGED / PR #198 |
-| Application Network — Application Publisher SDK | MASTER-39 | ACTIVE |
-| Application Network — AI-host SDK | MASTER-40 | PLANNED |
+| Application Network — Application Publisher SDK | MASTER-39 | MERGED / PR #199 |
+| Application Network — AI-host SDK | MASTER-40 | ACTIVE |
 | Application Network — Federated Distribution | MASTER-41 | PLANNED |
 | Application Network — Commercial / Capability Cloud | MASTER-42..47 | PLANNED |
 | Application Network — External Proofs / Network RC | MASTER-48..51 | PLANNED |
@@ -37,9 +37,7 @@ This file is the engineering execution authority. Long-range product strategy li
 ```text
 Enterprise GenUI RC1 ✅
   ↓
-MASTER-26..38 ✅
-  ↓
-MASTER-39 Application Publisher SDK
+MASTER-26..39 ✅
   ↓
 MASTER-40 AI-host SDK
   ↓
@@ -64,7 +62,10 @@ MASTER-48 → 51 external proofs + Application Network RC
 - Publisher SDKs compose canonical Application/Distribution owners; they do not define a second Application artifact or registry protocol.
 - Publisher SDK `publisherId` is host-asserted identity parity, not authentication or proof of publisher ownership.
 - Publisher SDK digest-provider output is a declared SHA-256 identity and does not by itself assert verification/trust.
-- Publisher SDK core contains no signing credentials, URL/transport, registry upload, federation, deployment, governance or protected execution authority.
+- AI-host SDK source success requires explicit Distribution integrity verification before host compatibility can succeed.
+- AI-host compatibility is canonical Vira-version + required-host-capability evaluation only; it is not authorization, entitlement, deployment or execution permission.
+- Host protocol support is exact id+version intersection only; empty intersection does not itself redefine runtime compatibility and no implicit projection is selected.
+- Publisher/AI-host SDK core contains no signing credentials, URL/transport, registry/federation, deployment, governance or protected execution authority.
 - Network is discovery/distribution, never execution authority.
 - Exact identity/version resolution is explicit; no implicit latest or silent fallback.
 - Untrusted/malformed input fails closed.
@@ -74,9 +75,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 
 ## Active records
 
-- `docs/pr-plans/MASTER-39.md`
+- `docs/pr-plans/MASTER-40.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-39/RE_REPORT.md`
+- `docs/evidence/MASTER-40/RE_REPORT.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
