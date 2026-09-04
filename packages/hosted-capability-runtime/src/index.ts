@@ -10,6 +10,7 @@ export type {
   ViraHostedCapabilityAdapterInput,
   ViraHostedCapabilityAdapterResult,
   ViraHostedCapabilityBinding,
+  ViraHostedCapabilityBindingResult,
   ViraHostedCapabilityExecutionEvidence,
   ViraHostedCapabilityExecutionResult,
   ViraHostedCapabilityOutcome,
