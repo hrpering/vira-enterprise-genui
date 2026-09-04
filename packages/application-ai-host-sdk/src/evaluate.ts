@@ -167,6 +167,11 @@ function parseHost(value: JsonValue | undefined): Parsed<ViraApplicationAiHostDe
   };
 }
 
+function sourcePath(path: string): string {
+  if (path === "$" || path.length === 0) return "$.source";
+  return `$.source${path.startsWith("$") ? path.slice(1) : `.${path}`}`;
+}
+
 function mapDistributionFailure(
   code: ViraApplicationDistributionValidationCode,
   path: string,
@@ -175,13 +180,13 @@ function mapDistributionFailure(
   if (code === "INVALID_VERIFIER") {
     return failure("INVALID_INTEGRITY_VERIFIER", "$integrityVerifier", message, code);
   }
-  if (
-    code === "INTEGRITY_VERIFICATION_FAILED"
-    || code === "INTEGRITY_VERIFIER_FAILED"
-  ) {
-    return failure("SOURCE_INTEGRITY_FAILED", path, message, code);
+  if (code === "INTEGRITY_VERIFIER_FAILED") {
+    return failure("SOURCE_INTEGRITY_FAILED", "$integrityVerifier", message, code);
   }
-  return failure("INVALID_SOURCE", path === "$" ? "$.source" : `$.source${path.slice(1)}`, message, code);
+  if (code === "INTEGRITY_VERIFICATION_FAILED") {
+    return failure("SOURCE_INTEGRITY_FAILED", sourcePath(path), message, code);
+  }
+  return failure("INVALID_SOURCE", sourcePath(path), message, code);
 }
 
 export async function evaluateViraApplicationForAiHost(
