@@ -6,6 +6,7 @@
 **Frozen executable SHA:** `25ee1c25223863f3ceeb53210142acd1da331405`  
 **Previous:** MASTER-46 merged via PR #207  
 **Branch:** `master/47-commercial-settlement`  
+**PR:** #208 (draft)  
 **Next:** MASTER-48 after MASTER-47 merge from new authoritative `main`
 
 MASTER-47 adds deterministic publisher/platform allocation evidence downstream of canonical commercial pricing without becoming invoice/payment/payout/accounting or security/runtime authority.
@@ -44,4 +45,4 @@ Q5 security/fail-closed review PASS and Q6 architecture/ownership review PASS on
 
 Evidence: `docs/evidence/MASTER-47/Q5_Q6_REVIEW.md`.
 
-Q7 exact frozen-head local boundaries/typecheck/focused suites are pending. Any executable/package/test/boundary change after the freeze invalidates Q5/Q6 and requires a new freeze and local Q7.
+Q7 exact frozen-head local boundaries/typecheck/focused suites are pending on draft PR #208. Any executable/package/test/boundary change after the freeze invalidates Q5/Q6 and requires a new freeze and local Q7.
