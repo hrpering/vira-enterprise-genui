@@ -1,4 +1,4 @@
-import test from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
 import { generateStudioDraftV2, type StudioAiV2Request } from "../../packages/studio-ai/src/v2.js";
 
