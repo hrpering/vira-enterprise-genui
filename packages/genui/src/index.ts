@@ -34,6 +34,30 @@ export type {
   ViraIOSMountEnvelopeStage,
 } from "./ios-host-envelope.js";
 export {
+  createViraAndroidMountEnvelope,
+  VIRA_ANDROID_MOUNT_ENVELOPE_VERSION,
+  VIRA_ANDROID_PLATFORM,
+} from "./android-host-envelope.js";
+export type {
+  ViraAndroidMountEnvelope,
+  ViraAndroidMountEnvelopeActionMapping,
+  ViraAndroidMountEnvelopeArtifactIdentity,
+  ViraAndroidMountEnvelopeBrand,
+  ViraAndroidMountEnvelopeCapability,
+  ViraAndroidMountEnvelopeCompatibility,
+  ViraAndroidMountEnvelopeComponent,
+  ViraAndroidMountEnvelopeEvent,
+  ViraAndroidMountEnvelopeEventPayloadField,
+  ViraAndroidMountEnvelopeHost,
+  ViraAndroidMountEnvelopeInput,
+  ViraAndroidMountEnvelopeIssue,
+  ViraAndroidMountEnvelopeIssueCode,
+  ViraAndroidMountEnvelopePackIdentity,
+  ViraAndroidMountEnvelopeProp,
+  ViraAndroidMountEnvelopeResult,
+  ViraAndroidMountEnvelopeStage,
+} from "./android-host-envelope.js";
+export {
   createViraIOSPermissionPolicyProjection,
   VIRA_IOS_PERMISSION_PROJECTION_VERSION,
 } from "./ios-runtime-policy.js";
@@ -42,6 +66,15 @@ export type {
   ViraIOSPermissionPolicyProjectionResult,
   ViraIOSPermissionRule,
 } from "./ios-runtime-policy.js";
+export {
+  createViraAndroidPermissionPolicyProjection,
+  VIRA_ANDROID_PERMISSION_PROJECTION_VERSION,
+} from "./android-runtime-policy.js";
+export type {
+  ViraAndroidPermissionPolicyProjection,
+  ViraAndroidPermissionPolicyProjectionResult,
+  ViraAndroidPermissionRule,
+} from "./android-runtime-policy.js";
 export {
   createViraWebBrowserLifecycleSource,
   createViraWebHost,
