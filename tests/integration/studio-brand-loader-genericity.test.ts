@@ -49,7 +49,11 @@ const SUPPORT_BRAND_PACKAGE_INPUT = Object.freeze({
     ],
   },
   dataSources: { version: "1", id: "support.studio.data", sources: [] },
-  actions: { version: "1", id: "support.studio.actions", mappings: [] },
+  actions: {
+    version: "1",
+    id: "support.studio.actions",
+    mappings: [{ event: "support.submit", actionType: "support.request.submit" }],
+  },
   templates: [{
     id: "support-card",
     label: "Support card",
@@ -120,6 +124,9 @@ describe("Studio active brand loader", () => {
     expect(commerce.value.package.brand.id).toBe("commerce.brand");
     expect(support.value.templateIds).toEqual(["support-card"]);
     expect(support.value.templateIds).not.toContain("product-card");
+    expect(support.value.package.actions.mappings).toEqual([
+      { event: "support.submit", actionType: "support.request.submit" },
+    ]);
     expect(commerce.value.templateIds).toEqual(["product-card"]);
     expect(commerce.value.package.components.components.map((component) => component.ref)).toEqual([
       COMMERCE_COMPONENTS.stack,
