@@ -14,6 +14,7 @@ If this document and the executable boundary graph disagree, the executable grap
 | Canvas draft identity/editor revision/non-semantic projection + mutation session | `application-canvas` |
 | Application-level Canvas AI semantic proposal/diff | `application-canvas-ai` |
 | Canvas dry-run semantic path trace + exact replay | `application-canvas-simulation` |
+| Canvas authoring collaboration/presence/semantic peer review | `application-canvas-collaboration` |
 | Provider-neutral CapabilityDefinition semantics | `capability-contract` |
 | Bounded WorkContext definition/snapshot/provenance semantics | `work-context` |
 | Capability wire/protocol identity envelope | `protocol` |
@@ -35,31 +36,31 @@ If this document and the executable boundary graph disagree, the executable grap
 | Experience-level Studio AI proposal surface | `studio-ai` |
 | Web/native render/host surfaces | existing runtime and Studio host/renderer packages governed by the executable boundary graph |
 
-`application-canvas` depends only on `application-package`, `application-graph` and `protocol`. It delegates semantic parsing to the first two owners and keeps graph layout/viewport/selection outside canonical semantics.
+`application-canvas` remains the only owner of Canvas editor revision and atomic draft mutation. Collaboration final apply delegates to its mutation session rather than replacing or duplicating stale-write/canonical validation logic.
 
-Canvas mutation/session APIs remain in the same owner. They may hold an in-memory canonical draft, require exact `expectedRevision`, atomically revalidate candidates and increment `editorRevision`, but they do not acquire runtime/publication/deployment/governance/Action authority.
+`application-canvas-ai` remains proposal-only and provider-facing. `application-canvas-collaboration` is provider-neutral, so human or AI-originated candidate semantics can be reviewed without granting AI apply authority.
 
-`application-canvas-ai` depends only on `application-canvas`, `application-package` and `protocol`. It owns provider-neutral Application-level semantic proposal generation, bounded host-supported reference catalogs, canonical candidate validation, deterministic semantic diff and projection-compatibility reporting. It cannot apply a proposal or reach publication, deployment, runtime, governance or Action execution owners.
+`application-canvas-simulation` remains dry-run authoring evidence only and is independent from collaboration approval state.
 
-`application-canvas-simulation` depends only on `application-canvas` and `protocol`. It owns explicit scenario-path validation, immutable dry-run semantic frames, exact canonical semantic snapshot evidence and deterministic replay/drift detection. It cannot invoke providers, evaluate policy/governance, mutate WorkContext, create Action receipts, schedule graph execution or reach runtime/publication/deployment owners.
+`application-canvas-collaboration` depends only on `application-canvas` and `protocol`. It owns registered collaborator envelopes, per-actor ephemeral presence, concurrent semantic proposals, immutable peer-review records, authoring approval thresholds and stale-safe apply delegation. It does not own CRDT/network transport, persistence, governance/authorization, publication/deployment or runtime/protected execution.
 
-`studio-ai` remains the AI proposal owner inside one Experience; it is not reused as the Application-level semantic owner.
+Presence is non-semantic editor state and never increments `editorRevision`. Semantic review approval is only permission to mutate the local Canvas draft; it is not enterprise governance or authorization.
 
-Canvas `editorRevision` is editor metadata only. It cannot be substituted for Application release version, deployment revision, runtime state revision or ledger ordering.
+Canvas `editorRevision` remains editor metadata only and cannot substitute for Application release version, deployment revision, runtime state revision or ledger ordering.
 
 ## Future ownership constraints
 
+- Collaboration/network transports must carry these authoring contracts rather than redefine semantic truth.
+- Presence/cursors/selections must remain ephemeral and outside Application semantics.
+- Stale collaboration proposals must fail closed after any competing Canvas mutation changes `editorRevision`.
+- Collaboration review must not become publication, deployment, governance or protected Action authority.
 - Canvas mutation/session layers must call canonical Application/Graph/Canvas parsers after semantic edits instead of maintaining parallel schemas.
-- Stale Canvas writes must fail closed; failed mutation candidates cannot partially commit.
-- Canvas AI must remain a proposal engine: unsupported semantic authority fails closed, provider failure has no silent fallback, and human review remains outside provider control.
-- Canvas simulation/replay must remain authoring-time dry-run evidence; encountering Capability/Action nodes cannot imply invocation, authorization, execution or receipt creation.
-- Replay must distinguish exact semantic drift from projection/editor metadata changes.
-- Canvas UI/render libraries may project editor state but cannot redefine semantic nodes/edges based on coordinates.
+- Canvas AI must remain proposal-only.
+- Canvas simulation/replay must remain authoring-time dry-run evidence.
 - Provider bindings must map to exact provider-neutral semantics and remain outside Canvas draft authority.
 - WorkContext remains bounded work state/provenance, not chat history, user memory or prompt dump.
 - Distribution/Network may discover and resolve packages/capabilities but cannot become execution authority.
 - Entitlement expresses commercial access and remains distinct from authorization/governance/runtime permission.
-- Protocol projections report lossless/lossy/unsupported explicitly; adapters never silently redefine canonical semantics.
 
 ## Change rule
 

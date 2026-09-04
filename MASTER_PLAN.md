@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-04  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-34:** `8d9c28d5ac70b20ea88556305977aafd9dc8f3f6`
+**Authoritative main entering MASTER-35:** `f17ae3cc920e672fcab1f97028dddcbe08040016`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -21,8 +21,8 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Canvas Foundation | MASTER-31 | MERGED / PR #191 |
 | Application Network — Canvas Mutation Session | MASTER-32 | MERGED / PR #192 |
 | Application Network — Canvas AI Co-author | MASTER-33 | MERGED / PR #193 |
-| Application Network — Canvas Simulation + Replay | MASTER-34 | ACTIVE |
-| Application Network — Canvas Multiplayer + Semantic Review | MASTER-35 | PLANNED |
+| Application Network — Canvas Simulation + Replay | MASTER-34 | MERGED / PR #194 |
+| Application Network — Canvas Multiplayer + Semantic Review | MASTER-35 | ACTIVE |
 | Application Network — Design System / External Design Import | MASTER-36 | PLANNED |
 | Application Network — Distribution | MASTER-37..41 | PLANNED |
 | Application Network — Commercial / Capability Cloud | MASTER-42..47 | PLANNED |
@@ -49,7 +49,7 @@ MASTER-32 Canvas Mutation Session ✅
   ↓
 MASTER-33 Canvas AI Co-author ✅
   ↓
-MASTER-34 Canvas Simulation + Replay
+MASTER-34 Canvas Simulation + Replay ✅
   ↓
 MASTER-35 Canvas Multiplayer + Semantic Review
   ↓
@@ -68,11 +68,14 @@ MASTER-48 → 51 external proofs + Application Network RC
 - One semantic concept has one canonical owner; extend the nearest owner before creating another.
 - Experience, Pack, Studio publication, Action Boundary, governance and runtime authorities are referenced, not duplicated.
 - ApplicationGraph is relational semantics, not a workflow engine or runtime graph.
-- Canvas authors/proposes canonical semantics but editor projection (coordinates, viewport, selection) is not Application semantics.
+- Canvas authors/proposes canonical semantics but editor projection is not Application semantics.
 - Canvas editor revision is not runtime/deployment/Application release revision.
 - Canvas mutation sessions require exact editor revision guards; stale writes fail closed and failed candidates cannot partially commit.
-- Canvas AI is a proposal engine only: provider output must pass canonical validation, unsupported authority cannot be invented, and proposals cannot directly apply, publish, deploy, govern or execute protected effects.
-- Canvas simulation/replay is authoring-time dry-run evidence only: explicit paths are validated, Capability/Action nodes are never invoked/executed, policy/governance is not evaluated, no WorkContext/ledger truth is created, and replay fails closed on exact semantic drift while ignoring projection-only changes.
+- Canvas AI is proposal-only and cannot directly apply/publish/deploy/govern/execute.
+- Canvas simulation/replay is dry-run authoring evidence only and cannot invoke Capabilities/Actions or create runtime/policy/ledger truth.
+- Canvas collaboration presence is ephemeral and non-semantic; peer review gates editor draft mutation only and is not governance/authorization/publication approval.
+- Concurrent Canvas semantic proposals bind exact base revision; applying one through the canonical mutation owner makes competing proposals stale.
+- Canvas collaboration does not imply CRDT, network transport, persistence or distributed lock ownership.
 - Canvas cannot directly publish, deploy, authorize, govern or execute protected effects by implication.
 - Capability semantics are provider-neutral; provider/API/MCP/SaaS bindings do not define canonical meaning.
 - WorkContext is bounded work state/provenance, not chat history/user memory/prompt storage/runtime lifecycle.
@@ -85,9 +88,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 
 ## Active records
 
-- `docs/pr-plans/MASTER-34.md`
+- `docs/pr-plans/MASTER-35.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-34/RE_REPORT.md`
+- `docs/evidence/MASTER-35/RE_REPORT.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
