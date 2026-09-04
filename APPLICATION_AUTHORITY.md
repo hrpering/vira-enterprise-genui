@@ -36,6 +36,7 @@ An Application can reference Experiences, Capabilities, Context and Actions, but
 | Network | `application-distribution`, `application-federation` | become runtime/execution/governance authority |
 | Entitlement/commercial access | `commercial-entitlement` | be treated as authorization/governance/runtime permission |
 | Commercial usage metering/rating | `commercial-metering` | become monetary billing or execution authority |
+| Commercial plan/rate-card + quote evidence | `commercial-pricing` | become invoice/payment/subscription/settlement or security authority |
 
 ## Application authority
 
@@ -106,7 +107,42 @@ It does not authorize or deny runtime execution. An over-limit result is commerc
 
 Operational telemetry, Experience observations and Action receipts are not billable usage by implication. A trusted integration may explicitly normalize external evidence into the canonical commercial usage-record contract, but `sourceId` remains provenance only and the core parser does not authenticate or integrity-verify that source.
 
-Commercial metering also does not own monetary price/rate cards, currency, charges, invoice/payment/subscription lifecycle or publisher settlement. Those future economic layers must consume immutable entitlement/metering evidence rather than mutate security or usage truth.
+Commercial metering also does not own monetary price/rate cards, currency, charges, invoice/payment/subscription lifecycle or publisher settlement. Those economic layers consume canonical metering evidence rather than mutate security or usage truth.
+
+Canonical rating parsing/serialization belongs to `commercial-metering`. Parsing rating evidence validates structural/semantic consistency; it does not authenticate the origin of that evidence.
+
+## Commercial pricing authority
+
+`commercial-pricing` may define exact provider-neutral price plans/rate cards and deterministically transform canonical metering rating evidence into monetary quote evidence.
+
+Pricing may own only evidence such as:
+
+```text
+exact planRef
+currency
+asOf
+fixedAmountNanos
+meter line quantity × amountNanosPerUnit
+totalAmountNanos
+```
+
+Money is represented as non-negative safe-integer currency nanos. Core performs no floating-point monetary arithmetic. Currency validation is lexical only; it does not establish ISO membership, exchange rates, tax jurisdiction or legal-tender status.
+
+A quote is **not**:
+
+- entitlement evidence by itself;
+- an invoice;
+- a payment intent/capture;
+- a subscription state;
+- a tax calculation;
+- an FX conversion;
+- accounting truth;
+- settlement/revenue-share/payout evidence;
+- authorization, governance approval or runtime permission.
+
+An exact `planRef` can be quoted without proving the requesting principal is entitled to that plan. Entitlement remains an independent upstream commercial decision. Likewise, quote validity cannot convert a governance/runtime denial into execution success.
+
+Pricing consumes canonical metering ratings and may not reconstruct or rewrite usage truth. Quote parsing/serialization belongs to the pricing owner so future invoice/settlement layers consume one canonical quote shape rather than define another pricing schema.
 
 ## Hosted Capability runtime authority
 
@@ -145,7 +181,7 @@ exact semantic dependency references
       ↓
 canonical registry/resolver/deployment authorities
       ↓
-commercial entitlement / metering evidence where commercially required
+commercial entitlement / metering / pricing evidence where commercially required
       ↓
 enterprise scope + governance / authorization where required
       ↓
@@ -154,8 +190,8 @@ hosted query Capability runtime OR Experience runtime / host
 Action Boundary for protected effects
 ```
 
-An upstream composition, commercial layer or hosted provider binding cannot overrule a downstream security/execution authority. Hosted query execution is not an alternate path around protected Action execution.
+An upstream composition, commercial layer or hosted provider binding cannot overrule a downstream security/execution authority. Hosted query execution is not an alternate path around protected Action execution. Monetary validity is never execution permission.
 
 ## Failure rule
 
-Ambiguous, missing, stale, unapproved, incompatible or untrusted authority resolution fails closed. A higher-level Application declaration, entitlement, commercial usage rating or hosted binding cannot convert an underlying denial/failure into success.
+Ambiguous, missing, stale, unapproved, incompatible or untrusted authority resolution fails closed. A higher-level Application declaration, entitlement, commercial usage rating, pricing quote or hosted binding cannot convert an underlying denial/failure into success.

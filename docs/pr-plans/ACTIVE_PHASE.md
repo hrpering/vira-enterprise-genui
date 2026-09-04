@@ -1,44 +1,53 @@
 # Active Phase
 
-**Phase:** MASTER-44 — Hosted Capability Runtime Foundation  
+**Phase:** MASTER-45 — Commercial Pricing + Rate Card  
 **Status:** Q0–Q8 PASS / Q9 READY  
-**Base SHA:** `e987f3447953761b70c4aa548761bf359b3e07f0`  
-**Frozen executable SHA:** `c6b21360b6471f506fc7c9ec940f687c96de38af`  
-**Previous frozen SHA:** `52dfb067904b34ffe055431232ed8e621a3b3d6f` — invalidated by Q7 typecheck defect  
-**Previous:** MASTER-43 merged via PR #204  
-**Branch:** `master/44-hosted-capability-runtime`  
-**PR:** #205 (draft until final closure compare)  
-**Next:** MASTER-45 after MASTER-44 merge from new authoritative `main`
+**Base SHA:** `f1ee6ec68b9c1a53f3413b9f201eae355517fc52`  
+**Final frozen executable SHA:** `0984b0145381f8344dc458cd28d3e1b26db79e78`  
+**Previous frozen SHA:** `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2` — invalidated by Q8 producer-consistency finding  
+**Previous:** MASTER-44 merged via PR #205  
+**Branch:** `master/45-commercial-pricing`  
+**PR:** #206 (draft until final closure compare)  
+**Next:** MASTER-46 after MASTER-45 merge from new authoritative `main`
 
-MASTER-44 introduces the provider-neutral hosted **query Capability** execution boundary without turning Vira into generic cloud compute or duplicating existing semantic/security owners.
+MASTER-45 introduces the canonical provider-neutral monetary pricing boundary downstream of entitlement/metering without becoming billing/payment/subscription/payout authority.
 
-Canonical owner boundary:
+Canonical owner chain:
 
 ```text
-hosted-capability-runtime → capability-contract, enterprise-context, protocol, work-context
+commercial-entitlement  → exact eligibility + planRef
+commercial-metering     → usage truth + non-monetary rating evidence
+commercial-pricing      → rate-card + monetary quote evidence
 ```
 
-Foundation invariants:
+Executable dependency boundary:
 
-- only canonical `query` Capabilities may reach the trusted provider adapter;
-- `action` Capabilities fail with `ACTION_BOUNDARY_REQUIRED` before adapter invocation;
-- exact binding ↔ Capability identity/version only;
-- canonical enterprise principal/scope is carried, but the runtime does not authenticate or authorize it;
-- request Context exactly matches declared Capability `contextRequirements`, with no ambient/extra Context leakage;
-- input/output type refs exactly match canonical CapabilityDefinition contracts;
-- the execution evidence envelope never becomes authorization, governance, entitlement, deployment or commercial authority;
-- typed `output.value` remains domain data under its exact type reference and does not acquire authority from field names;
-- provider/binding/location evidence is not authentication or attestation;
-- no implicit retry/failover/ranking;
-- no automatic commercial usage record from execution success;
-- no endpoints, credentials, containers, Kubernetes/serverless/cloud scheduling or generic workload orchestration.
+```text
+commercial-pricing → application-package, commercial-metering, protocol
+```
 
-Q5/Q6 security and architecture review PASS. Q7 attempt 1 correctly failed and invalidated the old freeze because of TS7053 in `freezeJson()`; evidence is retained in `docs/evidence/MASTER-44/Q7_ATTEMPT_1.md`.
+Final invariants:
 
-The local explicit `JsonArray` type-guard remediation produced the final frozen executable SHA `c6b21360b6471f506fc7c9ec940f687c96de38af`. The operator reran the full local Q7 command set at that exact SHA and reported it green; final evidence is `docs/evidence/MASTER-44/Q7_LOCAL_PASS.md`.
+- integer currency nanos only; no floating-point money;
+- exact `planRef` and `meteringRef` identities;
+- lexical uppercase three-letter currency only; no ISO/FX/legal-tender authority claim;
+- canonical rating evidence is revalidated by the metering owner;
+- canonical rating `usedQuantity >= includedRecordCount` because every included usage record has positive quantity;
+- used/limit/remaining/excess/status and UTC window evidence is internally consistent;
+- every plan rate requires exactly one matching canonical rating;
+- missing, duplicate or undeclared ratings fail closed;
+- quote and rating `asOf` must exactly match;
+- multiplication and total accumulation fail before safe-integer overflow;
+- quote evidence parser revalidates line and total arithmetic;
+- quote evaluation never mutates usage/entitlement/payment state;
+- pricing evidence is not entitlement/invoice/payment/subscription/settlement/tax/authorization/governance/runtime authority.
 
-Q8 independent PR reverse engineering PASS at reviewed head `99e80da0f41f06ccd52dc497e2ba7dd92d9ed7b1`; evidence is `docs/evidence/MASTER-44/Q8_REVIEW.md`. Frozen executable → reviewed head contained documentation/evidence only.
+Q7 attempt 1 passed on `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`, but Q8 independently found a real executable producer-consistency gap in rating evidence and invalidated that freeze. Evidence: `docs/evidence/MASTER-45/Q8_ATTEMPT_1.md`.
 
-Hosted `verify`, `android-native` and `ios-native` failures remain infrastructure non-signal because their jobs expose no executed steps.
+The parser/test hardening produced final frozen executable SHA `0984b0145381f8344dc458cd28d3e1b26db79e78`. The operator reran the full local Q7 command set detached at that exact SHA and reported it green. Final evidence: `docs/evidence/MASTER-45/Q7_RERUN_PASS.md`.
 
-MASTER-44 is Q9 READY subject to one final frozen-executable → closure-head compare proving executable drift remains zero. Any executable change invalidates Q7/Q8 and blocks merge.
+Final Q8 independent reverse engineering PASS at reviewed PR head `32ae25c2cbcf9bb6708d0449759db157a932a03f`. Evidence: `docs/evidence/MASTER-45/Q8_REVIEW.md`. Frozen executable → reviewed head contained documentation/evidence only.
+
+PR #206 had no submitted reviews, inline review threads or comments at final Q8 check. Hosted `verify`, `ios-native` and `android-native` failures remain infrastructure non-signal because the latest checked jobs expose `steps=null`.
+
+MASTER-45 is Q9 READY subject to one final frozen-executable → closure-head compare proving executable drift remains zero. Any executable/package/test/boundary change invalidates final Q7/Q8 and blocks merge.

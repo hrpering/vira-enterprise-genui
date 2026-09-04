@@ -17,6 +17,7 @@ If this document and the executable boundary graph disagree, the executable grap
 | Public Application federation snapshot + exact-release discovery/conflict semantics | `application-federation` |
 | Commercial entitlement grant + deterministic eligibility semantics | `commercial-entitlement` |
 | Commercial meter definitions + append-only usage records + entitlement-limit rating | `commercial-metering` |
+| Commercial plan/rate-card semantics + deterministic monetary quote evidence | `commercial-pricing` |
 | Application semantic nodes/edges | `application-graph` |
 | Canvas draft identity/editor revision/non-semantic projection + mutation session | `application-canvas` |
 | Application-level Canvas AI semantic proposal/diff | `application-canvas-ai` |
@@ -75,6 +76,14 @@ The same exact Application `id@version` across multiple sources is valid only wh
 
 `commercial-metering` also does **not** own monetary price/rate cards, currency, charges, invoices, payment/subscription state, publisher payouts, provider execution, authorization, governance or runtime/deployment permission. Its append-only ledger is a bounded domain helper; durable storage/database/partitioning infrastructure remains outside the package.
 
+`commercial-metering` additionally owns canonical parsing/serialization of its `ViraCommercialUsageRating` evidence so downstream commercial layers consume one rating definition rather than copy its shape. Rating evidence parsing validates canonical window/status/quantity invariants but does not authenticate the source of persisted/transmitted evidence.
+
+`commercial-pricing` depends only on `application-package`, `commercial-metering` and `protocol`. It owns provider-neutral exact price-plan/rate-card semantics, integer currency-nanos arithmetic, deterministic `used | excess` meter pricing and canonical monetary quote evidence.
+
+`commercial-pricing` consumes canonical metering ratings rather than recomputing usage. It owns parsing/serialization of its own quote evidence so downstream commercial layers can consume one canonical pricing artifact.
+
+`commercial-pricing` does **not** own entitlement, authentication, authorization, governance, runtime/deployment permission, telemetry/usage truth, tax, FX, invoices, payment intents/captures, subscription lifecycle, refunds, settlement, revenue share, publisher/provider payouts or accounting. An exact `planRef` quote does not prove that the principal is entitled to that plan. Currency validation is lexical only and does not assert ISO/legal-tender or FX authority.
+
 `hosted-capability-runtime` depends only on `capability-contract`, `enterprise-context`, `protocol` and `work-context`. It owns exact hosted binding parsing, exact Capability binding verification, canonical enterprise execution context carriage, strict WorkContext minimization, typed JSON input/output identity checks and one-shot trusted-adapter invocation for canonical `query` Capabilities.
 
 `hosted-capability-runtime` does **not** own CapabilityDefinition semantics, provider catalog/discovery, provider authentication/attestation, network endpoints/transports, credentials/secrets, durable jobs, VM/container/Kubernetes/serverless scheduling, autoscaling, failover/provider ranking, commercial entitlement/metering, authorization/governance or monetary billing.
@@ -101,7 +110,9 @@ Hosted `providerId`, `bindingRef` and `locationId` are routing/provenance eviden
 - Entitlement expresses commercial access and remains distinct from authorization/governance/runtime permission.
 - Meter unit/window semantics, usage accounting and rating consume exact entitlement/metering references without moving those concerns into `commercial-entitlement`.
 - Operational telemetry and audit/replay evidence remain distinct from commercial usage truth.
-- Monetary pricing, settlement and publisher economics must consume canonical metering/rating evidence rather than mutate usage or entitlement truth.
+- Pricing consumes canonical rating evidence and cannot rewrite usage, entitlement or security truth.
+- Invoice/payment/subscription/settlement/payout layers must consume canonical pricing quote evidence rather than redefine rate-card arithmetic.
+- Monetary pricing, settlement and publisher economics remain distinct semantic owners; no commercial artifact acquires runtime/security authority by being monetarily valid.
 
 ## Change rule
 
