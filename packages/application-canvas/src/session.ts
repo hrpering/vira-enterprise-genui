@@ -334,7 +334,7 @@ export function createViraCanvasMutationSession(input: unknown): CreateViraCanva
         schemaVersion: current.schemaVersion,
         draftId: current.draftId,
         semantics: current.semantics,
-        projection: { ...current.projection, graphViews: graphViews as readonly ViraCanvasGraphView[] },
+        projection: { ...current.projection, graphViews: graphViews as unknown as readonly ViraCanvasGraphView[] },
       });
     },
   };
