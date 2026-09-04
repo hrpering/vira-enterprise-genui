@@ -17,6 +17,8 @@ Frozen executable head: `9a8591c741f59205caf371d9e34eafb8a6086861`.
 - projection/editorRevision-only changes do not invalidate semantic replay;
 - no runtime-core, policy/governance, WorkContext, Action Boundary/Ledger, provider or deployment authority is imported.
 
-## Q8
+## Q8 result
 
-Final Q8 requires the post-Q7 compare from the frozen executable head to the final PR head to contain documentation/evidence changes only. If that invariant holds, Q8 is PASS and the PR is merge-ready.
+PASS.
+
+The final compare from `9a8591c741f59205caf371d9e34eafb8a6086861` to the closure head contains documentation/evidence files only. No executable content changed after the operator-reported exact-head Q7 pass.
