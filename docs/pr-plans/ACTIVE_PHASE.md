@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-46 — Capability Supply Catalog + Exact Discovery  
-**Status:** Q0–Q6 PASS / Q7 PENDING  
+**Status:** Q0–Q7 PASS / Q8 ACTIVE  
 **Base SHA:** `88a05193c189ce02a214bf0acb74743144981cc5`  
 **Frozen executable SHA:** `8a01eb001949327d1d34aaa780fd72f2687012ac`  
 **Previous:** MASTER-45 merged via PR #206  
@@ -25,7 +25,7 @@ Executable dependency boundary:
 capability-supply → capability-contract, hosted-capability-runtime, protocol
 ```
 
-Final pre-Q7 invariants:
+Final invariants:
 
 - supply records contain canonical CapabilityDefinition + canonical HostedCapabilityBinding;
 - binding `capabilityRef` exactly matches enclosed Capability id/version;
@@ -43,4 +43,6 @@ Final pre-Q7 invariants:
 
 Q5 security/fail-closed review PASS and Q6 architecture/ownership review PASS on frozen executable/test/boundary head `8a01eb001949327d1d34aaa780fd72f2687012ac`. Evidence: `docs/evidence/MASTER-46/Q5_Q6_REVIEW.md`.
 
-Q7 exact frozen-head local boundaries/typecheck/focused suites are pending on draft PR #207. Any executable/package/test/boundary change after the freeze invalidates Q5/Q6 and requires a new freeze and local Q7.
+Q7 PASS on exact frozen executable SHA `8a01eb001949327d1d34aaa780fd72f2687012ac`. The repository operator reran the full local boundaries/typecheck/focused-suite command set detached at that exact SHA and reported it green. Evidence: `docs/evidence/MASTER-46/Q7_LOCAL_PASS.md`. No counts or timings are reconstructed.
+
+Q8 independent PR reverse engineering is active. Any executable/package/test/boundary change after the freeze invalidates Q7 and blocks merge until a new freeze/rerun.
