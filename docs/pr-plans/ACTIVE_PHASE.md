@@ -1,22 +1,15 @@
 # Active Phase
 
-**Phase:** MASTER-33 — Canvas AI Co-author  
-**Status:** Q0–Q8 PASS / Q9 MERGE READY  
-**Base SHA:** `6bd8072852c758a6369a84c8ce4e19eefd154afb`  
-**Frozen executable SHA:** `3a81dddeffca63d333298f71a3c8f4faa47ab15f`  
-**Previous:** MASTER-32 merged via PR #192  
-**Next after merge:** MASTER-34 — Canvas Simulation + Replay
+**Phase:** MASTER-34 — Canvas Simulation + Replay  
+**Status:** Q0–Q4 IMPLEMENTED / Q5–Q6 REVIEW IN PROGRESS  
+**Base SHA:** `8d9c28d5ac70b20ea88556305977aafd9dc8f3f6`  
+**Previous:** MASTER-33 merged via PR #193  
+**Next after merge:** MASTER-35 — Canvas Multiplayer + Semantic Review
 
-MASTER-33 introduces `@vira-enterprise-genui/application-canvas-ai` as an Application-level semantic proposal layer.
+MASTER-34 introduces `@vira-enterprise-genui/application-canvas-simulation` as a deterministic authoring-time dry-run trace/replay layer.
 
-AI receives canonical base Application semantics plus a bounded host-supported exact reference catalog. Canvas projection is intentionally excluded from the provider request.
+Scenario paths are explicit caller-supplied `startNodeId + edgeIds[]`; the simulator validates canonical graph continuity but never schedules nodes, evaluates conditions, invokes Capabilities, executes Actions or produces policy/governance decisions.
 
-Generated candidates are reparsed through canonical Canvas/Application/Graph owners, must preserve Application identity/publisher authority, cannot introduce unsupported references, and must keep embedded ApplicationGraph targets declared by the candidate Application itself. Embedded graph releases must also be declared by candidate `flows`.
+Simulation traces capture only Application/Graph identity, exact canonical semantic snapshot and semantic frames. Replay survives projection-only/editorRevision changes but fails closed on semantic drift or inconsistent/tampered trace frames.
 
-The output is a frozen human-review proposal carrying `expectedRevision`, canonical base/candidate semantics, explanation, deterministic semantic diff and projection compatibility. It has no apply/publish/deploy/execute authority.
-
-Q5/Q6 review found and closed one cross-semantic dangling-reference gap before freeze. The operator subsequently reported exact frozen-head local Q7 green for package boundaries, TypeScript typecheck and both focused Canvas AI suites.
-
-Final Q8 compare from `3a81dddeffca63d333298f71a3c8f4faa47ab15f` contains documentation/evidence changes only; executable drift is zero. Hosted verify/iOS/Android jobs on the frozen head remain `steps: null` infrastructure non-signal.
-
-PR #193 is Q9 merge-ready.
+Merge remains blocked until security/architecture review, exact-head local Q7 and final actual-diff Q8.
