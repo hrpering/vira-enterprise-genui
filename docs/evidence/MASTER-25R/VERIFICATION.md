@@ -56,18 +56,27 @@ PASS by source inspection:
 
 ## Current repository diff expectation
 
-Before Q7, the phase should remain documentation/evidence-only:
+Before Q7, the phase remains documentation/evidence-only:
 
 ```text
+MASTER_PLAN.md
 docs/pr-plans/MASTER-25R.md
 docs/pr-plans/ACTIVE_PHASE.md
 docs/pr-plans/README.md
-MASTER_PLAN.md
 docs/evidence/MASTER-25R/RE_REPORT.md
 docs/evidence/MASTER-25R/VERIFICATION.md
+docs/evidence/MASTER-25R/PR_REVIEW.md
 ```
 
-Any executable change discovered in final compare requires renewed Q4–Q7 verification.
+Any executable change discovered in a later compare requires renewed Q4–Q7 verification.
+
+## Pre-Q7 Q8 review
+
+PASS.
+
+Independent review of PR #185 at pre-Q7 head `52bc8e3af6567bb769146818d6f167004a048723` found only release plan/status/evidence changes and no package/runtime/SDK/tooling/workflow/test/manifest implementation change. See `PR_REVIEW.md`.
+
+The Q8 evidence documents added after that review are themselves non-executable; a final compare must confirm this before the branch is frozen for Q7.
 
 ## Q7 required exact executable-tree gate
 
@@ -105,11 +114,11 @@ Hosted GitHub Actions previously exhibited a pre-existing zero-step/no-runner al
 - Q5 security review: PASS for existing release verifier semantics
 - Q6 architecture review: PASS — no duplicate release/runtime owner introduced
 - Q7 exact Enterprise RC execution: **BLOCKED / NOT EXECUTED**
-- Q8 independent PR reverse engineering: NOT STARTED
+- Q8 independent PR reverse engineering: **PASS — PRE-Q7**
 - Q9 merge/post-merge: NOT STARTED
 
 ## Merge decision
 
 # NOT READY TO MERGE
 
-Do not declare Enterprise GenUI RC1 and do not start MASTER-26 until exact-head external proof exists, `pnpm verify:enterprise-rc` passes, and the final PR completes independent Q8 review.
+Do not declare Enterprise GenUI RC1 and do not start MASTER-26 until exact-head external proof exists, `pnpm verify:enterprise-rc` passes, and the final post-Q7 evidence-only compare completes.
