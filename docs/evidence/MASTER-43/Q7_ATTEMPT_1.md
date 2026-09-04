@@ -36,7 +36,9 @@ This made the `10_000` commercial batch ceiling effectively unreachable under th
 
 Do not add a parser bypass or an alternate unsafe pre-parser.
 
-The single-batch commercial usage ceiling is reduced to `2_048` records so the canonical full usage shape remains comfortably below the shared JSON node budget for the domain-bound regression case. The append-only usage ledger continues to support repeated bounded batches, so this does not convert the ledger into a 2,048-record lifetime limit.
+The canonical commercial usage ceiling is reduced to `2_048` records per parsed batch and per in-process `ViraCommercialUsageLedger` instance. This keeps the full canonical record shape below the shared JSON node budget and keeps the helper deliberately bounded.
+
+Larger durable accounting histories are not represented by an unbounded in-memory core ledger. They require partitioning/persistence in an integration layer outside `commercial-metering`; rating remains a bounded operation over one canonical usage batch.
 
 Remediation executable commit:
 
