@@ -23,7 +23,7 @@ It does **not** own telemetry/observability, Action audit truth, authentication,
 - previous phase: MASTER-42 merged via PR #202
 - branch: `master/43-usage-rating-metering`
 - PR: #204
-- frozen executable head: `a62aeeb6068edb8d0df123ee3b86a0186e464c3c`
+- frozen executable head: `2d3e7933fc4c8ab619771a07dc926ef94fc2cfde`
 - next commercial phases remain MASTER-44..47
 
 ## Q1 reverse engineering
@@ -127,6 +127,8 @@ Each record contains:
 
 Duplicate `usageId` values fail closed. There is no last-write-wins correction behavior in the canonical core.
 
+A single canonical usage batch is bounded to `2_048` records. This ceiling is intentionally below the shared protocol safe-JSON node budget for the full canonical record shape. Larger accounting histories are represented through repeated bounded ledger appends rather than by bypassing the shared parser with oversized single payloads.
+
 ## Append-only usage ledger contract
 
 `createViraCommercialUsageLedger()` provides the domain-level append/idempotency contract without becoming durable storage infrastructure.
@@ -198,6 +200,7 @@ No currency, unit price, charge, invoice, payout or payment field exists in MAST
 - telemetry/observability/action receipts are not automatically billable usage;
 - usage records are immutable canonical inputs for rating;
 - ledger append is idempotent by `usageId` and append-only;
+- single usage batches remain below the canonical domain ceiling and always pass through the shared safe JSON parser;
 - quantity arithmetic must remain within JavaScript safe integers;
 - no negative/decimal usage;
 - no monetary pricing or payment semantics;
@@ -217,7 +220,8 @@ PASS.
 - cross-Application/entitlement/meter/principal/scope/Capability/location records fail rather than silently contaminating rating;
 - only same-context records outside the selected time window are excluded;
 - source provenance is not authentication or integrity proof;
-- ledger append failures do not mutate prior usage truth.
+- ledger append failures do not mutate prior usage truth;
+- the Q7 bound remediation lowers the commercial single-batch ceiling instead of introducing a safe-parser bypass.
 
 ## Q6 architecture / ownership review
 
@@ -237,7 +241,34 @@ The append-only usage ledger is a domain idempotency contract only; it does not 
 
 ## Q7 focused verification
 
-Run against frozen executable head `a62aeeb6068edb8d0df123ee3b86a0186e464c3c`:
+### Attempt 1
+
+Frozen executable SHA:
+
+```text
+a62aeeb6068edb8d0df123ee3b86a0186e464c3c
+```
+
+Operator-reported local result:
+
+- boundaries PASS;
+- typecheck PASS;
+- focused tests: 22 passed / 1 failed;
+- failed hardening assertion expected `USAGE_LIMIT_EXCEEDED` but received `INVALID_INPUT` for the oversized usage-batch case.
+
+Root cause: the initial `10_000` commercial batch ceiling was above what the shared `JSON_VALUE_MAX_NODES = 100_000` safety budget can represent for a full canonical usage record array. Evidence is recorded in `docs/evidence/MASTER-43/Q7_ATTEMPT_1.md`.
+
+### Remediation and new freeze
+
+`VIRA_COMMERCIAL_METERING_MAX_USAGE_RECORDS` is now `2_048`. No parser bypass was introduced.
+
+New frozen executable SHA:
+
+```text
+2d3e7933fc4c8ab619771a07dc926ef94fc2cfde
+```
+
+Rerun exactly:
 
 ```bash
 pnpm check:boundaries
@@ -248,7 +279,7 @@ pnpm vitest run \
   tests/contract/commercial-metering-ledger.test.ts
 ```
 
-Q7 local execution evidence is pending.
+Q7 remains PENDING until the exact new frozen SHA passes locally.
 
 ## Q0–Q9
 
@@ -257,8 +288,8 @@ Q7 local execution evidence is pending.
 - Q2 PASS — commercial metering/rating boundary frozen.
 - Q3 PASS — meter catalog, usage parser/serializer, append-only ledger and deterministic rating implemented.
 - Q4 PASS — focused metering/window/rating/ledger/non-authority/hardening coverage added.
-- Q5 PASS — security/fail-closed static review.
+- Q5 PASS — security/fail-closed static review, including post-Q7 remediation review.
 - Q6 PASS — architecture/ownership review + executable dependency boundary.
-- Q7 PENDING — exact frozen-head local boundaries/typecheck/three focused suites.
+- Q7 PENDING RERUN — attempt 1 failed one bound assertion; executable remediation frozen at `2d3e7933fc4c8ab619771a07dc926ef94fc2cfde`.
 - Q8 — independent PR reverse engineering + executable-clean closure compare after Q7 evidence.
 - Q9 — exact-head squash merge, verify new authoritative main, then start MASTER-44 fresh from it.
