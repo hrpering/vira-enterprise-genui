@@ -95,29 +95,31 @@ First exact-head local run on `0728072b19e4b73cb654bab1b724e2aefbbdb99b`:
 
 The correction is semantic-neutral: each object branch now explicitly binds `const object = value as JsonObject` before key indexing. Commit `73f99f85f9f0226591d6161825857b40541455b3` changes only `packages/application-protocol-projection/src/validate.ts` at those two narrowing points.
 
-Corrected exact-head local run on `73f99f85f9f0226591d6161825857b40541455b3` is operator-reported PASS for:
+Corrected exact-head local run on `73f99f85f9f0226591d6161825857b40541455b3` is operator-reported PASS for package boundaries, TypeScript, and both focused projection suites. Verification evidence is recorded in `docs/evidence/MASTER-38/VERIFICATION.md`.
 
-```bash
-pnpm check:boundaries
-pnpm typecheck
-pnpm vitest run \
-  tests/contract/application-protocol-projection.test.ts \
-  tests/contract/application-protocol-projection-hardening.test.ts
-```
+## Final Q8
 
-Verification evidence is recorded in `docs/evidence/MASTER-38/VERIFICATION.md`.
+PASS.
+
+Final compare from corrected frozen executable head `73f99f85f9f0226591d6161825857b40541455b3` to closure state contains only:
+
+- `docs/evidence/MASTER-38/VERIFICATION.md`
+- `docs/pr-plans/ACTIVE_PHASE.md`
+- `docs/pr-plans/MASTER-38.md`
+
+Executable drift after the corrected local gate is zero.
 
 ## Q0–Q9
 
-- Q0 PASS — fresh branch from exact `e03118833731c8483d0c42f648fefe446f0a103a`.
-- Q1 PASS — targeted RE of Application Package/Distribution, protocol gateway, authority/version model and boundary graph.
-- Q2 PASS — ownership/fidelity/non-authority invariants frozen.
-- Q3 PASS — projection contract implementation added.
-- Q4 PASS — focused contract/security/determinism/hardening coverage added.
-- Q5 PASS — security/fail-closed review.
-- Q6 PASS — architecture/ownership review.
-- Q7 PASS — corrected exact-head local gate.
-- Q8 FINAL COMPARE REQUIRED — executable scope was clean pre-Q7; corrected frozen head must remain executable-clean through closure.
-- Q9 BLOCKED until final Q8; then exact-head squash merge and MASTER-39 starts from resulting new authoritative `main`.
+- Q0 PASS
+- Q1 PASS
+- Q2 PASS
+- Q3 PASS
+- Q4 PASS
+- Q5 PASS
+- Q6 PASS
+- Q7 PASS — corrected exact-head local gate
+- Q8 PASS — final executable-clean compare
+- Q9 READY — exact-head squash merge, then MASTER-39 from resulting authoritative `main`
 
 Hosted verify/iOS/Android jobs ended with `steps: null` and remain infrastructure non-signal.
