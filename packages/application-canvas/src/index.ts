@@ -32,3 +32,19 @@ export {
   serializeViraCanvasDraft,
   serializeViraCanvasSemantics,
 } from "./validate.js";
+export { createViraCanvasMutationSession } from "./session.js";
+export type {
+  CreateViraCanvasMutationSessionResult,
+  ViraCanvasMutationSession,
+  ViraCanvasRemoveGraphViewInput,
+  ViraCanvasReplaceSemanticsInput,
+  ViraCanvasRevisionGuard,
+  ViraCanvasSessionIssue,
+  ViraCanvasSessionIssueCode,
+  ViraCanvasSessionMutationResult,
+  ViraCanvasSetActiveGraphInput,
+  ViraCanvasSetNodeLayoutInput,
+  ViraCanvasSetSelectionInput,
+  ViraCanvasSetViewportInput,
+  ViraCanvasUpsertGraphViewInput,
+} from "./session.js";
