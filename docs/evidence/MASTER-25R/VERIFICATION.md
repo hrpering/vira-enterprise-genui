@@ -12,9 +12,7 @@ MASTER-25R closes Enterprise GenUI RC evidence against the exact post-CLEAN-00 t
 
 ## Existing release contract review
 
-### RC composition
-
-Source inspection confirms `tooling/verify-enterprise-rc.mjs` runs, fail-fast and in order:
+`tooling/verify-enterprise-rc.mjs` remains the canonical fail-fast composition:
 
 ```text
 verify:all
@@ -26,68 +24,67 @@ verify:external-brand-proof
 
 Enterprise RC PASS is emitted only after every stage returns success.
 
-### External evidence boundary
+`tooling/verify-external-brand-proof-evidence.mjs` remains generic and fails closed for missing/unreadable evidence, non-exact shapes, invalid version/HEAD/Pack/digest/reference values, missing or failed Web/iOS/Android records, missing/false required gates and `viraHead` mismatch with `git rev-parse HEAD`.
 
-Source inspection confirms the generic verifier fails closed for missing/unreadable evidence, non-exact object shapes, wrong evidence version, invalid HEAD/Pack/digest/reference forms, missing or failed Web/iOS/Android records, missing/false required gate records and a `viraHead` different from `git rev-parse HEAD`.
+## Q4 regression-gap closure
 
-No Pegasus/customer identity is embedded in the generic verifier.
-
-## Q4 regression-gap finding
-
-A second-pass test-tree audit found no focused contract test for either release script. The broader suite covers underlying runtime/governance/native contracts, but did not directly protect the release orchestration/evidence boundary from regression.
-
-Added:
+Second-pass reverse engineering found no focused regression test for the two release scripts. Added:
 
 ```text
 tests/contract/enterprise-rc-gate.test.ts
 ```
 
-The black-box tests cover:
+Black-box coverage now includes:
 
 - exact valid evidence → success;
 - missing evidence → fail closed;
 - malformed JSON → fail closed;
 - stale `viraHead` → fail closed;
 - omitted required gate → fail closed;
-- failed iOS platform record → fail closed;
+- failed platform proof → fail closed;
 - canonical five-stage RC order;
-- first-stage failure propagation/short circuit;
+- first-failure propagation/short circuit;
 - no PASS message after failure.
 
-A separate behavioral sanity harness using the same `.mjs` boundaries confirmed valid exact-head evidence acceptance, canonical five-stage order and synthetic iOS failure exit/no-PASS behavior. That run used the available analysis environment and is **not** repository Q7 evidence.
+A separate behavioral sanity harness using the same existing `.mjs` boundaries confirmed valid exact-head evidence acceptance, canonical five-stage order and synthetic iOS failure exit/no-PASS behavior. That sanity run is **not** repository Q7 evidence.
 
-The new Vitest contract file is included by the repository `tests/**/*.ts` TypeScript/test surface. Canonical execution still must occur through the repository's Node >=24 `pnpm` gate.
+The Vitest file is inside the repository `tests/**/*.ts` TypeScript/test surface. Canonical test execution still requires the repository Node >=24 environment.
 
-## Security/architecture review
+## Q5/Q6 review
 
-Current implementation review remains clean:
+PASS by source/diff review:
 
-- no implicit latest release identity;
+- no implicit latest;
 - no stale-head acceptance;
-- no missing-platform acceptance;
-- no omitted-negative-gate acceptance;
+- no missing-platform/gate acceptance;
 - no provider/customer bypass;
 - no second RC authority;
-- no production/tooling behavior modification;
+- no production/runtime/SDK/tooling behavior modification;
 - no dependency edge added.
 
-## Current PR scope
+## Q8 independent PR reverse engineering
 
-Current base-to-branch compare contains release plan/evidence/status documents plus one focused contract-test file. There are no changes under `packages/`, `sdk/`, `.github/`, dependency manifests or release tooling implementation.
+PASS after the focused test addition.
 
-Because executable test coverage was added after the original pre-Q7 review, the earlier frozen SHA `27845ef...` is obsolete and must not be used for external proof.
+Review target: PR #185 at post-test head `df29817e93be873873937e695c0a9b01f06a0824`.
+
+The reviewed diff contains release plan/status/evidence plus one black-box contract test. It contains no `packages/`, `sdk/`, `.github/`, dependency-manifest or release-tooling implementation change. See `PR_REVIEW.md`.
+
+The earlier frozen SHA `27845ef...` is obsolete and must not be used for external proof.
+
+After this Q8 evidence overlay, a final compare from the reviewed executable tree must show documentation/evidence-only changes before the new pre-Q7 head is frozen.
 
 ## Q7 required exact-tree gate
 
-Still blocked on external proof and exact local repository execution.
+Still blocked on canonical repository execution plus external exact-head proof.
 
-Required final command after the new pre-Q7 head is frozen:
+After the new head is frozen:
 
 ```bash
 VIRA_EXTERNAL_BRAND_PROOF_EVIDENCE=/absolute/path/to/external-brand-proof.json pnpm verify:enterprise-rc
 ```
 
-The evidence `viraHead` must equal that newly frozen exact checkout SHA.
+The evidence `viraHead` must equal that exact checkout SHA.
 
 ## Hosted CI
 
@@ -98,16 +95,16 @@ Hosted GitHub Actions continues to exhibit the pre-existing zero-step/no-runner 
 - Q0 baseline: PASS
 - Q1 reverse engineering: PASS
 - Q2 authority freeze: PASS
-- Q3 minimal implementation: PASS — plan/evidence + one focused contract-test file
-- Q4 focused verification: **TEST COVERAGE ADDED / CANONICAL REPOSITORY EXECUTION PENDING**
-- Q5 security review: PASS by source/diff review
-- Q6 architecture review: PASS — release owners unchanged
+- Q3 minimal implementation: PASS — release evidence/status + one focused contract test
+- Q4 focused verification: **COVERAGE IMPLEMENTED / CANONICAL NODE>=24 REPOSITORY EXECUTION PENDING**
+- Q5 security review: PASS
+- Q6 architecture review: PASS
 - Q7 exact Enterprise RC execution: **BLOCKED / NOT EXECUTED**
-- Q8 independent PR reverse engineering: **REQUIRED AGAIN AFTER TEST ADDITION**
+- Q8 independent PR reverse engineering: **PASS — POST-TEST / PRE-Q7**
 - Q9 merge/post-merge: NOT STARTED
 
 ## Merge decision
 
 # NOT READY TO MERGE
 
-Do not declare Enterprise GenUI RC1 and do not start MASTER-26 until the updated PR passes independent Q8, the new exact pre-Q7 head is frozen, exact-head external proof exists, `pnpm verify:enterprise-rc` passes, and the final post-Q7 evidence-only compare is clean.
+Do not declare Enterprise GenUI RC1 and do not start MASTER-26 until the final evidence-only compare is clean, the new exact pre-Q7 head is frozen, exact-head external proof exists, `pnpm verify:enterprise-rc` passes, and the final post-Q7 evidence-only compare remains clean.
