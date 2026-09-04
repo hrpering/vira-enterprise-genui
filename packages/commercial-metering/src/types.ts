@@ -66,6 +66,12 @@ export interface ViraCommercialUsageBatch {
   readonly records: readonly ViraCommercialUsageRecord[];
 }
 
+export interface ViraCommercialUsageLedger {
+  readonly version: typeof VIRA_COMMERCIAL_METERING_SCHEMA_VERSION;
+  readonly append: (input: unknown) => ViraCommercialUsageLedgerResult<ViraCommercialUsageRecord>;
+  readonly snapshot: () => ViraCommercialUsageBatch;
+}
+
 export interface ViraCommercialUsageRatingRequest {
   readonly application: ViraApplicationPackage;
   readonly entitlementRef: ViraApplicationExactReference;
@@ -127,6 +133,10 @@ export type ViraCommercialMeterCatalogResult =
 
 export type ViraCommercialUsageBatchResult =
   | { readonly ok: true; readonly value: ViraCommercialUsageBatch }
+  | { readonly ok: false; readonly issue: ViraCommercialMeteringIssue };
+
+export type ViraCommercialUsageLedgerResult<T> =
+  | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly issue: ViraCommercialMeteringIssue };
 
 export type ViraCommercialMeteringSerializationResult<T> =
