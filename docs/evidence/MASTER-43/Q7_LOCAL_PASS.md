@@ -19,6 +19,8 @@ pnpm vitest run \
   tests/contract/commercial-metering-ledger.test.ts
 ```
 
-The prior failed Q7 attempt is retained separately in `Q7_ATTEMPT_1.md`; that failure led to the single-batch usage-record ceiling remediation from 10,000 to 2,048. No test counts are recorded here because the rerun confirmation was provided as a green/pass status without pasted rerun counts.
+The prior failed Q7 attempt is retained separately in `Q7_ATTEMPT_1.md`; that failure led to the commercial usage ceiling remediation from 10,000 to 2,048 records. The 2,048 bound applies to a parsed usage batch and to one in-process `ViraCommercialUsageLedger` instance; larger durable histories require partitioned/persistent integration outside the bounded core helper.
+
+No test counts are recorded here because the rerun confirmation was provided as a green/pass status without pasted rerun counts.
 
 Verdict: PASS.
