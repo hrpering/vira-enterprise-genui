@@ -18,14 +18,7 @@ export const VIRA_COMMERCIAL_ACCESS_STATES = Object.freeze([
   "disabled",
 ] as const);
 
-export const VIRA_COMMERCIAL_LIMIT_PERIODS = Object.freeze([
-  "day",
-  "month",
-  "billing-cycle",
-] as const);
-
 export type ViraCommercialAccessState = (typeof VIRA_COMMERCIAL_ACCESS_STATES)[number];
-export type ViraCommercialLimitPeriod = (typeof VIRA_COMMERCIAL_LIMIT_PERIODS)[number];
 
 export interface ViraCommercialPrincipalSelector {
   readonly kind: ViraEnterprisePrincipalKind;
@@ -52,7 +45,6 @@ export interface ViraCommercialEntitlementScope {
 export interface ViraCommercialEntitlementLimit {
   readonly meteringRef: ViraApplicationExactReference;
   readonly quantity: number;
-  readonly period: ViraCommercialLimitPeriod;
 }
 
 export interface ViraCommercialEntitlement {
