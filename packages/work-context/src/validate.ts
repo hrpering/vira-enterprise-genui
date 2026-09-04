@@ -78,9 +78,10 @@ function canonicalize(value: JsonValue): JsonValue {
   if (Array.isArray(value)) {
     return Object.freeze(value.map((item) => canonicalize(item)));
   }
-  const entries = Object.keys(value)
+  const objectValue = value as JsonObject;
+  const entries = Object.keys(objectValue)
     .sort()
-    .map((key) => [key, canonicalize(value[key] as JsonValue)] as const);
+    .map((key) => [key, canonicalize(objectValue[key] as JsonValue)] as const);
   return Object.freeze(Object.fromEntries(entries)) as JsonObject;
 }
 
