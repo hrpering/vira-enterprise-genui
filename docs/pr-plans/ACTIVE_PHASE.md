@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-34 — Canvas Simulation + Replay  
-**Status:** Q0–Q6 PASS / LOCAL Q7 REQUIRED  
+**Status:** Q0–Q8 PASS / Q9 MERGE READY  
 **Base SHA:** `8d9c28d5ac70b20ea88556305977aafd9dc8f3f6`  
 **Frozen executable SHA:** `9a8591c741f59205caf371d9e34eafb8a6086861`  
 **Previous:** MASTER-33 merged via PR #193  
@@ -17,6 +17,8 @@ Replay is anchored to exact canonical Canvas semantic serialization. It survives
 
 Q5/Q6 security and architecture review PASS. The reviewed package depends only on `application-canvas` and `protocol`; runtime, policy/governance, WorkContext, Action Boundary/Ledger and publication/deployment authorities remain unreachable.
 
-The first local Q7 attempt on `cbfc5b8087d33e21b45f95283e28608a9b16cef2` had package boundaries and TypeScript green plus 11/12 focused tests. The only failure was a test expectation mismatch: the shared root JSON boundary correctly classified a nested unsafe accessor as `INVALID_INPUT` before scenario/trace-specific parsing. Test expectations were aligned to this fail-closed contract without changing implementation behavior. New frozen executable head is `9a8591c741f59205caf371d9e34eafb8a6086861`.
+The first local Q7 attempt on `cbfc5b8087d33e21b45f95283e28608a9b16cef2` had package boundaries and TypeScript green plus 11/12 focused tests. The only failure was a test expectation mismatch; production behavior did not change. The corrected frozen head `9a8591c741f59205caf371d9e34eafb8a6086861` was then operator-reported fully green for boundaries, typecheck and the focused suite.
 
-Merge remains blocked until exact corrected-head local Q7 and final executable-clean actual-diff Q8.
+Final Q8 compare from the corrected frozen executable head contains documentation/evidence changes only; executable drift is zero.
+
+PR #194 is Q9 merge-ready.
