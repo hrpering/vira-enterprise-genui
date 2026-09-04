@@ -9,7 +9,7 @@ function capability(overrides: Record<string, unknown> = {}) {
     schemaVersion: "1",
     id: "refund.analysis",
     version: "1.0.0",
-    publisher: { id: "demo", name: "Demo" },
+    publisher: { id: "refund", name: "Refund" },
     metadata: { name: "Refund analysis" },
     input: { typeRef: { id: "type.refund-query", versionRef: "1" } },
     output: { typeRef: { id: "type.refund-result", versionRef: "1" } },
