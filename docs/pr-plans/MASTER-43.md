@@ -127,18 +127,20 @@ Each record contains:
 
 Duplicate `usageId` values fail closed. There is no last-write-wins correction behavior in the canonical core.
 
-A single canonical usage batch is bounded to `2_048` records. This ceiling is intentionally below the shared protocol safe-JSON node budget for the full canonical record shape. Larger accounting histories are represented through repeated bounded ledger appends rather than by bypassing the shared parser with oversized single payloads.
+A canonical usage batch is bounded to `2_048` records. This ceiling is intentionally below the shared protocol safe-JSON node budget for the full canonical record shape.
 
 ## Append-only usage ledger contract
 
-`createViraCommercialUsageLedger()` provides the domain-level append/idempotency contract without becoming durable storage infrastructure.
+`createViraCommercialUsageLedger()` provides a bounded domain-level append/idempotency helper without becoming durable storage infrastructure.
 
 - initial records must parse through the canonical usage-batch parser;
 - each append reuses the canonical record parser;
 - `usageId` must remain unique for the lifetime of that ledger instance;
 - malformed or duplicate appends do not mutate ledger state;
 - snapshots are detached, frozen and deterministically ordered;
+- one in-process ledger instance is bounded to `2_048` records;
 - no update/delete/reversal or implicit correction semantics exist in v1;
+- larger durable accounting histories require partitioning/persistence outside this bounded core helper;
 - database/storage/replication durability remains an integration concern outside this package.
 
 ## Rating request
@@ -158,7 +160,7 @@ The rating boundary:
 9. reads the matching entitlement limit, if present;
 10. returns deterministic usage rating evidence.
 
-Supplying records from another meter/context is an error rather than silently filtering cross-scope commercial data. Records outside the selected time window are valid same-context historical input and are excluded deterministically.
+Supplying records from another meter/context is an error rather than silently filtering cross-scope commercial data. Records outside the selected time window are valid same-context historical input and are excluded deterministically. Rating itself is a bounded operation over one canonical usage batch.
 
 ## Rating result
 
@@ -200,7 +202,7 @@ No currency, unit price, charge, invoice, payout or payment field exists in MAST
 - telemetry/observability/action receipts are not automatically billable usage;
 - usage records are immutable canonical inputs for rating;
 - ledger append is idempotent by `usageId` and append-only;
-- single usage batches remain below the canonical domain ceiling and always pass through the shared safe JSON parser;
+- parsed usage batches and in-process ledger instances are bounded to `2_048` records;
 - quantity arithmetic must remain within JavaScript safe integers;
 - no negative/decimal usage;
 - no monetary pricing or payment semantics;
@@ -221,7 +223,7 @@ PASS.
 - only same-context records outside the selected time window are excluded;
 - source provenance is not authentication or integrity proof;
 - ledger append failures do not mutate prior usage truth;
-- the Q7 bound remediation lowers the commercial single-batch ceiling instead of introducing a safe-parser bypass.
+- the Q7 bound remediation lowers the commercial usage ceiling instead of introducing a safe-parser bypass.
 
 ## Q6 architecture / ownership review
 
@@ -237,7 +239,7 @@ There is deliberately no executable edge to `telemetry`, `experience-observabili
 
 `application-package` remains exact Application/meter-reference owner. `commercial-entitlement` remains eligibility/limit owner. `enterprise-context` remains principal/scope owner. `telemetry` and `action-ledger` retain their operational/audit meanings. Monetary economics remain future downstream concerns.
 
-The append-only usage ledger is a domain idempotency contract only; it does not introduce a database, external transport or durable infrastructure owner.
+The append-only usage ledger is a bounded domain idempotency helper only; it does not introduce a database, external transport or durable infrastructure owner.
 
 ## Q7 focused verification
 
@@ -258,7 +260,7 @@ Operator-reported local result:
 
 Root cause: the initial `10_000` commercial batch ceiling was above what the shared `JSON_VALUE_MAX_NODES = 100_000` safety budget can represent for a full canonical usage record array. Evidence is recorded in `docs/evidence/MASTER-43/Q7_ATTEMPT_1.md`.
 
-### Remediation and new freeze
+### Remediation and rerun
 
 `VIRA_COMMERCIAL_METERING_MAX_USAGE_RECORDS` is now `2_048`. No parser bypass was introduced.
 
@@ -268,7 +270,7 @@ New frozen executable SHA:
 2d3e7933fc4c8ab619771a07dc926ef94fc2cfde
 ```
 
-Rerun exactly:
+Exact rerun command set:
 
 ```bash
 pnpm check:boundaries
@@ -279,7 +281,21 @@ pnpm vitest run \
   tests/contract/commercial-metering-ledger.test.ts
 ```
 
-Q7 remains PENDING until the exact new frozen SHA passes locally.
+Operator-reported rerun verdict: **PASS**. Evidence: `docs/evidence/MASTER-43/Q7_LOCAL_PASS.md`.
+
+## Q8 independent reverse engineering
+
+PASS after docs-only correction.
+
+Fresh PR review revalidated the complete changed-file set, executable dependency graph, meter/usage/rating semantics, entitlement delegation, fail-closed context matching, safe quantity arithmetic, bounded ledger behavior, non-authority guarantees and focused/hardening coverage.
+
+One documentation mismatch was found: an earlier sentence implied one ledger could exceed the 2,048 ceiling through repeated bounded appends. The executable ledger is intentionally bounded to the same 2,048 record ceiling. Documentation/evidence was corrected; no executable change was required, so Q7 did not need another rerun.
+
+Frozen executable → closure compare contains documentation/evidence changes only.
+
+Hosted PR-head `verify`, `ios-native` and `android-native` failures remain infrastructure non-signal because the jobs contain zero executable steps and no assigned runner. They neither substitute for nor invalidate Q7 local evidence.
+
+Full Q8 evidence: `docs/evidence/MASTER-43/Q8_REVIEW.md`.
 
 ## Q0–Q9
 
@@ -290,6 +306,6 @@ Q7 remains PENDING until the exact new frozen SHA passes locally.
 - Q4 PASS — focused metering/window/rating/ledger/non-authority/hardening coverage added.
 - Q5 PASS — security/fail-closed static review, including post-Q7 remediation review.
 - Q6 PASS — architecture/ownership review + executable dependency boundary.
-- Q7 PENDING RERUN — attempt 1 failed one bound assertion; executable remediation frozen at `2d3e7933fc4c8ab619771a07dc926ef94fc2cfde`.
-- Q8 — independent PR reverse engineering + executable-clean closure compare after Q7 evidence.
-- Q9 — exact-head squash merge, verify new authoritative main, then start MASTER-44 fresh from it.
+- Q7 PASS — exact frozen-head local rerun on `2d3e7933fc4c8ab619771a07dc926ef94fc2cfde`.
+- Q8 PASS — independent PR reverse engineering; one docs-only mismatch corrected; executable-clean closure preserved.
+- Q9 READY — final exact-head compare, ready-for-review transition, squash merge, verify new authoritative main, then start MASTER-44 from that exact main.
