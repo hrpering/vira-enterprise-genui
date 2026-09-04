@@ -100,6 +100,9 @@ export function parseViraCommercialSettlementAllocation(
   if (typeof root.publisherId !== "string" || !isSemanticSegment(root.publisherId)) {
     return fail("INVALID_PUBLISHER", "$.publisherId", "publisherId must be a canonical semantic segment");
   }
+  if (root.applicationId.split(".")[0] !== root.publisherId) {
+    return fail("INVALID_PUBLISHER", "$.publisherId", "publisherId must match the Application identity namespace");
+  }
   if (
     typeof root.publisherShareBps !== "number"
     || !Number.isSafeInteger(root.publisherShareBps)
