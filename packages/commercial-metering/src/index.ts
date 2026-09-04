@@ -32,4 +32,8 @@ export {
   serializeViraCommercialMeterCatalog,
   serializeViraCommercialUsageBatch,
 } from "./metering.js";
+export {
+  parseViraCommercialUsageRating,
+  serializeViraCommercialUsageRating,
+} from "./rating-evidence.js";
 export { createViraCommercialUsageLedger } from "./ledger.js";
