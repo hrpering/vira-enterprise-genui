@@ -9,45 +9,21 @@ Add deterministic authoring collaboration for Canvas: bounded participants, ephe
 - authoritative `main`: `f17ae3cc920e672fcab1f97028dddcbe08040016`
 - previous phase: MASTER-34 merged via PR #194
 - branch: `master/35-canvas-multiplayer-semantic-review`
+- frozen executable head: `68583242ce8afb71e04d70d0843a9c81d54a9dad`
 
 ## Ownership
 
 `application-canvas` remains canonical owner of Canvas draft validation, `editorRevision`, atomic mutations and semantic replacement.
 
-MASTER-35 introduces `application-canvas-collaboration` for authoring collaboration state only.
+`application-canvas-collaboration` owns only authoring collaboration state: bounded participants, per-actor presence, semantic proposals, immutable peer reviews, editor approval threshold and reviewed apply delegation.
 
-It owns:
-
-- registered participant identities/display names;
-- per-actor monotonic presence sequence;
-- graph-local actor selection/cursor presence;
-- semantic proposal identity/author/base revision/summary;
-- preservation of Application identity/publisher authority;
-- immutable peer reviews;
-- session-level required distinct approval count;
-- self-review/duplicate-review rejection;
-- rejection blocking;
-- stale proposal detection;
-- projection compatibility check;
-- final apply delegation to `application-canvas` mutation session.
-
-It does not own:
-
-- network/WebSocket transport;
-- CRDT/OT algorithms;
-- persistence/distributed locks;
-- enterprise governance or authorization;
-- publication/deployment approval;
-- runtime execution;
-- Capability/Action execution;
-- AI provider generation;
-- canonical Application/Graph schemas.
+It does not own network/WebSocket transport, CRDT/OT, persistence/distributed locks, authentication, enterprise governance/authorization, publication/deployment, runtime, Capability/Action execution, AI generation or canonical Application/Graph schemas.
 
 ## Collaboration semantics
 
-Presence is ephemeral and never increments `editorRevision`.
+Presence is ephemeral and never increments `editorRevision`. Actor identity is asserted by the host after its own authentication/authorization; this package does not authenticate participant claims.
 
-Multiple proposals may bind to the same editor revision. Proposal creation itself does not mutate the draft.
+Multiple proposals may bind to the same revision without mutating the draft. Applying one proposal through the canonical mutation session advances revision and makes competing proposals stale.
 
 Review rules:
 
@@ -55,26 +31,58 @@ Review rules:
 - one immutable review per reviewer/proposal;
 - distinct approvals must meet session `requiredApprovals`;
 - any rejection blocks that proposal;
-- review is an editor mutation gate, not governance/authorization.
+- review gates editor mutation only; it is not governance, authorization or publication approval.
 
 Apply rules:
 
-- current editor revision must still equal proposal base revision;
-- projection compatibility must remain `compatible`;
+- current revision must equal proposal base revision;
+- projection compatibility must be `compatible`;
 - required reviews must pass;
 - final mutation delegates to `createViraCanvasMutationSession().replaceSemantics()`;
-- successful semantic apply increments revision through the existing owner and clears ephemeral presence;
-- competing proposals from the old base revision become stale.
+- successful apply clears ephemeral presence so invalid cursors/selections do not survive semantic change.
+
+## Q5 security review
+
+PASS.
+
+- all mutation-style inputs use shared fail-closed safe JSON parsing;
+- participants are bounded and unique;
+- presence is graph-local, sequence-monotonic and bounded;
+- proposal ids are unique and base revision is exact;
+- Application identity/publisher authority cannot be replaced by a proposal;
+- no-op proposals are rejected;
+- self-review and duplicate peer reviews are rejected;
+- any rejection blocks apply;
+- distinct approval threshold is enforced;
+- projection-breaking proposals cannot silently apply;
+- successful apply delegates to canonical mutation validation;
+- actor ids are explicitly host-asserted and are not represented as authentication/security credentials.
+
+## Q6 architecture review
+
+PASS.
+
+Executable dependencies are only `application-canvas` and `protocol`. No runtime, governance, policy, deployment, Action Boundary/Ledger, AI-provider or networking package is reachable from this owner.
+
+This package is not a CRDT or collaboration server. A future transport may carry these contracts but cannot redefine Canvas semantic/revision authority.
 
 ## Q0–Q9
 
 - Q0 PASS — exact base `f17ae3cc920e672fcab1f97028dddcbe08040016`.
 - Q1 PASS — targeted reverse engineering.
 - Q2 PASS — collaboration/review ownership frozen.
-- Q3 IMPLEMENTED — collaboration package/session surface.
-- Q4 IMPLEMENTED — focused participant/presence/concurrency/review/apply/security coverage.
-- Q5 REQUIRED — fail-closed/security review.
-- Q6 REQUIRED — architecture/authority review.
-- Q7 REQUIRED — exact-head local package-boundary/type/focused suite.
-- Q8 REQUIRED — independent actual PR diff review.
-- Q9 BLOCKED until Q7/Q8; then squash merge and start MASTER-36 from new authoritative `main`.
+- Q3 PASS — collaboration package/session implemented.
+- Q4 PASS — focused participant/presence/concurrency/review/apply/security coverage implemented.
+- Q5 PASS — fail-closed/security review.
+- Q6 PASS — architecture/authority review.
+- Q7 REQUIRED — exact frozen-head local package-boundary/type/focused suite.
+- Q8 PRE-Q7 PASS — executable scope reviewed; final post-Q7 compare required.
+- Q9 BLOCKED until Q7/final Q8; then squash merge and start MASTER-36 from new authoritative `main`.
+
+Exact local Q7:
+
+```bash
+pnpm check:boundaries
+pnpm typecheck
+pnpm vitest run tests/contract/application-canvas-collaboration.test.ts
+```
