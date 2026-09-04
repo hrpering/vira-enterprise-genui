@@ -28,6 +28,7 @@ const LOSSY_FIELDS = new Set(["fidelity", "payload", "losses"]);
 const UNSUPPORTED_FIELDS = new Set(["fidelity", "reason"]);
 const LOSS_FIELDS = new Set(["path", "reason"]);
 const CONTROL_CHARS = /[\u0000-\u001F\u007F]/;
+const APPLICATION_PATH = /^\$\.application(?:\.[A-Za-z][A-Za-z0-9_]*|\[(?:0|[1-9]\d*)\])*$/;
 
 type Failure = { readonly ok: false; readonly issue: ViraApplicationProtocolProjectionIssue };
 type Parsed<T> = { readonly ok: true; readonly value: T } | Failure;
@@ -64,12 +65,6 @@ function safeText(value: JsonValue | undefined, maxLength: number): value is str
     && value.length <= maxLength
     && value.trim().length > 0
     && !CONTROL_CHARS.test(value);
-}
-
-function isCanonicalApplicationPath(path: string): boolean {
-  return path === "$.application"
-    || path.startsWith("$.application.")
-    || path.startsWith("$.application[");
 }
 
 function projectionKey(ref: ViraApplicationProtocolProjectionRef): string {
@@ -135,12 +130,12 @@ function parseLosses(value: JsonValue | undefined): Parsed<readonly ViraApplicat
 
     if (
       !safeText(object.path, VIRA_APPLICATION_PROTOCOL_PROJECTION_PATH_MAX_LENGTH)
-      || !isCanonicalApplicationPath(object.path)
+      || !APPLICATION_PATH.test(object.path)
     ) {
       return failure(
         "INVALID_LOSS_PATH",
         `$.result.losses[${index}].path`,
-        "loss path must be a bounded canonical Application path rooted at $.application",
+        "loss path must use the canonical $.application dot-field/numeric-index path grammar",
       );
     }
     if (!safeText(object.reason, VIRA_APPLICATION_PROTOCOL_PROJECTION_REASON_MAX_LENGTH)) {
