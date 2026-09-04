@@ -1,9 +1,9 @@
 # Active Phase
 
 **Phase:** MASTER-37 — Application Distribution Contract  
-**Status:** Q0–Q6 PASS / LOCAL Q7 REQUIRED  
+**Status:** Q0–Q6 PASS / CORRECTED LOCAL Q7 REQUIRED  
 **Base SHA:** `2e1b509ca9d7c0c1c0179746bec95fa7f2bed016`  
-**Frozen executable SHA:** `41fa04d7af4c5a68fa4eff1cb4a2403bff4dbaac`  
+**Frozen executable SHA:** `ad9745334e0cedfe2b7d28ee06435f498e62e7c4`  
 **Previous:** MASTER-36 merged via PR #196  
 **Branch:** `master/37-distribution-contract`  
 **PR:** #197  
@@ -19,6 +19,8 @@ Q5 security review PASS: safe JSON boundary, exact shapes, canonical Application
 
 Q6 architecture review PASS: dependencies are only `application-package` and `protocol`; no registry/gateway/deployment/runtime/governance/Action authority is imported or modified; canonical Application serialization is reused.
 
-Pre-Q7 Q8 review PASS: compare from frozen executable head to current branch contains documentation/ownership evidence only. Hosted verify/iOS/Android jobs on the branch contained zero steps and runner id 0, so they are infrastructure non-signal.
+First exact-head local Q7 on `41fa04d7af4c5a68fa4eff1cb4a2403bff4dbaac` reported package boundaries PASS and focused tests 13/13 PASS, but TypeScript failed on one test-only `noImplicitAny` callback parameter. Production implementation was unchanged. The focused test now annotates the verifier callback with exported `ViraApplicationDistributionVerifierInput`; corrected frozen executable head is `ad9745334e0cedfe2b7d28ee06435f498e62e7c4`.
 
-Merge remains blocked until exact frozen-head local Q7 and final post-Q7 executable-clean Q8.
+Hosted verify/iOS/Android jobs on the branch contained zero steps and runner id 0, so they remain infrastructure non-signal.
+
+Merge remains blocked until exact corrected-head local Q7 and final post-Q7 executable-clean Q8.
