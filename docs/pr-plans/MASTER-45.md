@@ -9,6 +9,7 @@ Introduce the canonical provider-neutral monetary pricing boundary downstream of
 - authoritative `main`: `f1ee6ec68b9c1a53f3413b9f201eae355517fc52`
 - previous phase: MASTER-44 merged via PR #205
 - branch: `master/45-commercial-pricing`
+- draft PR: #206
 - frozen executable SHA: `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`
 
 ## Q1 reverse engineering
@@ -149,7 +150,7 @@ Added:
 
 ## Q4 focused/hardening coverage
 
-PASS by static coverage review; local execution remains Q7.
+PASS by static coverage review; executable validation completed in Q7.
 
 Focused suites:
 
@@ -206,7 +207,11 @@ Final executable SHA for Q7:
 
 All changes after this SHA must be documentation/evidence only. Any executable/package/test/boundary change invalidates the freeze and requires new Q5/Q6 review plus Q7.
 
-## Q7 planned local gate
+## Q7 local gate
+
+PASS on exact frozen executable SHA `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`.
+
+The repository operator reran this full command set detached at the exact frozen SHA and reported it green:
 
 ```bash
 pnpm check:boundaries
@@ -216,6 +221,10 @@ pnpm vitest run \
   tests/contract/commercial-pricing.test.ts \
   tests/contract/commercial-pricing-hardening.test.ts
 ```
+
+Evidence: `docs/evidence/MASTER-45/Q7_LOCAL_PASS.md`.
+
+No test counts/timings are reconstructed because the operator reported only the overall green result for the exact gate.
 
 ## Non-goals
 
@@ -230,6 +239,6 @@ MASTER-45 does not implement payment providers, invoices, taxes, FX, refunds, su
 - Q4 PASS — focused/hardening coverage added and statically reviewed.
 - Q5 PASS — security/fail-closed review.
 - Q6 PASS — architecture/ownership review.
-- Q7 PENDING — exact frozen-head local gate.
-- Q8 — independent PR reverse engineering + closure compare.
+- Q7 PASS — exact frozen-head local gate, operator-reported green.
+- Q8 ACTIVE — independent PR reverse engineering + closure compare.
 - Q9 — exact-head squash merge and verify new authoritative main.
