@@ -15,7 +15,7 @@ Add the first Application-level protocol egress contract so exact distributed Ap
 
 - `application-package` owns exact `protocolProjections[]` declarations.
 - `application-distribution` owns exact source Application distribution envelope + declared artifact integrity identity.
-- `protocol-gateway` owns existing tool/protocol invocation adaptation only.
+- `protocol-gateway` owns existing tool/protocol adaptation only.
 - runtime, deployment, governance, entitlement and Action owners retain their existing authority.
 
 ## New owner
@@ -95,7 +95,7 @@ First exact-head local run on `0728072b19e4b73cb654bab1b724e2aefbbdb99b`:
 
 The correction is semantic-neutral: each object branch now explicitly binds `const object = value as JsonObject` before key indexing. Commit `73f99f85f9f0226591d6161825857b40541455b3` changes only `packages/application-protocol-projection/src/validate.ts` at those two narrowing points.
 
-## Focused verification
+Corrected exact-head local run on `73f99f85f9f0226591d6161825857b40541455b3` is operator-reported PASS for:
 
 ```bash
 pnpm check:boundaries
@@ -104,6 +104,8 @@ pnpm vitest run \
   tests/contract/application-protocol-projection.test.ts \
   tests/contract/application-protocol-projection-hardening.test.ts
 ```
+
+Verification evidence is recorded in `docs/evidence/MASTER-38/VERIFICATION.md`.
 
 ## Q0–Q9
 
@@ -114,8 +116,8 @@ pnpm vitest run \
 - Q4 PASS — focused contract/security/determinism/hardening coverage added.
 - Q5 PASS — security/fail-closed review.
 - Q6 PASS — architecture/ownership review.
-- Q7 CORRECTED EXACT-HEAD RETEST REQUIRED.
-- Q8 PRE-Q7 PASS — actual executable scope reviewed; corrected frozen head must remain executable-clean until final post-Q7 compare.
-- Q9 BLOCKED until corrected Q7/final Q8; then exact-head squash merge and MASTER-39 starts from resulting new authoritative `main`.
+- Q7 PASS — corrected exact-head local gate.
+- Q8 FINAL COMPARE REQUIRED — executable scope was clean pre-Q7; corrected frozen head must remain executable-clean through closure.
+- Q9 BLOCKED until final Q8; then exact-head squash merge and MASTER-39 starts from resulting new authoritative `main`.
 
 Hosted verify/iOS/Android jobs ended with `steps: null` and remain infrastructure non-signal.
