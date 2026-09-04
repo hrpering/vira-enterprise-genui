@@ -2,372 +2,116 @@
 
 ## Purpose
 
-The Vira Action Boundary is the target controlled path through which a user- or agent-proposed interaction becomes an enterprise side effect.
+The Vira Action Boundary is the current canonical controlled path through which a user- or agent-proposed semantic action may become a protected enterprise side effect.
 
-MASTER-01 freezes the contract. MASTER-08 implements the complete boundary.
+Canonical implementation owner: `@vira-enterprise-genui/action-boundary`.
 
-Do not read this document as a claim that all identity, approval, provider governance and end-to-end idempotency controls already exist in current code.
+The package currently exports the `ViraActionIntent`, proposal/permit/effect, confirmation challenge/grant, idempotency, trusted adapter and `ViraActionReceipt` contract family through `createViraActionBoundary`.
+
+RC evidence is separate from implementation status: MASTER-25R must still prove the integrated boundary against the exact post-CLEAN-00 release head.
 
 ## Why this boundary exists
 
-Generative UI becomes enterprise-critical at the moment interaction causes a real mutation:
+A trusted-looking UI, agent recommendation or provider `allow` is not authority to mutate enterprise state.
 
-- submit an order;
-- confirm a booking;
-- issue a refund;
-- change an account setting;
-- approve a workflow;
-- call a privileged enterprise tool.
+Protected examples include booking/ordering/refund/settings/approval or privileged enterprise-tool effects.
 
-A trusted-looking UI or an agent recommendation is not authority to perform that mutation.
-
-## Current action foundations
-
-### Runtime action
-
-Current `runtime-core` validates a canonical runtime action with:
+## Canonical flow
 
 ```text
-id
-semantic type
-source: user | host | system
-JSON payload
-```
-
-It provides deterministic action validation and permission evaluation. Current permission rules support `allow`, `deny` and `confirm`, with default deny when no rule matches.
-
-### Studio runtime / host bridge
-
-Current Studio runtime and `studio-host-runtime` provide additional useful safeguards:
-
-- approved interaction mapping produces canonical actions;
-- host snapshots carry monotonically accepted revisions;
-- backward snapshot revisions fail;
-- duplicate revision delivery does not mutate accepted state;
-- a runtime action ID is forwarded to a host at most once per adapter/session pair;
-- an uncertain host transport failure is not automatically replayed;
-- runtime completion records `success`, `empty` or `error`.
-
-These controls remain valid and must not be regressed.
-
-### What current code does not yet provide as one canonical boundary
-
-The current action contracts do not yet combine all of the following into one cross-platform enterprise transaction context:
-
-- user identity;
-- agent/service identity;
-- tenant/project/environment identity;
-- exact Experience/Pack/publication/deployment identity;
-- exact runtime `instanceId`;
-- provider-neutral governance verdict;
-- approval evidence;
-- end-to-end idempotency key;
-- expected state revision attached to the protected operation;
-- canonical ActionReceipt.
-
-MASTER-08 owns that implementation.
-
-## Target pipeline
-
-All protected user and agent actions converge on the same pipeline:
-
-```text
-UI interaction / Agent proposal
-             │
-             ▼
+UI interaction / agent proposal
+             ↓
          ActionIntent
-             │
-             ▼
-       structural validation
-             │
-             ▼
-      identity resolution
-             │
-             ▼
-       tenant / instance guard
-             │
-             ▼
-       policy evaluation
-             │
-             ▼
-   approval / challenge if required
-             │
-             ▼
- expected revision + idempotency guard
-             │
-             ▼
-     trusted action adapter
-             │
-             ▼
-       enterprise backend
-             │
-             ▼
+             ↓
+ structural + bounded validation
+             ↓
+ identity / tenant / instance context
+             ↓
+ provider-neutral governance
+             ↓
+ approval / challenge when required
+             ↓
+ revision + idempotency constraints
+             ↓
+ trusted action adapter
+             ↓
+ enterprise backend / tool
+             ↓
         ActionReceipt
 ```
 
-No renderer, protocol bridge or agent framework may skip directly from proposal to protected adapter.
+No renderer, protocol adapter, AI host or component implementation may skip directly to a protected adapter because it controls presentation or transport.
 
-## ActionIntent — target responsibility
+## Current owner relationships
 
-`ActionIntent` is the canonical proposal to perform a semantic action. Its final schema belongs to MASTER-08, but the architecture requires it to bind sufficient context to make a deterministic security/concurrency decision.
+- `runtime-core` owns the lower-level canonical runtime action/state/lifecycle primitives.
+- `action-boundary` owns protected-action proposal/execution/receipt semantics.
+- `governance` owns provider-neutral identity/governance/approval composition and external governance adapters.
+- `enterprise-governance` applies enterprise governance composition without replacing the canonical owners.
+- `enterprise-context` supplies enterprise-scoped context where required.
+- `action-ledger` owns durable audit/ledger concerns around receipts; replay is observation, not re-execution.
 
-Required concepts include:
+## ActionIntent invariants
 
-- stable `actionId`;
-- semantic action type;
-- bounded validated payload;
-- exact runtime `instanceId`;
-- exact Experience/deployment context;
-- actor context (user and/or agent/service as applicable);
-- tenant/project/environment context;
-- `expectedStateRevision` when state concurrency is material;
-- `idempotencyKey` for protected mutations/retry handling.
+A protected proposal must bind enough exact context to avoid mutable-global routing. Depending on the registered action/effect, material context includes stable action identity, semantic action definition, bounded payload, runtime/deployment/Experience context, actor/tenant context, relevant expected revision and idempotency identity.
 
-The boundary must not depend on a mutable global `currentExperience` or `activeInstance` to fill missing context.
+The boundary must never fill missing authority from `latest`, `activeInstance`, `currentExperience`, last-rendered UI state or customer/domain-specific fallback.
 
-## Validation order
+## Validation and decision ordering
 
-### 1. Structural validation
+1. **Structural validation** — reject malformed/unknown data before provider/backend execution.
+2. **Identity/isolation** — resolve required principals and verify tenant/project/environment/instance ownership.
+3. **Governance** — evaluate provider-neutral governance; provider error fails closed.
+4. **Approval/challenge** — require valid evidence when governance demands it; challenge is not implicit allow.
+5. **Revision/idempotency** — reject stale or replayed protected mutations according to the action contract.
+6. **Trusted execution** — only a registered trusted adapter may cross into the protected backend/tool.
+7. **Receipt** — normalize the outcome into canonical safe receipt/audit semantics.
 
-Reject malformed/unknown action fields and payload shapes before external policy or backend calls.
+Structural invalidity, tenant/instance mismatch and other non-overridable Vira safety constraints cannot be converted into allow by an external provider.
 
-Structural invalidity is not a normal policy deny that a provider can override.
+## Idempotency and retry
 
-### 2. Identity resolution
+Vira does not claim universal exactly-once execution. It requires deterministic duplicate/stale defenses for common failure modes such as double-click, mobile reconnect, agent retry, network retry and process retry.
 
-Resolve the relevant authenticated user/agent/service principals and bind them to the action context.
+A repeat of the same safe idempotency identity must not blindly execute the protected mutation again. A different operation carrying a stale expected revision is not the same duplicate and fails according to stale-state semantics.
 
-A caller-supplied display name is not identity authority.
+Uncertain adapter/transport outcomes must never be converted into an unsafe fresh retry by generating a new random identity.
 
-### 3. Tenant / project / environment / instance isolation
+## User and agent parity
 
-Verify that all referenced deployment, Experience and runtime instance identities belong to the authorized context.
-
-Cross-instance and cross-tenant routing fails before side-effect execution.
-
-### 4. Governance policy
-
-Evaluate provider-neutral Vira policy using the validated, identity-bound context.
-
-Evaluation errors fail closed.
-
-### 5. Approval / challenge
-
-If policy requires human approval, step-up authentication, second approver or another challenge, execution pauses until valid evidence is bound to the exact material action context.
-
-A challenge is not an implicit allow.
-
-### 6. Revision / idempotency guard
-
-Protected state mutations verify relevant expected revision and duplicate semantics before adapter execution.
-
-### 7. Trusted adapter execution
-
-Only a registered trusted action adapter may cross into customer backend/tool execution.
-
-The adapter receives the minimum validated context it owns. It does not receive arbitrary renderer objects or unvalidated model output.
-
-### 8. Receipt
-
-The result is normalized into an `ActionReceipt` sufficient for audit/replay/state evolution without exposing secrets.
-
-## Idempotency model
-
-Vira does not claim impossible universal exactly-once execution.
-
-Instead it targets explicit duplicate handling across common failure/retry modes:
-
-```text
-double click
-network retry
-agent retry
-mobile reconnect
-client timeout
-process retry
-```
-
-### Example
-
-```text
-state revision = 42
-idempotency key = K
-
-Confirm Booking
-expected revision = 42
-        ↓
-execute once
-        ↓
-receipt committed
-state revision = 43
-
-same action/key arrives again
-        ↓
-recognize duplicate / return prior safe result
-        ↓
-do not blindly execute again
-```
-
-If a different operation arrives with stale `expectedStateRevision = 42`, it fails as stale rather than being treated as the same duplicate.
-
-## Relationship to current duplicate-forward guard
-
-The current `studio-host-runtime` marks an action ID before crossing the host dispatch boundary and rejects a second forward for the same session.
-
-Keep this defense.
-
-MASTER-08 must add the broader transaction-level model required across:
-
-- process boundaries;
-- mobile reconnect;
-- multiple hosts;
-- backend retries;
-- agent retry loops;
-- deployment/runtime restarts.
-
-A local in-memory set is not an end-to-end idempotency store.
-
-## Revision semantics
-
-Current Studio host snapshots already use a monotonic `revision` as host state change token.
-
-Target protected mutations must explicitly define which revision is authoritative for concurrency checks. The Action Boundary must not ambiguously mix:
-
-- host snapshot revision;
-- runtime internal revision;
-- deployment revision;
-- artifact version.
-
-These identities must remain distinct even if an adapter chooses to correlate them.
-
-## User and agent actions
-
-A user click and an agent tool/action proposal may have different initiators, but protected side effects use the same boundary.
+User and agent actions may carry different actor identities, but protected effects converge on the same boundary.
 
 ```text
 user UI ──────┐
-              ├──> ActionIntent → same governance/execution path
+              ├──> ActionIntent → governance/execution → receipt
 agent action ─┘
 ```
 
-Policy can distinguish actor type/identity. The execution mechanics are not duplicated into a separate privileged “agent path.”
+There is no privileged agent bypass path.
 
-## Approval as an Experience
+## Approval as Experience
 
-A challenge requiring human action should be representable through the same cross-platform Experience system.
-
-Example:
-
-```text
-Refund €4,000
-Customer #9381
-Policy: manager approval required
-        ↓
-Approval Experience
-        ↓
-Approve / Reject
-        ↓
-bound approval evidence
-        ↓
-resume original ActionIntent decision
-```
-
-The approval UI does not itself execute the refund outside the boundary.
-
-## Provider-neutral verdict — target
-
-The exact schema belongs to MASTER-09, but Action Boundary depends on a provider-neutral effect model rather than provider-specific branching throughout runtime code.
-
-Expected concepts:
-
-- allow;
-- deny;
-- challenge;
-- transform with explicit obligations.
-
-Vira core validation/isolation can still reject after a provider says allow if the action violates a non-overridable safety invariant.
-
-## Transform obligations
-
-A policy transform is not permission to mutate arbitrary action fields.
-
-Any transformed payload/action must be revalidated against the canonical action contract, and the receipt/audit chain records the effective action actually executed.
-
-## ActionReceipt — target
-
-A receipt should make the execution outcome auditable without becoming a secret/data dump.
-
-Required concepts may include:
-
-- action and idempotency identity;
-- effective semantic action type;
-- exact Experience/deployment/instance context;
-- policy/approval decision references;
-- adapter outcome/status;
-- resulting accepted revision where applicable;
-- safe evidence/audit references.
-
-Provider-specific raw response bodies are not the canonical receipt model.
+Human approval/challenge UX may be represented by the same cross-platform Experience system. Approval evidence resumes the original governed action context; the approval UI never performs the protected mutation directly.
 
 ## Failure classes
 
-At minimum distinguish:
-
-- invalid intent;
-- identity failure;
-- isolation mismatch;
-- policy deny;
-- policy evaluation failure;
-- approval required/pending/rejected/expired;
-- stale revision;
-- duplicate/replayed intent;
-- adapter failure;
-- ambiguous execution/transport outcome;
-- invalid adapter result;
-- disposed/cancelled runtime context.
-
-Do not collapse every failure into a generic `error` if doing so would cause unsafe retry behavior.
+The canonical boundary preserves meaningful failure distinctions where unsafe retry could otherwise occur, including invalid intent, isolation mismatch, governance deny/evaluation failure, approval required/rejected/expired, stale revision, duplicate/replay, adapter failure, ambiguous execution outcome and invalid adapter result.
 
 ## Replay
 
-Observability/replay may reconstruct:
+Observability may reconstruct the semantic sequence from Experience → proposal → governance/challenge → adapter outcome → receipt. Replay never invokes the protected action adapter to reproduce history.
 
-```text
-Experience shown
-→ interaction proposed
-→ ActionIntent
-→ policy/challenge
-→ approval evidence
-→ adapter execution
-→ receipt/state outcome
-```
+## Bypass violations
 
-Replay never invokes the trusted action adapter again merely to reproduce history.
-
-## Bypass rules
-
-The following are architecture violations:
+Architecture violations include:
 
 - React/SwiftUI/Compose component directly calling a protected customer mutation endpoint;
-- agent tool implementation skipping Vira governance for an action represented as a Vira Experience;
-- protocol adapter invoking the backend because it received an `allow` provider field;
-- global latest/active instance used to route a command;
-- approval UI directly performing the protected side effect;
-- retry after uncertain execution with a new random idempotency identity;
-- policy provider overriding structural validation or tenant isolation.
+- agent/protocol adapter skipping governance because it has a provider `allow`;
+- implicit latest/active instance routing;
+- approval UI directly executing the protected effect;
+- retry after uncertain execution with fresh idempotency identity;
+- external governance overriding structural validation or tenant isolation.
 
-## MASTER-08 implementation gate
+## Verification rule
 
-MASTER-08 is complete only when the common Action Boundary is executable and covered by adversarial tests for at least:
-
-- user and agent actors;
-- allow and deny;
-- challenge/approval;
-- policy evaluation failure;
-- exact tenant/instance routing;
-- unknown action;
-- double click;
-- duplicate retry;
-- stale revision;
-- uncertain adapter failure;
-- receipt generation;
-- cross-platform production of equivalent semantic intent.
+Changes to this boundary require focused adversarial coverage for relevant allow/deny/challenge, user/agent, exact tenant/instance, unknown action, duplicate/retry, stale revision, adapter failure and receipt behavior, plus repository-wide verification and independent security/architecture review.
