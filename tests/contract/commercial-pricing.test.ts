@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   parseViraCommercialPriceCatalog,
+  parseViraCommercialPriceQuote,
   priceViraCommercialUsage,
   serializeViraCommercialPriceCatalog,
+  serializeViraCommercialPriceQuote,
 } from "../../packages/commercial-pricing/src/index.js";
 
 function catalog(overrides: Record<string, unknown> = {}) {
@@ -53,6 +55,27 @@ function request(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function expectedQuote() {
+  return {
+    planRef: { id: "plan.pro", versionRef: "1" },
+    currency: "USD",
+    asOf: "2026-09-05T12:30:00.000Z",
+    fixedAmountNanos: 2_000_000_000,
+    lines: [
+      {
+        meteringRef: { id: "meter.tokens", versionRef: "1" },
+        unit: "token",
+        window: "utc-day",
+        basis: "used",
+        quantity: 100,
+        amountNanosPerUnit: 10_000_000,
+        amountNanos: 1_000_000_000,
+      },
+    ],
+    totalAmountNanos: 3_000_000_000,
+  };
+}
+
 describe("commercial pricing", () => {
   it("parses deterministic immutable price catalogs", () => {
     const parsed = parseViraCommercialPriceCatalog(catalog());
@@ -73,30 +96,27 @@ describe("commercial pricing", () => {
     const result = priceViraCommercialUsage(catalog(), request());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value).toEqual({
-      planRef: { id: "plan.pro", versionRef: "1" },
-      currency: "USD",
-      asOf: "2026-09-05T12:30:00.000Z",
-      fixedAmountNanos: 2_000_000_000,
-      lines: [
-        {
-          meteringRef: { id: "meter.tokens", versionRef: "1" },
-          unit: "token",
-          window: "utc-day",
-          basis: "used",
-          quantity: 100,
-          amountNanosPerUnit: 10_000_000,
-          amountNanos: 1_000_000_000,
-        },
-      ],
-      totalAmountNanos: 3_000_000_000,
-    });
+    expect(result.value).toEqual(expectedQuote());
     expect(Object.isFrozen(result.value)).toBe(true);
     expect(Object.isFrozen(result.value.lines)).toBe(true);
     expect("invoiceId" in result.value).toBe(false);
     expect("paymentIntent" in result.value).toBe(false);
     expect("charged" in result.value).toBe(false);
     expect("authorized" in result.value).toBe(false);
+  });
+
+  it("parses and serializes quote evidence for downstream commercial consumers", () => {
+    const parsed = parseViraCommercialPriceQuote(expectedQuote());
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.value).toEqual(expectedQuote());
+    expect(Object.isFrozen(parsed.value)).toBe(true);
+    expect(Object.isFrozen(parsed.value.lines)).toBe(true);
+
+    const serialized = serializeViraCommercialPriceQuote(expectedQuote());
+    expect(serialized.ok).toBe(true);
+    if (!serialized.ok) return;
+    expect(JSON.parse(serialized.value)).toEqual(expectedQuote());
   });
 
   it("can price only excess quantity without changing metering truth", () => {
