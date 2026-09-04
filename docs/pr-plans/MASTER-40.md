@@ -76,7 +76,9 @@ application-ai-host-sdk → application-distribution, application-package, proto
 
 No dependency on projection adapter/fidelity implementation, registry/federation, deployment/runtime, governance/authorization/entitlement or Action execution owners. Canonical Application/Distribution owners remain unchanged.
 
-## Focused verification
+## Q7 exact local verification
+
+PASS — operator-reported against exact frozen executable head `4b2350f9090d5b74e46f56a0478b12b25080ef3e` for:
 
 ```bash
 pnpm check:boundaries
@@ -85,6 +87,8 @@ pnpm vitest run \
   tests/contract/application-ai-host-sdk.test.ts \
   tests/contract/application-ai-host-sdk-hardening.test.ts
 ```
+
+Exact counts were not provided in the final green message and are not inferred. See `docs/evidence/MASTER-40/VERIFICATION.md`.
 
 ## Q0–Q9
 
@@ -95,8 +99,8 @@ pnpm vitest run \
 - Q4 PASS — focused compatibility/integrity/security coverage added.
 - Q5 PASS — final security/fail-closed review.
 - Q6 PASS — final architecture/ownership review.
-- Q7 REQUIRED — exact frozen-head local boundaries/typecheck/focused tests.
-- Q8 PRE-Q7 PASS pending executable-clean compare; final post-Q7 compare required.
-- Q9 BLOCKED until Q7/final Q8; then exact-head squash merge and MASTER-41 federation starts from resulting new authoritative `main`.
+- Q7 PASS — exact frozen-head local boundaries/typecheck/focused tests, operator reported.
+- Q8 PRE-Q7 PASS — actual executable scope reviewed; final post-Q7 executable-clean compare required.
+- Q9 BLOCKED until final Q8; then exact-head squash merge and MASTER-41 federation starts from resulting new authoritative `main`.
 
 Hosted verify/iOS/Android jobs on the frozen executable head ended with `steps: null` and remain infrastructure non-signal.
