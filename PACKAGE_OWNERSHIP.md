@@ -15,6 +15,11 @@ If this document and the executable boundary graph disagree, the executable grap
 | Application-level Canvas AI semantic proposal/diff | `application-canvas-ai` |
 | Canvas dry-run semantic path trace + exact replay | `application-canvas-simulation` |
 | Canvas authoring collaboration/presence/semantic peer review | `application-canvas-collaboration` |
+| Canvas external design source provenance + authoring import artifact | `application-canvas-design-import` |
+| DTCG design-token compilation into Studio design options | `design-system-compiler` |
+| Studio design catalog controls/options | `studio-design` |
+| Full Studio brand definition/package assembly | `studio-brand` |
+| Trusted Studio brand renderer activation | `studio-brand-loader` |
 | Provider-neutral CapabilityDefinition semantics | `capability-contract` |
 | Bounded WorkContext definition/snapshot/provenance semantics | `work-context` |
 | Capability wire/protocol identity envelope | `protocol` |
@@ -44,13 +49,21 @@ If this document and the executable boundary graph disagree, the executable grap
 
 `application-canvas-collaboration` depends only on `application-canvas` and `protocol`. It owns registered collaborator envelopes, per-actor ephemeral presence, concurrent semantic proposals, immutable peer-review records, authoring approval thresholds and stale-safe apply delegation. It does not own CRDT/network transport, persistence, governance/authorization, publication/deployment or runtime/protected execution.
 
+`application-canvas-design-import` depends only on `application-canvas`, `design-system-compiler` and `protocol`. It owns strict provider-neutral DTCG import envelopes, bounded external source provenance, exact current Application brand binding and the frozen authoring import artifact. It delegates token semantics and compilation to `design-system-compiler` and does not own vendor payload parsing, network transport, credentials, full brand assembly, renderer installation, Canvas mutation, publication/deployment or runtime execution.
+
+`design-system-compiler`, `studio-design`, `studio-brand` and `studio-brand-loader` remain the canonical design/brand owners. MASTER-36 does not duplicate their schema or activation responsibilities.
+
 Presence is non-semantic editor state and never increments `editorRevision`. Semantic review approval is only permission to mutate the local Canvas draft; it is not enterprise governance or authorization.
 
 Canvas `editorRevision` remains editor metadata only and cannot substitute for Application release version, deployment revision, runtime state revision or ledger ordering.
 
 ## Future ownership constraints
 
-- Collaboration/network transports must carry these authoring contracts rather than redefine semantic truth.
+- External design adapters may normalize Figma/Sketch/vendor sources to DTCG, but provider formats/URLs/credentials must not become canonical Canvas design semantics.
+- Canvas design import artifacts must bind an existing exact Application `brandRef`; no implicit/latest brand resolution.
+- Imported design artifacts are authoring data only and cannot directly install renderers, mutate Canvas semantics, publish, deploy or execute.
+- Design token compilation must continue to delegate to `design-system-compiler`; Canvas must not fork DTCG rules.
+- Collaboration/network transports must carry authoring contracts rather than redefine semantic truth.
 - Presence/cursors/selections must remain ephemeral and outside Application semantics.
 - Stale collaboration proposals must fail closed after any competing Canvas mutation changes `editorRevision`.
 - Collaboration review must not become publication, deployment, governance or protected Action authority.
