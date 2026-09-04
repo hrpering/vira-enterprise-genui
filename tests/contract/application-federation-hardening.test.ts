@@ -9,13 +9,13 @@ import {
 
 const DIGEST = "c".repeat(64);
 
-function envelope() {
+function envelope(version = "1.0.0") {
   return {
     schemaVersion: "1",
     application: {
       schemaVersion: "1",
       identity: { id: "demo.hardened-app" },
-      version: "1.0.0",
+      version,
       publisher: { id: "demo", name: "Demo" },
       experiences: [{ id: "demo.main", packId: "demo/main", packVersion: "1.0.0", entrypoint: "main" }],
       capabilities: [], contextTypes: [], actions: [], flows: [], brandRef: null,
@@ -74,12 +74,17 @@ describe("Vira Application Federation hardening", () => {
       sources: [{ sourceId: "network.alpha", applications: tooManyApps }],
     })).toMatchObject({ ok: false, issue: { code: "APPLICATION_LIMIT_EXCEEDED" } });
 
+    let nextVersion = 0;
     const fullSources = Math.floor(VIRA_APPLICATION_FEDERATION_MAX_TOTAL_APPLICATIONS / VIRA_APPLICATION_FEDERATION_MAX_APPLICATIONS_PER_SOURCE);
     const sources = Array.from({ length: fullSources }, (_, index) => ({
       sourceId: `network.full-${index}`,
-      applications: Array.from({ length: VIRA_APPLICATION_FEDERATION_MAX_APPLICATIONS_PER_SOURCE }, () => envelope()),
+      applications: Array.from({ length: VIRA_APPLICATION_FEDERATION_MAX_APPLICATIONS_PER_SOURCE }, () => {
+        const result = envelope(`1.0.${nextVersion}`);
+        nextVersion += 1;
+        return result;
+      }),
     }));
-    sources.push({ sourceId: "network.overflow", applications: [envelope()] });
+    sources.push({ sourceId: "network.overflow", applications: [envelope(`1.0.${nextVersion}`)] });
     expect(parseViraApplicationFederationSnapshot({ schemaVersion: "1", sources })).toMatchObject({
       ok: false,
       issue: { code: "APPLICATION_LIMIT_EXCEEDED", path: "$.sources" },
