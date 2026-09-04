@@ -29,3 +29,11 @@ export {
   parseViraApplicationPackage,
   serializeViraApplicationPackage,
 } from "./validate.js";
+export {
+  parseViraApplicationExactReference,
+  serializeViraApplicationExactReference,
+} from "./reference.js";
+export type {
+  ViraApplicationExactReferenceParseResult,
+  ViraApplicationExactReferenceSerializationResult,
+} from "./reference.js";
