@@ -1,0 +1,14 @@
+{
+  "name": "@vira-enterprise-genui/capability-supply",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/capability-contract": "workspace:*",
+    "@vira-enterprise-genui/hosted-capability-runtime": "workspace:*",
+    "@vira-enterprise-genui/protocol": "workspace:*"
+  }
+}
