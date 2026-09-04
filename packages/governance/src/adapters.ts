@@ -1,4 +1,5 @@
 import { isSemanticNamespace, parseJsonValue, type JsonObject, type JsonValue } from "@vira-enterprise-genui/protocol";
+import { isSecureOidcIssuer } from "./issuer.js";
 import { VIRA_GOVERNANCE_VERSION, type ViraAgentIdentityProvider, type ViraGovernanceContext, type ViraGovernanceProvider } from "./types.js";
 
 function object(value: JsonValue | undefined): JsonObject | undefined {
@@ -9,20 +10,6 @@ function bounded(value: unknown, max = 4_096): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= max;
 }
 function providerId(value: string): boolean { return isSemanticNamespace(value); }
-function oidcIssuer(value: unknown): value is string {
-  if (!bounded(value)) return false;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:"
-      && url.host.length > 0
-      && url.username === ""
-      && url.password === ""
-      && url.search === ""
-      && url.hash === "";
-  } catch {
-    return false;
-  }
-}
 
 export interface ViraAgtClient {
   readonly evaluate: (context: ViraGovernanceContext) => Promise<unknown> | unknown;
@@ -133,7 +120,7 @@ export function createViraOidcAgentIdentityProvider(id: string, client: ViraOidc
       const raw = await client.resolveClaims(request.credentialRef);
       const parsed = parseJsonValue(raw, "$.oidcClaims");
       const claims = parsed.ok ? object(parsed.value) : undefined;
-      if (!claims || !bounded(claims.sub, 255) || !oidcIssuer(claims.iss)) throw new Error("OIDC claims require bounded sub and secure issuer URL");
+      if (!claims || !bounded(claims.sub, 255) || !isSecureOidcIssuer(claims.iss)) throw new Error("OIDC claims require bounded sub and secure issuer URL");
       return {
         version: "1",
         kind: "agent",
