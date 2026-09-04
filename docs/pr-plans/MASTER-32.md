@@ -11,21 +11,11 @@ Add a framework-free mutation/session API on top of the canonical Canvas draft s
 - branch: `master/32-canvas-mutation-session`
 - frozen executable head: `9637cf2ed322eff937f87adbae4803e21801af1f`
 
-## Reverse-engineered ownership
+## Ownership
 
-Existing owners remain authoritative:
+MASTER-32 extends `application-canvas`; it does not introduce another package. The mutation session owns only in-memory canonical Canvas draft mutation, exact `expectedRevision` optimistic concurrency, atomic candidate revalidation/commit, exactly +1 `editorRevision` on success, safe revision exhaustion failure, and semantic/projection mutation entry points.
 
-- `application-package` validates canonical Application semantics.
-- `application-graph` validates canonical semantic graph releases.
-- `application-canvas` validates the aggregate Canvas draft and non-semantic projection.
-- `studio-workbench` demonstrates the correct authoring pattern: mutate a candidate, run canonical validators, and commit only validated state.
-- runtime/publication/deployment/governance/Action owners remain outside Canvas session authority.
-
-MASTER-32 extends `application-canvas`; it does not introduce another package.
-
-The mutation session OWNS only in-memory canonical Canvas draft mutation, exact `expectedRevision` optimistic concurrency, atomic candidate revalidation/commit, exactly +1 `editorRevision` on success, safe revision exhaustion failure, and semantic/projection mutation entry points.
-
-It DOES NOT OWN runtime state/revision, publication/deployment truth, governance/authorization, protected Action execution, provider credentials, undo/redo or CRDT history, React/UI/drag-drop, or a second Application/Graph/Canvas validator.
+It does not own runtime state/revision, publication/deployment truth, governance/authorization, protected Action execution, provider credentials, undo/redo or CRDT history, React/UI/drag-drop, or a second Application/Graph/Canvas validator.
 
 ## Public mutation surface
 
@@ -53,21 +43,29 @@ setSelection(expectedRevision, graphRef, nodeIds, edgeIds)
 - Mutation inputs pass through the shared safe JSON boundary.
 - Session object and committed drafts remain frozen canonical values.
 
-## Focused verification
+## Verification
 
-`tests/contract/application-canvas-session.test.ts` covers canonical session creation/freeze, successful semantic replacement, projection-only semantic stability, exact +1 revision increments, stale replay rejection, atomic failure behavior, canonical semantic rejection, orphaned projection rejection, graph/view/node/selection targeting, unsafe accessor input, revision exhaustion, and absence of publish/runtime/deployment/Action execution methods.
+Focused suite: `tests/contract/application-canvas-session.test.ts`.
+
+The operator reported exact frozen-head Q7 PASS for:
+
+```bash
+pnpm check:boundaries
+pnpm typecheck
+pnpm vitest run tests/contract/application-canvas-session.test.ts
+```
+
+Final compare from frozen executable head to the final documentation closure contains documentation/evidence changes only. Hosted Actions remained zero-step infrastructure non-signal (`steps: null`).
 
 ## Gate status
 
-- Q0 PASS — exact base `12aede59...`.
-- Q1 PASS — targeted reverse engineering complete.
+- Q0 PASS — exact base.
+- Q1 PASS — targeted reverse engineering.
 - Q2 PASS — session/revision ownership frozen.
 - Q3 PASS — mutation session implemented inside `application-canvas`.
-- Q4 PASS — focused coverage implemented.
+- Q4 PASS — focused coverage.
 - Q5 PASS — fail-closed/security review.
 - Q6 PASS — architecture/authority review.
-- Q7 REQUIRED — local exact-head `pnpm check:boundaries && pnpm typecheck && pnpm vitest run tests/contract/application-canvas-session.test.ts`.
-- Q8 PRE-Q7 PASS — actual diff is session/index + focused test + docs only; final post-Q7 executable-clean compare still required.
-- Q9 BLOCKED until Q7/final Q8; then squash merge and start MASTER-33 from new `main`.
-
-Hosted Actions on the frozen head again produced verify/iOS/Android jobs with `steps: null`; these are infrastructure non-signal.
+- Q7 PASS — operator-reported exact frozen-head local gate.
+- Q8 PASS — final executable-clean actual-diff compare.
+- Q9 READY — exact-head squash merge; then MASTER-33 starts from the new authoritative `main`.
