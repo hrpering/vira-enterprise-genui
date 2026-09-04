@@ -1,28 +1,20 @@
 # Active Phase
 
-**Phase:** MASTER-37 — Application Distribution Contract  
-**Status:** Q0–Q8 PASS / Q9 READY TO MERGE  
-**Base SHA:** `2e1b509ca9d7c0c1c0179746bec95fa7f2bed016`  
-**Frozen executable SHA:** `ad9745334e0cedfe2b7d28ee06435f498e62e7c4`  
-**Previous:** MASTER-36 merged via PR #196  
-**Branch:** `master/37-distribution-contract`  
-**PR:** #197  
-**Next after merge:** MASTER-38 distribution/protocol phase from new authoritative `main`
+**Phase:** MASTER-38 — Application Protocol Projection Contract  
+**Status:** Q0–Q4 IMPLEMENTED / Q5–Q6 REVIEW REQUIRED / LOCAL Q7 REQUIRED  
+**Base SHA:** `e03118833731c8483d0c42f648fefe446f0a103a`  
+**Previous:** MASTER-37 merged via PR #197  
+**Branch:** `master/38-application-protocol-projection`  
+**Next after merge:** MASTER-39 distribution/protocol phase from new authoritative `main`
 
-MASTER-37 establishes `@vira-enterprise-genui/application-distribution` as the first provider-neutral Vira Network artifact boundary.
+MASTER-38 introduces `@vira-enterprise-genui/application-protocol-projection` as the Application-level protocol egress fidelity contract.
 
-The envelope embeds one canonical `ViraApplicationPackage` and binds it to an exact SHA-256 integrity identity. Application identity/version, discovery metadata, visibility, compatibility, protocol projection references and commercial references remain owned by `application-package`; MASTER-37 does not copy them into a second schema.
+The artifact consumes one canonical `ViraApplicationDistributionEnvelope`, requires an exact `projectionRef` already declared by the source Application, and makes protocol fidelity explicit as `lossless`, `lossy`, or `unsupported`.
 
-Integrity parsing validates only the declared identity shape. Actual integrity verification is explicit through an injected verifier over canonical `serializeViraApplicationPackage()` output and fails closed on false/throw/non-`true`.
+Lossy projection must enumerate bounded unique canonical `$.application` loss paths with reasons. Unsupported projection cannot carry payload. Lossless projection cannot hide loss metadata.
 
-Q5 security review PASS. Q6 architecture review PASS.
+The source digest declaration is carried as distribution data but MASTER-38 does not claim source integrity verification. No URL/endpoint/transport/provider/credential, registry, deployment/runtime, governance/authorization/entitlement or protected execution authority exists in the package.
 
-First exact-head local Q7 on `41fa04d7af4c5a68fa4eff1cb4a2403bff4dbaac` exposed one test-only TS7006 implicit-any callback parameter while package boundaries and 13/13 focused tests passed. Production implementation was unchanged. The test was corrected and frozen executable head became `ad9745334e0cedfe2b7d28ee06435f498e62e7c4`.
+Exact executable dependency boundary: `application-protocol-projection → application-distribution, protocol`.
 
-Corrected exact-head local Q7 is operator-reported PASS: package boundaries PASS, TypeScript PASS, focused Application Distribution contract suite PASS. Evidence is recorded in `docs/evidence/MASTER-37/VERIFICATION.md`.
-
-Q8 PASS. Final compare from corrected frozen executable head `ad9745334e0cedfe2b7d28ee06435f498e62e7c4` to closure state contains only verification evidence and phase/status documentation; executable drift is zero.
-
-Hosted verify/iOS/Android jobs remain zero-step / runner-id-0 infrastructure non-signal.
-
-MASTER-37 is ready for exact-head squash merge. MASTER-38 must start only from the resulting new authoritative `main`.
+Merge remains blocked until Q5 security review, Q6 architecture review, exact-head local Q7 and final actual-diff Q8.
