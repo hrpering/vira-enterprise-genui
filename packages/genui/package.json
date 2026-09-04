@@ -4,19 +4,38 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./action-ledger": "./src/action-ledger.ts",
+    "./conformance": "./src/conformance.ts",
+    "./enterprise-registry": "./src/enterprise-registry.ts",
+    "./experience-pack-compositions": "./src/experience-pack-compositions.ts",
+    "./native-ux": "./src/native-ux.ts"
   },
   "dependencies": {
+    "@vira-enterprise-genui/action-boundary": "workspace:*",
+    "@vira-enterprise-genui/action-ledger": "workspace:*",
+    "@vira-enterprise-genui/cross-platform-conformance": "workspace:*",
+    "@vira-enterprise-genui/deployment-plane": "workspace:*",
+    "@vira-enterprise-genui/enterprise-context": "workspace:*",
+    "@vira-enterprise-genui/enterprise-governance": "workspace:*",
+    "@vira-enterprise-genui/enterprise-registry": "workspace:*",
+    "@vira-enterprise-genui/experience-pack-compositions": "workspace:*",
+    "@vira-enterprise-genui/governance": "workspace:*",
+    "@vira-enterprise-genui/native-ux-gate": "workspace:*",
+    "@vira-enterprise-genui/policy-simulation": "workspace:*",
     "@vira-enterprise-genui/experience-resolver": "workspace:*",
     "@vira-enterprise-genui/protocol": "workspace:*",
     "@vira-enterprise-genui/runtime-core": "workspace:*",
+    "@vira-enterprise-genui/studio-ai": "workspace:*",
     "@vira-enterprise-genui/studio-authoring": "workspace:*",
     "@vira-enterprise-genui/studio-brand": "workspace:*",
+    "@vira-enterprise-genui/studio-brand-console": "workspace:*",
     "@vira-enterprise-genui/studio-host": "workspace:*",
     "@vira-enterprise-genui/studio-host-runtime": "workspace:*",
     "@vira-enterprise-genui/studio-publish": "workspace:*",
     "@vira-enterprise-genui/studio-runtime": "workspace:*",
-    "@vira-enterprise-genui/studio-runtime-react": "workspace:*"
+    "@vira-enterprise-genui/studio-runtime-react": "workspace:*",
+    "@vira-enterprise-genui/studio-workbench": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18.2.0 <20"

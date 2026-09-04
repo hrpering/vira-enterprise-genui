@@ -84,7 +84,7 @@ export const COMMERCE_BRAND_PACKAGE_INPUT = Object.freeze({
   templates: [{
     id: "product-card",
     label: "Product card",
-    description: "Minimal non-airline template used to prove generic Studio brand loading.",
+    description: "Minimal generic template used to prove Studio brand loading.",
     document: {
       version: "1",
       id: "commerce.template.product-card",

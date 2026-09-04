@@ -1,35 +1,34 @@
 import { describe, expect, it } from "vitest";
+import {
+  COMMERCE_BRAND_PACKAGE_INPUT,
+  COMMERCE_COMPONENTS,
+  commercePreviewData,
+} from "../../examples/commerce-brand-kit/src/index.js";
 import { createRuntimeState } from "../../packages/runtime-core/src/index.js";
 import {
   createViraExperienceRuntime,
   exportAuthoredStudioBundle,
   prepareAuthoredStudioPublication,
 } from "../../packages/genui/src/index.js";
+import { createStudioBrandPackage } from "../../packages/studio-brand/src/index.js";
 import {
   importPuckDataIntoStudioDocument,
   studioViewToPuckData,
 } from "../../packages/studio-puck-adapter/src/index.js";
-import { createMockAirlineStudioCollectionData } from "../../examples/mock-airline-domain/src/studio-collections.js";
-import {
-  actionAdapter,
-  bindingSourceCatalog,
-  componentCatalog,
-  createStarterDocument,
-  runtimePermissionPolicy,
-  starterTemplates,
-} from "../../examples/experience-studio-demo/src/catalog.js";
-import {
-  GOLDEN_AIRLINE_BOOKING_STEPS,
-  createGoldenAirlineExperience,
-} from "../../examples/experience-studio-demo/src/golden-airline-experience.js";
 
-const BRAND_ID = "airline.brand" as const;
+const BRAND_ID = "commerce.brand" as const;
+
+function referenceBrand() {
+  const result = createStudioBrandPackage(COMMERCE_BRAND_PACKAGE_INPUT);
+  if (!result.ok) throw new Error(result.issue.message);
+  return result.value;
+}
 
 function runtimeState() {
-  const result = createRuntimeState("golden-airline-genui", {
+  const result = createRuntimeState("commerce-golden-genui", {
     version: "1",
-    id: "golden-airline-genui-plan",
-    intent: { version: "1", namespace: "travel.flight", name: "booking" },
+    id: "commerce.golden.plan",
+    intent: { version: "1", namespace: "commerce.product", name: "detail" },
     state: {},
     capabilities: { required: [], available: [], future: [] },
   });
@@ -37,72 +36,59 @@ function runtimeState() {
   return result.value;
 }
 
+const runtimePermissionPolicy = {
+  version: "1",
+  rules: [{ subject: "action", id: "commerce.cart.add", effect: "allow" }],
+} as const;
+
 describe("GenUI golden manual/Canvas parity", () => {
-  it("exposes the full booking journey as an editable Studio starter", () => {
-    expect(starterTemplates).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        id: "booking-journey",
-        label: "Full booking journey",
-      }),
-    ]));
-    const document = createStarterDocument("airline.gallery.booking-journey", "booking-journey");
-    expect(document.views.map((view) => view.id)).toEqual(GOLDEN_AIRLINE_BOOKING_STEPS);
-    expect(document.entryView).toBe("flight-search");
-    for (const view of document.views) {
-      expect(view.nodes.length, `${view.id} must remain a composable authored graph`).toBeGreaterThanOrEqual(5);
-    }
+  it("exposes the reference commerce experience as an editable canonical Studio template", () => {
+    const brand = referenceBrand();
+    expect(brand.templates.map((template) => template.id)).toEqual(["product-card"]);
+    const document = brand.templates[0]!.document;
+    expect(document.entryView).toBe("main");
+    expect(document.views.map((view) => view.id)).toEqual(["main"]);
+    expect(document.views[0]?.nodes).toHaveLength(4);
+    expect(document.views[0]?.nodes.find((node) => node.id === "add")).toMatchObject({
+      component: COMMERCE_COMPONENTS.addButton,
+      parentId: "root",
+      slot: "content",
+    });
   });
 
-  it("publishes the complete booking journey from the manual authoring surface", () => {
-    const document = createGoldenAirlineExperience();
-    expect(document.views.map((view) => view.id)).toEqual(GOLDEN_AIRLINE_BOOKING_STEPS);
-
+  it("publishes the complete reference experience from the manual authoring surface", () => {
+    const brand = referenceBrand();
     const result = prepareAuthoredStudioPublication({
-      document,
-      componentCatalog,
-      bindingSourceCatalog,
-      actionAdapter,
+      document: brand.templates[0]!.document,
+      componentCatalog: brand.components,
+      bindingSourceCatalog: brand.dataSources,
+      actionAdapter: brand.actions,
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.document.entryView).toBe("flight-search");
-    expect(result.value.document.views.at(-1)?.id).toBe("confirmation");
-    expect(result.value.manifest.componentRefs).toContain("airline.status.progress");
-    expect(result.value.manifest.actionEvents).toEqual(expect.arrayContaining([
-      "flight.search.submit",
-      "flight.offer.select",
-      "flight.fare.select",
-      "flight.passenger.submit",
-      "flight.seat.select",
-      "flight.baggage.select",
-      "flight.extras.submit",
-      "flight.booking.handoff",
-    ]));
+    expect(result.value.document.entryView).toBe("main");
+    expect(result.value.manifest.componentRefs).toEqual(expect.arrayContaining(Object.values(COMMERCE_COMPONENTS)));
+    expect(result.value.manifest.actionEvents).toEqual(["product.add"]);
   });
 
-  it("round-trips every golden view through the Puck boundary without semantic drift", () => {
-    const original = createGoldenAirlineExperience();
-    let canvasDocument = original;
-
-    for (const view of original.views) {
-      const exported = studioViewToPuckData(canvasDocument, componentCatalog, view.id);
-      expect(exported.ok).toBe(true);
-      if (!exported.ok) return;
-      const imported = importPuckDataIntoStudioDocument({
-        document: canvasDocument,
-        catalog: componentCatalog,
-        viewId: view.id,
-        data: exported.value,
-      });
-      expect(imported.ok).toBe(true);
-      if (!imported.ok) return;
-      canvasDocument = imported.value;
-    }
-
-    expect(canvasDocument).toEqual(original);
+  it("round-trips the canonical view through the Puck boundary without semantic drift", () => {
+    const brand = referenceBrand();
+    const original = brand.templates[0]!.document;
+    const exported = studioViewToPuckData(original, brand.components, "main");
+    expect(exported.ok).toBe(true);
+    if (!exported.ok) return;
+    const imported = importPuckDataIntoStudioDocument({
+      document: original,
+      catalog: brand.components,
+      viewId: "main",
+      data: exported.value,
+    });
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.value).toEqual(original);
 
     const manualBundle = exportAuthoredStudioBundle({ brandId: BRAND_ID, document: original });
-    const canvasBundle = exportAuthoredStudioBundle({ brandId: BRAND_ID, document: canvasDocument });
+    const canvasBundle = exportAuthoredStudioBundle({ brandId: BRAND_ID, document: imported.value });
     expect(manualBundle.ok).toBe(true);
     expect(canvasBundle.ok).toBe(true);
     if (!manualBundle.ok || !canvasBundle.ok) return;
@@ -110,15 +96,15 @@ describe("GenUI golden manual/Canvas parity", () => {
 
     const manualPublication = prepareAuthoredStudioPublication({
       document: original,
-      componentCatalog,
-      bindingSourceCatalog,
-      actionAdapter,
+      componentCatalog: brand.components,
+      bindingSourceCatalog: brand.dataSources,
+      actionAdapter: brand.actions,
     });
     const canvasPublication = prepareAuthoredStudioPublication({
-      document: canvasDocument,
-      componentCatalog,
-      bindingSourceCatalog,
-      actionAdapter,
+      document: imported.value,
+      componentCatalog: brand.components,
+      bindingSourceCatalog: brand.dataSources,
+      actionAdapter: brand.actions,
     });
     expect(manualPublication.ok).toBe(true);
     expect(canvasPublication.ok).toBe(true);
@@ -126,36 +112,34 @@ describe("GenUI golden manual/Canvas parity", () => {
     expect(canvasPublication.value).toEqual(manualPublication.value);
   });
 
-  it("executes every golden booking step through the canonical runtime and host boundary", async () => {
+  it("executes the reference action through the canonical runtime and Host boundary", async () => {
+    const brand = referenceBrand();
     const publication = prepareAuthoredStudioPublication({
-      document: createGoldenAirlineExperience(),
-      componentCatalog,
-      bindingSourceCatalog,
-      actionAdapter,
+      document: brand.templates[0]!.document,
+      componentCatalog: brand.components,
+      bindingSourceCatalog: brand.dataSources,
+      actionAdapter: brand.actions,
     });
     expect(publication.ok).toBe(true);
     if (!publication.ok) return;
 
-    const collectionData = createMockAirlineStudioCollectionData();
-    const offers = collectionData["results.offers"];
-    expect(Array.isArray(offers)).toBe(true);
-
+    const product = commercePreviewData();
     const actionsSeen: unknown[] = [];
     const runtime = createViraExperienceRuntime({
       publication: publication.value,
-      componentCatalog,
-      bindingSourceCatalog,
-      actionAdapter,
+      componentCatalog: brand.components,
+      bindingSourceCatalog: brand.dataSources,
+      actionAdapter: brand.actions,
       runtimeState: runtimeState(),
       permissionPolicy: runtimePermissionPolicy,
       host: {
         version: "1",
-        id: "golden-airline-host",
+        id: "commerce.golden.host",
         snapshot: () => ({
           version: "1",
           revision: 1,
           state: {},
-          domain: { results: { offers } },
+          domain: { product },
         }),
         dispatch: async (action: unknown) => {
           actionsSeen.push(action);
@@ -167,41 +151,23 @@ describe("GenUI golden manual/Canvas parity", () => {
     expect(runtime.ok).toBe(true);
     if (!runtime.ok) return;
 
-    for (let index = 0; index < GOLDEN_AIRLINE_BOOKING_STEPS.length - 1; index += 1) {
-      const viewId = GOLDEN_AIRLINE_BOOKING_STEPS[index];
-      const nextViewId = GOLDEN_AIRLINE_BOOKING_STEPS[index + 1];
-      expect(runtime.value.controller.currentViewId()).toBe(viewId);
+    const currentView = runtime.value.controller.currentView();
+    expect(currentView.ok).toBe(true);
+    if (!currentView.ok) return;
+    const addNode = currentView.value.nodes.find((node) => node.sourceNodeId === "add");
+    expect(addNode).toBeDefined();
+    if (!addNode) return;
 
-      const interaction = publication.value.document.interactions.find((candidate) => candidate.viewId === viewId);
-      expect(interaction).toBeDefined();
-      if (!interaction) break;
-
-      const currentView = runtime.value.controller.currentView();
-      expect(currentView.ok).toBe(true);
-      if (!currentView.ok) break;
-      const runtimeNode = currentView.value.nodes.find((node) => node.sourceNodeId === interaction.nodeId);
-      expect(runtimeNode).toBeDefined();
-      if (!runtimeNode) break;
-      const payload = runtimeNode.eventPayloads?.[interaction.event] ?? {};
-
-      const result = await runtime.value.controller.dispatch({
-        nodeId: interaction.nodeId,
-        event: interaction.event,
-        payload,
-      });
-      expect(result.ok).toBe(true);
-      if (!result.ok) break;
-      expect(result.value.outcome).toBe("success");
-      expect(runtime.value.controller.currentViewId()).toBe(nextViewId);
-    }
-
-    expect(runtime.value.controller.currentViewId()).toBe("confirmation");
-    expect(actionsSeen).toHaveLength(GOLDEN_AIRLINE_BOOKING_STEPS.length - 1);
-    expect(actionsSeen).toEqual(expect.arrayContaining([
-      expect.objectContaining({ type: "travel.flight.search.submit" }),
-      expect.objectContaining({ type: "travel.flight.offer.select", payload: expect.objectContaining({ offerId: expect.any(String) }) }),
-      expect.objectContaining({ type: "travel.flight.booking.handoff" }),
-    ]));
+    const result = await runtime.value.controller.dispatch({
+      nodeId: "add",
+      event: "press",
+      payload: addNode.eventPayloads?.press ?? {},
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.outcome).toBe("success");
+    expect(actionsSeen).toHaveLength(1);
+    expect(actionsSeen[0]).toMatchObject({ type: "commerce.cart.add" });
+    expect(runtime.value.controller.currentViewId()).toBe("main");
 
     runtime.value.dispose();
   });

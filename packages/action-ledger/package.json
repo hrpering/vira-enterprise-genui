@@ -1,0 +1,17 @@
+{
+  "name": "@vira-enterprise-genui/action-ledger",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/action-boundary": "workspace:*",
+    "@vira-enterprise-genui/experience-observability": "workspace:*",
+    "@vira-enterprise-genui/governance": "workspace:*",
+    "@vira-enterprise-genui/protocol": "workspace:*",
+    "@vira-enterprise-genui/runtime-core": "workspace:*",
+    "@vira-enterprise-genui/telemetry": "workspace:*"
+  }
+}

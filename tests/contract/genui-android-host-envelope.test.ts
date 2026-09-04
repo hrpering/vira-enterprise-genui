@@ -4,6 +4,7 @@ import {
   createViraAndroidMountEnvelope,
   prepareAuthoredStudioPublication,
 } from "../../packages/genui/src/index.js";
+import { parseJsonValue, type JsonObject } from "../../packages/protocol/src/index.js";
 import {
   defineViraBrand,
   type ViraBrandDefinition,
@@ -138,6 +139,11 @@ function descriptor(activeBrand: ViraBrandDefinition): ResolvedExperienceDescrip
   });
   expect(publication.ok).toBe(true);
   if (!publication.ok) throw new Error("Android publication fixture must be canonical");
+  const canonicalPublication = parseJsonValue(publication.value, "$.publication");
+  if (!canonicalPublication.ok || canonicalPublication.value === null || typeof canonicalPublication.value !== "object" || Array.isArray(canonicalPublication.value)) {
+    throw new Error("Android publication fixture must serialize as a canonical JSON object");
+  }
+  const publicationObject = canonicalPublication.value as JsonObject;
 
   return {
     instanceId: "instance-android-001",
@@ -153,7 +159,7 @@ function descriptor(activeBrand: ViraBrandDefinition): ResolvedExperienceDescrip
       mediaType: "application/json",
       digest,
     },
-    publication: publication.value,
+    publication: publicationObject,
     compatibility: {
       hostId,
       platform: "android",

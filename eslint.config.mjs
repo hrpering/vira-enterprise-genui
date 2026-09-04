@@ -27,12 +27,7 @@ export default tseslint.config(
     },
   },
   {
-    files: [
-      "tooling/check-studio-interop.mjs",
-      "tooling/check-studio-native-conformance.mjs",
-      "tooling/finalize-studio-interop.mjs",
-      "tooling/generate-studio-interop.mjs",
-    ],
+    files: ["tooling/*.mjs"],
     languageOptions: {
       globals: {
         console: "readonly",

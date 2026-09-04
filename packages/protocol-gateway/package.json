@@ -7,6 +7,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@vira-enterprise-genui/protocol": "workspace:*",
     "@vira-enterprise-genui/tool-bridge": "workspace:*"
   }
 }
