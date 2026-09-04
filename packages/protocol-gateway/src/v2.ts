@@ -56,9 +56,12 @@ export type ProtocolGatewayV2Result =
   | { readonly ok: false; readonly issue: ProtocolGatewayV2Issue };
 
 const ARRAY_IS_ARRAY = Array.isArray;
+const OBJECT_FREEZE = Object.freeze;
 const OBJECT_GET_OWN_PROPERTY_DESCRIPTOR = Object.getOwnPropertyDescriptor;
 const OBJECT_GET_PROTOTYPE_OF = Object.getPrototypeOf;
 const OBJECT_HAS_OWN = Object.hasOwn;
+const OBJECT_IS_FROZEN = Object.isFrozen;
+const OBJECT_KEYS = Object.keys;
 const OBJECT_PROTOTYPE = Object.prototype;
 const REFLECT_OWN_KEYS = Reflect.ownKeys;
 const SOURCE_ID = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/;
@@ -68,7 +71,7 @@ function failure(
   path: string,
   message: string,
 ): ProtocolGatewayV2Result {
-  return { ok: false, issue: Object.freeze({ code, path, message }) };
+  return { ok: false, issue: OBJECT_FREEZE({ code, path, message }) };
 }
 
 function plainObject(value: unknown): value is Record<string, unknown> {
@@ -82,6 +85,20 @@ function ownData(object: object, key: PropertyKey): PropertyDescriptor | undefin
   return descriptor && OBJECT_HAS_OWN(descriptor, "value") && descriptor.enumerable === true
     ? descriptor
     : undefined;
+}
+
+function freezeJson(value: JsonValue): JsonValue {
+  if (value === null || typeof value !== "object" || OBJECT_IS_FROZEN(value)) return value;
+  if (ARRAY_IS_ARRAY(value)) {
+    for (let index = 0; index < value.length; index += 1) {
+      freezeJson(value[index]!);
+    }
+    return OBJECT_FREEZE(value);
+  }
+  for (const key of OBJECT_KEYS(value)) {
+    freezeJson(value[key]!);
+  }
+  return OBJECT_FREEZE(value);
 }
 
 function inputField(value: PropertyKey): value is "version" | "protocol" | "sourceId" | "payload" {
@@ -103,37 +120,37 @@ function semantics(value: ProtocolGatewayV2Protocol): Readonly<Pick<
 >> {
   switch (value) {
     case "ag-ui":
-      return Object.freeze({
+      return OBJECT_FREEZE({
         semanticRole: "transport-state-events",
         nativeStrategy: "not-applicable",
         webCompatibilitySurface: false,
       });
     case "a2ui":
-      return Object.freeze({
+      return OBJECT_FREEZE({
         semanticRole: "declarative-ui",
         nativeStrategy: "catalog-required",
         webCompatibilitySurface: false,
       });
     case "mcp":
-      return Object.freeze({
+      return OBJECT_FREEZE({
         semanticRole: "tool-data-action-discovery",
         nativeStrategy: "not-applicable",
         webCompatibilitySurface: false,
       });
     case "mcp-apps":
-      return Object.freeze({
+      return OBJECT_FREEZE({
         semanticRole: "sandboxed-web-compatibility",
         nativeStrategy: "never-auto-convert",
         webCompatibilitySurface: true,
       });
     case "vira-native":
-      return Object.freeze({
+      return OBJECT_FREEZE({
         semanticRole: "native-publication",
         nativeStrategy: "native-publication",
         webCompatibilitySurface: false,
       });
     case "custom-json":
-      return Object.freeze({
+      return OBJECT_FREEZE({
         semanticRole: "custom-json",
         nativeStrategy: "not-applicable",
         webCompatibilitySurface: false,
@@ -179,14 +196,14 @@ export function normalizeProtocolGatewayV2Ingress(input: unknown): ProtocolGatew
     const meta = semantics(protocolValue);
     return {
       ok: true,
-      value: Object.freeze({
+      value: OBJECT_FREEZE({
         version: PROTOCOL_GATEWAY_V2_VERSION,
         protocol: protocolValue,
         sourceId,
         semanticRole: meta.semanticRole,
         nativeStrategy: meta.nativeStrategy,
         webCompatibilitySurface: meta.webCompatibilitySurface,
-        payload: parsed.value,
+        payload: freezeJson(parsed.value),
       }),
     };
   } catch {
