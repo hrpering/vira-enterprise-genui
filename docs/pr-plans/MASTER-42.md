@@ -7,16 +7,17 @@ Introduce the provider-neutral commercial entitlement boundary for exact Vira Ap
 MASTER-42 owns only the commercial right dimensions:
 
 ```text
-who + what + exact version + where + plan + quota/limit declaration + commercial access
+who + what + exact version + where + plan + declarative limit + commercial access
 ```
 
-It does **not** own authorization, governance, runtime permission, usage accounting, rating, invoicing, payment, subscription lifecycle, identity authentication, deployment or execution.
+It does **not** own authorization, governance, runtime permission, usage accounting, meter unit/window semantics, rating, invoicing, payment, subscription lifecycle, identity authentication, deployment or execution.
 
 ## Base
 
 - authoritative `main`: `a0da432e0220cb550b13f11f4a4a8001d445e212`
 - previous phase: MASTER-41 merged via PR #201
 - branch: `master/42-commercial-entitlements`
+- frozen executable head: `652793c2e57b62c11a28f6adf6b36e9356008560`
 - next phase: MASTER-43 usage / rating / metering
 
 ## Existing owners discovered in Q1
@@ -30,7 +31,7 @@ entitlementRefs: [{ id, versionRef }]
 meteringRefs: [{ id, versionRef }]
 ```
 
-Application Package rejects floating commercial references and rejects authorization payloads inside `commercial` metadata. MASTER-42 must consume this boundary rather than extend Application metadata with grants, plans, usage or policy decisions.
+Application Package rejects floating commercial references and rejects authorization payloads inside `commercial` metadata. MASTER-42 consumes this boundary rather than extending Application metadata with grants, plans, usage or policy decisions.
 
 ### Enterprise Context
 
@@ -73,10 +74,10 @@ A bounded deterministic entitlement set contains commercial grant records. Each 
 - optional exact Capability ref for capability-scoped commercial rights;
 - project/environment/location selectors for the commercial `where` dimension;
 - opaque exact `planRef`;
-- zero or more declarative commercial limits, each tied to an exact `meteringRef`;
+- zero or more declarative commercial limits, each exactly `{ meteringRef, quantity }`;
 - `commercialAccess: enabled | disabled`.
 
-Limits are commercial declarations only. MASTER-42 does not count usage, calculate remaining quota, rate usage or enforce billing. MASTER-43 owns those semantics.
+A MASTER-42 limit deliberately does **not** define a period/window/unit. The exact `meteringRef` identifies the downstream meter contract; MASTER-43 owns meter unit/window semantics, mutable usage accounting, remaining-quota computation and rating.
 
 ### Evaluation request
 
@@ -110,7 +111,7 @@ runtime permission
 execution permission
 ```
 
-A downstream execution path must still pass its independent authorization, governance, runtime, deployment and action/capability gates.
+A downstream execution path must still pass its independent authorization, governance, runtime, deployment and Action/Capability gates.
 
 ## Matching / conflict semantics
 
@@ -118,13 +119,13 @@ A downstream execution path must still pass its independent authorization, gover
 - `entitlementRef`, `planRef`, Capability refs and metering refs use exact non-floating reference syntax.
 - request entitlement ref must be declared by the canonical Application package;
 - request Capability ref, when present, must be declared by that Application package;
-- limit metering refs must be declared by that Application package;
+- matched limit metering refs must be declared by that Application package;
 - organization is always exact;
-- an omitted principal selector means organization-wide commercial scope;
-- omitted project/environment/location selectors are explicit broader commercial selectors;
+- a `null` principal selector means organization-wide commercial scope;
+- `null` project/environment/location selectors are explicit broader commercial selectors;
 - environment cannot be scoped without a project;
 - overlapping matching records have no priority/specificity winner: evaluation fails closed as ambiguous;
-- duplicate exact grant selectors fail closed;
+- duplicate exact grant selectors fail closed rather than becoming order-dependent overrides;
 - disabled commercial access returns `not-entitled`, not a governance deny.
 
 ## Security / non-authority rules
@@ -133,15 +134,47 @@ A downstream execution path must still pass its independent authorization, gover
 - exact object shapes; unknown fields fail closed;
 - bounded grant and limit arrays;
 - unsafe accessors/custom prototypes fail closed;
+- exact non-floating commercial references;
 - no secrets, credentials, URLs, provider endpoints or network transport;
 - no source authentication/trust claim;
 - no policy/governance override;
 - no Action or Capability execution;
 - no usage mutation/counter state;
+- no meter period/window/unit definition;
 - no price/currency/rating/invoice/payment state;
 - no implicit entitlement, latest release, plan fallback or grant priority.
 
-## Planned focused verification
+## Q5 security / fail-closed review
+
+PASS. The final static review confirmed:
+
+- all external entitlement/request input enters through shared safe JSON parsing;
+- accessor/custom-prototype/non-JSON input fails before commercial matching;
+- exact shapes reject authority/payment/usage-state smuggling fields;
+- floating entitlement/plan/Capability/metering references fail closed;
+- Application declaration checks prevent undeclared entitlement, Capability and matched metering references;
+- duplicate selectors and overlapping matches do not create priority/override semantics;
+- no period/window/rating/payment or authorization authority remains in the public contract.
+
+## Q6 architecture / ownership review
+
+PASS.
+
+Executable dependency authority declares only:
+
+```text
+commercial-entitlement → application-package, enterprise-context, protocol
+```
+
+`application-package` remains owner of Application commercial reference metadata. `enterprise-context` remains owner of enterprise principal/scope semantics. `enterprise-governance` remains policy allow/deny authority. MASTER-43 remains the owner planned for usage/rating/metering semantics.
+
+Repository authority docs were updated to register `commercial-entitlement` as the canonical commercial eligibility owner and to remove stale MASTER-41-active/future-commercial-owner wording.
+
+Base-to-branch diff remains scoped to the new package, two focused contract suites, package-boundary declaration and MASTER-42/Application authority documentation.
+
+## Q7 focused verification
+
+Run against frozen executable head `652793c2e57b62c11a28f6adf6b36e9356008560`:
 
 ```bash
 pnpm check:boundaries
@@ -151,15 +184,17 @@ pnpm vitest run \
   tests/contract/commercial-entitlement-hardening.test.ts
 ```
 
+Q7 local execution evidence is pending.
+
 ## Q0–Q9
 
 - Q0 PASS — fresh branch from exact authoritative main `a0da432e0220cb550b13f11f4a4a8001d445e212`.
 - Q1 PASS — targeted reverse engineering of Application commercial refs, Enterprise Context, Enterprise Governance, Distribution/Federation and package boundaries.
-- Q2 PASS — entitlement/non-authority contract frozen in this document.
-- Q3 NEXT — implement `commercial-entitlement`.
-- Q4 — focused contract/conflict/non-authority/hardening tests.
-- Q5 — security/fail-closed review.
-- Q6 — architecture/ownership review.
-- Q7 — exact frozen-head local boundaries/typecheck/focused tests.
-- Q8 — independent PR reverse engineering + executable-clean closure compare.
+- Q2 PASS — entitlement/non-authority contract frozen.
+- Q3 PASS — `commercial-entitlement` parser/serializer/evaluator implemented.
+- Q4 PASS — focused commercial matching/conflict/non-authority/hardening coverage added.
+- Q5 PASS — security/fail-closed static review.
+- Q6 PASS — architecture/ownership review + executable dependency boundary.
+- Q7 PENDING — exact frozen-head local boundaries/typecheck/focused tests.
+- Q8 — independent PR reverse engineering + executable-clean closure compare after Q7 evidence.
 - Q9 — exact-head squash merge, verify new authoritative main, then start MASTER-43 fresh from it.
