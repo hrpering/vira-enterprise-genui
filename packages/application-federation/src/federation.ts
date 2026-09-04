@@ -12,6 +12,7 @@ import {
 import {
   VIRA_APPLICATION_FEDERATION_MAX_APPLICATIONS_PER_SOURCE,
   VIRA_APPLICATION_FEDERATION_MAX_SOURCES,
+  VIRA_APPLICATION_FEDERATION_MAX_TOTAL_APPLICATIONS,
   VIRA_APPLICATION_FEDERATION_SCHEMA_VERSION,
   type ViraApplicationFederationIssue,
   type ViraApplicationFederationIssueCode,
@@ -80,6 +81,7 @@ export function parseViraApplicationFederationSnapshot(input: unknown): ViraAppl
   const sourceIds = new Set<string>();
   const globalApplications = new Map<string, string>();
   const sources: ViraApplicationFederationSource[] = [];
+  let totalApplications = 0;
 
   for (let sourceIndex = 0; sourceIndex < root.sources.length; sourceIndex += 1) {
     const path = `$.sources[${sourceIndex}]`;
@@ -102,6 +104,14 @@ export function parseViraApplicationFederationSnapshot(input: unknown): ViraAppl
         "APPLICATION_LIMIT_EXCEEDED",
         `${path}.applications`,
         `applications-per-source limit is ${VIRA_APPLICATION_FEDERATION_MAX_APPLICATIONS_PER_SOURCE}`,
+      );
+    }
+    totalApplications += sourceObject.applications.length;
+    if (totalApplications > VIRA_APPLICATION_FEDERATION_MAX_TOTAL_APPLICATIONS) {
+      return failure(
+        "APPLICATION_LIMIT_EXCEEDED",
+        "$.sources",
+        `total federation application limit is ${VIRA_APPLICATION_FEDERATION_MAX_TOTAL_APPLICATIONS}`,
       );
     }
 
@@ -195,7 +205,11 @@ export function lookupViraFederatedApplication(
   if (typeof query.applicationId !== "string" || !isSemanticNamespace(query.applicationId)) {
     return failure("INVALID_QUERY", "$query.applicationId", "applicationId must be a canonical semantic namespace");
   }
-  if (typeof query.applicationVersion !== "string" || !RELEASE_VERSION.test(query.applicationVersion)) {
+  if (
+    typeof query.applicationVersion !== "string"
+    || query.applicationVersion.length > 64
+    || !RELEASE_VERSION.test(query.applicationVersion)
+  ) {
     return failure("INVALID_QUERY", "$query.applicationVersion", "applicationVersion must be an exact release semver");
   }
 
