@@ -17,6 +17,8 @@ export type {
   ViraCommercialMeterWindow,
   ViraCommercialUsageBatch,
   ViraCommercialUsageBatchResult,
+  ViraCommercialUsageLedger,
+  ViraCommercialUsageLedgerResult,
   ViraCommercialUsageRating,
   ViraCommercialUsageRatingRequest,
   ViraCommercialUsageRatingResult,
@@ -30,3 +32,4 @@ export {
   serializeViraCommercialMeterCatalog,
   serializeViraCommercialUsageBatch,
 } from "./metering.js";
+export { createViraCommercialUsageLedger } from "./ledger.js";
