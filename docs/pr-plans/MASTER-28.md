@@ -107,5 +107,5 @@ Hosted GitHub Actions zero-step failures are not counted as code PASS or code FA
 - Q5: PASS — fail-closed/provider-smuggling/effect-bypass review.
 - Q6: PASS — architecture review proving wire Capability and Action Boundary owners are not duplicated.
 - Q7: PASS — operator-reported exact-head local boundary/type/focused tests on `614467b...`.
-- Q8: FINAL COMPARE PENDING — post-Q7 commits must remain documentation/evidence only.
-- Q9: BLOCKED until final Q8; then squash merge and start MASTER-29 from new authoritative main.
+- Q8: PASS — final frozen-head → PR-head compare restricted post-Q7 changes to documentation/evidence only; no executable content changed.
+- Q9: READY — squash merge PR #188 using its exact current head, then start MASTER-29 from the new authoritative `main`.
