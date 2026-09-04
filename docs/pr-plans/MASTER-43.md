@@ -9,6 +9,7 @@ MASTER-43 owns:
 ```text
 meter definition
 + explicit commercial usage records
++ append-only usage idempotency contract
 + deterministic usage window aggregation
 + entitlement-limit rating
 + used / limit / remaining / excess
@@ -21,6 +22,7 @@ It does **not** own telemetry/observability, Action audit truth, authentication,
 - authoritative `main`: `e7598b99bd44b138911113a66179001946186f56`
 - previous phase: MASTER-42 merged via PR #202
 - branch: `master/43-usage-rating-metering`
+- frozen executable head: `a62aeeb6068edb8d0df123ee3b86a0186e464c3c`
 - next commercial phases remain MASTER-44..47
 
 ## Q1 reverse engineering
@@ -65,7 +67,7 @@ New package:
 @vira-enterprise-genui/commercial-metering
 ```
 
-Intended executable dependencies:
+Executable dependencies:
 
 ```text
 commercial-metering
@@ -111,7 +113,7 @@ Each record contains:
 
 - stable `usageId` for idempotency;
 - provenance-only `sourceId`;
-- `occurredAt` UTC timestamp;
+- `occurredAt` canonical UTC timestamp;
 - exact Application id + release version;
 - exact `entitlementRef`;
 - exact `meteringRef`;
@@ -123,6 +125,18 @@ Each record contains:
 `sourceId` is provenance only. Parsing a record does not authenticate the source, verify a signature or prove provider truth.
 
 Duplicate `usageId` values fail closed. There is no last-write-wins correction behavior in the canonical core.
+
+## Append-only usage ledger contract
+
+`createViraCommercialUsageLedger()` provides the domain-level append/idempotency contract without becoming durable storage infrastructure.
+
+- initial records must parse through the canonical usage-batch parser;
+- each append reuses the canonical record parser;
+- `usageId` must remain unique for the lifetime of that ledger instance;
+- malformed or duplicate appends do not mutate ledger state;
+- snapshots are detached, frozen and deterministically ordered;
+- no update/delete/reversal or implicit correction semantics exist in v1;
+- database/storage/replication durability remains an integration concern outside this package.
 
 ## Rating request
 
@@ -141,7 +155,7 @@ The rating boundary:
 9. reads the matching entitlement limit, if present;
 10. returns deterministic usage rating evidence.
 
-Supplying records from another meter/context is an error rather than silently filtering cross-scope commercial data. Records outside the selected time window are valid historical input and are excluded deterministically.
+Supplying records from another meter/context is an error rather than silently filtering cross-scope commercial data. Records outside the selected time window are valid same-context historical input and are excluded deterministically.
 
 ## Rating result
 
@@ -156,6 +170,7 @@ window
 windowStart
 windowEnd
 asOf
+includedRecordCount
 usedQuantity
 limitQuantity | null
 remainingQuantity | null
@@ -180,33 +195,69 @@ No currency, unit price, charge, invoice, payout or payment field exists in MAST
 - a rating result does not authorize execution or override governance;
 - meter source provenance is not source authentication;
 - telemetry/observability/action receipts are not automatically billable usage;
-- usage records are immutable canonical inputs for the rating operation;
-- duplicate usage ids fail closed;
+- usage records are immutable canonical inputs for rating;
+- ledger append is idempotent by `usageId` and append-only;
 - quantity arithmetic must remain within JavaScript safe integers;
 - no negative/decimal usage;
 - no monetary pricing or payment semantics;
 - no subscription billing-cycle inference;
 - unknown authority/provider/payment fields fail closed through exact shapes.
 
-## Planned focused verification
+## Q5 security / fail-closed review
+
+PASS.
+
+- all meter, usage and rating request input enters through shared safe JSON parsing;
+- exact shapes reject authorization, pricing, payment and fake source-trust fields;
+- floating entitlement/meter/Capability references fail closed;
+- duplicate meters and usage ids fail closed;
+- unsafe timestamps and non-positive/fractional/unsafe quantities fail closed;
+- aggregate quantity overflow fails rather than clamping/wrapping;
+- cross-Application/entitlement/meter/principal/scope/Capability/location records fail rather than silently contaminating rating;
+- only same-context records outside the selected time window are excluded;
+- source provenance is not authentication or integrity proof;
+- ledger append failures do not mutate prior usage truth.
+
+## Q6 architecture / ownership review
+
+PASS.
+
+Executable dependency authority declares only:
+
+```text
+commercial-metering → application-package, commercial-entitlement, enterprise-context, protocol
+```
+
+There is deliberately no executable edge to `telemetry`, `experience-observability`, `action-ledger`, governance, runtime, deployment, federation or billing/payment/provider code.
+
+`application-package` remains exact Application/meter-reference owner. `commercial-entitlement` remains eligibility/limit owner. `enterprise-context` remains principal/scope owner. `telemetry` and `action-ledger` retain their operational/audit meanings. Monetary economics remain future downstream concerns.
+
+The append-only usage ledger is a domain idempotency contract only; it does not introduce a database, external transport or durable infrastructure owner.
+
+## Q7 focused verification
+
+Run against frozen executable head `a62aeeb6068edb8d0df123ee3b86a0186e464c3c`:
 
 ```bash
 pnpm check:boundaries
 pnpm typecheck
 pnpm vitest run \
   tests/contract/commercial-metering.test.ts \
-  tests/contract/commercial-metering-hardening.test.ts
+  tests/contract/commercial-metering-hardening.test.ts \
+  tests/contract/commercial-metering-ledger.test.ts
 ```
+
+Q7 local execution evidence is pending.
 
 ## Q0–Q9
 
 - Q0 PASS — fresh branch from exact authoritative main `e7598b99bd44b138911113a66179001946186f56`.
 - Q1 PASS — Application/entitlement/telemetry/observability/action-ledger/Capability ownership reverse engineering.
-- Q2 PASS — commercial metering/rating boundary frozen in this document.
-- Q3 NEXT — implement `commercial-metering`.
-- Q4 — focused metering/window/rating/non-authority/hardening tests.
-- Q5 — security/fail-closed review.
-- Q6 — architecture/ownership review.
-- Q7 — exact frozen-head local boundaries/typecheck/focused tests.
-- Q8 — independent PR reverse engineering + executable-clean closure compare.
+- Q2 PASS — commercial metering/rating boundary frozen.
+- Q3 PASS — meter catalog, usage parser/serializer, append-only ledger and deterministic rating implemented.
+- Q4 PASS — focused metering/window/rating/ledger/non-authority/hardening coverage added.
+- Q5 PASS — security/fail-closed static review.
+- Q6 PASS — architecture/ownership review + executable dependency boundary.
+- Q7 PENDING — exact frozen-head local boundaries/typecheck/three focused suites.
+- Q8 — independent PR reverse engineering + executable-clean closure compare after Q7 evidence.
 - Q9 — exact-head squash merge, verify new authoritative main, then start MASTER-44 fresh from it.
