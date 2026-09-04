@@ -13,4 +13,4 @@ The new contract contains no provider binding, endpoint, credential, transport, 
 
 Local `pnpm check:boundaries`, `pnpm typecheck`, and the focused Capability Contract test were reported green on the exact frozen executable head above.
 
-Final Q8 compares the frozen executable head to the PR head immediately before merge. Every post-Q7 change is restricted to documentation/evidence; executable content must remain identical for Q9 to proceed.
+Final Q8 compares the frozen executable head to the PR head immediately before merge. Every post-Q7 change is restricted to documentation/evidence; executable content remains identical for Q9.
