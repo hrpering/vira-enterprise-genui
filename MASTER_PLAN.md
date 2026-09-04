@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-05  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-44:** `e987f3447953761b70c4aa548761bf359b3e07f0`
+**Authoritative main entering MASTER-45:** `f1ee6ec68b9c1a53f3413b9f201eae355517fc52`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -31,8 +31,9 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Federated Distribution | MASTER-41 | MERGED / PR #201 |
 | Application Network — Commercial Entitlement Contract | MASTER-42 | MERGED / PR #202 |
 | Application Network — Commercial Usage Metering + Rating | MASTER-43 | MERGED / PR #204 |
-| Application Network — Hosted Capability Runtime Foundation | MASTER-44 | ACTIVE |
-| Application Network — Remaining Commercial / Capability Cloud | MASTER-45..47 | PLANNED |
+| Application Network — Hosted Capability Runtime Foundation | MASTER-44 | MERGED / PR #205 |
+| Application Network — Commercial Pricing + Rate Card | MASTER-45 | ACTIVE |
+| Application Network — Remaining Commercial / Capability Cloud | MASTER-46..47 | PLANNED |
 | Application Network — External Proofs / Network RC | MASTER-48..51 | PLANNED |
 
 ## Active execution order
@@ -40,11 +41,11 @@ This file is the engineering execution authority. Long-range product strategy li
 ```text
 Enterprise GenUI RC1 ✅
   ↓
-MASTER-26..43 ✅
+MASTER-26..44 ✅
   ↓
-MASTER-44 Hosted Capability Runtime Foundation
+MASTER-45 Commercial Pricing + Rate Card
   ↓
-MASTER-45 → 47 remaining commercial network + capability cloud
+MASTER-46 → 47 remaining commercial network + capability cloud
   ↓
 MASTER-48 → 51 external proofs + Application Network RC
 ```
@@ -70,8 +71,11 @@ MASTER-48 → 51 external proofs + Application Network RC
 - Commercial entitlement remains distinct from authorization/governance/runtime permission.
 - Entitlement limit declarations reference exact metering identities only.
 - Commercial usage records are explicit canonical inputs; telemetry, observability and Action receipts are not automatically billable usage.
-- Commercial metering may define provider-neutral units/windows and usage-to-entitlement rating, but monetary pricing/currency/invoice/payment/payout semantics remain separate.
-- Usage source provenance is not authentication or evidence verification.
+- Commercial metering owns non-monetary rating truth and canonical rating evidence parsing; pricing must consume it rather than recompute usage.
+- Commercial pricing uses integer currency nanos, exact plan/meter references and deterministic rate-card arithmetic; no floating-point money.
+- Pricing quote evidence is not entitlement, invoice, payment, subscription, tax, FX, settlement, payout, authorization, governance or runtime permission.
+- Future invoice/payment/settlement layers must consume canonical pricing quote evidence rather than duplicate rate-card arithmetic.
+- Usage/rating/quote evidence parsing validates semantics but does not authenticate external provenance by itself.
 - Hosted Capability execution consumes canonical CapabilityDefinition, WorkContext and enterprise scope; it must not redefine them.
 - Hosted Capability provider/binding/location identities are routing/provenance evidence, not authentication, attestation, authorization or commercial entitlement.
 - Hosted query execution cannot directly execute a Capability declared as `action`; protected effects remain behind `action-boundary`.
@@ -82,8 +86,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 
 ## Active records
 
-- `docs/pr-plans/MASTER-44.md`
+- `docs/pr-plans/MASTER-45.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
+- `docs/evidence/MASTER-45/Q5_Q6_REVIEW.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
