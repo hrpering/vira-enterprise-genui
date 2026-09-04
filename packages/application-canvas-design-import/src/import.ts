@@ -84,6 +84,22 @@ function freeze<T>(value: T): T {
   return Object.freeze(value);
 }
 
+function canonicalizeJson(value: JsonValue): JsonValue {
+  if (Array.isArray(value)) {
+    return Object.freeze(value.map((entry) => canonicalizeJson(entry)));
+  }
+  if (value !== null && typeof value === "object") {
+    const source = value as JsonObject;
+    const result: Record<string, JsonValue> = {};
+    for (const key of Object.keys(source).sort()) {
+      const child = source[key];
+      if (child !== undefined) result[key] = canonicalizeJson(child);
+    }
+    return Object.freeze(result);
+  }
+  return value;
+}
+
 function parseSource(value: JsonValue | undefined): Parsed<ViraCanvasExternalDesignSource> {
   if (!object(value)) {
     return failure("INVALID_SOURCE", "$.source", "source must be an exact safe-data object");
@@ -115,7 +131,7 @@ function parseSource(value: JsonValue | undefined): Parsed<ViraCanvasExternalDes
       format: VIRA_CANVAS_DESIGN_SOURCE_FORMAT,
       sourceId: value.sourceId,
       revision: value.revision,
-      document: value.document,
+      document: canonicalizeJson(value.document),
     }),
   };
 }
