@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-04  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-40:** `86def2e33f3f845fff8e3fb234099e60ffbdaf20`
+**Authoritative main entering MASTER-41:** `b425e5e7104c1a6441671301a6ac262e4e15e1bb`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -27,8 +27,8 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Application Distribution Contract | MASTER-37 | MERGED / PR #197 |
 | Application Network — Application Protocol Projection | MASTER-38 | MERGED / PR #198 |
 | Application Network — Application Publisher SDK | MASTER-39 | MERGED / PR #199 |
-| Application Network — AI-host SDK | MASTER-40 | ACTIVE |
-| Application Network — Federated Distribution | MASTER-41 | PLANNED |
+| Application Network — AI-host SDK | MASTER-40 | MERGED / PR #200 |
+| Application Network — Federated Distribution | MASTER-41 | ACTIVE |
 | Application Network — Commercial / Capability Cloud | MASTER-42..47 | PLANNED |
 | Application Network — External Proofs / Network RC | MASTER-48..51 | PLANNED |
 
@@ -37,9 +37,7 @@ This file is the engineering execution authority. Long-range product strategy li
 ```text
 Enterprise GenUI RC1 ✅
   ↓
-MASTER-26..39 ✅
-  ↓
-MASTER-40 AI-host SDK
+MASTER-26..40 ✅
   ↓
 MASTER-41 Federated Distribution
   ↓
@@ -53,19 +51,16 @@ MASTER-48 → 51 external proofs + Application Network RC
 - Every phase starts from latest authoritative `main`, never from a stacked future branch.
 - One semantic concept has one canonical owner; extend the nearest owner before creating another.
 - Experience, Pack, Studio publication, Action Boundary, governance and runtime authorities are referenced, not duplicated.
-- ApplicationGraph is relational semantics, not a workflow engine or runtime graph.
-- Canvas authors/proposes canonical semantics but editor projection is not Application semantics.
-- Application distribution wraps the canonical `ViraApplicationPackage`; it does not duplicate Application metadata or authority.
-- Application distribution integrity declaration is distinct from integrity verification, deployment approval, governance approval, entitlement and execution permission.
-- Application protocol projections bind exact source distributions + exact source-declared projection refs and report `lossless | lossy | unsupported` explicitly.
-- Projection fidelity is adapter-reported interoperability state, not generic proof of arbitrary protocol equivalence.
-- Publisher SDKs compose canonical Application/Distribution owners; they do not define a second Application artifact or registry protocol.
-- Publisher SDK `publisherId` is host-asserted identity parity, not authentication or proof of publisher ownership.
-- Publisher SDK digest-provider output is a declared SHA-256 identity and does not by itself assert verification/trust.
-- AI-host SDK source success requires explicit Distribution integrity verification before host compatibility can succeed.
+- Application distribution wraps canonical `ViraApplicationPackage` and does not duplicate Application metadata or authority.
+- Distribution integrity declaration is distinct from integrity verification, authorization, entitlement, deployment and execution permission.
+- Protocol projection fidelity is adapter-reported interoperability state, not generic proof of protocol equivalence.
+- Publisher and AI-host SDKs compose canonical owners; neither defines a second wire schema or acquires network/runtime authority.
+- AI-host source success requires explicit Distribution integrity verification before compatibility can succeed.
 - AI-host compatibility is canonical Vira-version + required-host-capability evaluation only; it is not authorization, entitlement, deployment or execution permission.
-- Host protocol support is exact id+version intersection only; empty intersection does not itself redefine runtime compatibility and no implicit projection is selected.
-- Publisher/AI-host SDK core contains no signing credentials, URL/transport, registry/federation, deployment, governance or protected execution authority.
+- Federated distribution consumes canonical Distribution envelopes only.
+- Public federation may expose only canonical Application releases declared `visibility: public` and `discoverable: true`.
+- Federation source IDs are provenance data, not authentication; federation parsing does not imply integrity verification.
+- The same exact Application `id@version` cannot resolve differently across federation sources. Divergent canonical envelopes fail closed; there is no source priority, majority vote, implicit latest or fallback.
 - Network is discovery/distribution, never execution authority.
 - Exact identity/version resolution is explicit; no implicit latest or silent fallback.
 - Untrusted/malformed input fails closed.
@@ -75,9 +70,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 
 ## Active records
 
-- `docs/pr-plans/MASTER-40.md`
+- `docs/pr-plans/MASTER-41.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-40/RE_REPORT.md`
+- `docs/evidence/MASTER-41/RE_REPORT.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
