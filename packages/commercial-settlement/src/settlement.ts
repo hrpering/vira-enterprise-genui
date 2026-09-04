@@ -137,6 +137,9 @@ export function parseViraCommercialSettlementSchedule(input: unknown): ViraComme
     if (typeof item.publisherId !== "string" || !isSemanticSegment(item.publisherId)) {
       return fail("INVALID_PUBLISHER", `${path}.publisherId`, "publisherId must be a canonical semantic segment");
     }
+    if (item.applicationId.split(".")[0] !== item.publisherId) {
+      return fail("INVALID_PUBLISHER", `${path}.publisherId`, "publisherId must match the Application identity namespace");
+    }
 
     const planRef = parseViraApplicationExactReference(item.planRef);
     if (!planRef.ok) return refFailure(`${path}.planRef`, planRef.issue.code);
