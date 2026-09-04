@@ -23,12 +23,17 @@ const ROOT_FIELDS = new Set(["schemaVersion", "application", "integrity"]);
 const INTEGRITY_FIELDS = new Set(["algorithm", "digest"]);
 const SHA256_HEX = /^[0-9a-f]{64}$/;
 
+type DistributionFailure = {
+  readonly ok: false;
+  readonly issue: ViraApplicationDistributionIssue;
+};
+
 function issue(
   code: ViraApplicationDistributionValidationCode,
   path: string,
   message: string,
   applicationCode?: ViraApplicationDistributionIssue["applicationCode"],
-): ViraApplicationDistributionResult {
+): DistributionFailure {
   return {
     ok: false,
     issue: applicationCode === undefined
@@ -56,37 +61,31 @@ function applicationPath(path: string): string {
 
 function parseIntegrity(value: JsonValue | undefined):
   | { readonly ok: true; readonly value: ViraApplicationArtifactIntegrity }
-  | { readonly ok: false; readonly issue: ViraApplicationDistributionIssue } {
+  | DistributionFailure {
   const object = asObject(value);
-  if (!object) {
-    return { ok: false, issue: { code: "INVALID_INTEGRITY", path: "$.integrity", message: "integrity must be an object" } };
-  }
+  if (!object) return issue("INVALID_INTEGRITY", "$.integrity", "integrity must be an object");
 
   const unknown = firstUnknownField(object, INTEGRITY_FIELDS);
-  if (unknown) {
-    return { ok: false, issue: { code: "UNKNOWN_FIELD", path: `$.integrity.${unknown}`, message: "unknown integrity field" } };
-  }
+  if (unknown) return issue("UNKNOWN_FIELD", `$.integrity.${unknown}`, "unknown integrity field");
 
   if (object.algorithm !== VIRA_APPLICATION_DISTRIBUTION_INTEGRITY_ALGORITHM) {
-    return {
-      ok: false,
-      issue: {
-        code: "INVALID_INTEGRITY",
-        path: "$.integrity.algorithm",
-        message: `integrity algorithm must be ${VIRA_APPLICATION_DISTRIBUTION_INTEGRITY_ALGORITHM}`,
-      },
-    };
+    return issue(
+      "INVALID_INTEGRITY",
+      "$.integrity.algorithm",
+      `integrity algorithm must be ${VIRA_APPLICATION_DISTRIBUTION_INTEGRITY_ALGORITHM}`,
+    );
   }
 
-  if (typeof object.digest !== "string" || object.digest.length !== VIRA_APPLICATION_DISTRIBUTION_SHA256_HEX_LENGTH || !SHA256_HEX.test(object.digest)) {
-    return {
-      ok: false,
-      issue: {
-        code: "INVALID_INTEGRITY",
-        path: "$.integrity.digest",
-        message: "digest must be exactly 64 lowercase hexadecimal characters",
-      },
-    };
+  if (
+    typeof object.digest !== "string"
+    || object.digest.length !== VIRA_APPLICATION_DISTRIBUTION_SHA256_HEX_LENGTH
+    || !SHA256_HEX.test(object.digest)
+  ) {
+    return issue(
+      "INVALID_INTEGRITY",
+      "$.integrity.digest",
+      "digest must be exactly 64 lowercase hexadecimal characters",
+    );
   }
 
   return {
@@ -109,7 +108,11 @@ export function parseViraApplicationDistributionEnvelope(input: unknown): ViraAp
   if (unknown) return issue("UNKNOWN_FIELD", `$.${unknown}`, "unknown distribution envelope field");
 
   if (object.schemaVersion !== VIRA_APPLICATION_DISTRIBUTION_SCHEMA_VERSION) {
-    return issue("INVALID_SCHEMA_VERSION", "$.schemaVersion", `schemaVersion must be ${VIRA_APPLICATION_DISTRIBUTION_SCHEMA_VERSION}`);
+    return issue(
+      "INVALID_SCHEMA_VERSION",
+      "$.schemaVersion",
+      `schemaVersion must be ${VIRA_APPLICATION_DISTRIBUTION_SCHEMA_VERSION}`,
+    );
   }
 
   if (!("application" in object)) return issue("INVALID_APPLICATION", "$.application", "application is required");
@@ -124,7 +127,7 @@ export function parseViraApplicationDistributionEnvelope(input: unknown): ViraAp
   }
 
   const integrity = parseIntegrity(object.integrity);
-  if (!integrity.ok) return { ok: false, issue: integrity.issue };
+  if (!integrity.ok) return integrity;
 
   const envelope: ViraApplicationDistributionEnvelope = Object.freeze({
     schemaVersion: VIRA_APPLICATION_DISTRIBUTION_SCHEMA_VERSION,
@@ -181,7 +184,11 @@ export async function verifyViraApplicationDistributionIntegrity(
       canonicalArtifact: serializedApplication.value,
     }));
     if (verified !== true) {
-      return issue("INTEGRITY_VERIFICATION_FAILED", "$.integrity.digest", "application artifact integrity verification failed");
+      return issue(
+        "INTEGRITY_VERIFICATION_FAILED",
+        "$.integrity.digest",
+        "application artifact integrity verification failed",
+      );
     }
     return parsed;
   } catch {
