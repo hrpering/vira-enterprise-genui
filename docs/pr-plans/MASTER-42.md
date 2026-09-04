@@ -187,6 +187,16 @@ pnpm vitest run \
 
 Operator-reported verdict: PASS. Full evidence: `docs/evidence/MASTER-42/Q7_LOCAL.md`.
 
+## Q8 independent PR reverse engineering
+
+PASS. Full review: `docs/evidence/MASTER-42/Q8_REVIEW.md`.
+
+The independent PR review re-read the public types, parser/serializer/evaluator, primary + hardening tests, package dependency declaration, executable boundary graph and authority docs. It found no blocker, hidden security/execution authority, implicit latest/fallback, grant priority winner, usage/rating scope leak or competing Application schema.
+
+The Q7 frozen executable SHA to reviewed PR-head compare contained documentation/evidence files only. Executable drift after Q7 is zero.
+
+Current hosted PR-head `verify`, `android-native` and `ios-native` jobs report failure with zero executable steps and no assigned runner. They remain infrastructure non-signal and do not contradict local Q7.
+
 ## Q0–Q9
 
 - Q0 PASS — fresh branch from exact authoritative main `a0da432e0220cb550b13f11f4a4a8001d445e212`.
@@ -197,5 +207,5 @@ Operator-reported verdict: PASS. Full evidence: `docs/evidence/MASTER-42/Q7_LOCA
 - Q5 PASS — security/fail-closed static review.
 - Q6 PASS — architecture/ownership review + executable dependency boundary.
 - Q7 PASS — exact frozen-head local boundaries/typecheck/two focused suites.
-- Q8 ACTIVE — independent PR reverse engineering + executable-clean closure compare.
-- Q9 — exact-head squash merge, verify new authoritative main, then start MASTER-43 fresh from it.
+- Q8 PASS — independent PR reverse engineering + executable-clean Q7-to-review compare.
+- Q9 READY — exact final PR-head squash merge, verify new authoritative main, then start MASTER-43 fresh from it.
