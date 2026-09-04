@@ -10,7 +10,8 @@ Introduce the canonical provider-neutral monetary pricing boundary downstream of
 - previous phase: MASTER-44 merged via PR #205
 - branch: `master/45-commercial-pricing`
 - draft PR: #206
-- frozen executable SHA: `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`
+- current frozen executable SHA: `0984b0145381f8344dc458cd28d3e1b26db79e78`
+- invalidated previous freeze: `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`
 
 ## Q1 reverse engineering
 
@@ -87,6 +88,7 @@ The parser validates the existing rating semantics rather than defining a pricin
 - safe-integer quantities;
 - included-record bound;
 - zero/nonzero included-record ↔ used-quantity consistency;
+- `usedQuantity >= includedRecordCount`, because every canonical included usage record has positive quantity;
 - used/limit/remaining/excess/status consistency.
 
 Evidence validation does not authenticate the source of the rating.
@@ -150,8 +152,6 @@ Added:
 
 ## Q4 focused/hardening coverage
 
-PASS by static coverage review; executable validation completed in Q7.
-
 Focused suites:
 
 ```text
@@ -162,25 +162,26 @@ tests/contract/commercial-pricing-hardening.test.ts
 
 Coverage includes rating roundtrip/canonical UTC/window/status semantics; impossible rating count/usage evidence; floating refs; accessor/custom-prototype rejection; deterministic price catalogs; fixed + used pricing; excess pricing; fixed-only pricing; deterministic ordering; quote evidence roundtrip; duplicate/missing/extra ratings; rating-time mismatch; canonical rating parser delegation; invalid currency/money; pre-multiplication and total overflow; forged quote line/total arithmetic; duplicate quote lines; authority/payment/tax/credential smuggling; and collection bounds.
 
+Q8 remediation added explicit coverage rejecting `usedQuantity < includedRecordCount`.
+
 ## Q5 security review
 
-PASS. Evidence: `docs/evidence/MASTER-45/Q5_Q6_REVIEW.md`.
+PASS on the original pre-Q7 executable surface. Evidence: `docs/evidence/MASTER-45/Q5_Q6_REVIEW.md`.
 
 Key results:
 
 - untrusted data uses shared safe JSON parsing;
 - exact shapes reject payment/security authority smuggling;
-- rating evidence cannot violate canonical record-count/usage/status/window invariants;
 - monetary arithmetic is safe-integer only and overflow checked before precision loss;
 - quote evidence revalidates line and total arithmetic;
 - parsing evidence does not authenticate its source;
 - pricing cannot mutate usage/entitlement/payment state.
 
+The Q8 hardening change stays within the same canonical metering evidence owner and narrows accepted evidence; it does not expand authority or dependencies.
+
 ## Q6 architecture/ownership review
 
-PASS. Evidence: `docs/evidence/MASTER-45/Q5_Q6_REVIEW.md`.
-
-Executable dependency authority:
+PASS. Executable dependency authority remains:
 
 ```text
 commercial-pricing → application-package, commercial-metering, protocol
@@ -197,21 +198,43 @@ future layers           → invoice/payment/subscription/settlement/payout
 
 No layer inherits security/runtime authority from the commercial chain.
 
-## Frozen executable
+## Q7 attempt 1
 
-Final executable SHA for Q7:
+PASS on exact frozen executable SHA:
 
 ```text
 5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2
 ```
 
-All changes after this SHA must be documentation/evidence only. Any executable/package/test/boundary change invalidates the freeze and requires new Q5/Q6 review plus Q7.
+The repository operator reran the full local boundaries/typecheck/focused-suite command set detached at that exact SHA and reported it green. Evidence: `docs/evidence/MASTER-45/Q7_LOCAL_PASS.md`.
 
-## Q7 local gate
+That PASS is retained as historical evidence but is **invalidated for final merge purposes** because Q8 found an executable consistency gap and the parser/tests changed afterward.
 
-PASS on exact frozen executable SHA `5876a177a5c14dfa4ae90d1b1e2a618c01d30eb2`.
+## Q8 attempt 1
 
-The repository operator reran this full command set detached at the exact frozen SHA and reported it green:
+FAIL. Evidence: `docs/evidence/MASTER-45/Q8_ATTEMPT_1.md`.
+
+Independent reverse engineering found that the rating evidence parser could accept `usedQuantity < includedRecordCount`, although canonical usage records require every included `quantity` to be a positive safe integer. Canonical producer output therefore guarantees:
+
+```text
+usedQuantity >= includedRecordCount
+```
+
+The canonical metering evidence parser was hardened to enforce this invariant and the focused suite was extended with the forged-evidence case.
+
+No other blocker was found in the reviewed pricing/quote/arithmetic/dependency/authority surface. PR #206 had no submitted reviews or inline review threads at the review point. Hosted CI remained infrastructure non-signal because the jobs exposed no executed steps.
+
+## Current frozen executable
+
+New frozen executable SHA:
+
+```text
+0984b0145381f8344dc458cd28d3e1b26db79e78
+```
+
+Any changes after this SHA must be documentation/evidence only. The full local gate must be rerun detached at this exact SHA before Q8 restarts.
+
+## Q7 rerun command
 
 ```bash
 pnpm check:boundaries
@@ -221,10 +244,6 @@ pnpm vitest run \
   tests/contract/commercial-pricing.test.ts \
   tests/contract/commercial-pricing-hardening.test.ts
 ```
-
-Evidence: `docs/evidence/MASTER-45/Q7_LOCAL_PASS.md`.
-
-No test counts/timings are reconstructed because the operator reported only the overall green result for the exact gate.
 
 ## Non-goals
 
@@ -236,9 +255,9 @@ MASTER-45 does not implement payment providers, invoices, taxes, FX, refunds, su
 - Q1 PASS — entitlement/metering/marketplace owner reverse engineering.
 - Q2 PASS — pricing owner + integer-nanos contract frozen.
 - Q3 PASS — rating interoperability + pricing/quote package surfaces implemented.
-- Q4 PASS — focused/hardening coverage added and statically reviewed.
-- Q5 PASS — security/fail-closed review.
-- Q6 PASS — architecture/ownership review.
-- Q7 PASS — exact frozen-head local gate, operator-reported green.
-- Q8 ACTIVE — independent PR reverse engineering + closure compare.
+- Q4 PASS — focused/hardening coverage added; Q8 added one producer-consistency hardening case.
+- Q5 PASS — security/fail-closed architecture remains intact; prior review evidence retained.
+- Q6 PASS — ownership/dependency boundary unchanged.
+- Q7 RERUN PENDING — exact new frozen-head local gate required after Q8 executable fix.
+- Q8 BLOCKED — restart only after new Q7 PASS.
 - Q9 — exact-head squash merge and verify new authoritative main.
