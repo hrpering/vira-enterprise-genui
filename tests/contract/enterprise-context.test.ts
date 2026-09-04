@@ -105,10 +105,14 @@ describe("MASTER-12 enterprise context", () => {
         environment: "production",
         provider: "vault.hashicorp",
         key: "stripe/api-key",
+        versionRef: "42",
       }),
     });
     expect(valid.ok).toBe(true);
-    if (valid.ok) expect(Object.keys(valid.value)).not.toContain("value");
+    if (valid.ok) {
+      expect(valid.value.versionRef).toBe("42");
+      expect(Object.keys(valid.value)).not.toContain("value");
+    }
 
     const rawSecret = await created.value.leaseSecret(scope.value, secret.value, {
       issueLease: () => ({
@@ -119,6 +123,7 @@ describe("MASTER-12 enterprise context", () => {
         environment: "production",
         provider: "vault.hashicorp",
         key: "stripe/api-key",
+        versionRef: "42",
         value: "sk-secret",
       }),
     });
