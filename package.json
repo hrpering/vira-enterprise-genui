@@ -23,7 +23,7 @@
     "verify:all": "pnpm verify && pnpm verify:browser",
     "verify:ios-simulator": "node tooling/run-ios-simulator-gate.mjs",
     "verify:android-emulator": "node tooling/run-android-emulator-gate.mjs",
-    "verify:pegasus-proof": "node tooling/verify-pegasus-proof-evidence.mjs",
+    "verify:external-brand-proof": "node tooling/verify-external-brand-proof-evidence.mjs",
     "verify:enterprise-rc": "node tooling/verify-enterprise-rc.mjs",
     "demo:experience-studio": "pnpm --filter @vira-enterprise-genui/experience-studio-demo dev"
   },
