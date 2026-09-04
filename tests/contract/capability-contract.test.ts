@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  VIRA_CAPABILITY_MAX_CONTEXT_REQUIREMENTS,
   parseViraCapabilityDefinition,
   serializeViraCapabilityDefinition,
 } from "../../packages/capability-contract/src/index.js";
@@ -116,15 +117,37 @@ describe("Vira CapabilityDefinition v1", () => {
     });
   });
 
-  it("rejects duplicate context requirements", () => {
+  it("rejects inline input/output schema payloads instead of inventing a schema owner", () => {
     const input = queryFixture();
-    input.contextRequirements = [
+    input.input = {
+      typeRef: { id: "travel.flight-search-input", versionRef: "1" },
+      schema: { type: "object" },
+    };
+    expect(parseViraCapabilityDefinition(input)).toMatchObject({
+      ok: false,
+      issue: { code: "INVALID_VALUE_CONTRACT", path: "$.input.schema" },
+    });
+  });
+
+  it("rejects duplicate and over-limit context requirements", () => {
+    const duplicate = queryFixture();
+    duplicate.contextRequirements = [
       { id: "travel.trip-context", versionRef: "1" },
       { id: "travel.trip-context", versionRef: "1" },
     ];
-    expect(parseViraCapabilityDefinition(input)).toMatchObject({
+    expect(parseViraCapabilityDefinition(duplicate)).toMatchObject({
       ok: false,
       issue: { code: "DUPLICATE_REFERENCE", path: "$.contextRequirements[1]" },
+    });
+
+    const overLimit = queryFixture();
+    overLimit.contextRequirements = Array.from(
+      { length: VIRA_CAPABILITY_MAX_CONTEXT_REQUIREMENTS + 1 },
+      (_, index) => ({ id: `travel.context-${index}`, versionRef: "1" }),
+    );
+    expect(parseViraCapabilityDefinition(overLimit)).toMatchObject({
+      ok: false,
+      issue: { code: "CONTEXT_LIMIT_EXCEEDED", path: "$.contextRequirements" },
     });
   });
 
