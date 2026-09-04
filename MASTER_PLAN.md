@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-04  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-31:** `84ab9f8e75508e7975a8a1eaae74e3fae4c98d95`
+**Authoritative main entering MASTER-32:** `12aede59f4d034883ff4a2fe5ff8b5fe0887544b`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -18,8 +18,9 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Capability Contract | MASTER-28 | MERGED / PR #188 |
 | Application Network — WorkContext | MASTER-29 | MERGED / PR #189 |
 | Application Network — Application Graph | MASTER-30 | MERGED / PR #190 |
-| Application Network — Canvas Foundation | MASTER-31 | ACTIVE |
-| Application Network — Canvas continuation | MASTER-32..36 | PLANNED |
+| Application Network — Canvas Foundation | MASTER-31 | MERGED / PR #191 |
+| Application Network — Canvas Mutation Session | MASTER-32 | ACTIVE |
+| Application Network — Canvas continuation | MASTER-33..36 | PLANNED |
 | Application Network — Distribution | MASTER-37..41 | PLANNED |
 | Application Network — Commercial / Capability Cloud | MASTER-42..47 | PLANNED |
 | Application Network — External Proofs / Network RC | MASTER-48..51 | PLANNED |
@@ -39,9 +40,11 @@ MASTER-29 WorkContext ✅
   ↓
 MASTER-30 Application Graph ✅
   ↓
-MASTER-31 Canvas Foundation
+MASTER-31 Canvas Foundation ✅
   ↓
-MASTER-32 → 36 Canvas continuation
+MASTER-32 Canvas Mutation Session
+  ↓
+MASTER-33 → 36 Canvas continuation
   ↓
 MASTER-37 → 41 protocol + distribution
   ↓
@@ -58,6 +61,7 @@ MASTER-48 → 51 external proofs + Application Network RC
 - ApplicationGraph is relational semantics, not a workflow engine or runtime graph.
 - Canvas authors/proposes canonical semantics but editor projection (coordinates, viewport, selection) is not Application semantics.
 - Canvas editor revision is not runtime/deployment/Application release revision.
+- Canvas mutation sessions require exact editor revision guards; stale writes fail closed and failed candidates cannot partially commit.
 - Canvas cannot directly publish, deploy, authorize, govern or execute protected effects by implication.
 - Capability semantics are provider-neutral; provider/API/MCP/SaaS bindings do not define canonical meaning.
 - WorkContext is bounded work state/provenance, not chat history/user memory/prompt storage/runtime lifecycle.
@@ -70,9 +74,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 
 ## Active records
 
-- `docs/pr-plans/MASTER-31.md`
+- `docs/pr-plans/MASTER-32.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-31/RE_REPORT.md`
+- `docs/evidence/MASTER-32/RE_REPORT.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
