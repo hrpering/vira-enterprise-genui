@@ -9,6 +9,7 @@ Add the missing provider-neutral Capability supply/discovery layer for the Appli
 - authoritative `main`: `88a05193c189ce02a214bf0acb74743144981cc5`
 - previous phase: MASTER-45 merged via PR #206
 - branch: `master/46-capability-supply`
+- frozen executable SHA: `8a01eb001949327d1d34aaa780fd72f2687012ac`
 
 ## Q1 reverse engineering
 
@@ -16,7 +17,7 @@ Add the missing provider-neutral Capability supply/discovery layer for the Appli
 
 `capability-contract` owns canonical `ViraCapabilityDefinition`: exact id/version, publisher, input/output contracts, Context requirements and `query | action` invocation meaning.
 
-MASTER-46 must consume that definition and never define provider-owned Capability meaning.
+MASTER-46 consumes that definition and never defines provider-owned Capability meaning.
 
 ### Hosted binding/runtime
 
@@ -26,7 +27,7 @@ That runtime explicitly does not own provider catalog/discovery, ranking, failov
 
 ### Network gap
 
-`application-federation` provides deterministic public Application release discovery/conflict semantics. There is no equivalent canonical supply snapshot for Capability execution providers even though the Application Network thesis requires the Network to distribute Applications and Capabilities.
+`application-federation` provides deterministic public Application release discovery/conflict semantics. There was no equivalent canonical supply snapshot for Capability execution providers even though the Application Network thesis requires the Network to distribute Applications and Capabilities.
 
 Legacy `experience-marketplace` remains Experience catalog/search and is not the Capability supply owner.
 
@@ -81,27 +82,85 @@ Lookup is exact and deterministic:
 
 - exact `capabilityId`;
 - exact release `capabilityVersion`;
-- optional provider filter represented by nullable `providerId` (`null` = any provider);
-- optional location filter represented by nullable `locationId` (`null` = any location).
+- nullable `providerId` filter (`null` = any provider);
+- nullable `locationId` filter (`null` = any location).
 
-Lookup returns all matching canonical supplies sorted deterministically and aggregates source provenance for identical bindings. No result is an error-free empty list; no fallback or substitution occurs.
+Lookup returns all matching canonical supplies sorted deterministically and aggregates source provenance for identical bindings. An exact miss succeeds with an empty supply list; it never falls back or substitutes another version/provider.
 
-## Authority / non-goals
+## Q3 implementation
 
-Supply discovery evidence is not:
+PASS.
 
-- provider authentication or attestation;
-- provider availability/health/SLA;
-- authorization/governance/runtime permission;
-- commercial entitlement or pricing;
-- endpoint/transport/credential/secret state;
-- deployment placement or generic cloud scheduling;
-- failover/ranking/recommendation;
-- proof that a provider implementation is side-effect-free.
+Added:
 
-`sourceId`, `providerId`, `bindingRef` and `locationId` remain provenance/routing identities only.
+- `@vira-enterprise-genui/capability-supply` package;
+- bounded supply snapshot parser;
+- deterministic canonical snapshot serializer;
+- exact Capability + hosted binding composition;
+- exact cross-source Capability/binding conflict detection;
+- deterministic exact lookup and provenance aggregation;
+- executable package-boundary declaration.
 
-## Planned verification
+The implementation never invokes a provider. It imports canonical Capability and hosted-binding parsers/serialization semantics rather than defining competing semantic owners.
+
+## Q4 focused/hardening coverage
+
+PASS by static coverage review; local execution remains Q7.
+
+Focused suites:
+
+```text
+tests/contract/capability-supply.test.ts
+tests/contract/capability-supply-hardening.test.ts
+```
+
+Coverage includes deterministic parsing/serialization, immutable outputs, identical-binding provenance aggregation, multi-binding no-ranking behavior, provider/location filters, exact miss/no fallback, action rejection, binding/Capability mismatch, Capability conflicts, binding conflicts, duplicate source/binding rejection, canonical parser delegation, authority/endpoint/credential/health/commercial smuggling rejection, source repetition as provenance only, accessor/custom-prototype safety, source/per-source/aggregate collection ceilings, and malformed/latest/fallback query rejection.
+
+## Q5 security review
+
+PASS. Evidence: `docs/evidence/MASTER-46/Q5_Q6_REVIEW.md`.
+
+Key results:
+
+- untrusted input enters through shared safe JSON parsing;
+- exact shapes reject authority/provider-secret smuggling;
+- action Capabilities cannot enter hosted supply;
+- Capability/binding conflicts fail closed with no winner;
+- source repetition remains provenance only;
+- collection ceilings are bounded, including aggregate `2048` supply limit;
+- no provider execution, endpoint, credential, health, ranking, commercial or cloud authority is introduced.
+
+## Q6 architecture/ownership review
+
+PASS. Evidence: `docs/evidence/MASTER-46/Q5_Q6_REVIEW.md`.
+
+Executable dependency authority remains:
+
+```text
+capability-supply → capability-contract, hosted-capability-runtime, protocol
+```
+
+Canonical owner chain remains:
+
+```text
+capability-contract       → CapabilityDefinition meaning
+hosted-capability-runtime → exact binding + query execution
+capability-supply         → supply provenance + exact discovery/conflict semantics
+```
+
+Supply discovery does not inherit execution/security/commercial authority.
+
+## Frozen executable
+
+Final executable/test/boundary SHA for Q7:
+
+```text
+8a01eb001949327d1d34aaa780fd72f2687012ac
+```
+
+All changes after this SHA must be documentation/evidence only. Any executable/package/test/boundary change invalidates Q5/Q6 and requires a new freeze plus local Q7.
+
+## Q7 local gate
 
 ```bash
 pnpm check:boundaries
@@ -111,15 +170,21 @@ pnpm vitest run \
   tests/contract/capability-supply-hardening.test.ts
 ```
 
+## Authority / non-goals
+
+Supply discovery evidence is not provider authentication/attestation, provider availability/health/SLA, authorization/governance/runtime permission, commercial entitlement/pricing, endpoint/transport/credential state, deployment placement/cloud scheduling, failover/ranking/recommendation, execution success or proof that an implementation is side-effect-free.
+
+`sourceId`, `providerId`, `bindingRef` and `locationId` remain provenance/routing identities only.
+
 ## Q0–Q9
 
 - Q0 PASS — fresh branch from exact authoritative main `88a05193c189ce02a214bf0acb74743144981cc5`.
 - Q1 PASS — Capability/hosted runtime/federation/marketplace owner reverse engineering.
 - Q2 PASS — capability-supply owner and conflict/discovery contract frozen.
-- Q3 NEXT — package implementation.
-- Q4 — focused/hardening coverage.
-- Q5 — security/fail-closed review.
-- Q6 — architecture/ownership review.
-- Q7 — exact frozen-head local gate.
+- Q3 PASS — package implementation.
+- Q4 PASS — focused/hardening coverage added and statically reviewed.
+- Q5 PASS — security/fail-closed review.
+- Q6 PASS — architecture/ownership review.
+- Q7 PENDING — exact frozen-head local gate.
 - Q8 — independent PR reverse engineering + closure compare.
 - Q9 — exact-head squash merge and verify new authoritative main.
