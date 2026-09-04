@@ -16,6 +16,7 @@ If this document and the executable boundary graph disagree, the executable grap
 | AI-host-side Application integrity + compatibility ergonomics | `application-ai-host-sdk` |
 | Public Application federation snapshot + exact-release discovery/conflict semantics | `application-federation` |
 | Commercial entitlement grant + deterministic eligibility semantics | `commercial-entitlement` |
+| Commercial meter definitions + append-only usage records + entitlement-limit rating | `commercial-metering` |
 | Application semantic nodes/edges | `application-graph` |
 | Canvas draft identity/editor revision/non-semantic projection + mutation session | `application-canvas` |
 | Application-level Canvas AI semantic proposal/diff | `application-canvas-ai` |
@@ -40,6 +41,8 @@ If this document and the executable boundary graph disagree, the executable grap
 | Experience Pack semantics | `experience-packs` |
 | Experience registry | `experience-registry` |
 | Action receipts / ledger truth | `action-ledger` |
+| Operational telemetry events | `telemetry` |
+| Experience telemetry naming/observation mapping | `experience-observability` |
 | Tool/protocol invocation adaptation | `protocol-gateway` |
 | Studio document schema | `studio-schema` |
 | Studio publication gate | `studio-publish` |
@@ -65,6 +68,12 @@ The same exact Application `id@version` across multiple sources is valid only wh
 
 `commercial-entitlement` does **not** own authentication, authorization, governance, runtime/deployment permission, protected Action or Capability execution, registry/network transport, provider bindings, mutable usage counters, remaining-quota computation, meter unit/window definitions, rating, pricing, invoice/payment state or subscription-provider lifecycle. An `entitled` result is commercial eligibility evidence only and cannot override an independent security or execution authority.
 
+`commercial-metering` depends only on `application-package`, `commercial-entitlement`, `enterprise-context` and `protocol`. It owns bounded exact meter definitions, explicit immutable usage-record semantics, append-only in-process ledger/idempotency behavior, deterministic UTC usage windows and non-monetary usage-to-entitlement rating (`used`, `limit`, `remaining`, `excess`).
+
+`commercial-metering` deliberately does **not** depend on or redefine `telemetry`, `experience-observability` or `action-ledger`. Telemetry events and Action receipts may be evidence used by an external trusted ingestion adapter, but they are never automatically converted into billable usage by core. Usage `sourceId` is provenance only, not authenticated identity or integrity proof.
+
+`commercial-metering` also does **not** own monetary price/rate cards, currency, charges, invoices, payment/subscription state, publisher payouts, provider execution, authorization, governance or runtime/deployment permission. Its append-only ledger is a domain contract; durable storage/database infrastructure remains outside the package.
+
 ## Future ownership constraints
 
 - Commercial/marketplace layers must consume canonical Application federation/distribution artifacts rather than define another Application wire schema.
@@ -79,7 +88,9 @@ The same exact Application `id@version` across multiple sources is valid only wh
 - Provider bindings must map to exact provider-neutral semantics and remain outside Canvas draft authority.
 - WorkContext remains bounded work state/provenance, not chat history, user memory or prompt dump.
 - Entitlement expresses commercial access and remains distinct from authorization/governance/runtime permission.
-- Meter unit/window semantics, usage accounting and rating must consume exact entitlement/metering references without moving those concerns into `commercial-entitlement`.
+- Meter unit/window semantics, usage accounting and rating consume exact entitlement/metering references without moving those concerns into `commercial-entitlement`.
+- Operational telemetry and audit/replay evidence remain distinct from commercial usage truth.
+- Monetary pricing, settlement and publisher economics must consume canonical metering/rating evidence rather than mutate usage or entitlement truth.
 
 ## Change rule
 
