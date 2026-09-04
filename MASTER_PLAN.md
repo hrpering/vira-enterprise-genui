@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-04  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-33:** `6bd8072852c758a6369a84c8ce4e19eefd154afb`
+**Authoritative main entering MASTER-34:** `8d9c28d5ac70b20ea88556305977aafd9dc8f3f6`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -20,8 +20,8 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Application Graph | MASTER-30 | MERGED / PR #190 |
 | Application Network — Canvas Foundation | MASTER-31 | MERGED / PR #191 |
 | Application Network — Canvas Mutation Session | MASTER-32 | MERGED / PR #192 |
-| Application Network — Canvas AI Co-author | MASTER-33 | ACTIVE |
-| Application Network — Canvas Simulation + Replay | MASTER-34 | PLANNED |
+| Application Network — Canvas AI Co-author | MASTER-33 | MERGED / PR #193 |
+| Application Network — Canvas Simulation + Replay | MASTER-34 | ACTIVE |
 | Application Network — Canvas Multiplayer + Semantic Review | MASTER-35 | PLANNED |
 | Application Network — Design System / External Design Import | MASTER-36 | PLANNED |
 | Application Network — Distribution | MASTER-37..41 | PLANNED |
@@ -47,7 +47,7 @@ MASTER-31 Canvas Foundation ✅
   ↓
 MASTER-32 Canvas Mutation Session ✅
   ↓
-MASTER-33 Canvas AI Co-author
+MASTER-33 Canvas AI Co-author ✅
   ↓
 MASTER-34 Canvas Simulation + Replay
   ↓
@@ -72,6 +72,7 @@ MASTER-48 → 51 external proofs + Application Network RC
 - Canvas editor revision is not runtime/deployment/Application release revision.
 - Canvas mutation sessions require exact editor revision guards; stale writes fail closed and failed candidates cannot partially commit.
 - Canvas AI is a proposal engine only: provider output must pass canonical validation, unsupported authority cannot be invented, and proposals cannot directly apply, publish, deploy, govern or execute protected effects.
+- Canvas simulation/replay is authoring-time dry-run evidence only: explicit paths are validated, Capability/Action nodes are never invoked/executed, policy/governance is not evaluated, no WorkContext/ledger truth is created, and replay fails closed on exact semantic drift while ignoring projection-only changes.
 - Canvas cannot directly publish, deploy, authorize, govern or execute protected effects by implication.
 - Capability semantics are provider-neutral; provider/API/MCP/SaaS bindings do not define canonical meaning.
 - WorkContext is bounded work state/provenance, not chat history/user memory/prompt storage/runtime lifecycle.
@@ -84,9 +85,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 
 ## Active records
 
-- `docs/pr-plans/MASTER-33.md`
+- `docs/pr-plans/MASTER-34.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-33/RE_REPORT.md`
+- `docs/evidence/MASTER-34/RE_REPORT.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
