@@ -25,6 +25,7 @@ import {
   type ViraCommercialSettlementIssue,
   type ViraCommercialSettlementIssueCode,
   type ViraCommercialSettlementRule,
+  type ViraCommercialSettlementSchedule,
   type ViraCommercialSettlementScheduleResult,
   type ViraCommercialSettlementSerializationResult,
 } from "./types.js";
@@ -175,7 +176,7 @@ export function parseViraCommercialSettlementSchedule(input: unknown): ViraComme
 
 export function serializeViraCommercialSettlementSchedule(
   input: unknown,
-): ViraCommercialSettlementSerializationResult<ReturnType<typeof parseViraCommercialSettlementSchedule> extends { ok: true; value: infer T } ? T : never> {
+): ViraCommercialSettlementSerializationResult<ViraCommercialSettlementSchedule> {
   const parsed = parseViraCommercialSettlementSchedule(input);
   if (!parsed.ok) return parsed;
 
