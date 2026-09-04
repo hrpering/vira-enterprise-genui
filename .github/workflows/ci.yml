@@ -68,10 +68,10 @@ jobs:
       - name: Build native iOS package
         run: >-
           xcodebuild
-          -scheme ViraNative
+          build
+          -scheme ViraIOS
           -destination 'generic/platform=iOS Simulator'
           CODE_SIGNING_ALLOWED=NO
-          build
 
   android-native:
     # Generated Kotlin JVM conformance remains in `verify`. This job proves the

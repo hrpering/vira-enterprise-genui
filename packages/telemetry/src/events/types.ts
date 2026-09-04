@@ -13,6 +13,7 @@ export const TELEMETRY_SOURCES = Object.freeze([
   "security",
   "tool-bridge",
   "host",
+  "action-ledger",
 ] as const);
 
 export const TELEMETRY_KINDS = Object.freeze([

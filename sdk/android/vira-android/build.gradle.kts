@@ -29,8 +29,6 @@ val generatePackagedMainSources = tasks.register("generatePackagedMainSources") 
       writePackaged(source, source.relativeTo(file("src/main/kotlin")).path)
     }
 
-    // Consume only the generated wire model. The JVM-only Conformance.kt harness
-    // remains outside the Android AAR and continues to be verified by MASTER-02.
     writePackaged(portableWireFile.asFile, "StudioExperienceModels.kt")
   }
 }
@@ -59,6 +57,7 @@ android {
 
   defaultConfig {
     minSdk = 26
+    testInstrumentationRunner = "android.test.InstrumentationTestRunner"
     consumerProguardFiles("consumer-rules.pro")
   }
 

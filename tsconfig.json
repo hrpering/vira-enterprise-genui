@@ -12,6 +12,5 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["packages/**/*.ts", "examples/**/*.ts", "tests/**/*.ts"],
-  "exclude": ["examples/pegasus-chat-demo/**"]
+  "include": ["packages/**/*.ts", "examples/**/*.ts", "tests/**/*.ts"]
 }

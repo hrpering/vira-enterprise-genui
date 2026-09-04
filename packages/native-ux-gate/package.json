@@ -1,0 +1,9 @@
+{
+  "name": "@vira-enterprise-genui/native-ux-gate",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

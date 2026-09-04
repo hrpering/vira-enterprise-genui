@@ -1,0 +1,15 @@
+{
+  "name": "@vira-enterprise-genui/cross-platform-conformance",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./runner": "./src/runner.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/action-boundary": "workspace:*",
+    "@vira-enterprise-genui/native-ux-gate": "workspace:*",
+    "@vira-enterprise-genui/protocol": "workspace:*"
+  }
+}

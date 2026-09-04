@@ -12,11 +12,20 @@ export const EXPERIENCE_OBSERVATION_NAMES = Object.freeze([
   "experience.render.started",
   "experience.render.completed",
   "experience.render.failed",
-  "experience.action.started",
-  "experience.action.completed",
-  "experience.action.denied",
+  "experience.shown",
   "experience.view.changed",
   "experience.binding.resolved",
+  "experience.action.started",
+  "experience.action.proposed",
+  "experience.policy.evaluated",
+  "experience.approval.requested",
+  "experience.approval.granted",
+  "experience.action.executed",
+  "experience.action.completed",
+  "experience.action.failed",
+  "experience.action.denied",
+  "experience.action.retry",
+  "experience.action.recovery",
 ] as const);
 
 export type ExperienceObservationName = (typeof EXPERIENCE_OBSERVATION_NAMES)[number];

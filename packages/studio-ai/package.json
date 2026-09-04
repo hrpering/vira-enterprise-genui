@@ -12,6 +12,8 @@
     "@vira-enterprise-genui/studio-schema": "workspace:*",
     "@vira-enterprise-genui/studio-catalog": "workspace:*",
     "@vira-enterprise-genui/studio-binding": "workspace:*",
-    "@vira-enterprise-genui/studio-flow": "workspace:*"
+    "@vira-enterprise-genui/studio-flow": "workspace:*",
+    "@vira-enterprise-genui/studio-brand": "workspace:*",
+    "@vira-enterprise-genui/studio-host": "workspace:*"
   }
 }

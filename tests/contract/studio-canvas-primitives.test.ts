@@ -1,39 +1,42 @@
 import { describe, expect, it } from "vitest";
+import { COMMERCE_BRAND_PACKAGE_INPUT, COMMERCE_COMPONENTS } from "../../examples/commerce-brand-kit/src/index.js";
+import { createStudioBrandPackage } from "../../packages/studio-brand/src/index.js";
 import { importPuckDataIntoStudioDocument, studioViewToPuckData } from "../../packages/studio-puck-adapter/src/index.js";
-import { componentCatalog, createStarterDocument } from "../../examples/experience-studio-demo/src/catalog.js";
+
+function referenceBrand() {
+  const result = createStudioBrandPackage(COMMERCE_BRAND_PACKAGE_INPUT);
+  if (!result.ok) throw new Error(result.issue.message);
+  return result.value;
+}
 
 describe("Studio Canvas v2 composable primitives", () => {
-  it("registers independently editable layout, content, action and display primitives", () => {
-    const refs = new Set(componentCatalog.components.map((component) => component.ref));
+  it("registers independently editable layout, content and action primitives", () => {
+    const brand = referenceBrand();
+    const refs = new Set(brand.components.components.map((component) => component.ref));
     for (const ref of [
-      "airline.layout.stack",
-      "airline.layout.row",
-      "airline.layout.grid",
-      "airline.layout.card",
-      "airline.component.heading",
-      "airline.component.text",
-      "airline.component.button",
-      "airline.component.badge",
-      "airline.component.price",
-      "airline.component.divider",
+      COMMERCE_COMPONENTS.stack,
+      COMMERCE_COMPONENTS.title,
+      COMMERCE_COMPONENTS.price,
+      COMMERCE_COMPONENTS.addButton,
     ]) expect(refs.has(ref)).toBe(true);
-    expect(componentCatalog.components.find((component) => component.ref === "airline.layout.card")?.slots).toEqual([{ name: "content", label: "Content" }]);
+    expect(brand.components.components.find((component) => component.ref === COMMERCE_COMPONENTS.stack)?.slots).toEqual([{ name: "content", label: "Content" }]);
   });
 
-  it("creates a nested editable graph instead of one opaque starter component", () => {
-    const document = createStarterDocument("demo.composable-contract", "composable-canvas");
+  it("keeps a nested editable graph instead of one opaque starter component", () => {
+    const document = referenceBrand().templates[0]!.document;
     const view = document.views[0];
-    expect(view?.nodes.length).toBeGreaterThan(8);
-    expect(view?.nodes.find((node) => node.id === "card")?.component).toBe("airline.layout.card");
-    expect(view?.nodes.find((node) => node.id === "button")).toMatchObject({ parentId: "card", slot: "content", component: "airline.component.button" });
+    expect(view?.nodes).toHaveLength(4);
+    expect(view?.nodes.find((node) => node.id === "root")?.component).toBe(COMMERCE_COMPONENTS.stack);
+    expect(view?.nodes.find((node) => node.id === "add")).toMatchObject({ parentId: "root", slot: "content", component: COMMERCE_COMPONENTS.addButton });
   });
 
   it("round-trips nested primitive slots through Puck without persisting Puck-only structure", () => {
-    const document = createStarterDocument("demo.composable-roundtrip", "composable-canvas");
-    const exported = studioViewToPuckData(document, componentCatalog, "main");
+    const brand = referenceBrand();
+    const document = brand.templates[0]!.document;
+    const exported = studioViewToPuckData(document, brand.components, "main");
     expect(exported.ok).toBe(true);
     if (!exported.ok) return;
-    const imported = importPuckDataIntoStudioDocument({ document, catalog: componentCatalog, viewId: "main", data: exported.value });
+    const imported = importPuckDataIntoStudioDocument({ document, catalog: brand.components, viewId: "main", data: exported.value });
     expect(imported.ok).toBe(true);
     if (!imported.ok) return;
     expect(imported.value.views[0]?.nodes.map((node) => [node.id, node.parentId, node.slot])).toEqual(document.views[0]?.nodes.map((node) => [node.id, node.parentId, node.slot]));
