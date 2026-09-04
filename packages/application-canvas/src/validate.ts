@@ -237,7 +237,9 @@ function parseProjection(value: JsonValue | undefined, graphs: readonly ViraAppl
   const unexpected = shape(value, ["activeGraphRef", "graphViews"]);
   if (unexpected) return fail("INVALID_PROJECTION", `$.projection.${unexpected}`, "projection shape is invalid");
 
-  const graphByKey = new Map(graphs.map((graph) => [`${graph.id}\u0000${graph.version}`, graph] as const));
+  const graphByKey = new Map<string, ViraApplicationGraph>(
+    graphs.map((graph): [string, ViraApplicationGraph] => [`${graph.id}\u0000${graph.version}`, graph]),
+  );
   let activeGraphRef: ViraCanvasGraphRef | null = null;
   if (value.activeGraphRef !== null) {
     const active = parseGraphRef(value.activeGraphRef, "$.projection.activeGraphRef");
