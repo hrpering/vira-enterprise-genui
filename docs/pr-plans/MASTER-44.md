@@ -1,0 +1,226 @@
+# MASTER-44 — Hosted Capability Runtime Foundation
+
+## Goal
+
+Introduce the canonical provider-neutral hosted execution boundary for **query** Capabilities without turning Vira into generic cloud compute, duplicating Capability semantics, or bypassing existing protected-Action authority.
+
+## Base
+
+- authoritative `main`: `e987f3447953761b70c4aa548761bf359b3e07f0`
+- previous phase: MASTER-43 merged via PR #204
+- branch: `master/44-hosted-capability-runtime`
+
+## Q1 reverse engineering
+
+### Capability Contract
+
+`capability-contract` owns canonical `ViraCapabilityDefinition` semantics: exact Capability identity/version, publisher metadata, input/output type references, exact WorkContext requirements and invocation kind (`query` or `action`). It deliberately does not own provider bindings, hosted lifecycle or execution adapters.
+
+Extending `capability-contract` with provider/runtime state would mix semantic meaning with deployment/execution implementation.
+
+### Protocol Gateway / Tool Bridge
+
+`protocol-gateway` owns ingress/protocol normalization and tool/protocol adaptation. MCP is explicitly classified as `tool-data-action-discovery`; normalization does not grant execution authority.
+
+`tool-bridge` owns canonical external-tool result adaptation/freshness/domain helpers. Its `ExternalToolResult` is not a `ViraCapabilityDefinition` execution contract and does not carry enterprise hosted-execution identity.
+
+Hosted Capability execution therefore must not turn either package into a provider runtime.
+
+### Deployment Plane
+
+`deployment-plane` owns signed **Experience Pack** publication, promotion, rollback, cached-pack integrity and environment deployment records. It is not a generic workload scheduler or Capability provider deployment plane.
+
+### Studio Host Runtime / Runtime Core
+
+`studio-host-runtime` bridges Studio UI runtime dispatch to a Studio host. `runtime-core` owns Experience runtime state/lifecycle/permissions. Neither is a server-side Capability execution owner.
+
+### AI-host SDK
+
+`application-ai-host-sdk` validates Application Distribution integrity/host compatibility. It does not expose Capability invocation or provider execution and must remain a thin compatibility SDK.
+
+### Action Boundary
+
+`action-boundary` is the canonical protected-effect execution authority with permit, idempotency, confirmation and receipt semantics.
+
+A Capability whose canonical definition declares `invocation.kind: "action"` must **never** be directly executed by the hosted query runtime. MASTER-44 fails closed before adapter invocation with `ACTION_BOUNDARY_REQUIRED`.
+
+### WorkContext / Enterprise Context
+
+`work-context` already owns bounded Context instances, exact type references, items and provenance. MASTER-44 consumes canonical WorkContext and requires the invocation Context set to match the Capability's exact declared `contextRequirements` with no undeclared extra Context types.
+
+`enterprise-context` remains organization/project/environment/principal authority. MASTER-44 carries canonical principal/scope to the trusted provider adapter but does not authenticate the principal or decide authorization.
+
+## Q2 frozen owner
+
+New package:
+
+```text
+@vira-enterprise-genui/hosted-capability-runtime
+```
+
+Executable dependencies:
+
+```text
+hosted-capability-runtime
+  → capability-contract
+  → enterprise-context
+  → protocol
+  → work-context
+```
+
+No dependency on:
+
+- `action-boundary` (action Capabilities are rejected, not executed);
+- governance/authorization owners;
+- commercial entitlement/metering;
+- protocol gateway/tool bridge;
+- deployment plane;
+- runtime-core/Studio runtime;
+- provider SDKs, containers, Kubernetes, serverless vendors or cloud APIs.
+
+## Provider binding
+
+A hosted binding is provider-neutral configuration evidence only:
+
+```text
+version
+bindingRef        exact
+capabilityRef     exact
+providerId
+locationId | null
+```
+
+It contains no endpoint URL, credentials, secret values, container image, VM size, billing price or implicit trust claim.
+
+`bindingRef` identifies the exact hosted implementation binding. `providerId` and `locationId` are provenance/routing identifiers only; parsing them does not authenticate the provider, attest isolation or authorize invocation.
+
+## Invocation request
+
+One request carries:
+
+- stable invocation id;
+- canonical enterprise principal + scope;
+- typed JSON input value;
+- bounded canonical WorkContext instances.
+
+The runtime separately receives the canonical `ViraCapabilityDefinition` and hosted binding. It verifies exact Capability identity/version equality rather than resolving latest/fallback aliases.
+
+### Typed values
+
+Execution values use:
+
+```text
+{ typeRef: exact-ref | null, value: JsonValue }
+```
+
+The request input `typeRef` must exactly match `CapabilityDefinition.input.typeRef`.
+The trusted adapter output `typeRef` must exactly match `CapabilityDefinition.output.typeRef`.
+
+MASTER-44 does not invent a second schema/type system. Type references remain opaque exact semantic references; JSON safety and type-reference identity are enforced here while referenced schema semantics remain owned elsewhere.
+
+## Context minimization
+
+Capability `contextRequirements[]` is treated as the exact allowed Context-type set for the hosted request:
+
+- each supplied WorkContext must pass the canonical WorkContext parser;
+- duplicate supplied Context type refs fail closed;
+- every required type must be present exactly once;
+- undeclared extra Context types fail closed;
+- no chat history, prompt dump, user memory or arbitrary ambient context is forwarded.
+
+This makes Context disclosure explicit and bounded.
+
+## Query execution lifecycle
+
+MASTER-44 executes only canonical query Capabilities:
+
+1. parse canonical CapabilityDefinition;
+2. parse exact hosted binding;
+3. require binding Capability exact match;
+4. reject `invocation.kind: "action"` with `ACTION_BOUNDARY_REQUIRED` before adapter invocation;
+5. validate canonical enterprise principal/scope;
+6. validate input value/typeRef;
+7. validate exact bounded WorkContext set;
+8. invoke the explicitly supplied trusted provider adapter once;
+9. fail closed if adapter throws/rejects or returns malformed output;
+10. validate output typeRef/JSON against CapabilityDefinition;
+11. return immutable execution evidence.
+
+## Result semantics
+
+Result outcomes:
+
+```text
+success | empty | error
+```
+
+Success evidence may contain the validated typed output. Empty contains no output. Error contains a bounded provider failure code.
+
+The result includes exact Capability/binding/provider/location/invocation identity evidence but contains **no**:
+
+- `authorized`, `allow`, `deny`, `approved`;
+- governance verdict;
+- Action permit/receipt;
+- entitlement decision;
+- commercial usage/price/currency/charge;
+- deployment approval;
+- provider authentication or attestation claim.
+
+A successful query execution is execution evidence only. It cannot override any independent authentication, authorization, enterprise policy, entitlement or governance requirement imposed by the host/integration.
+
+## Failure invariants
+
+- malformed/untrusted input fails closed through safe JSON/object validation;
+- no floating Capability/binding/type references;
+- exact binding↔Capability mismatch fails;
+- action-kind Capability never reaches provider adapter;
+- principal organization must equal enterprise scope organization;
+- Context requirements are exact and minimized;
+- input/output typeRef mismatch fails;
+- adapter exception/rejection becomes explicit failure;
+- malformed adapter output fails;
+- adapter is called at most once for one invocation attempt;
+- no implicit retry, failover, provider priority or fallback;
+- no implicit commercial metering record is created from execution success.
+
+## Non-goals
+
+MASTER-44 does not implement:
+
+- provider catalog/discovery;
+- durable job queue/scheduler;
+- containers/VMs/Kubernetes/serverless orchestration;
+- autoscaling/concurrency placement;
+- network transport/endpoints;
+- secret distribution;
+- action execution;
+- authorization/governance;
+- entitlement enforcement;
+- commercial usage ingestion/pricing/payment;
+- provider failover/ranking;
+- generic workflow/agent runtime.
+
+Those concerns must remain separately owned and only be added by later phases with explicit boundaries.
+
+## Planned focused verification
+
+```bash
+pnpm check:boundaries
+pnpm typecheck
+pnpm vitest run \
+  tests/contract/hosted-capability-runtime.test.ts \
+  tests/contract/hosted-capability-runtime-hardening.test.ts
+```
+
+## Q0–Q9
+
+- Q0 PASS — branch reset/verified at exact authoritative main `e987f3447953761b70c4aa548761bf359b3e07f0`.
+- Q1 PASS — Capability/protocol/tool/deployment/runtime/AI-host/Action/Context owner reverse engineering.
+- Q2 PASS — hosted query-runtime boundary frozen in this document.
+- Q3 NEXT — implement package and executable dependency boundary.
+- Q4 — focused + fail-closed tests.
+- Q5 — security/failure review.
+- Q6 — architecture/ownership review.
+- Q7 — exact frozen-head local boundaries/typecheck/focused suites.
+- Q8 — independent PR reverse engineering + executable-clean closure compare.
+- Q9 — exact-head squash merge, verify new authoritative main, then start next phase fresh from it.
