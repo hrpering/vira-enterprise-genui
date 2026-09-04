@@ -4,6 +4,7 @@ import {
   type JsonObject,
   type JsonValue,
 } from "@vira-enterprise-genui/protocol";
+import { isViraPrincipalIssuer } from "./issuer.js";
 import {
   VIRA_GOVERNANCE_VERSION,
   type ViraAgentIdentityProvider,
@@ -57,8 +58,7 @@ export function parseViraPrincipal(input: unknown, expectedKind?: "user" | "agen
     || (parsed.value.kind !== "user" && parsed.value.kind !== "agent")
     || (expectedKind !== undefined && parsed.value.kind !== expectedKind)
     || !bounded(parsed.value.id)
-    || typeof parsed.value.issuer !== "string"
-    || !isSemanticNamespace(parsed.value.issuer)
+    || !isViraPrincipalIssuer(parsed.value.issuer)
   ) return undefined;
   let claims: JsonObject | undefined;
   if (Object.hasOwn(parsed.value, "claims")) {
