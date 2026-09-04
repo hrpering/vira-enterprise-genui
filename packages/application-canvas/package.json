@@ -1,0 +1,14 @@
+{
+  "name": "@vira-enterprise-genui/application-canvas",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/application-graph": "workspace:*",
+    "@vira-enterprise-genui/application-package": "workspace:*",
+    "@vira-enterprise-genui/protocol": "workspace:*"
+  }
+}
