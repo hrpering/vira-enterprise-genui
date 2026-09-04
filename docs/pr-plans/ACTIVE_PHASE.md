@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-39 — Application Publisher SDK  
-**Status:** Q0–Q6 PASS / LOCAL Q7 REQUIRED  
+**Status:** Q0–Q7 PASS / FINAL Q8 REQUIRED  
 **Base SHA:** `b8f009603407fea9a9115d735e9a144017fc654f`  
 **Frozen executable SHA:** `4f7df4b1e314121a4d16cbf5502896810447e1bd`  
 **Previous:** MASTER-38 merged via PR #198  
@@ -17,8 +17,10 @@ Q5 security review PASS: exact safe input, authority-smuggling rejection, canoni
 
 Q6 architecture review PASS: dependency boundary is only `application-package`, `application-distribution`, `protocol`; no registry/transport/signing/deployment/runtime/governance/Action authority.
 
+Q7 PASS: operator-reported exact frozen-head package boundary, TypeScript and focused Publisher SDK suites all passed. Exact counts were not supplied in the final green message and are not inferred. Evidence is recorded in `docs/evidence/MASTER-39/VERIFICATION.md`.
+
 `publisherId` is not authentication. Digest-provider output is a declared integrity identity, not a trust/verification claim.
 
 Hosted verify/iOS/Android jobs on the frozen head ended with `steps: null`, so they are infrastructure non-signal.
 
-Merge remains blocked until exact frozen-head local Q7 and final executable-clean actual-diff Q8.
+Merge remains blocked only on final executable-clean actual-diff Q8.
