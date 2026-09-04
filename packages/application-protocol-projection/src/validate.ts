@@ -102,11 +102,12 @@ function freezeJson(value: JsonValue): JsonValue {
     for (const item of value) freezeJson(item);
     return Object.freeze(value);
   }
-  for (const key of Object.keys(value)) {
-    const item = value[key];
+  const object = value as JsonObject;
+  for (const key of Object.keys(object)) {
+    const item = object[key];
     if (item !== undefined) freezeJson(item);
   }
-  return Object.freeze(value);
+  return Object.freeze(object);
 }
 
 function parseLosses(value: JsonValue | undefined): Parsed<readonly ViraApplicationProtocolProjectionLoss[]> {
@@ -201,9 +202,10 @@ function canonicalJson(value: JsonValue): string {
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "number") return String(value);
   if (Array.isArray(value)) return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
-  const entries = Object.keys(value)
+  const object = value as JsonObject;
+  const entries = Object.keys(object)
     .sort()
-    .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key] as JsonValue)}`);
+    .map((key) => `${JSON.stringify(key)}:${canonicalJson(object[key] as JsonValue)}`);
   return `{${entries.join(",")}}`;
 }
 
