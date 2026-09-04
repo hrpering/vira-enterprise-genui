@@ -1,26 +1,17 @@
 # Active Phase
 
-**Phase:** MASTER-35 — Canvas Multiplayer + Semantic Review  
-**Status:** Q0–Q8 PASS / Q9 MERGE READY  
-**Base SHA:** `f17ae3cc920e672fcab1f97028dddcbe08040016`  
-**Frozen executable SHA:** `74d8a2c4dc7e1f573600ed52af908c0e10443fd7`  
-**Previous:** MASTER-34 merged via PR #194  
-**Next after merge:** MASTER-36 — Design System / External Design Import
+**Phase:** MASTER-36 — Design System / External Design Import  
+**Status:** Q0–Q4 PASS / Q5–Q6 REVIEW IN PROGRESS  
+**Base SHA:** `70194c6415c7b66c5f2569733b6ed1aa88b59832`  
+**Previous:** MASTER-35 merged via PR #195  
+**Next after merge:** MASTER-37 — Distribution / protocol program
 
-MASTER-35 introduces `@vira-enterprise-genui/application-canvas-collaboration` as an authoring-only collaboration layer.
+MASTER-36 introduces `@vira-enterprise-genui/application-canvas-design-import` as a provider-neutral authoring import boundary.
 
-Registered participants can publish ephemeral graph-local presence and create concurrent semantic proposals against the same exact `editorRevision`. Presence never mutates the Canvas draft.
+External vendor adapters must normalize source material to DTCG 2025.10 before entering core. Canvas does not own Figma/Sketch/API payload parsing, URLs, credentials or provider bindings.
 
-Semantic reviews are immutable peer-review records. Authors cannot self-review, duplicate reviews fail closed, any rejection blocks apply, and distinct approvals must meet the session threshold.
+The import boundary validates the Canvas draft, requires the Application's existing exact `brandRef`, validates bounded source provenance, delegates token compilation to the canonical `design-system-compiler`, and returns a frozen `mode: "authoring-import"` artifact carrying safe raw DTCG plus compiled Studio design options/metadata.
 
-Approved apply remains delegated to the existing Canvas mutation session. Stale proposal bases fail closed; projection-breaking proposals require reconciliation before apply. Successful semantic apply increments revision through the canonical owner and clears ephemeral presence.
+The artifact has no apply/publish/deploy/execute or renderer-installation authority. Full brand assembly remains with `studio-brand`; trusted renderer activation remains with `studio-brand-loader`.
 
-Participant `actorId` values are host-asserted identities, not authentication performed by this package. The review threshold is an editor collaboration rule only, not enterprise governance, authorization, publication approval or protected execution permission.
-
-Q5/Q6 security and architecture review PASS. Executable dependencies remain only `application-canvas` + `protocol`; no network/CRDT/runtime/governance/deployment/Action authority is imported.
-
-The first local Q7 attempt on `68583242ce8afb71e04d70d0843a9c81d54a9dad` had package boundaries and focused 12/12 tests green but TypeScript failed on one sort typo and one closure narrowing issue. Both were fixed without semantic behavior changes. Corrected frozen executable head is `74d8a2c4dc7e1f573600ed52af908c0e10443fd7`.
-
-The corrected frozen head was operator-reported fully green for boundaries, TypeScript and focused collaboration tests. Final Q8 compare from that head contains documentation/evidence changes only; executable drift is zero.
-
-PR #195 is Q9 merge-ready.
+Merge remains blocked until Q5/Q6 security/architecture review, exact-head local Q7 and final executable-clean Q8.
