@@ -11,6 +11,7 @@ Reconcile repository documentation and historical state before Application Netwo
 - root execution-plan reset,
 - root consumer README correction,
 - package-ownership documentation reset against executable boundaries,
+- normative architecture/status reconciliation,
 - separation of long-range product thesis from engineering status,
 - active-vs-historical PR-plan organization,
 - branch cleanup inventory and policy,
@@ -20,8 +21,8 @@ Reconcile repository documentation and historical state before Application Netwo
 
 - runtime behavior,
 - Experience/Studio semantics,
-- action/governance behavior,
-- package-boundary rules,
+- action/governance implementation behavior,
+- executable package-boundary rules,
 - external Pegasus proof,
 - MASTER-26+ semantics.
 
@@ -33,20 +34,22 @@ Reconcile repository documentation and historical state before Application Netwo
 - No historical branch is deleted merely because Git ancestry looks stale after squash merges.
 - No feature/package/runtime code changes are permitted in this phase.
 - README documents only root commands actually exposed by current `package.json`.
+- KEEP/normative architecture docs describe current integrated owners rather than pre-integration future phases.
 
 ## Acceptance
 
 - [x] authoritative baseline recorded
 - [x] open PR baseline checked: 0 at phase start
-- [x] stale current-state root docs identified
+- [x] stale current-state root docs identified and reconciled
+- [x] normative architecture/status drift identified and reconciled
 - [x] historical active-plan contamination inventoried
 - [x] branch inventory produced
-- [ ] current-state docs committed to CLEAN-00 branch
-- [ ] active plan directory contains only current/release work
-- [ ] historical plans archived
-- [ ] diff proves no semantic/runtime behavior change
-- [ ] repository verification PASS
-- [ ] independent docs/architecture reverse-engineering PASS
-- [ ] PR READY-TO-MERGE
+- [x] current-state docs committed to CLEAN-00 branch
+- [x] active plan directory contains only CLEAN-00/current release records
+- [x] historical plans archived
+- [x] diff review proves no package/runtime/tooling implementation change
+- [ ] repository verification PASS — **BLOCKED: hosted GitHub jobs allocate no runner and execute zero steps; baseline `main` has the same infrastructure failure**
+- [x] independent docs/architecture reverse-engineering PASS
+- [ ] PR READY-TO-MERGE — blocked solely on successful Q7 repository verification
 
-Final verification and head SHAs are recorded under `docs/evidence/CLEAN-00/`.
+Exact evidence is under `docs/evidence/CLEAN-00/`.

@@ -1,27 +1,30 @@
 # Dependency rules
 
-Dependencies must point toward stable semantic contracts and never back toward a framework or host-specific layer.
+Dependencies must point toward stable semantic contracts and canonical owners, never back toward framework-, host-, provider- or customer-specific layers.
+
+**Executable authority:** `tooling/package-boundaries.config.mjs`. This document explains invariants; it is not a competing allowlist.
 
 ## Required rules
 
-- `protocol` has no internal package dependencies.
-- `runtime-core` may depend on `protocol`.
-- `planner` may depend on `protocol` and narrow runtime-core types where explicitly required.
-- `composer` may depend on `protocol`, planner output contracts, and adapter policy contracts; it must not depend on runtime-web.
-- `adapter-sdk` may depend on `protocol`; it must not own runtime state.
-- `runtime-web` may depend on runtime-core, protocol, composer output contracts, adapter-sdk, and security interfaces.
-- `web-component` and `react` may depend on runtime-web/public SDK surfaces only.
-- `tool-bridge` normalizes into protocol/domain-data and must not depend on runtime-web.
+- platform-neutral semantic/runtime owners do not import DOM, React, SwiftUI, Compose or customer backends;
+- renderers/wrappers consume canonical runtime/publication surfaces rather than duplicate planning, state, governance or action logic;
+- Studio authoring/editor surfaces consume canonical schema/publication owners and never become execution authority;
+- Pack/Registry/Resolver/Deployment owners preserve exact identity/version resolution and do not depend on customer/domain integrations;
+- protocol adapters normalize/project supported semantics and do not become canonical application semantics;
+- governance providers are adapters behind provider-neutral governance owners;
+- protected effects converge on Action Boundary/trusted adapter owners rather than direct renderer/provider execution;
+- native SDKs map shared semantic contracts to platform implementations rather than fork persisted Experience semantics;
+- generic packages do not import external-brand/domain proof code.
 
 ## Forbidden direction examples
 
 ```text
-protocol      -> runtime-web   FORBIDDEN
-runtime-core  -> react         FORBIDDEN
-planner       -> DOM           FORBIDDEN
-composer      -> customer API  FORBIDDEN
-runtime-web   -> raw tool SDK  FORBIDDEN
-react         -> planner internals FORBIDDEN
+protocol / runtime-core  -> renderer/framework       FORBIDDEN
+canonical owner          -> customer/domain proof    FORBIDDEN
+Studio editor            -> protected backend        FORBIDDEN
+renderer                 -> governance bypass        FORBIDDEN
+protocol adapter         -> canonical semantic owner FORBIDDEN
+Network/discovery        -> runtime execution owner  FORBIDDEN
 ```
 
-Automated dependency enforcement is intentionally scheduled for PR-002.
+Automated dependency enforcement is already implemented. Every dependency change must pass `pnpm check:boundaries`; future phase docs may describe intended edges but cannot override the executable graph.
