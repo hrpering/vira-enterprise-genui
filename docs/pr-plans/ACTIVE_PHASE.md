@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-42 — Commercial Entitlement Contract  
-**Status:** Q0–Q7 PASS / Q8 ACTIVE  
+**Status:** Q0–Q8 PASS / Q9 READY TO MERGE  
 **Base SHA:** `a0da432e0220cb550b13f11f4a4a8001d445e212`  
 **Frozen executable SHA:** `652793c2e57b62c11a28f6adf6b36e9356008560`  
 **Previous:** MASTER-41 merged via PR #201  
@@ -31,4 +31,8 @@ Evaluation is for one explicitly selected exact Application `entitlementRef` at 
 
 MASTER-42 limits are exactly `{ meteringRef, quantity }`; meter unit/window semantics, mutable usage accounting, remaining quota and rating are reserved for MASTER-43.
 
-Q5 security/fail-closed review PASS. Q6 architecture/ownership review PASS. Q7 exact frozen-head local gate is operator-reported PASS and recorded in `docs/evidence/MASTER-42/Q7_LOCAL.md`. Q8 independent PR reverse engineering is active on PR #202.
+Q5 security/fail-closed review PASS. Q6 architecture/ownership review PASS. Q7 exact frozen-head local gate is operator-reported PASS and recorded in `docs/evidence/MASTER-42/Q7_LOCAL.md`. Q8 independent PR reverse engineering PASS is recorded in `docs/evidence/MASTER-42/Q8_REVIEW.md`.
+
+Hosted PR-head verify/iOS/Android jobs contain zero executable steps and no runner assignment; they remain infrastructure non-signal and do not substitute for Q7.
+
+MASTER-42 is ready for final docs-only closure compare and exact-head squash merge.
