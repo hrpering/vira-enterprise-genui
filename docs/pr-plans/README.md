@@ -2,12 +2,13 @@
 
 Current active record:
 
-- `MASTER-27.md` — Vira Application Package implementation.
+- `MASTER-28.md` — provider-neutral CapabilityDefinition contract.
 - `ACTIVE_PHASE.md` — machine/human-readable status pointer.
 
 Immediate provenance retained:
 
+- `MASTER-27.md` — merged Application Package implementation.
 - `MASTER-26.md` — merged Application semantic freeze.
-- `MASTER-25.md` / `MASTER-25R.md` / `MASTER-25-native-qc-note.md` — Enterprise GenUI RC1 release provenance/interface records pending later archival cleanup.
+- MASTER-25/25R native/release records — Enterprise GenUI RC1 provenance pending later archival cleanup.
 
-Do not start MASTER-28 until MASTER-27 completes focused local verification, actual-diff Q8, squash merge, and new authoritative `main` is fetched.
+Do not start MASTER-29 until MASTER-28 passes exact-head local verification, actual-diff Q8, squash merge and the new authoritative `main` is fetched.

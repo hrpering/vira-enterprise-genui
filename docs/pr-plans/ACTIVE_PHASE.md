@@ -1,14 +1,13 @@
 # Active Phase
 
-**Phase:** MASTER-27 — Vira Application Package  
-**Status:** Q0–Q8 PASS / Q9 READY TO SQUASH MERGE  
-**Base SHA:** `1980368befeafa3c7b0de5c38bcfb2429ffb6f5e`  
-**Green executable head:** `2be7e622cde16298d23fdceae8ee43a01cd0a9eb`  
-**Previous:** MASTER-26 merged via PR #186  
-**Next after merge:** MASTER-28 — Capability Contract
+**Phase:** MASTER-28 — Provider-Neutral Capability Contract  
+**Status:** Q0–Q6 IMPLEMENTED / LOCAL Q7 REQUIRED  
+**Base SHA:** `c17d5016a00f915604de73b9797a94e72692c5a6`  
+**Previous:** MASTER-27 merged via PR #187  
+**Next after merge:** MASTER-29 — WorkContext
 
-MASTER-27 introduces the first executable Application release/reference-graph contract as `@vira-enterprise-genui/application-package`.
+MASTER-28 introduces `@vira-enterprise-genui/capability-contract` as the canonical provider-neutral CapabilityDefinition owner while keeping existing `protocol.Capability` unchanged as the wire/projection identity envelope.
 
-The package references existing semantic owners instead of embedding their payloads. Future Capability, WorkContext and ApplicationGraph semantics remain references only until MASTER-28/29/30.
+The new contract contains no provider binding, endpoint, credential, transport, effect catalog, policy or execution authority. Action-mediated capabilities bind an exact `actionType`; protected execution remains behind governance and the existing Action Boundary.
 
-Local `check:boundaries`, `typecheck` and focused Application Package contract tests were reported green on the exact executable head above. Post-Q7 changes are documentation/evidence only. Merge requires the final green-head → PR-head compare to remain executable-clean.
+Merge remains blocked until the exact executable head passes the local boundary/type/focused-test Q7 and the PR completes independent actual-diff Q8.
