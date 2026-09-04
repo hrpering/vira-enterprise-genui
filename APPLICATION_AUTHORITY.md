@@ -26,6 +26,7 @@ An Application can reference Experiences, Capabilities, Context and Actions, but
 | Governance | `governance`, `enterprise-governance` | become a policy language or bypass verdicts/approvals |
 | Enterprise scope | `enterprise-context` | weaken tenant/project/environment boundaries |
 | Action audit/replay evidence | `action-ledger` | create a competing effect ledger |
+| Operational telemetry/observability | `telemetry`, `experience-observability` | be treated as commercial usage truth by implication |
 | Platform host/render mapping | existing Web/native host/runtime owners | redefine business semantics per platform |
 | Application semantic composition | `application-package`, `application-graph` | absorb the authorities listed above |
 | Capability semantics | `capability-contract` | let MCP/SaaS/customer/provider bindings define canonical meaning |
@@ -33,6 +34,7 @@ An Application can reference Experiences, Capabilities, Context and Actions, but
 | Canvas | `application-canvas` family | become runtime, publication, governance or effect authority |
 | Network | `application-distribution`, `application-federation` | become runtime/execution/governance authority |
 | Entitlement/commercial access | `commercial-entitlement` | be treated as authorization/governance/runtime permission |
+| Commercial usage metering/rating | `commercial-metering` | become monetary billing or execution authority |
 
 ## Application authority
 
@@ -88,6 +90,23 @@ Network may not:
 
 Commercial entitlement also does not define meter units/windows, count mutable usage, compute remaining quota, rate usage, price invoices or own payment/subscription provider state. Those concerns are separately owned downstream.
 
+## Commercial metering authority
+
+`commercial-metering` may define exact provider-neutral meter units/windows, validate explicit commercial usage records, enforce append-only usage-id idempotency and deterministically rate one exact meter against an existing entitlement limit.
+
+A metering rating may state only usage evidence such as:
+
+```text
+used / limit / remaining / excess
+unlimited | within-limit | limit-reached | over-limit
+```
+
+It does not authorize or deny runtime execution. An over-limit result is commercial evidence for a higher-level product/commercial decision; it cannot bypass or replace governance, runtime permission or the Action Boundary.
+
+Operational telemetry, Experience observations and Action receipts are not billable usage by implication. A trusted integration may explicitly normalize external evidence into the canonical commercial usage-record contract, but `sourceId` remains provenance only and the core parser does not authenticate or integrity-verify that source.
+
+Commercial metering also does not own monetary price/rate cards, currency, charges, invoice/payment/subscription lifecycle or publisher settlement. Those future economic layers must consume immutable entitlement/metering evidence rather than mutate security or usage truth.
+
 ## Provider authority
 
 Providers implement/bind functionality. They are never Vira canonical semantic owners merely because they expose an API, MCP server, SDK, model, SaaS integration or hosted execution environment.
@@ -105,7 +124,7 @@ exact semantic dependency references
       ↓
 canonical registry/resolver/deployment authorities
       ↓
-commercial entitlement where commercially required
+commercial entitlement / metering evidence where commercially required
       ↓
 enterprise scope + governance
       ↓
@@ -118,4 +137,4 @@ An upstream composition or commercial layer cannot overrule a downstream securit
 
 ## Failure rule
 
-Ambiguous, missing, stale, unapproved, incompatible or untrusted authority resolution fails closed. A higher-level Application declaration or commercial entitlement cannot convert an underlying denial/failure into success.
+Ambiguous, missing, stale, unapproved, incompatible or untrusted authority resolution fails closed. A higher-level Application declaration, entitlement or commercial usage rating cannot convert an underlying denial/failure into success.
