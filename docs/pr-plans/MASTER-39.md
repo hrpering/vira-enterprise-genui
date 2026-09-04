@@ -93,6 +93,8 @@ pnpm vitest run \
   tests/contract/application-publisher-sdk-hardening.test.ts
 ```
 
+Exact frozen-head local gate was operator-reported PASS. Exact test counts were not supplied in the final green message and are not inferred. See `docs/evidence/MASTER-39/VERIFICATION.md`.
+
 ## Q0–Q9
 
 - Q0 PASS — fresh branch from exact `b8f009603407fea9a9115d735e9a144017fc654f`.
@@ -102,8 +104,8 @@ pnpm vitest run \
 - Q4 PASS — focused security/integrity/determinism/hardening coverage added.
 - Q5 PASS — final security/fail-closed review.
 - Q6 PASS — architecture/ownership review.
-- Q7 REQUIRED — exact frozen-head local boundaries/typecheck/focused tests.
-- Q8 PRE-Q7 PASS — actual executable scope reviewed; final post-Q7 executable-clean compare required.
-- Q9 BLOCKED until Q7/final Q8; then exact-head squash merge and MASTER-40 starts from resulting new authoritative `main`.
+- Q7 PASS — exact frozen-head local boundaries/typecheck/focused suites, operator reported.
+- Q8 REQUIRED — final post-Q7 executable-clean compare.
+- Q9 BLOCKED until final Q8; then exact-head squash merge and MASTER-40 starts from resulting new authoritative `main`.
 
 Hosted verify/iOS/Android jobs on the frozen head ended with `steps: null` and remain infrastructure non-signal.
