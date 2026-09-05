@@ -1,10 +1,10 @@
 # MASTER-50 — Independent External Provider Proof
 
-**Status:** Q0–Q7 PASS / Q8 ACTIVE  
+**Status:** Q0–Q8 PASS / Q9 READY  
 **Base SHA:** `46f4d8ec163790765d162d13747dd4f64bf0e8ea`  
 **Frozen executable/test SHA:** `5ed6832fa9f233b0b7eb44a8fc5f10f143d00905`  
 **Branch:** `master/50-external-provider-proof`  
-**PR:** #211 (draft)
+**PR:** #211 (draft; ready transition pending Q9)
 
 ## Goal
 
@@ -86,22 +86,21 @@ Operator-reported PASS on exact freeze `5ed6832fa9f233b0b7eb44a8fc5f10f143d00905
 
 ## Q8
 
-ACTIVE. Independent review must start from the current PR surface and re-check:
+Independent review PASS: `docs/evidence/MASTER-50/Q8_REVIEW.md`.
 
-- current PR head/base/draft/mergeability and changed filenames;
-- public-root import discipline;
-- exact-reference owner delegation and nested error-path preservation;
-- supply discovery exactness/no-provider-invocation/no fallback/ranking/substitution;
-- binding capabilityRef exact match;
-- Action Boundary before adapter invocation;
-- one-shot adapter/no retry/failover;
-- exact typed output and authority-smuggling rejection;
-- provider/source/binding/location IDs as routing/provenance only;
-- no new endpoint/credential/health/commercial/deployment/cloud authority;
-- reviews, threads and PR comments;
-- current-head hosted Actions classification;
-- frozen executable SHA → current PR head executable/package/test/boundary drift.
+Q8 independently re-read current PR metadata/diff, exact frozen executable code, canonical owner relationships, focused/hardening tests, reviews/threads/comments, hosted Actions and frozen-to-current drift. Findings:
+
+- exact-reference semantics have one canonical owner in `capability-contract`;
+- CapabilityDefinition and hosted runtime delegate to that owner;
+- supply remains exact discovery only and cannot invoke providers;
+- exact miss has no fallback/substitute/ranking semantics;
+- binding identity, Action Boundary, principal/scope/input/context and exact output checks occur before or around the single explicit adapter invocation as appropriate;
+- provider result authority/commercial/credential smuggling fails closed;
+- no new provider trust/cloud/deployment/commercial authority was introduced;
+- reviews, inline threads and PR comments were empty;
+- current-head hosted CI failures exposed `steps = null`, therefore were classified as infrastructure non-signal;
+- Q8-start frozen-to-current executable/package/test/boundary drift was zero.
 
 ## Q9
 
-Pending independent Q8 PASS and a final frozen-to-closure docs-only drift gate.
+READY. Perform one final frozen executable SHA → closure-head comparison. It must remain docs/evidence-only. If clean, write Q9 closure evidence, mark PR ready, re-read exact head and squash merge using `expected_head_sha`.
