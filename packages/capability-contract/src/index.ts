@@ -40,3 +40,17 @@ export type {
   ViraCapabilityReleaseReferenceParseResult,
   ViraCapabilityReleaseReferenceSerializationResult,
 } from "./release-reference.js";
+
+export { VIRA_CAPABILITY_DEFINITION_V2_SCHEMA_VERSION } from "./v2-types.js";
+export type {
+  ViraCapabilityActionInvocationV2,
+  ViraCapabilityDefinitionV2,
+  ViraCapabilityDefinitionV2Result,
+  ViraCapabilityDefinitionV2SerializationResult,
+  ViraCapabilityDefinitionV2ValidationIssue,
+  ViraCapabilityInvocationV2,
+} from "./v2-types.js";
+export {
+  parseViraCapabilityDefinitionV2,
+  serializeViraCapabilityDefinitionV2,
+} from "./v2-validate.js";

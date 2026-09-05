@@ -19,3 +19,20 @@ export {
   parseViraApplicationFederationSnapshot,
   serializeViraApplicationFederationSnapshot,
 } from "./federation.js";
+
+export { VIRA_APPLICATION_FEDERATION_V2_SCHEMA_VERSION } from "./v2-types.js";
+export type {
+  ViraApplicationFederationSnapshotV2,
+  ViraApplicationFederationSourceV2,
+  ViraApplicationFederationV2Issue,
+  ViraApplicationFederationV2IssueCode,
+  ViraApplicationFederationV2Result,
+  ViraApplicationFederationV2SerializationResult,
+  ViraFederatedApplicationLookupV2,
+  ViraFederatedApplicationLookupV2Result,
+} from "./v2-types.js";
+export {
+  lookupViraFederatedApplicationV2,
+  parseViraApplicationFederationSnapshotV2,
+  serializeViraApplicationFederationSnapshotV2,
+} from "./v2-federation.js";
