@@ -27,7 +27,7 @@
     "verify:external-publisher-proof": "vitest run examples/external-publisher-proof/external-publisher-proof.test.ts tests/contract/application-federation-release-owner.test.ts",
     "verify:external-ai-host-proof": "vitest run examples/external-ai-host-proof/external-ai-host-proof.test.ts tests/contract/application-ai-host-exact-reference-owner.test.ts",
     "verify:external-provider-proof": "vitest run examples/external-provider-proof/external-provider-proof.test.ts tests/contract/capability-exact-reference-owner.test.ts",
-    "verify:application-network-cross-surface": "vitest run examples/application-network-rc/application-network-rc.test.ts examples/application-network-rc/application-network-rc-hardening.test.ts",
+    "verify:application-network-cross-surface": "vitest run examples/application-network-rc/application-network-rc.test.ts examples/application-network-rc/application-network-rc-hardening.test.ts tests/contract/capability-release-reference-owner.test.ts",
     "verify:application-network-rc": "node tooling/verify-application-network-rc.mjs",
     "verify:enterprise-rc": "node tooling/verify-enterprise-rc.mjs",
     "demo:experience-studio": "pnpm --filter @vira-enterprise-genui/experience-studio-demo dev"
