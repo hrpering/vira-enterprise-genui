@@ -21,9 +21,29 @@ export default tseslint.config(
       "packages/protocol/src/patch/validate.ts",
       "packages/runtime-core/src/errors/create.ts",
       "packages/studio-*/src/**/*.ts",
+      "packages/application-canvas-ai/src/propose.ts",
+      "packages/application-canvas-collaboration/src/session.ts",
+      "packages/application-canvas-design-import/src/import.ts",
+      "packages/application-protocol-projection/src/validate.ts",
+      "packages/application-publisher-sdk/src/prepare.ts",
     ],
     rules: {
       "no-control-regex": "off",
+    },
+  },
+  {
+    files: ["packages/application-canvas-design-import/src/import.ts"],
+    rules: {
+      "no-useless-escape": "off",
+    },
+  },
+  {
+    files: ["packages/commercial-entitlement/src/entitlement.ts"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { varsIgnorePattern: "^ViraCommercialEntitlementSet$" },
+      ],
     },
   },
   {

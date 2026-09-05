@@ -6,6 +6,7 @@ import {
   type JsonValue,
 } from "@vira-enterprise-genui/protocol";
 import { parseViraCapabilityExactReference } from "./reference.js";
+import { parseViraCapabilityReleaseReference } from "./release-reference.js";
 import {
   VIRA_CAPABILITY_DEFINITION_SCHEMA_VERSION,
   VIRA_CAPABILITY_DESCRIPTION_MAX_LENGTH,
@@ -23,8 +24,6 @@ import {
   type ViraCapabilityValidationIssue,
   type ViraCapabilityValueContract,
 } from "./types.js";
-
-const RELEASE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
 type Failure = { readonly ok: false; readonly issue: ViraCapabilityValidationIssue };
 type Parsed<T> = { readonly ok: true; readonly value: T } | Failure;
@@ -48,10 +47,6 @@ function boundedText(value: JsonValue | undefined, maxLength: number): value is 
     && value.length > 0
     && value.length <= maxLength
     && value.trim() === value;
-}
-
-function releaseVersion(value: JsonValue | undefined): value is string {
-  return typeof value === "string" && value.length <= 64 && RELEASE_VERSION.test(value);
 }
 
 function freeze<T>(value: T): T {
@@ -202,16 +197,13 @@ export function parseViraCapabilityDefinition(input: unknown): ViraCapabilityDef
       `schemaVersion must equal ${VIRA_CAPABILITY_DEFINITION_SCHEMA_VERSION}`,
     );
   }
-  if (typeof root.id !== "string" || !isSemanticNamespace(root.id) || !root.id.includes(".")) {
-    return fail("INVALID_ID", "$.id", "capability id must be a namespaced semantic identity");
-  }
-  if (!releaseVersion(root.version)) {
-    return fail("INVALID_VERSION", "$.version", "capability release version must be semver");
-  }
+
+  const release = parseViraCapabilityReleaseReference({ id: root.id, version: root.version });
+  if (!release.ok) return release;
 
   const publisher = parsePublisher(root.publisher);
   if (!publisher.ok) return publisher;
-  if (root.id.split(".")[0] !== publisher.value.id) {
+  if (release.value.id.split(".")[0] !== publisher.value.id) {
     return fail("INVALID_PUBLISHER", "$.publisher.id", "publisher id must match capability identity namespace");
   }
   const metadata = parseMetadata(root.metadata);
@@ -227,8 +219,8 @@ export function parseViraCapabilityDefinition(input: unknown): ViraCapabilityDef
 
   const value: ViraCapabilityDefinition = {
     schemaVersion: VIRA_CAPABILITY_DEFINITION_SCHEMA_VERSION,
-    id: root.id,
-    version: root.version,
+    id: release.value.id,
+    version: release.value.version,
     publisher: publisher.value,
     metadata: metadata.value,
     input: inputContract.value,

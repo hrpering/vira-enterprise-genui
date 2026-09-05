@@ -1,5 +1,6 @@
 import {
   parseViraCapabilityDefinition,
+  parseViraCapabilityReleaseReference,
   serializeViraCapabilityDefinition,
   type ViraCapabilityDefinition,
 } from "@vira-enterprise-genui/capability-contract";
@@ -30,7 +31,6 @@ import {
   type ViraResolvedCapabilitySupply,
 } from "./types.js";
 
-const RELEASE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const ROOT_FIELDS = ["schemaVersion", "sources"] as const;
 const SOURCE_FIELDS = ["sourceId", "supplies"] as const;
 const SUPPLY_FIELDS = ["capability", "binding"] as const;
@@ -100,6 +100,12 @@ function canonicalCapability(capability: ViraCapabilityDefinition): string | nul
 function canonicalBinding(binding: ViraHostedCapabilityBinding): string | null {
   const serialized = serializeViraHostedCapabilityBinding(binding);
   return serialized.ok ? serialized.value : null;
+}
+
+function capabilityQueryPath(path: string): string {
+  if (path === "$.id") return "$query.capabilityId";
+  if (path === "$.version") return "$query.capabilityVersion";
+  return "$query";
 }
 
 export function parseViraCapabilitySupplySnapshot(input: unknown): ViraCapabilitySupplySnapshotResult {
@@ -278,19 +284,17 @@ export function lookupViraCapabilitySupply(
   if (!query) return fail("INVALID_QUERY", "$query", "query must be an exact object");
   const queryShape = shape(query, QUERY_FIELDS);
   if (queryShape) return fail("INVALID_QUERY", `$query.${queryShape}`, "capability supply query shape is invalid");
-  if (
-    typeof query.capabilityId !== "string"
-    || !isSemanticNamespace(query.capabilityId)
-    || !query.capabilityId.includes(".")
-  ) {
-    return fail("INVALID_QUERY", "$query.capabilityId", "capabilityId must be a namespaced semantic identity");
-  }
-  if (
-    typeof query.capabilityVersion !== "string"
-    || query.capabilityVersion.length > 64
-    || !RELEASE_VERSION.test(query.capabilityVersion)
-  ) {
-    return fail("INVALID_QUERY", "$query.capabilityVersion", "capabilityVersion must be an exact release semver");
+
+  const release = parseViraCapabilityReleaseReference({
+    id: query.capabilityId,
+    version: query.capabilityVersion,
+  });
+  if (!release.ok) {
+    return fail(
+      "INVALID_QUERY",
+      capabilityQueryPath(release.issue.path),
+      `invalid Capability release reference: ${release.issue.code}`,
+    );
   }
   if (query.providerId !== null && (typeof query.providerId !== "string" || !isSemanticNamespace(query.providerId))) {
     return fail("INVALID_QUERY", "$query.providerId", "providerId must be null or a canonical semantic namespace");
@@ -299,8 +303,8 @@ export function lookupViraCapabilitySupply(
     return fail("INVALID_QUERY", "$query.locationId", "locationId must be null or a canonical semantic namespace");
   }
 
-  const capabilityId = query.capabilityId;
-  const capabilityVersion = query.capabilityVersion;
+  const capabilityId = release.value.id;
+  const capabilityVersion = release.value.version;
   const providerId = query.providerId as string | null;
   const locationId = query.locationId as string | null;
   const grouped = new Map<string, {
