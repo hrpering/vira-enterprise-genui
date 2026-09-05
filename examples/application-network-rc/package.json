@@ -1,0 +1,14 @@
+{
+  "name": "@acme/vira-application-network-rc-proof",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@vira-enterprise-genui/application-ai-host-sdk": "workspace:*",
+    "@vira-enterprise-genui/application-distribution": "workspace:*",
+    "@vira-enterprise-genui/application-federation": "workspace:*",
+    "@vira-enterprise-genui/application-publisher-sdk": "workspace:*",
+    "@vira-enterprise-genui/capability-supply": "workspace:*",
+    "@vira-enterprise-genui/hosted-capability-runtime": "workspace:*"
+  }
+}
