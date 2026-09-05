@@ -3,7 +3,8 @@
 **Status:** Q0–Q6 PASS / Q7 PENDING  
 **Base SHA:** `70dfa599b6b7e77bb5a70e53cee56dd22c0a0b05`  
 **Frozen executable/test SHA:** `5bb3497b736095509ba4b13d365d52ddee4b60bc`  
-**Branch:** `master/49-external-ai-host-proof`
+**Branch:** `master/49-external-ai-host-proof`  
+**PR:** #210 (draft)
 
 ## Goal
 
