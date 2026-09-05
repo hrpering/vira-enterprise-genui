@@ -27,6 +27,7 @@ it("collapses hostile read records to STORE_FAILURE", async () => {
   const store: StudioLifecycleStore = {
     async list() { return []; },
     async read() { return hostileRecord(); },
+    async listRevisions() { return []; },
     async create() { throw new Error("unused"); },
     async replace() { throw new Error("unused"); },
     async delete() { throw new Error("unused"); },
@@ -45,6 +46,7 @@ it("collapses hostile list records to STORE_FAILURE", async () => {
   const store: StudioLifecycleStore = {
     async list() { return [hostileRecord()]; },
     async read() { return undefined; },
+    async listRevisions() { return []; },
     async create() { throw new Error("unused"); },
     async replace() { throw new Error("unused"); },
     async delete() { throw new Error("unused"); },
