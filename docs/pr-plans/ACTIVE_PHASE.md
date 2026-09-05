@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-47 — Commercial Settlement Allocation + Publisher Economics  
-**Status:** Q0–Q6 PASS / Q7 RERUN PENDING / Q8 BLOCKED  
+**Status:** Q0–Q7 PASS / Q8 RESTART ACTIVE  
 **Base SHA:** `a7083edbb3bafc9326546fbba10286e696f86a06`  
 **Frozen executable SHA:** `b42ae481700094f118328f111f8011ab44136877`  
 **Previous frozen SHA:** `25ee1c25223863f3ceeb53210142acd1da331405` — invalidated by Q8 owner-implementation finding  
@@ -47,4 +47,6 @@ Q7 attempt 1 passed on old freeze `25ee1c25223863f3ceeb53210142acd1da331405`, bu
 
 The owner-local remediation removed the duplicate parser implementation, added parity coverage and hardened persisted allocation evidence. Q5/Q6 static re-review PASS on new freeze `b42ae481700094f118328f111f8011ab44136877`.
 
-The original Q7 PASS is historical only and invalidated for final merge. Full local Q7 must be rerun detached at the new exact SHA before Q8 restarts.
+The repository operator reran the complete local Q7 gate detached at exact final freeze `b42ae481700094f118328f111f8011ab44136877` and reported it green. Evidence: `docs/evidence/MASTER-47/Q7_RERUN_PASS.md`. No counts or timings are reconstructed.
+
+Final independent Q8 is now active. Merge remains blocked until Q8 PASS plus final frozen-to-closure executable drift zero.
