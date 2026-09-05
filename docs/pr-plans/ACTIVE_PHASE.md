@@ -56,4 +56,4 @@ Final local Q7 on that exact freeze is operator-reported PASS. Evidence: `docs/e
 
 Final independent Q8 PASS. Evidence: `docs/evidence/MASTER-47/Q8_FINAL_REVIEW_PASS.md`.
 
-Q9 is ready subject only to a final frozen-to-closure compare proving executable/package/test/boundary drift zero and exact-head squash merge locking.
+Final frozen-to-closure compare is documentation/evidence only; executable/package/test/boundary drift is zero. Q9 is ready for PR ready transition and exact-head squash merge.
