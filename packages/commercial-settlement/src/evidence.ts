@@ -1,5 +1,6 @@
 import {
   parseViraApplicationExactReference,
+  parseViraApplicationReleaseReference,
   serializeViraApplicationExactReference,
 } from "@vira-enterprise-genui/application-package";
 import {
@@ -7,7 +8,6 @@ import {
   serializeViraCommercialPriceQuote,
 } from "@vira-enterprise-genui/commercial-pricing";
 import {
-  isSemanticNamespace,
   isSemanticSegment,
   parseJsonValue,
   type JsonObject,
@@ -26,7 +26,6 @@ import {
   type ViraCommercialSettlementSerializationResult,
 } from "./types.js";
 
-const RELEASE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const ALLOCATION_FIELDS = [
   "schemaVersion",
   "settlementRef",
@@ -83,24 +82,24 @@ export function parseViraCommercialSettlementAllocation(
       `invalid exact settlementRef: ${settlementRef.issue.code}`,
     );
   }
-  if (
-    typeof root.applicationId !== "string"
-    || !isSemanticNamespace(root.applicationId)
-    || !root.applicationId.includes(".")
-  ) {
-    return fail("INVALID_APPLICATION_TARGET", "$.applicationId", "applicationId must be a namespaced semantic identity");
+
+  const release = parseViraApplicationReleaseReference({
+    id: root.applicationId,
+    version: root.applicationVersion,
+  });
+  if (!release.ok) {
+    const releasePath = release.issue.path === "$.id"
+      ? "$.applicationId"
+      : release.issue.path === "$.version"
+        ? "$.applicationVersion"
+        : "$";
+    return fail("INVALID_APPLICATION_TARGET", releasePath, release.issue.message);
   }
-  if (
-    typeof root.applicationVersion !== "string"
-    || root.applicationVersion.length > 64
-    || !RELEASE_VERSION.test(root.applicationVersion)
-  ) {
-    return fail("INVALID_APPLICATION_TARGET", "$.applicationVersion", "applicationVersion must be exact release semver");
-  }
+
   if (typeof root.publisherId !== "string" || !isSemanticSegment(root.publisherId)) {
     return fail("INVALID_PUBLISHER", "$.publisherId", "publisherId must be a canonical semantic segment");
   }
-  if (root.applicationId.split(".")[0] !== root.publisherId) {
+  if (release.value.id.split(".")[0] !== root.publisherId) {
     return fail("INVALID_PUBLISHER", "$.publisherId", "publisherId must match the Application identity namespace");
   }
   if (
@@ -140,8 +139,8 @@ export function parseViraCommercialSettlementAllocation(
     value: Object.freeze({
       schemaVersion: VIRA_COMMERCIAL_SETTLEMENT_SCHEMA_VERSION,
       settlementRef: settlementRef.value,
-      applicationId: root.applicationId,
-      applicationVersion: root.applicationVersion,
+      applicationId: release.value.id,
+      applicationVersion: release.value.version,
       publisherId: root.publisherId,
       publisherShareBps: root.publisherShareBps,
       quote: quote.value,
