@@ -150,6 +150,12 @@ Attempt 1 PASS on old freeze:
 
 The operator-reported green remains historical evidence in `docs/evidence/MASTER-47/Q7_LOCAL_PASS.md`, but it is invalidated for final merge because Q8 found an executable owner-implementation issue and source/tests changed afterward.
 
+Final Q7 rerun PASS on exact current freeze:
+
+`b42ae481700094f118328f111f8011ab44136877`
+
+Evidence: `docs/evidence/MASTER-47/Q7_RERUN_PASS.md`. The operator reported the complete boundaries/typecheck/focused-suite command set green; no counts or timings are reconstructed.
+
 ## Q8 attempt 1
 
 FAIL. Evidence: `docs/evidence/MASTER-47/Q8_ATTEMPT_1.md`.
@@ -172,18 +178,11 @@ Settlement allocation evidence is **not**:
 - accounting/revenue recognition;
 - authorization/governance/runtime permission.
 
-## New Q7 gate
+## Final Q8 restart
 
-Run only against exact new frozen SHA:
+Active against exact frozen SHA `b42ae481700094f118328f111f8011ab44136877`.
 
-```bash
-pnpm check:boundaries
-pnpm typecheck
-pnpm vitest run \
-  tests/contract/application-exact-reference.test.ts \
-  tests/contract/commercial-settlement.test.ts \
-  tests/contract/commercial-settlement-hardening.test.ts
-```
+Merge requires independent Q8 PASS and a final compare proving frozen executable → closure head contains documentation/evidence only.
 
 ## Q0–Q9
 
@@ -194,6 +193,6 @@ pnpm vitest run \
 - Q4 PASS — focused/hardening coverage, including remediation coverage.
 - Q5 PASS — security/fail-closed re-review on current freeze.
 - Q6 PASS — architecture/ownership re-review on current freeze.
-- Q7 RERUN PENDING — exact new frozen-head local gate required.
-- Q8 BLOCKED — restart only after new Q7 PASS.
-- Q9 — exact-head squash merge and verify new authoritative main.
+- Q7 PASS — operator-reported green on exact final freeze.
+- Q8 RESTART ACTIVE — independent re-review after remediation.
+- Q9 BLOCKED until Q8 PASS and closure compare.
