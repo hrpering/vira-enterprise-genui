@@ -1,10 +1,10 @@
 # MASTER-49 — Independent External AI Host Proof
 
-**Status:** Q0–Q7 PASS / Q8 ACTIVE  
+**Status:** Q0–Q8 PASS / Q9 READY  
 **Base SHA:** `70dfa599b6b7e77bb5a70e53cee56dd22c0a0b05`  
 **Frozen executable/test SHA:** `5bb3497b736095509ba4b13d365d52ddee4b60bc`  
 **Branch:** `master/49-external-ai-host-proof`  
-**PR:** #210 (draft)
+**PR:** #210 (draft; ready transition pending exact-head merge)
 
 ## Goal
 
@@ -76,8 +76,10 @@ No test counts, warning counts, durations or timings were reconstructed or infer
 
 ## Q8
 
-ACTIVE: independent PR reverse engineering from current PR state, including executable files, canonical owner alignment, external proof imports, freeze-to-head drift, reviews/threads/comments and hosted CI classification.
+Independent PR reverse engineering PASS: `docs/evidence/MASTER-49/Q8_REVIEW.md`.
+
+Q8 independently re-read the executable owner chain, public proof consumer, existing hardening tests, package boundaries, ownership authority, reviews/threads/comments, hosted Actions and frozen-to-current drift. No executable remediation was required; the Q7 freeze remains valid.
 
 ## Q9
 
-Pending Q8 PASS: frozen-to-closure executable drift, ready transition, exact-head squash merge and independent `main` verification.
+READY: run final frozen-to-closure executable/package/test/boundary drift gate, record closure evidence, mark PR ready, re-read exact PR head and squash merge with `expected_head_sha`, then verify new authoritative `main` independently.
