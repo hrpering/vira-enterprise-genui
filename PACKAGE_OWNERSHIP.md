@@ -60,7 +60,7 @@ If this document and the executable boundary graph disagree, the executable grap
 
 `application-publisher-sdk` and `application-ai-host-sdk` remain thin integration layers over canonical Application/Distribution owners. They do not own registries, transports, deployment/runtime, governance or protected execution.
 
-`application-federation` depends only on `application-distribution` and `protocol`. It owns public federation snapshot parsing, deterministic serialization, exact-release source provenance, exact lookup and fail-closed cross-source conflict detection.
+`application-federation` depends only on `application-distribution`, `application-package` and `protocol`. It owns public federation snapshot parsing, deterministic serialization, exact-release source provenance, exact lookup and fail-closed cross-source conflict detection.
 
 `application-federation` does **not** own source authentication/identity proof, signatures/certificates, Distribution integrity verification, URLs/endpoints/transports, registry persistence, ranking/recommendation, source priority, implicit/latest resolution, deployment/runtime, governance/authorization/entitlement, protocol adapter execution, Capability invocation or protected Action execution.
 
