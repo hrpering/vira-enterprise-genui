@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-05  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-50:** `46f4d8ec163790765d162d13747dd4f64bf0e8ea`
+**Authoritative main entering MASTER-51:** `6f02e4437210c0cd662f1852759c88fca328462c`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -37,19 +37,17 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Commercial Settlement Allocation + Publisher Economics | MASTER-47 | MERGED / PR #208 |
 | Application Network — Independent External Publisher Proof | MASTER-48 | MERGED / PR #209 |
 | Application Network — Independent AI Host Proof | MASTER-49 | MERGED / PR #210 |
-| Application Network — Independent Provider Proof | MASTER-50 | ACTIVE |
-| Application Network — Cross-Surface Exact Semantics + Network RC | MASTER-51 | PLANNED |
+| Application Network — Independent Provider Proof | MASTER-50 | MERGED / PR #211 |
+| Application Network — Cross-Surface Exact Semantics + Network RC | MASTER-51 | ACTIVE |
 
 ## Active execution order
 
 ```text
 Enterprise GenUI RC1 ✅
   ↓
-MASTER-26..49 ✅
+MASTER-26..50 ✅
   ↓
-MASTER-50 Independent Provider Proof
-  ↓
-MASTER-51 Cross-Surface Exact Semantics + Network RC
+MASTER-51 Cross-Surface Exact Semantics + Application Network RC
 ```
 
 ## Constitutional invariants
@@ -99,14 +97,17 @@ MASTER-51 Cross-Surface Exact Semantics + Network RC
 - Capability supply lookup is exact and deterministic; no implicit latest, source priority, majority winner, ranking, substitute provider or fallback.
 - Capability supply owns no endpoints, credentials, provider health/SLA, commercial entitlement/pricing, deployment scheduling or generic cloud-compute semantics.
 - A successful external provider proof demonstrates public-contract interoperability and one-shot hosted execution only; it does not authenticate/attest a provider, select a trusted provider, grant authorization/entitlement, or introduce retry/failover/cloud scheduling authority.
+- MASTER-51 Application Network RC is a composition/verification gate only; it creates no new semantic owner and cannot redefine Application, Distribution, federation, AI-host, Capability supply, hosted execution, Action or commercial semantics.
+- Cross-surface Network proof must carry the same canonical Application Capability `id@version` from publisher/distribution/federation/AI-host output into Capability supply lookup and hosted execution evidence without translation, implicit latest, fallback or substitute-provider resolution.
+- `verify:application-network-rc` composes the existing Enterprise RC baseline, independent external publisher/AI-host/provider proofs and the cross-surface exact-semantics proof; child-gate failure must fail the RC.
 - Core does not become a generic agent framework, workflow engine, policy language, provider-integration empire, payment processor, banking/ledger system, MCP/A2UI replacement, IDE/design clone, cloud-compute platform or foundation model.
 - PR creation is not phase completion. Merge requires contract review, security/architecture review, verification, independent reverse engineering and exact-head evidence appropriate to the diff.
 
 ## Active records
 
-- `docs/pr-plans/MASTER-50.md`
+- `docs/pr-plans/MASTER-51.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-50/Q5_Q6_REVIEW.md`
+- `docs/evidence/MASTER-51/Q5_Q6_REVIEW.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
