@@ -38,7 +38,7 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Independent External Publisher Proof | MASTER-48 | MERGED / PR #209 |
 | Application Network — Independent AI Host Proof | MASTER-49 | MERGED / PR #210 |
 | Application Network — Independent Provider Proof | MASTER-50 | MERGED / PR #211 |
-| Application Network — Cross-Surface Exact Semantics + Network RC | MASTER-51 | ACTIVE — Q7 CODE GATES PASS / ENVIRONMENT RERUN PENDING |
+| Application Network — Cross-Surface Exact Semantics + Network RC | MASTER-51 | ACTIVE — Q7 RERUN PENDING / Q8 BLOCKED |
 
 ## Active execution order
 
@@ -85,6 +85,7 @@ MASTER-51 Cross-Surface Exact Semantics + Application Network RC
 - Settlement allocation evidence is not invoice/payment/payout/funds movement/subscription/tax/FX/accounting truth and cannot acquire runtime/security authority.
 - Usage/rating/quote/settlement evidence parsing validates semantics but does not authenticate external provenance or policy selection by itself.
 - Capability exact-reference syntax remains owned by `capability-contract`; CapabilityDefinition, hosted binding and typed hosted values consume the same owner-local parse/serialize surface rather than carrying competing floating/versionRef validators.
+- Capability release id/version syntax remains owned by `capability-contract`; CapabilityDefinition and Capability supply queries consume the same canonical release-reference API rather than carrying local semver validators.
 - Hosted Capability execution consumes canonical CapabilityDefinition, WorkContext and enterprise scope; it must not redefine them.
 - Hosted Capability provider/binding/location identities are routing/provenance evidence, not authentication, attestation, authorization or commercial entitlement.
 - Hosted query execution cannot directly execute a Capability declared as `action`; protected effects remain behind `action-boundary`.
@@ -109,6 +110,8 @@ MASTER-51 Cross-Surface Exact Semantics + Application Network RC
 - `docs/evidence/MASTER-51/Q5_Q6_REVIEW.md`
 - `docs/evidence/MASTER-51/Q7_ATTEMPT_1_FAIL.md`
 - `docs/evidence/MASTER-51/Q7_ATTEMPT_2_ENV_BLOCKED.md`
+- `docs/evidence/MASTER-51/Q7_FINAL_PASS.md`
+- `docs/evidence/MASTER-51/Q8_ATTEMPT_1_OWNER_DRIFT.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
