@@ -6,7 +6,7 @@
 **Frozen executable SHA:** `5f1c29773dd13d5328428e5933ec546259cb7b02`  
 **Previous:** MASTER-47 merged via PR #208  
 **Branch:** `master/48-external-publisher-proof`  
-**PR:** #209 (draft; ready transition pending final closure compare)  
+**PR:** #209 (draft; ready transition pending exact-head merge)  
 **Next:** MASTER-49 after MASTER-48 merge from new authoritative `main`
 
 MASTER-48 proves that an independently named publisher consumer can compose Vira's public Publisher SDK and federation APIs without private source imports or hidden authority.
@@ -50,4 +50,6 @@ Q7 local execution is operator-reported PASS on exact freeze `5f1c29773dd13d5328
 
 Independent Q8 PASS: `docs/evidence/MASTER-48/Q8_REVIEW.md`.
 
-Q9 is ready subject to a final frozen-to-closure documentation/evidence-only comparison, PR ready transition and exact-head squash merge.
+Final closure gate PASS: `docs/evidence/MASTER-48/Q9_CLOSURE_GATE.md`. Frozen-to-closure executable/package/test/boundary drift is zero.
+
+Q9 is ready for PR ready transition and exact-head squash merge.
