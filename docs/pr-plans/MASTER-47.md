@@ -50,18 +50,16 @@ Evidence: `docs/evidence/MASTER-47/Q8_ATTEMPT_1.md`.
 
 ## Application release owner boundary
 
-Restarted Q8 then found a second canonical-owner duplication: settlement schedule and allocation-evidence parsing independently validated `applicationId + applicationVersion` with local namespaced-id/RELEASE_VERSION logic, while Application release identity/version belongs to `application-package`.
+Q8 attempt 2 found a second canonical-owner duplication: settlement schedule and allocation-evidence parsing independently validated `applicationId + applicationVersion` while Application release identity/version belongs to `application-package`.
 
-Remediation adds canonical owner-local:
+Canonical owner-local APIs now are:
 
 ```text
 parseViraApplicationReleaseReference
 serializeViraApplicationReleaseReference
 ```
 
-The owner API validates exact namespaced Application id + exact release semver and owns canonical freeze/serialization.
-
-`parseViraApplicationPackage` now delegates root Application id/version validation to this API. `commercial-settlement` schedule and allocation-evidence parsing delegate to the same API; their local Application-release regex/validation implementation was removed.
+`parseViraApplicationPackage` delegates root Application id/version validation to this API. `commercial-settlement` schedule and allocation-evidence parsing delegate to the same API; settlement-local Application-release regex/validation was removed.
 
 Focused `application-release-reference.test.ts` protects direct-owner ↔ package-parser ↔ settlement-parser acceptance parity, nested package paths, deterministic serialization and unsafe-object rejection.
 
@@ -160,9 +158,13 @@ Evidence: `docs/evidence/MASTER-47/Q5_Q6_REVIEW.md`.
 
 Attempt 1 PASS on `25ee1c25223863f3ceeb53210142acd1da331405`; invalidated by Q8 exact-reference owner finding.
 
-Attempt 2 PASS on `b42ae481700094f118328f111f8011ab44136877`; invalidated by restarted Q8 Application-release owner finding.
+Attempt 2 PASS on `b42ae481700094f118328f111f8011ab44136877`; invalidated by Q8 Application-release owner finding.
 
-Both operator-reported greens remain historical evidence only. No counts/timings are reconstructed.
+Final Q7 PASS on exact current freeze:
+
+`95c9a0674742c702cc5265b8e1fb35f82dea04ad`
+
+Evidence: `docs/evidence/MASTER-47/Q7_FINAL_RERUN_PASS.md`. The operator reported the complete boundaries/typecheck/focused-suite command set green; no counts or timings are reconstructed.
 
 ## Q8 history
 
@@ -187,19 +189,11 @@ Settlement allocation evidence is **not**:
 - accounting/revenue recognition;
 - authorization/governance/runtime permission.
 
-## Current gate
+## Final Q8 restart
 
-Run full local gate only against exact current freeze:
+Active against exact frozen SHA `95c9a0674742c702cc5265b8e1fb35f82dea04ad`.
 
-```bash
-pnpm check:boundaries
-pnpm typecheck
-pnpm vitest run \
-  tests/contract/application-exact-reference.test.ts \
-  tests/contract/application-release-reference.test.ts \
-  tests/contract/commercial-settlement.test.ts \
-  tests/contract/commercial-settlement-hardening.test.ts
-```
+Merge requires independent Q8 PASS and a final compare proving frozen executable → closure head contains documentation/evidence only.
 
 ## Q0–Q9
 
@@ -210,6 +204,6 @@ pnpm vitest run \
 - Q4 PASS — focused/hardening coverage, including both owner-remediation suites.
 - Q5 PASS — security/fail-closed re-review on current freeze.
 - Q6 PASS — architecture/ownership re-review on current freeze.
-- Q7 RERUN PENDING — exact current frozen-head local gate required.
-- Q8 BLOCKED — restart only after new Q7 PASS.
+- Q7 PASS — operator-reported green on exact current freeze.
+- Q8 FINAL RESTART ACTIVE — independent re-review after both owner remediations.
 - Q9 BLOCKED until Q8 PASS and final closure compare.
