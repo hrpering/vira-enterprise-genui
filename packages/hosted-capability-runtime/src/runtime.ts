@@ -1,5 +1,6 @@
 import {
   parseViraCapabilityDefinition,
+  parseViraCapabilityExactReference,
   type ViraCapabilityDefinition,
   type ViraCapabilityExactReference,
 } from "@vira-enterprise-genui/capability-contract";
@@ -39,13 +40,10 @@ import {
   type ViraHostedCapabilityValue,
 } from "./types.js";
 
-const VERSION_REF = /^[A-Za-z0-9][A-Za-z0-9._:+-]{0,127}$/;
-const FLOATING_ALIASES = new Set(["latest", "current", "stable", "head", "main", "next"]);
 const INVOCATION_ID = /^[A-Za-z0-9][A-Za-z0-9._:@/-]*$/;
 const FAILURE_CODE = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/;
 
 const BINDING_FIELDS = ["version", "bindingRef", "capabilityRef", "providerId", "locationId"] as const;
-const REFERENCE_FIELDS = ["id", "versionRef"] as const;
 const REQUEST_FIELDS = ["version", "invocationId", "principal", "scope", "input", "contexts"] as const;
 const SCOPE_FIELDS = ["version", "organizationId", "projectId", "environment"] as const;
 const VALUE_FIELDS = ["typeRef", "value"] as const;
@@ -83,36 +81,20 @@ function shape(value: JsonObject, allowed: readonly string[], required: readonly
   return null;
 }
 
-function exactVersionRef(value: JsonValue | undefined): value is string {
-  if (typeof value !== "string" || !VERSION_REF.test(value)) return false;
-  if (FLOATING_ALIASES.has(value.toLowerCase())) return false;
-  return !/(?:^|[._:+-])[xX](?:$|[._:+-])/.test(value)
-    && !/\d[xX](?:$|[._:+-])/.test(value);
-}
-
-function floatingVersionRef(value: JsonValue | undefined): boolean {
-  if (typeof value !== "string" || !VERSION_REF.test(value)) return false;
-  return FLOATING_ALIASES.has(value.toLowerCase())
-    || /(?:^|[._:+-])[xX](?:$|[._:+-])/.test(value)
-    || /\d[xX](?:$|[._:+-])/.test(value);
+function referencePath(ownerPath: string, path: string): string {
+  if (ownerPath === "$" || ownerPath.length === 0) return path;
+  if (ownerPath.startsWith("$.")) return `${path}${ownerPath.slice(1)}`;
+  return path;
 }
 
 function parseReference(value: JsonValue | undefined, path: string): Parsed<ViraCapabilityExactReference> {
-  const item = object(value);
-  if (!item) return fail("INVALID_REFERENCE", path, "reference must be an exact object");
-  const unexpected = shape(item, REFERENCE_FIELDS);
-  if (unexpected) return fail("INVALID_REFERENCE", `${path}.${unexpected}`, "reference shape is invalid");
-  if (typeof item.id !== "string" || !isSemanticNamespace(item.id)) {
-    return fail("INVALID_REFERENCE", `${path}.id`, "reference id must be a canonical semantic namespace");
-  }
-  if (!exactVersionRef(item.versionRef)) {
-    return fail(
-      floatingVersionRef(item.versionRef) ? "FLOATING_REFERENCE" : "INVALID_REFERENCE",
-      `${path}.versionRef`,
-      "reference version must be exact and non-floating",
-    );
-  }
-  return { ok: true, value: Object.freeze({ id: item.id, versionRef: item.versionRef }) };
+  const parsed = parseViraCapabilityExactReference(value);
+  if (parsed.ok) return parsed;
+  return fail(
+    parsed.issue.code === "FLOATING_REFERENCE" ? "FLOATING_REFERENCE" : "INVALID_REFERENCE",
+    referencePath(parsed.issue.path, path),
+    parsed.issue.message,
+  );
 }
 
 function refKey(value: ViraCapabilityExactReference): string {

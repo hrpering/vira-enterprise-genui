@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-05  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-49:** `70dfa599b6b7e77bb5a70e53cee56dd22c0a0b05`
+**Authoritative main entering MASTER-50:** `46f4d8ec163790765d162d13747dd4f64bf0e8ea`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -36,8 +36,8 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Capability Supply Catalog + Exact Discovery | MASTER-46 | MERGED / PR #207 |
 | Application Network — Commercial Settlement Allocation + Publisher Economics | MASTER-47 | MERGED / PR #208 |
 | Application Network — Independent External Publisher Proof | MASTER-48 | MERGED / PR #209 |
-| Application Network — Independent AI Host Proof | MASTER-49 | ACTIVE |
-| Application Network — Independent Provider Proof | MASTER-50 | PLANNED |
+| Application Network — Independent AI Host Proof | MASTER-49 | MERGED / PR #210 |
+| Application Network — Independent Provider Proof | MASTER-50 | ACTIVE |
 | Application Network — Cross-Surface Exact Semantics + Network RC | MASTER-51 | PLANNED |
 
 ## Active execution order
@@ -45,9 +45,7 @@ This file is the engineering execution authority. Long-range product strategy li
 ```text
 Enterprise GenUI RC1 ✅
   ↓
-MASTER-26..48 ✅
-  ↓
-MASTER-49 Independent AI Host Proof
+MASTER-26..49 ✅
   ↓
 MASTER-50 Independent Provider Proof
   ↓
@@ -88,6 +86,7 @@ MASTER-51 Cross-Surface Exact Semantics + Network RC
 - Publisher/platform allocation uses safe integer basis points with deterministic floor-to-publisher rounding; no floating-point money or unsafe gross-by-share multiplication.
 - Settlement allocation evidence is not invoice/payment/payout/funds movement/subscription/tax/FX/accounting truth and cannot acquire runtime/security authority.
 - Usage/rating/quote/settlement evidence parsing validates semantics but does not authenticate external provenance or policy selection by itself.
+- Capability exact-reference syntax remains owned by `capability-contract`; CapabilityDefinition, hosted binding and typed hosted values consume the same owner-local parse/serialize surface rather than carrying competing floating/versionRef validators.
 - Hosted Capability execution consumes canonical CapabilityDefinition, WorkContext and enterprise scope; it must not redefine them.
 - Hosted Capability provider/binding/location identities are routing/provenance evidence, not authentication, attestation, authorization or commercial entitlement.
 - Hosted query execution cannot directly execute a Capability declared as `action`; protected effects remain behind `action-boundary`.
@@ -99,14 +98,15 @@ MASTER-51 Cross-Surface Exact Semantics + Network RC
 - Capability supply source repetition is provenance only, not authentication, attestation, confidence, health or ranking.
 - Capability supply lookup is exact and deterministic; no implicit latest, source priority, majority winner, ranking, substitute provider or fallback.
 - Capability supply owns no endpoints, credentials, provider health/SLA, commercial entitlement/pricing, deployment scheduling or generic cloud-compute semantics.
+- A successful external provider proof demonstrates public-contract interoperability and one-shot hosted execution only; it does not authenticate/attest a provider, select a trusted provider, grant authorization/entitlement, or introduce retry/failover/cloud scheduling authority.
 - Core does not become a generic agent framework, workflow engine, policy language, provider-integration empire, payment processor, banking/ledger system, MCP/A2UI replacement, IDE/design clone, cloud-compute platform or foundation model.
 - PR creation is not phase completion. Merge requires contract review, security/architecture review, verification, independent reverse engineering and exact-head evidence appropriate to the diff.
 
 ## Active records
 
-- `docs/pr-plans/MASTER-49.md`
+- `docs/pr-plans/MASTER-50.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-49/Q5_Q6_REVIEW.md`
+- `docs/evidence/MASTER-50/Q5_Q6_REVIEW.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`

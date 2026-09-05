@@ -23,3 +23,11 @@ export {
   parseViraCapabilityDefinition,
   serializeViraCapabilityDefinition,
 } from "./validate.js";
+export {
+  parseViraCapabilityExactReference,
+  serializeViraCapabilityExactReference,
+} from "./reference.js";
+export type {
+  ViraCapabilityExactReferenceParseResult,
+  ViraCapabilityExactReferenceSerializationResult,
+} from "./reference.js";

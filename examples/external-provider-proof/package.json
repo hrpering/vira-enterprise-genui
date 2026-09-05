@@ -1,0 +1,11 @@
+{
+  "name": "@acme/vira-external-provider-proof",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@vira-enterprise-genui/capability-contract": "workspace:*",
+    "@vira-enterprise-genui/capability-supply": "workspace:*",
+    "@vira-enterprise-genui/hosted-capability-runtime": "workspace:*"
+  }
+}
