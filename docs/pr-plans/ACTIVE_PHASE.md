@@ -1,12 +1,12 @@
 # Active Phase
 
 **Phase:** MASTER-48 — Independent External Publisher Proof  
-**Status:** Q0–Q7 PASS / Q8 ACTIVE  
+**Status:** Q0–Q8 PASS / Q9 READY  
 **Base SHA:** `6b79864e55209b52e5b984e671beaf69afdbfc84`  
 **Frozen executable SHA:** `5f1c29773dd13d5328428e5933ec546259cb7b02`  
 **Previous:** MASTER-47 merged via PR #208  
 **Branch:** `master/48-external-publisher-proof`  
-**PR:** #209 (draft)  
+**PR:** #209 (draft; ready transition pending final closure compare)  
 **Next:** MASTER-49 after MASTER-48 merge from new authoritative `main`
 
 MASTER-48 proves that an independently named publisher consumer can compose Vira's public Publisher SDK and federation APIs without private source imports or hidden authority.
@@ -48,4 +48,6 @@ Q5/Q6 static review PASS: `docs/evidence/MASTER-48/Q5_Q6_REVIEW.md`.
 
 Q7 local execution is operator-reported PASS on exact freeze `5f1c29773dd13d5328428e5933ec546259cb7b02`. Evidence: `docs/evidence/MASTER-48/Q7_LOCAL_PASS.md`.
 
-Q8 is now active and must independently re-review PR #209, current-head drift, external review surface and hosted CI signal before Q9 readiness.
+Independent Q8 PASS: `docs/evidence/MASTER-48/Q8_REVIEW.md`.
+
+Q9 is ready subject to a final frozen-to-closure documentation/evidence-only comparison, PR ready transition and exact-head squash merge.
