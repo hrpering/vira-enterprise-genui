@@ -40,6 +40,21 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Independent Provider Proof | MASTER-50 | MERGED / PR #211 |
 | Application Network — Cross-Surface Exact Semantics + Network RC | MASTER-51 | MERGED / PR #212 — ROADMAP CLOSED |
 
+## Next production roadmap
+
+The implementation-ready successor roadmap is
+[`docs/production/VIRA_UNIFIED_ARCHITECTURE_PRODUCTION_PLAN_FINAL.md`](docs/production/VIRA_UNIFIED_ARCHITECTURE_PRODUCTION_PLAN_FINAL.md).
+
+It defines one `PROD-00..PROD-22` dependency graph with two release cut-lines:
+
+- `PROD-17` — Production MVP RC;
+- `PROD-22` — Full Platform RC.
+
+The roadmap is ready but no `PROD-*` implementation phase is active on `main` yet.
+`PROD-00` must first reconcile any open post-Network planning branch, restore healthy
+hosted CI, protect `main`, and freeze the remaining production vendor/SLO decisions.
+`docs/pr-plans/ACTIVE_PHASE.md` remains the activation authority.
+
 ## Application Network closure
 
 The planned Application Network execution program MASTER-26 through MASTER-51 is complete.
