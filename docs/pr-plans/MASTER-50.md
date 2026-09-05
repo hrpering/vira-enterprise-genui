@@ -4,7 +4,7 @@
 **Base SHA:** `46f4d8ec163790765d162d13747dd4f64bf0e8ea`  
 **Frozen executable/test SHA:** `5ed6832fa9f233b0b7eb44a8fc5f10f143d00905`  
 **Branch:** `master/50-external-provider-proof`  
-**PR:** pending
+**PR:** #211 (draft)
 
 ## Goal
 
