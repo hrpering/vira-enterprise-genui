@@ -112,6 +112,7 @@ MASTER-51 Cross-Surface Exact Semantics + Application Network RC
 - `docs/evidence/MASTER-51/Q7_ATTEMPT_2_ENV_BLOCKED.md`
 - `docs/evidence/MASTER-51/Q7_FINAL_PASS.md`
 - `docs/evidence/MASTER-51/Q8_ATTEMPT_1_OWNER_DRIFT.md`
+- `docs/evidence/MASTER-51/Q7_ATTEMPT_3_TYPECHECK_FAIL.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
