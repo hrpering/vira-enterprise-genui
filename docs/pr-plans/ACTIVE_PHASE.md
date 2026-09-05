@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-47 — Commercial Settlement Allocation + Publisher Economics  
-**Status:** Q0–Q6 PASS / Q7 RERUN PENDING / Q8 BLOCKED  
+**Status:** Q0–Q7 PASS / Q8 FINAL RESTART ACTIVE  
 **Base SHA:** `a7083edbb3bafc9326546fbba10286e696f86a06`  
 **Frozen executable SHA:** `95c9a0674742c702cc5265b8e1fb35f82dea04ad`  
 **Previous frozen SHA:** `b42ae481700094f118328f111f8011ab44136877` — invalidated by Q8 Application-release owner finding  
@@ -48,10 +48,10 @@ Current invariants:
 
 Q8 attempt 1 found duplicate exact-reference parser implementations. Evidence: `docs/evidence/MASTER-47/Q8_ATTEMPT_1.md`.
 
-The operator reran Q7 on remediation freeze `b42ae481700094f118328f111f8011ab44136877` and reported green, but restarted Q8 found a second owner duplication: settlement independently validated Application release id/version instead of consuming the Application owner. Evidence: `docs/evidence/MASTER-47/Q8_ATTEMPT_2.md`.
+Q8 attempt 2 found duplicated Application release id/version semantics inside settlement. Evidence: `docs/evidence/MASTER-47/Q8_ATTEMPT_2.md`.
 
-Second remediation added canonical `parseViraApplicationReleaseReference` / `serializeViraApplicationReleaseReference`, delegated the Application package root and settlement schedule/evidence to that owner, and added direct/package/settlement parity coverage.
+Both owner findings are remediated in frozen executable/test/boundary SHA `95c9a0674742c702cc5265b8e1fb35f82dea04ad`. Q5/Q6 static re-review PASS on that exact freeze.
 
-Q5/Q6 static re-review PASS on current freeze `95c9a0674742c702cc5265b8e1fb35f82dea04ad`.
+The repository operator reran the complete final local Q7 gate detached at exact freeze `95c9a0674742c702cc5265b8e1fb35f82dea04ad` and reported it green. Evidence: `docs/evidence/MASTER-47/Q7_FINAL_RERUN_PASS.md`. No counts or timings are reconstructed.
 
-All earlier Q7 passes are historical only and invalidated for final merge because executable/tests changed afterward. Full local Q7 must be rerun detached at the current exact freeze before Q8 restarts.
+Final independent Q8 restart is active. Merge remains blocked until Q8 PASS plus final frozen-to-closure executable drift zero.
