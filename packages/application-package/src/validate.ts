@@ -31,6 +31,9 @@ import {
 import {
   parseViraApplicationExactReference,
 } from "./reference.js";
+import {
+  parseViraApplicationReleaseReference,
+} from "./release-reference.js";
 
 const RELEASE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const PACK_ID = /^[a-z0-9](?:[a-z0-9._-]{0,62})\/[a-z0-9](?:[a-z0-9._-]{0,62})$/;
@@ -372,16 +375,23 @@ export function parseViraApplicationPackage(input: unknown): ViraApplicationPack
   if (!object(root.identity)) return fail("INVALID_IDENTITY", "$.identity", "identity must be an exact object");
   const identityUnexpected = shape(root.identity, ["id"]);
   if (identityUnexpected) return fail("INVALID_IDENTITY", `$.identity.${identityUnexpected}`, "identity shape is invalid");
-  if (typeof root.identity.id !== "string" || !isSemanticNamespace(root.identity.id) || !root.identity.id.includes(".")) {
-    return fail("INVALID_IDENTITY", "$.identity.id", "application id must be a namespaced semantic identity");
-  }
-  if (!releaseVersion(root.version)) {
-    return fail("INVALID_VERSION", "$.version", "application release version must be semver");
+
+  const release = parseViraApplicationReleaseReference({
+    id: root.identity.id,
+    version: root.version,
+  });
+  if (!release.ok) {
+    const path = release.issue.path === "$.id"
+      ? "$.identity.id"
+      : release.issue.path === "$.version"
+        ? "$.version"
+        : "$.identity";
+    return fail(release.issue.code, path, release.issue.message);
   }
 
   const publisher = parsePublisher(root.publisher);
   if (!publisher.ok) return publisher;
-  if (root.identity.id.split(".")[0] !== publisher.value.id) {
+  if (release.value.id.split(".")[0] !== publisher.value.id) {
     return fail("INVALID_PUBLISHER", "$.publisher.id", "publisher id must match the first Application identity namespace segment");
   }
 
@@ -422,8 +432,8 @@ export function parseViraApplicationPackage(input: unknown): ViraApplicationPack
 
   const value: ViraApplicationPackage = {
     schemaVersion: VIRA_APPLICATION_PACKAGE_SCHEMA_VERSION,
-    identity: Object.freeze({ id: root.identity.id }),
-    version: root.version,
+    identity: Object.freeze({ id: release.value.id }),
+    version: release.value.version,
     publisher: publisher.value,
     experiences: experiences.value,
     capabilities: capabilities.value,
