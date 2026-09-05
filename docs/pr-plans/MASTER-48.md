@@ -3,7 +3,8 @@
 **Status:** Q0–Q6 PASS / Q7 PENDING  
 **Base SHA:** `6b79864e55209b52e5b984e671beaf69afdbfc84`  
 **Frozen executable/test/boundary SHA:** `5f1c29773dd13d5328428e5933ec546259cb7b02`  
-**Branch:** `master/48-external-publisher-proof`
+**Branch:** `master/48-external-publisher-proof`  
+**PR:** #209 (draft)
 
 ## Goal
 
