@@ -75,6 +75,33 @@ function canonicalArtifact(input: ViraSignedApplicationDistribution): ViraApplic
   });
 }
 
+function trust() {
+  return {
+    verifyDistributionIntegrity: ({ digest, canonicalArtifact: canonical }: { digest: string; canonicalArtifact: string }) => createHash("sha256").update(canonical).digest("hex") === digest,
+    verifyPublisherProvenance: () => true,
+    verifySignature: () => true,
+  };
+}
+
+function passiveStore(overrides: Partial<ViraApplicationDeploymentStateStore>): ViraApplicationDeploymentStateStore {
+  return {
+    registerArtifact: async ({ artifact }) => ({ ok: true, value: artifact }),
+    getArtifact: async () => ({ ok: true, value: null }),
+    setArtifactStatus: async ({ release }) => ({
+      ok: false,
+      issue: { code: "ARTIFACT_NOT_FOUND", path: "$.release", message: `not found: ${release.id}` },
+    }),
+    getActive: async () => ({ ok: true, value: null }),
+    getHistorical: async () => ({ ok: true, value: null }),
+    commitDeployment: async ({ deployment }) => ({ ok: true, value: deployment }),
+    inspect: async () => ({
+      ok: true,
+      value: Object.freeze({ artifacts: Object.freeze([]), deployments: Object.freeze([]), history: Object.freeze([]) }),
+    }),
+    ...overrides,
+  };
+}
+
 describe("PROD-05 deployment store consistency", () => {
   it("rejects a store artifact whose release identity disagrees with its authenticated signed artifact", async () => {
     const authenticated = signed();
@@ -84,27 +111,16 @@ describe("PROD-05 deployment store consistency", () => {
       release: Object.freeze({ id: expected.release.id, version: "9.9.9" }),
     });
 
-    const store: ViraApplicationDeploymentStateStore = {
-      registerArtifact: async ({ artifact }) => ({ ok: true, value: artifact }),
+    const store = passiveStore({
       getArtifact: async () => ({ ok: true, value: Object.freeze({ artifact: corrupted, signed: authenticated }) }),
       setArtifactStatus: async () => ({ ok: true, value: corrupted }),
-      getActive: async () => ({ ok: true, value: null }),
-      getHistorical: async () => ({ ok: true, value: null }),
-      commitDeployment: async ({ deployment }) => ({ ok: true, value: deployment }),
       inspect: async () => ({
         ok: true,
         value: Object.freeze({ artifacts: Object.freeze([corrupted]), deployments: Object.freeze([]), history: Object.freeze([]) }),
       }),
-    };
-
-    const plane = createViraApplicationDeploymentPlane({
-      trust: {
-        verifyDistributionIntegrity: ({ digest, canonicalArtifact: canonical }) => createHash("sha256").update(canonical).digest("hex") === digest,
-        verifyPublisherProvenance: () => true,
-        verifySignature: () => true,
-      },
-      store,
     });
+
+    const plane = createViraApplicationDeploymentPlane({ trust: trust(), store });
     expect(plane.ok).toBe(true);
     if (!plane.ok) return;
 
@@ -114,5 +130,44 @@ describe("PROD-05 deployment store consistency", () => {
     });
 
     expect(result).toMatchObject({ ok: false, issue: { code: "ARTIFACT_CONFLICT" } });
+  });
+
+  it("rejects a registerArtifact result that mutates the authenticated release before deployment", async () => {
+    const authenticated = signed();
+    const expected = canonicalArtifact(authenticated);
+    const corrupted = Object.freeze({
+      ...expected,
+      release: Object.freeze({ id: expected.release.id, version: "9.9.9" }),
+    });
+    let committed = false;
+    const store = passiveStore({
+      registerArtifact: async () => ({ ok: true, value: corrupted }),
+      commitDeployment: async ({ deployment }) => {
+        committed = true;
+        return { ok: true, value: deployment };
+      },
+    });
+
+    const plane = createViraApplicationDeploymentPlane({ trust: trust(), store });
+    expect(plane.ok).toBe(true);
+    if (!plane.ok) return;
+
+    const result = await plane.value.publish({
+      artifact: authenticated,
+      binding: {
+        version: "1",
+        bindingRef: "binding:dev:1",
+        scope: { version: "1", organizationId: "org-vira", projectId: "flight-project", environment: "dev" },
+        providerIdentityRef: "provider:vira:primary",
+        location: "eu-central",
+        adapterRef: "adapter:flight:1",
+        secretRef: { version: "1", organizationId: "org-vira", projectId: "flight-project", environment: "dev", provider: "kms", key: "flight-api" },
+        trustStatus: "trusted",
+        trustEvidenceRef: "trust:provider:1",
+      },
+    });
+
+    expect(result).toMatchObject({ ok: false, issue: { code: "ARTIFACT_CONFLICT" } });
+    expect(committed).toBe(false);
   });
 });
