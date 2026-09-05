@@ -32,3 +32,18 @@ export {
   parseViraApplicationGraph,
   serializeViraApplicationGraph,
 } from "./validate.js";
+
+export { VIRA_APPLICATION_GRAPH_V2_SCHEMA_VERSION } from "./v2-types.js";
+export type {
+  ViraApplicationGraphActionTargetV2,
+  ViraApplicationGraphNodeTargetV2,
+  ViraApplicationGraphNodeV2,
+  ViraApplicationGraphV2,
+  ViraApplicationGraphV2Result,
+  ViraApplicationGraphV2SerializationResult,
+  ViraApplicationGraphV2ValidationIssue,
+} from "./v2-types.js";
+export {
+  parseViraApplicationGraphV2,
+  serializeViraApplicationGraphV2,
+} from "./v2-validate.js";
