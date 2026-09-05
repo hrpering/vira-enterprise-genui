@@ -38,7 +38,7 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Independent External Publisher Proof | MASTER-48 | MERGED / PR #209 |
 | Application Network — Independent AI Host Proof | MASTER-49 | MERGED / PR #210 |
 | Application Network — Independent Provider Proof | MASTER-50 | MERGED / PR #211 |
-| Application Network — Cross-Surface Exact Semantics + Network RC | MASTER-51 | ACTIVE — Q7 RERUN PENDING / PR #212 |
+| Application Network — Cross-Surface Exact Semantics + Network RC | MASTER-51 | ACTIVE — Q7 CODE GATES PASS / ENVIRONMENT RERUN PENDING |
 
 ## Active execution order
 
@@ -97,8 +97,8 @@ MASTER-51 Cross-Surface Exact Semantics + Application Network RC
 - Capability supply lookup is exact and deterministic; no implicit latest, source priority, majority winner, ranking, substitute provider or fallback.
 - Capability supply owns no endpoints, credentials, provider health/SLA, commercial entitlement/pricing, deployment scheduling or generic cloud-compute semantics.
 - A successful external provider proof demonstrates public-contract interoperability and one-shot hosted execution only; it does not authenticate/attest a provider, select a trusted provider, grant authorization/entitlement, or introduce retry/failover/cloud scheduling authority.
-- MASTER-51 is an integration/release gate only. Cross-surface proof and Application Network RC composition must not create another Application, Capability, provider, host, protocol, security or commercial semantic owner.
-- Application Network RC success requires the existing Enterprise RC plus independent publisher, AI-host, provider and cross-surface exact-semantics gates; it does not convert proof success into authentication, authorization, entitlement, deployment or cloud authority.
+- MASTER-51 Network RC is a composition/release gate, not a new semantic owner; RC success does not grant authentication, attestation, authorization, entitlement, deployment or cloud authority.
+- Environment-only failures in native/device gates do not authorize repository semantic changes; exact frozen executable/config SHA remains valid unless repository executable/package/test/boundary/config content changes.
 - Core does not become a generic agent framework, workflow engine, policy language, provider-integration empire, payment processor, banking/ledger system, MCP/A2UI replacement, IDE/design clone, cloud-compute platform or foundation model.
 - PR creation is not phase completion. Merge requires contract review, security/architecture review, verification, independent reverse engineering and exact-head evidence appropriate to the diff.
 
@@ -108,6 +108,7 @@ MASTER-51 Cross-Surface Exact Semantics + Application Network RC
 - `docs/pr-plans/ACTIVE_PHASE.md`
 - `docs/evidence/MASTER-51/Q5_Q6_REVIEW.md`
 - `docs/evidence/MASTER-51/Q7_ATTEMPT_1_FAIL.md`
+- `docs/evidence/MASTER-51/Q7_ATTEMPT_2_ENV_BLOCKED.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
