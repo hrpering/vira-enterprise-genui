@@ -1,4 +1,5 @@
 import {
+  serializeViraApplicationDistributionEnvelopeV2,
   verifyViraApplicationDistributionIntegrityV2,
   type ViraApplicationDistributionEnvelopeV2,
 } from "@vira-enterprise-genui/application-distribution";
@@ -338,18 +339,46 @@ function adjacentPromotion(from: ViraDeploymentEnvironment, to: ViraDeploymentEn
   return (from === "dev" && to === "staging") || (from === "staging" && to === "production");
 }
 
+function sameDistribution(left: ViraApplicationDistributionEnvelopeV2, right: ViraApplicationDistributionEnvelopeV2): boolean {
+  const leftSerialized = serializeViraApplicationDistributionEnvelopeV2(left);
+  const rightSerialized = serializeViraApplicationDistributionEnvelopeV2(right);
+  return leftSerialized.ok && rightSerialized.ok && leftSerialized.value === rightSerialized.value;
+}
+
+function samePrincipal(left: ViraEnterprisePrincipal, right: ViraEnterprisePrincipal): boolean {
+  return left.version === right.version
+    && left.kind === right.kind
+    && left.id === right.id
+    && left.organizationId === right.organizationId;
+}
+
+function sameProvenance(left: ViraAuthenticatedPublisherProvenance, right: ViraAuthenticatedPublisherProvenance): boolean {
+  return left.version === right.version
+    && left.publisherId === right.publisherId
+    && left.authenticationRef === right.authenticationRef
+    && samePrincipal(left.principal, right.principal);
+}
+
+function sameSignature(left: ViraArtifactSignature, right: ViraArtifactSignature): boolean {
+  return left.algorithm === right.algorithm
+    && left.keyId === right.keyId
+    && left.value === right.value;
+}
+
+function sameArtifactRecord(stored: ViraApplicationDeploymentArtifactRecord, verified: ViraApplicationDeploymentArtifactRecord): boolean {
+  return stored.artifactKind === verified.artifactKind
+    && stored.artifactId === verified.artifactId
+    && exactRelease(stored.release, verified.release)
+    && stored.distributionDigest === verified.distributionDigest
+    && stored.publisherId === verified.publisherId
+    && sameDistribution(stored.distribution, verified.distribution)
+    && sameProvenance(stored.provenance, verified.provenance)
+    && sameSignature(stored.signature, verified.signature)
+    && stored.status === verified.status;
+}
+
 function sameStoredArtifact(stored: ViraApplicationDeploymentStoreArtifact, verified: VerifiedArtifact): boolean {
-  return stored.artifact.artifactId === verified.record.artifactId
-    && stored.artifact.distributionDigest === verified.record.distributionDigest
-    && stored.artifact.publisherId === verified.record.publisherId
-    && stored.signed.provenance.publisherId === verified.signed.provenance.publisherId
-    && stored.signed.provenance.authenticationRef === verified.signed.provenance.authenticationRef
-    && stored.signed.provenance.principal.kind === verified.signed.provenance.principal.kind
-    && stored.signed.provenance.principal.id === verified.signed.provenance.principal.id
-    && stored.signed.provenance.principal.organizationId === verified.signed.provenance.principal.organizationId
-    && stored.signed.signature.algorithm === verified.signed.signature.algorithm
-    && stored.signed.signature.keyId === verified.signed.signature.keyId
-    && stored.signed.signature.value === verified.signed.signature.value;
+  return sameArtifactRecord(stored.artifact, verified.record);
 }
 
 export function createViraApplicationDeploymentPlane(input: {
@@ -436,6 +465,9 @@ export function createViraApplicationDeploymentPlane(input: {
         }
         const registered = await store.registerArtifact({ scope: binding.value.scope, artifact: verified.value.record, signed: verified.value.signed });
         if (!registered.ok) return registered;
+        if (!sameArtifactRecord(registered.value, verified.value.record)) {
+          return { ok: false, issue: issue("ARTIFACT_CONFLICT", "$.release", "registered Application release does not match its authenticated signed artifact") };
+        }
         const current = await store.getActive({ scope: binding.value.scope, applicationId: registered.value.release.id });
         if (!current.ok) return current;
         const deployment = nextDeployment(registered.value, binding.value, "publish", current.value);
