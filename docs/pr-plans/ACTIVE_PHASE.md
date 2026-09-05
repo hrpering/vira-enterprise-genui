@@ -1,16 +1,19 @@
 # Active Phase
 
 **Phase:** MASTER-51 — Cross-Surface Exact Semantics + Application Network RC  
-**Status:** Q0–Q7 PASS / Q8 ACTIVE  
+**Status:** Q0–Q6 PASS / Q7 RERUN PENDING / Q8 BLOCKED  
 **Base SHA:** `6f02e4437210c0cd662f1852759c88fca328462c`  
-**Frozen executable/config SHA:** `952e3445d46d0b3770a499522abc1ad77315a228`  
-**Invalidated previous freeze:** `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`  
+**Frozen executable/test/config SHA:** `a3ba23a68f68aee894f818823ba1003511024f19`  
+**Invalidated previous freeze:** `952e3445d46d0b3770a499522abc1ad77315a228`  
+**Earlier invalidated freeze:** `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`  
 **Previous:** MASTER-50 merged via PR #211  
 **Branch:** `master/51-network-rc`  
-**PR:** #212 (draft; Q8 active)  
+**PR:** #212 (draft)  
 **Next:** Application Network roadmap closure after MASTER-51 exact-head merge
 
 MASTER-51 is the final planned Application Network closure phase. It creates no new semantic owner. It proves that canonical exact semantics survive the complete publisher/discovery/AI-host/provider path and composes the existing Enterprise + Network proof gates into one fail-closed RC command.
+
+Q8 attempt 1 found a canonical-owner violation in adjacent Capability release identity: `capability-contract` and `capability-supply` independently validated the same Capability `id + release semver` semantic. The fix moved that release identity into the existing canonical Capability owner and made both CapabilityDefinition and supply lookup delegate to it.
 
 Canonical cross-surface proof:
 
@@ -45,9 +48,11 @@ verify:application-network-rc
   └─ verify:application-network-cross-surface
 ```
 
-Final invariants:
+Current invariants:
 
 - integration/release gate only; no new Application/Capability/Network semantic owner;
+- `capability-contract` owns CapabilityDefinition, exact references and Capability release identity;
+- CapabilityDefinition and Capability supply release queries consume the same canonical Capability release parser;
 - public Vira package-root imports only in integration proof;
 - no floating/latest/wildcard Application Capability references;
 - exact Application federation release lookup only;
@@ -62,8 +67,11 @@ Final invariants:
 
 Evidence history:
 
-- `docs/evidence/MASTER-51/Q7_ATTEMPT_1_FAIL.md` — invalidated old freeze executable/lint blockers;
-- `docs/evidence/MASTER-51/Q7_ATTEMPT_2_ENV_BLOCKED.md` — current freeze code/repository gates passed but local Xcode environment blocked native RC;
-- `docs/evidence/MASTER-51/Q7_FINAL_PASS.md` — operator-reported final PASS on exact current freeze after environment remediation.
+- `docs/evidence/MASTER-51/Q7_ATTEMPT_1_FAIL.md` — original executable/lint blockers;
+- `docs/evidence/MASTER-51/Q7_ATTEMPT_2_ENV_BLOCKED.md` — code/repository gates passed but local Xcode environment blocked native RC;
+- `docs/evidence/MASTER-51/Q7_FINAL_PASS.md` — operator-reported final PASS on previous freeze after environment remediation; now historical because Q8 required executable changes;
+- `docs/evidence/MASTER-51/Q8_ATTEMPT_1_OWNER_DRIFT.md` — Q8 owner-drift finding and remediation.
 
-Q5/Q6 static review PASS on current freeze `952e3445d46d0b3770a499522abc1ad77315a228`. Q7 final PASS is now the merge-authorizing local gate for independent Q8, subject to frozen-to-current executable/package/test/boundary/config drift remaining zero.
+Q5/Q6 static review was repeated and PASS on current freeze `a3ba23a68f68aee894f818823ba1003511024f19`.
+
+A full local Q7 rerun on this exact new freeze is required. Q8 remains blocked until that rerun passes.
