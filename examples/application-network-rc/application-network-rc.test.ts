@@ -31,6 +31,13 @@ function capability(version = "1.0.0") {
   };
 }
 
+function actionCapability(version = "1.0.0") {
+  return {
+    ...capability(version),
+    invocation: { kind: "action" as const, actionType: "catalog.purchase" },
+  };
+}
+
 function binding(capabilityVersion = "1.0.0") {
   return {
     version: "1",
@@ -280,15 +287,11 @@ describe("MASTER-51 cross-surface exact Application Network semantics", () => {
       sources: [{
         sourceId: "provider.acme.catalog",
         supplies: [{
-          capability: capability("1.0.0"),
+          capability: actionCapability("1.0.0"),
           binding: binding("1.0.0"),
         }],
       }],
     };
-    actionSnapshot.sources[0]!.supplies[0]!.capability.invocation = {
-      kind: "action",
-      actionType: "catalog.purchase",
-    } as never;
 
     expect(parseViraCapabilitySupplySnapshot(actionSnapshot)).toMatchObject({
       ok: false,
