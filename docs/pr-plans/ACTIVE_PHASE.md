@@ -1,9 +1,10 @@
 # Active Phase
 
 **Phase:** MASTER-51 — Cross-Surface Exact Semantics + Application Network RC  
-**Status:** Q0–Q6 PASS / Q7 PENDING  
+**Status:** Q0–Q6 PASS / Q7 RERUN PENDING / Q8 BLOCKED  
 **Base SHA:** `6f02e4437210c0cd662f1852759c88fca328462c`  
-**Frozen executable SHA:** `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`  
+**Frozen executable/config SHA:** `952e3445d46d0b3770a499522abc1ad77315a228`  
+**Invalidated previous freeze:** `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`  
 **Previous:** MASTER-50 merged via PR #211  
 **Branch:** `master/51-network-rc`  
 **PR:** #212 (draft)  
@@ -59,6 +60,13 @@ Final invariants:
 - source/provider/binding/location IDs remain routing/provenance only;
 - successful RC composition grants no authentication, attestation, authorization, entitlement, deployment or generic cloud authority.
 
-Q5/Q6 static review PASS: `docs/evidence/MASTER-51/Q5_Q6_REVIEW.md`.
+Q7 attempt 1 on `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f` failed and is recorded in `docs/evidence/MASTER-51/Q7_ATTEMPT_1_FAIL.md`.
 
-Q7 local execution remains pending on exact freeze `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`. No runtime counts/timings are recorded until operator report.
+Attempt-1 findings:
+
+- MASTER-51 typecheck failure: untyped publisher digest callback;
+- inherited Enterprise RC baseline lint failures: seven ESLint errors in pre-existing files.
+
+Both blocker classes were remediated without changing Application/Capability/runtime authority. Q5/Q6 static review was repeated and PASS on new executable/config freeze `952e3445d46d0b3770a499522abc1ad77315a228`: `docs/evidence/MASTER-51/Q5_Q6_REVIEW.md`.
+
+The old Q7 attempt is historical only and cannot authorize merge. A full local Q7 rerun on the exact new freeze is required before Q8 can restart.
