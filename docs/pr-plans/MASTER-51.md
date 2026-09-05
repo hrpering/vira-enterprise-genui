@@ -1,6 +1,6 @@
 # MASTER-51 — Cross-Surface Exact Semantics + Application Network RC
 
-**Status:** Q0–Q6 PASS / Q7 RERUN PENDING / Q8 BLOCKED  
+**Status:** Q0–Q7 PASS / Q8 ACTIVE  
 **Base SHA:** `6f02e4437210c0cd662f1852759c88fca328462c`  
 **Frozen executable/test/config SHA:** `e8f568834752ce92796c9cddec5745b373b07d69`  
 **Invalidated previous freeze:** `a3ba23a68f68aee894f818823ba1003511024f19`  
@@ -103,7 +103,7 @@ Remediation changes only the two internal test imports to:
 - `../../packages/capability-contract/src/index.js`;
 - `../../packages/capability-supply/src/index.js`.
 
-No production source or semantic behavior changes in this remediation.
+No production source or semantic behavior changed in this remediation.
 
 Evidence: `docs/evidence/MASTER-51/Q7_ATTEMPT_3_TYPECHECK_FAIL.md`.
 
@@ -117,19 +117,26 @@ Evidence: `docs/evidence/MASTER-51/Q5_Q6_REVIEW.md`.
 
 ## Current Q7 authority
 
-A full local Q7 rerun is required on exact detached SHA:
+The operator reported the full detached-SHA Q7 rerun **green** on exact frozen executable/test/config SHA:
 
 `e8f568834752ce92796c9cddec5745b373b07d69`
 
-All previous Q7 results are historical only because executable/test content changed afterward. Q8 remains blocked until this exact current freeze passes.
+Evidence: `docs/evidence/MASTER-51/Q7_RERUN_PASS.md`.
 
-## Q8–Q9 after rerun PASS
+No test counts, timings, warning counts or native-device result details are reconstructed beyond the operator report. Earlier Q7 results remain historical only.
 
-- restart independent Q8 from scratch;
-- inspect current PR metadata/diff and canonical adjacent owners;
-- inspect reviews/threads/comments;
-- classify current-head hosted Actions;
-- prove current freeze → closure executable/package/test/boundary/config drift is zero;
-- if Q8 PASS, perform final Q9 docs-only closure compare;
-- mark PR ready and squash merge only with fresh exact `expected_head_sha`;
-- independently verify resulting authoritative `main` and close the Application Network roadmap.
+## Q8 active
+
+Independent Q8 restarts from scratch after the current Q7 PASS and must:
+
+- inspect current PR metadata, changed files and current diff;
+- re-read canonical adjacent owners rather than trusting Q8 attempt 1;
+- verify `capability-contract` is the sole Capability release owner and `capability-supply` only delegates/maps query errors;
+- verify the internal parity test import convention is isolated from external public-root proof consumers;
+- verify exact Application Capability `id@version` survives discovery → compatibility → supply → execution unchanged;
+- verify no latest/fallback/substitution/ranking, no invented auth/trust/commercial/deployment authority, and no Action Boundary bypass;
+- inspect current reviews, review threads and PR comments;
+- classify current-head hosted Actions by actual job steps;
+- prove frozen SHA `e8f568...` → closure head executable/package/test/boundary/config drift is zero.
+
+If Q8 finds executable drift or another semantic issue, the freeze and this Q7 authority are invalidated and Q7 must run again. If Q8 passes, only docs/evidence closure may follow before Q9 exact-head merge discipline.
