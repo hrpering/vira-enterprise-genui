@@ -7,6 +7,6 @@
     "sourceMap": true,
     "outDir": ".build"
   },
-  "include": ["packages/**/*.ts", "examples/**/*.ts", "apps/vira-api/**/*.ts", "apps/vira-worker/**/*.ts", "ops/**/*.ts"],
+  "include": ["packages/**/*.ts", "examples/**/*.ts", "apps/vira-api/**/*.ts", "apps/vira-worker/**/*.ts", "integrations/**/*.ts", "ops/**/*.ts"],
   "exclude": ["examples/pegasus-chat-demo/**"]
 }
