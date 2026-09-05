@@ -1,12 +1,12 @@
 # Active Phase
 
 **Phase:** MASTER-50 — Independent External Provider Proof  
-**Status:** Q0–Q7 PASS / Q8 ACTIVE  
+**Status:** Q0–Q8 PASS / Q9 READY  
 **Base SHA:** `46f4d8ec163790765d162d13747dd4f64bf0e8ea`  
 **Frozen executable SHA:** `5ed6832fa9f233b0b7eb44a8fc5f10f143d00905`  
 **Previous:** MASTER-49 merged via PR #210  
 **Branch:** `master/50-external-provider-proof`  
-**PR:** #211 (draft)  
+**PR:** #211 (draft; ready transition pending Q9)  
 **Next:** MASTER-51 after MASTER-50 merge from new authoritative `main`
 
 MASTER-50 proves that an independently named provider can compose Vira's public Capability contract, exact supply discovery and hosted query execution boundary without private imports, hidden trust semantics or generic cloud/runtime authority.
@@ -45,4 +45,6 @@ Q5/Q6 static review PASS: `docs/evidence/MASTER-50/Q5_Q6_REVIEW.md`.
 
 Q7 local execution is operator-reported PASS on exact freeze `5ed6832fa9f233b0b7eb44a8fc5f10f143d00905`. Evidence: `docs/evidence/MASTER-50/Q7_LOCAL_PASS.md`. No counts/timings were reconstructed.
 
-Independent Q8 is active and must re-read PR #211 from scratch, including executable diff, canonical owners, reviews/threads/comments, hosted CI and frozen-to-current executable drift.
+Independent Q8 PASS: `docs/evidence/MASTER-50/Q8_REVIEW.md`. No executable/security/ownership blocker found; hosted Actions were infra non-signal because failed jobs exposed `steps = null`.
+
+Q9 final closure gate is ready. Merge is permitted only if frozen executable SHA → closure head remains docs/evidence-only.
