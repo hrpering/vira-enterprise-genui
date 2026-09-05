@@ -5,6 +5,7 @@ import {
   type JsonObject,
   type JsonValue,
 } from "@vira-enterprise-genui/protocol";
+import { parseViraCapabilityExactReference } from "./reference.js";
 import {
   VIRA_CAPABILITY_DEFINITION_SCHEMA_VERSION,
   VIRA_CAPABILITY_DESCRIPTION_MAX_LENGTH,
@@ -24,8 +25,6 @@ import {
 } from "./types.js";
 
 const RELEASE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
-const VERSION_REF = /^[A-Za-z0-9][A-Za-z0-9._:+-]{0,127}$/;
-const FLOATING_ALIASES = new Set(["latest", "current", "stable", "head", "main", "next"]);
 
 type Failure = { readonly ok: false; readonly issue: ViraCapabilityValidationIssue };
 type Parsed<T> = { readonly ok: true; readonly value: T } | Failure;
@@ -55,14 +54,6 @@ function releaseVersion(value: JsonValue | undefined): value is string {
   return typeof value === "string" && value.length <= 64 && RELEASE_VERSION.test(value);
 }
 
-function exactVersionRef(value: JsonValue | undefined): value is string {
-  if (typeof value !== "string" || !VERSION_REF.test(value)) return false;
-  const normalized = value.toLowerCase();
-  if (FLOATING_ALIASES.has(normalized)) return false;
-  return !/(?:^|[._:+-])[xX](?:$|[._:+-])/.test(value)
-    && !/\d[xX](?:$|[._:+-])/.test(value);
-}
-
 function freeze<T>(value: T): T {
   if (value === null || typeof value !== "object" || Object.isFrozen(value)) return value;
   if (Array.isArray(value)) {
@@ -71,6 +62,18 @@ function freeze<T>(value: T): T {
   }
   for (const child of Object.values(value as Record<string, unknown>)) freeze(child);
   return Object.freeze(value);
+}
+
+function referencePath(ownerPath: string, path: string): string {
+  if (ownerPath === "$" || ownerPath.length === 0) return path;
+  if (ownerPath.startsWith("$.")) return `${path}${ownerPath.slice(1)}`;
+  return path;
+}
+
+function parseExactReference(value: JsonValue, path: string): Parsed<ViraCapabilityExactReference> {
+  const parsed = parseViraCapabilityExactReference(value);
+  if (parsed.ok) return parsed;
+  return fail(parsed.issue.code, referencePath(parsed.issue.path, path), parsed.issue.message);
 }
 
 function parsePublisher(value: JsonValue | undefined): Parsed<ViraCapabilityPublisher> {
@@ -109,22 +112,6 @@ function parseMetadata(value: JsonValue | undefined): Parsed<ViraCapabilityMetad
       ...(description === undefined ? {} : { description }),
     }),
   };
-}
-
-function parseExactReference(value: JsonValue, path: string): Parsed<ViraCapabilityExactReference> {
-  if (!object(value)) return fail("INVALID_REFERENCE", path, "reference must be an exact object");
-  const unexpected = shape(value, ["id", "versionRef"]);
-  if (unexpected) return fail("INVALID_REFERENCE", `${path}.${unexpected}`, "reference shape is invalid");
-  if (typeof value.id !== "string" || !isSemanticNamespace(value.id)) {
-    return fail("INVALID_REFERENCE", `${path}.id`, "reference id must be a canonical semantic namespace");
-  }
-  if (!exactVersionRef(value.versionRef)) {
-    const code = typeof value.versionRef === "string" && VERSION_REF.test(value.versionRef)
-      ? "FLOATING_REFERENCE"
-      : "INVALID_REFERENCE";
-    return fail(code, `${path}.versionRef`, "reference version must be exact and must not float");
-  }
-  return { ok: true, value: Object.freeze({ id: value.id, versionRef: value.versionRef }) };
 }
 
 function parseValueContract(value: JsonValue | undefined, path: string): Parsed<ViraCapabilityValueContract> {
