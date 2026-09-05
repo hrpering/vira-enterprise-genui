@@ -10,8 +10,9 @@ Add the final provider-neutral commercial-network primitive: deterministic alloc
 - previous phase: MASTER-46 merged via PR #207
 - branch: `master/47-commercial-settlement`
 - draft PR: #208
-- current frozen executable/test/boundary SHA: `b42ae481700094f118328f111f8011ab44136877`
-- invalidated previous freeze: `25ee1c25223863f3ceeb53210142acd1da331405`
+- current frozen executable/test/boundary SHA: `95c9a0674742c702cc5265b8e1fb35f82dea04ad`
+- invalidated previous freeze: `b42ae481700094f118328f111f8011ab44136877`
+- earlier invalidated freeze: `25ee1c25223863f3ceeb53210142acd1da331405`
 
 ## Canonical ownership
 
@@ -43,17 +44,28 @@ parseViraApplicationExactReference
 serializeViraApplicationExactReference
 ```
 
-Independent Q8 found that the first implementation left the package's legacy private exact-reference parser in `validate.ts`, creating two owner-local implementations of one canonical noun. Q8 attempt 1 therefore failed.
-
-Remediation:
-
-- the public exact-reference parser is now the single implementation;
-- `parseViraApplicationPackage` delegates nested exact references to it;
-- the package validator retains only contextual error-path remapping;
-- duplicated VERSION_REF/floating/parser logic was removed from `validate.ts`;
-- parity coverage protects direct-parser ↔ package-parser behavior.
+Q8 attempt 1 found that the package still retained a second private exact-reference parser implementation. Remediation made the public owner API the single implementation and changed `parseViraApplicationPackage` to delegate nested exact references while preserving contextual error paths.
 
 Evidence: `docs/evidence/MASTER-47/Q8_ATTEMPT_1.md`.
+
+## Application release owner boundary
+
+Restarted Q8 then found a second canonical-owner duplication: settlement schedule and allocation-evidence parsing independently validated `applicationId + applicationVersion` with local namespaced-id/RELEASE_VERSION logic, while Application release identity/version belongs to `application-package`.
+
+Remediation adds canonical owner-local:
+
+```text
+parseViraApplicationReleaseReference
+serializeViraApplicationReleaseReference
+```
+
+The owner API validates exact namespaced Application id + exact release semver and owns canonical freeze/serialization.
+
+`parseViraApplicationPackage` now delegates root Application id/version validation to this API. `commercial-settlement` schedule and allocation-evidence parsing delegate to the same API; their local Application-release regex/validation implementation was removed.
+
+Focused `application-release-reference.test.ts` protects direct-owner ↔ package-parser ↔ settlement-parser acceptance parity, nested package paths, deterministic serialization and unsafe-object rejection.
+
+Evidence: `docs/evidence/MASTER-47/Q8_ATTEMPT_2.md`.
 
 ## Settlement contract
 
@@ -71,7 +83,7 @@ Invariants:
 
 - exact `settlementRef` only;
 - duplicate exact settlement refs fail closed;
-- Application id must be namespaced and release version exact semver;
+- Application release id/version must pass the canonical Application release-reference owner;
 - publisherId must match the Application identity namespace;
 - planRef is exact/non-floating;
 - publisherShareBps is integer `0..10000`;
@@ -104,7 +116,7 @@ Accepted operations remain safe-integer bounded including `Number.MAX_SAFE_INTEG
 
 Canonical output contains schemaVersion, exact settlementRef, exact Application id/version, publisherId, publisherShareBps, the canonical pricing quote itself, publisherAmountNanos and platformAmountNanos.
 
-Embedding the canonical quote avoids copying pricing semantics. Allocation parse/serialize delegates quote semantics to `commercial-pricing` and exact-ref semantics to `application-package`. The allocation parser independently verifies publisher namespace parity, canonical quote validity and exact split arithmetic.
+Embedding the canonical quote avoids copying pricing semantics. Allocation parse/serialize delegates quote semantics to `commercial-pricing`, exact-ref semantics to the Application exact-reference owner and Application id/version semantics to the Application release-reference owner. The allocation parser independently verifies publisher namespace parity, canonical quote validity and exact split arithmetic.
 
 Parsing allocation evidence validates internal semantics/arithmetic only. It does not authenticate who selected the settlement schedule/rule or prove external policy provenance.
 
@@ -115,6 +127,7 @@ PASS.
 Added:
 
 - Application exact-reference owner-local public API;
+- Application release-reference owner-local public API;
 - `@vira-enterprise-genui/commercial-settlement` package;
 - bounded schedule parse/serialize;
 - exact settlement-rule selection and canonical Application/plan linkage;
@@ -128,39 +141,35 @@ Focused suites:
 
 ```text
 tests/contract/application-exact-reference.test.ts
+tests/contract/application-release-reference.test.ts
 tests/contract/commercial-settlement.test.ts
 tests/contract/commercial-settlement-hardening.test.ts
 ```
 
-Coverage includes exact-reference roundtrip/floating rejection plus package-parser parity and nested path preservation; schedule determinism; exact Application/plan linkage; publisher namespace parity; no fallback; 0/100% shares; fractional rounding; MAX_SAFE gross verified against BigInt; canonical embedded quote roundtrip; forged allocation/quote rejection; payment/payout/tax/FX/credential/authority smuggling including persisted allocation evidence; rule ceiling; and accessor/custom-prototype fail-closed behavior across direct references/schedules/requests/allocation evidence.
+Coverage includes exact-reference owner/package parity; Application-release direct/package/settlement parity; nested path preservation; schedule determinism; exact Application/plan linkage; publisher namespace parity; no fallback; 0/100% shares; fractional rounding; MAX_SAFE gross verified against BigInt; canonical embedded quote roundtrip; forged allocation/quote rejection; payment/payout/tax/FX/credential/authority smuggling including persisted allocation evidence; rule ceiling; and accessor/custom-prototype fail-closed behavior.
 
 ## Q5/Q6
 
-PASS on remediated executable/test/boundary head:
+PASS on current remediated executable/test/boundary head:
 
-`b42ae481700094f118328f111f8011ab44136877`
+`95c9a0674742c702cc5265b8e1fb35f82dea04ad`
 
 Evidence: `docs/evidence/MASTER-47/Q5_Q6_REVIEW.md`.
 
 ## Q7 history
 
-Attempt 1 PASS on old freeze:
+Attempt 1 PASS on `25ee1c25223863f3ceeb53210142acd1da331405`; invalidated by Q8 exact-reference owner finding.
 
-`25ee1c25223863f3ceeb53210142acd1da331405`
+Attempt 2 PASS on `b42ae481700094f118328f111f8011ab44136877`; invalidated by restarted Q8 Application-release owner finding.
 
-The operator-reported green remains historical evidence in `docs/evidence/MASTER-47/Q7_LOCAL_PASS.md`, but it is invalidated for final merge because Q8 found an executable owner-implementation issue and source/tests changed afterward.
+Both operator-reported greens remain historical evidence only. No counts/timings are reconstructed.
 
-Final Q7 rerun PASS on exact current freeze:
+## Q8 history
 
-`b42ae481700094f118328f111f8011ab44136877`
+- Attempt 1 FAIL — duplicate exact-reference parser implementations. Evidence: `docs/evidence/MASTER-47/Q8_ATTEMPT_1.md`.
+- Attempt 2 FAIL — duplicated Application release id/version semantics in settlement. Evidence: `docs/evidence/MASTER-47/Q8_ATTEMPT_2.md`.
 
-Evidence: `docs/evidence/MASTER-47/Q7_RERUN_PASS.md`. The operator reported the complete boundaries/typecheck/focused-suite command set green; no counts or timings are reconstructed.
-
-## Q8 attempt 1
-
-FAIL. Evidence: `docs/evidence/MASTER-47/Q8_ATTEMPT_1.md`.
-
-Finding: two exact-reference parser implementations existed inside the canonical Application owner. Remediation unified them and expanded parity/evidence-boundary tests.
+Both findings are remediated in current freeze `95c9a0674742c702cc5265b8e1fb35f82dea04ad`.
 
 ## Authority / non-goals
 
@@ -178,21 +187,29 @@ Settlement allocation evidence is **not**:
 - accounting/revenue recognition;
 - authorization/governance/runtime permission.
 
-## Final Q8 restart
+## Current gate
 
-Active against exact frozen SHA `b42ae481700094f118328f111f8011ab44136877`.
+Run full local gate only against exact current freeze:
 
-Merge requires independent Q8 PASS and a final compare proving frozen executable → closure head contains documentation/evidence only.
+```bash
+pnpm check:boundaries
+pnpm typecheck
+pnpm vitest run \
+  tests/contract/application-exact-reference.test.ts \
+  tests/contract/application-release-reference.test.ts \
+  tests/contract/commercial-settlement.test.ts \
+  tests/contract/commercial-settlement-hardening.test.ts
+```
 
 ## Q0–Q9
 
 - Q0 PASS — fresh branch from exact authoritative main `a7083edbb3bafc9326546fbba10286e696f86a06`.
 - Q1 PASS — remaining commercial gap and owner reverse engineering.
 - Q2 PASS — settlement owner, exact-linkage model and allocation arithmetic frozen.
-- Q3 PASS — owner-local exact-reference surface + settlement implementation.
-- Q4 PASS — focused/hardening coverage, including remediation coverage.
+- Q3 PASS — canonical owner APIs + settlement implementation.
+- Q4 PASS — focused/hardening coverage, including both owner-remediation suites.
 - Q5 PASS — security/fail-closed re-review on current freeze.
 - Q6 PASS — architecture/ownership re-review on current freeze.
-- Q7 PASS — operator-reported green on exact final freeze.
-- Q8 RESTART ACTIVE — independent re-review after remediation.
-- Q9 BLOCKED until Q8 PASS and closure compare.
+- Q7 RERUN PENDING — exact current frozen-head local gate required.
+- Q8 BLOCKED — restart only after new Q7 PASS.
+- Q9 BLOCKED until Q8 PASS and final closure compare.
