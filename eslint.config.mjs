@@ -9,6 +9,7 @@ export default tseslint.config(
       "coverage/**",
       "node_modules/**",
       "examples/experience-studio-demo/dist/**",
+      "apps/vira-web/dist/**",
     ],
   },
   js.configs.recommended,
@@ -52,6 +53,34 @@ export default tseslint.config(
       globals: {
         console: "readonly",
         process: "readonly",
+      },
+    },
+  },
+  {
+    files: ["apps/vira-web/app.js"],
+    languageOptions: {
+      globals: {
+        document: "readonly",
+        fetch: "readonly",
+      },
+    },
+  },
+  {
+    files: ["apps/vira-web/build.mjs"],
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        process: "readonly",
+      },
+    },
+  },
+  {
+    files: ["ops/**/*.ts", "tests/production/**/*.ts"],
+    languageOptions: {
+      globals: {
+        URL: "readonly",
+        Response: "readonly",
+        fetch: "readonly",
       },
     },
   },

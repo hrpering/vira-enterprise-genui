@@ -19,6 +19,7 @@ const [
   activePhase,
   productionPlan,
   prod00,
+  prod01,
   prod20,
   ownerMatrix,
   referenceApplication,
@@ -32,6 +33,7 @@ const [
   read("docs/pr-plans/ACTIVE_PHASE.md"),
   read("docs/production/VIRA_UNIFIED_ARCHITECTURE_PRODUCTION_PLAN_FINAL.md"),
   read("docs/pr-plans/PROD-00.md"),
+  read("docs/pr-plans/PROD-01.md"),
   read("docs/pr-plans/PROD-20.md"),
   read("docs/production/PROD_OWNER_MATRIX.md"),
   read("docs/production/REFERENCE_APPLICATION.md"),
@@ -45,12 +47,14 @@ const [
 requireText(masterPlan, "PROD-00", "MASTER_PLAN.md");
 requireText(masterPlan, "PROD-17", "MASTER_PLAN.md");
 requireText(masterPlan, "PROD-22", "MASTER_PLAN.md");
-requireText(activePhase, "PROD-00", "ACTIVE_PHASE.md");
-requireText(activePhase, "prod/00-program-freeze", "ACTIVE_PHASE.md");
-requireText(productionPlan, "PROD-00 — Program, owner, threat ve operasyon freeze", "production plan");
-requireText(productionPlan, "PROD-20 — Machine Commerce ve dynamic acquisition", "production plan");
-requireText(prod00, "Q0", "PROD-00 plan");
+requireText(activePhase, "PROD-01", "ACTIVE_PHASE.md");
+requireText(activePhase, "prod/01-production-shell", "ACTIVE_PHASE.md");
+requireText(activePhase, "91e8fad8b54fd78c99359d968f75ebec4bcc3562", "ACTIVE_PHASE.md stacked parent");
+requireText(productionPlan, "## PROD-00 — Program, owner, threat ve operasyon freeze", "production plan");
+requireText(productionPlan, "## PROD-01 — Production workspace ve deploy edilebilir shell", "production plan");
+requireText(productionPlan, "## PROD-20", "production plan");
 requireText(prod00, "Q9", "PROD-00 plan");
+requireText(prod01, "Q9", "PROD-01 plan");
 requireText(prod20, "PR #214", "PROD-20 deferred plan");
 requireText(ownerMatrix, "packages/application-deployment/", "production owner matrix");
 requireText(referenceApplication, "Governed Employee Offboarding", "reference Application");
