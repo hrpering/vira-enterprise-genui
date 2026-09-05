@@ -1,10 +1,10 @@
 # MASTER-48 — Independent External Publisher Proof
 
-**Status:** Q0–Q7 PASS / Q8 ACTIVE  
+**Status:** Q0–Q8 PASS / Q9 READY  
 **Base SHA:** `6b79864e55209b52e5b984e671beaf69afdbfc84`  
 **Frozen executable/test/boundary SHA:** `5f1c29773dd13d5328428e5933ec546259cb7b02`  
 **Branch:** `master/48-external-publisher-proof`  
-**PR:** #209 (draft)
+**PR:** #209 (draft; ready transition pending final closure compare)
 
 ## Goal
 
@@ -73,8 +73,10 @@ Operator-reported local PASS on exact freeze `5f1c29773dd13d5328428e5933ec546259
 
 ## Q8
 
-ACTIVE. Independent PR reverse engineering must re-read current PR metadata/diff, executable files, public import boundaries, release-owner delegation, focused proof tests, reviews/threads/comments and hosted CI. Frozen-to-current executable drift must remain zero.
+Independent review PASS. See `docs/evidence/MASTER-48/Q8_REVIEW.md`.
+
+Review revalidated canonical release-owner delegation, public package-root-only proof imports, publisher/federation authority boundaries, exact lookup/no fallback, conflict semantics, external review surface, current-head hosted CI classification and frozen-to-current executable drift.
 
 ## Q9
 
-Pending Q8 PASS: documentation-only closure compare, ready transition, exact-head squash merge and independent `main` verification.
+READY subject to the final documentation/evidence-only frozen-to-closure comparison. Then mark PR #209 ready and squash merge using the exact current head SHA, followed by independent `main` verification.
