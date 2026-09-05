@@ -253,8 +253,9 @@ class ViraAndroidRuntimeSession(
   }
 
   private fun scopeValue(item: ViraJson?, path: String): ViraJson? {
-    if (item == null || !path.startsWith("currentItem.")) return null
-    var current = item
+    val root = item ?: return null
+    if (!path.startsWith("currentItem.")) return null
+    var current: ViraJson = root
     for (segment in path.removePrefix("currentItem.").split('.')) {
       current = current.asObjectOrNull()?.get(segment) ?: return null
     }
