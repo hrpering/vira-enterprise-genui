@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-05  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-47:** `a7083edbb3bafc9326546fbba10286e696f86a06`
+**Authoritative main entering MASTER-48:** `6b79864e55209b52e5b984e671beaf69afdbfc84`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -34,19 +34,26 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Hosted Capability Runtime Foundation | MASTER-44 | MERGED / PR #205 |
 | Application Network — Commercial Pricing + Rate Card | MASTER-45 | MERGED / PR #206 |
 | Application Network — Capability Supply Catalog + Exact Discovery | MASTER-46 | MERGED / PR #207 |
-| Application Network — Commercial Settlement Allocation + Publisher Economics | MASTER-47 | ACTIVE |
-| Application Network — External Proofs / Network RC | MASTER-48..51 | PLANNED |
+| Application Network — Commercial Settlement Allocation + Publisher Economics | MASTER-47 | MERGED / PR #208 |
+| Application Network — Independent External Publisher Proof | MASTER-48 | ACTIVE |
+| Application Network — Independent AI Host Proof | MASTER-49 | PLANNED |
+| Application Network — Independent Provider Proof | MASTER-50 | PLANNED |
+| Application Network — Cross-Surface Exact Semantics + Network RC | MASTER-51 | PLANNED |
 
 ## Active execution order
 
 ```text
 Enterprise GenUI RC1 ✅
   ↓
-MASTER-26..46 ✅
+MASTER-26..47 ✅
   ↓
-MASTER-47 Commercial Settlement Allocation + Publisher Economics
+MASTER-48 Independent External Publisher Proof
   ↓
-MASTER-48 → 51 external proofs + Application Network RC
+MASTER-49 Independent AI Host Proof
+  ↓
+MASTER-50 Independent Provider Proof
+  ↓
+MASTER-51 Cross-Surface Exact Semantics + Network RC
 ```
 
 ## Constitutional invariants
@@ -55,10 +62,12 @@ MASTER-48 → 51 external proofs + Application Network RC
 - One semantic concept has one canonical owner; extend the nearest owner before creating another.
 - Experience, Pack, Studio publication, Action Boundary, governance and runtime authorities are referenced, not duplicated.
 - Application exact-reference syntax remains owned by `application-package`; downstream packages consume its owner-local parse/serialize surface.
+- Application release id/version syntax remains owned by `application-package`; downstream lookup/settlement/proof surfaces delegate to the canonical release-reference API rather than carrying local semver validators.
 - Application distribution wraps canonical `ViraApplicationPackage` and does not duplicate Application metadata or authority.
 - Distribution integrity declaration is distinct from integrity verification, authorization, entitlement, deployment and execution permission.
 - Protocol projection fidelity is adapter-reported interoperability state, not generic proof of protocol equivalence.
 - Publisher and AI-host SDKs compose canonical owners; neither defines a second wire schema or acquires network/runtime authority.
+- Independent proof consumers must use public package-root exports rather than Vira `src/*` internals.
 - AI-host source success requires explicit Distribution integrity verification before compatibility can succeed.
 - AI-host compatibility is canonical Vira-version + required-host-capability evaluation only; it is not authorization, entitlement, deployment or execution permission.
 - Federated distribution consumes canonical Distribution envelopes only.
@@ -95,9 +104,9 @@ MASTER-48 → 51 external proofs + Application Network RC
 
 ## Active records
 
-- `docs/pr-plans/MASTER-47.md`
+- `docs/pr-plans/MASTER-48.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-47/Q5_Q6_REVIEW.md`
+- `docs/evidence/MASTER-48/Q5_Q6_REVIEW.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`

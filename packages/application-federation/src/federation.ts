@@ -4,6 +4,9 @@ import {
   type ViraApplicationDistributionEnvelope,
 } from "@vira-enterprise-genui/application-distribution";
 import {
+  parseViraApplicationReleaseReference,
+} from "@vira-enterprise-genui/application-package";
+import {
   isSemanticNamespace,
   parseJsonValue,
   type JsonObject,
@@ -25,7 +28,6 @@ import {
 const ROOT_FIELDS = new Set(["schemaVersion", "sources"]);
 const SOURCE_FIELDS = new Set(["sourceId", "applications"]);
 const QUERY_FIELDS = new Set(["applicationId", "applicationVersion"]);
-const RELEASE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
 type Failure = { readonly ok: false; readonly issue: ViraApplicationFederationIssue };
 
@@ -60,6 +62,12 @@ function compareEnvelope(left: ViraApplicationDistributionEnvelope, right: ViraA
 function serializeEnvelope(envelope: ViraApplicationDistributionEnvelope): string | null {
   const serialized = serializeViraApplicationDistributionEnvelope(envelope);
   return serialized.ok ? serialized.value : null;
+}
+
+function federationQueryPath(path: string): string {
+  if (path === "$.id") return "$query.applicationId";
+  if (path === "$.version") return "$query.applicationVersion";
+  return "$query";
 }
 
 export function parseViraApplicationFederationSnapshot(input: unknown): ViraApplicationFederationResult {
@@ -202,18 +210,20 @@ export function lookupViraFederatedApplication(
   if (!query) return failure("INVALID_QUERY", "$query", "query must be an exact object");
   const unknown = firstUnknownField(query, QUERY_FIELDS);
   if (unknown) return failure("INVALID_QUERY", `$query.${unknown}`, "unknown federation query field");
-  if (typeof query.applicationId !== "string" || !isSemanticNamespace(query.applicationId)) {
-    return failure("INVALID_QUERY", "$query.applicationId", "applicationId must be a canonical semantic namespace");
+
+  const releaseReference = parseViraApplicationReleaseReference({
+    id: query.applicationId,
+    version: query.applicationVersion,
+  });
+  if (!releaseReference.ok) {
+    return failure(
+      "INVALID_QUERY",
+      federationQueryPath(releaseReference.issue.path),
+      `invalid Application release reference: ${releaseReference.issue.code}`,
+    );
   }
-  if (
-    typeof query.applicationVersion !== "string"
-    || query.applicationVersion.length > 64
-    || !RELEASE_VERSION.test(query.applicationVersion)
-  ) {
-    return failure("INVALID_QUERY", "$query.applicationVersion", "applicationVersion must be an exact release semver");
-  }
-  const applicationId = query.applicationId;
-  const applicationVersion = query.applicationVersion;
+  const applicationId = releaseReference.value.id;
+  const applicationVersion = releaseReference.value.version;
 
   const sourceIds: string[] = [];
   let envelope: ViraApplicationDistributionEnvelope | null = null;
