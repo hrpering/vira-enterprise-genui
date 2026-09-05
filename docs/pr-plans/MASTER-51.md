@@ -1,18 +1,17 @@
 # MASTER-51 — Cross-Surface Exact Semantics + Application Network RC
 
-**Status:** Q0–Q8 PASS / Q9 READY  
+**Status:** MERGED / CLOSED  
 **Base SHA:** `6f02e4437210c0cd662f1852759c88fca328462c`  
-**Frozen executable/test/config SHA:** `e8f568834752ce92796c9cddec5745b373b07d69`  
-**Invalidated previous freeze:** `a3ba23a68f68aee894f818823ba1003511024f19`  
-**Earlier invalidated freezes:** `952e3445d46d0b3770a499522abc1ad77315a228`, `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`  
-**Branch:** `master/51-network-rc`  
-**PR:** #212
+**Final frozen executable/test/config SHA:** `e8f568834752ce92796c9cddec5745b373b07d69`  
+**Final closure head:** `d52363b5015992a9934f2d9bf1fc1513c5a9d28c`  
+**Merge / authoritative main SHA:** `7999e9d1b3b497851017c1b720c6c3e14a69333d`  
+**PR:** #212 — squash merged
 
 ## Goal
 
 Close the Application Network roadmap by proving one exact semantic chain across publisher, federation, AI-host compatibility, Capability supply and hosted query execution, then compose all existing Enterprise + Network verification gates into one fail-closed Application Network RC command.
 
-MASTER-51 remains a closure/integration phase, not a new semantic package or owner.
+MASTER-51 is a closure/integration phase, not a new semantic package or owner.
 
 ## Canonical cross-surface chain
 
@@ -47,7 +46,20 @@ verify:application-network-rc
 
 The RC orchestrator owns no semantic truth and fails immediately when a child gate fails.
 
-## History and remediation
+## Final closure result
+
+MASTER-51 completed all gates and merged.
+
+- Q0–Q6: PASS.
+- Q7: operator-reported full exact-SHA green on final frozen SHA `e8f568834752ce92796c9cddec5745b373b07d69`.
+- Q8: independent restart from scratch PASS.
+- Q9: final closure compare proved frozen SHA → closure head drift was docs/evidence only; no executable/package/test/boundary/config drift.
+- PR #212 was marked ready only after that final compare.
+- Exact closure head `d52363b5015992a9934f2d9bf1fc1513c5a9d28c` was squash merged with head protection via `expected_head_sha`.
+- GitHub returned merge SHA `7999e9d1b3b497851017c1b720c6c3e14a69333d`.
+- An independent `main` branch read returned the same SHA, making it the authoritative post-MASTER-51 `main`.
+
+## Important remediation history
 
 ### Initial freeze `0c491393...`
 
@@ -86,70 +98,27 @@ The remediation changed only those internal test imports to the repository-stand
 
 Evidence: `docs/evidence/MASTER-51/Q7_ATTEMPT_3_TYPECHECK_FAIL.md`.
 
-## Current static review authority
+## Final authority invariants
 
-Q5/Q6 security/architecture review is PASS on current frozen executable/test/config SHA:
+- `application-package` remains the single owner of Application exact/release identity semantics.
+- `capability-contract` remains the single owner of Capability exact/release identity semantics.
+- `application-federation` and `capability-supply` perform exact deterministic discovery only; no implicit latest, substitute, ranking or fallback exists.
+- Distribution integrity verification remains explicit and distinct from federation membership/discovery.
+- Hosted query execution remains one-shot and cannot execute `action` Capabilities; protected effects stay behind the Action Boundary.
+- Source/provider/binding/location identities remain provenance/routing only, not authentication or attestation.
+- RC success grants no authentication, authorization, entitlement, deployment, payment, payout or cloud-compute authority.
+- MASTER-51 introduced no new semantic owner.
 
-`e8f568834752ce92796c9cddec5745b373b07d69`
+## Closure evidence
 
-Evidence: `docs/evidence/MASTER-51/Q5_Q6_REVIEW.md`.
+- `docs/evidence/MASTER-51/Q5_Q6_REVIEW.md`
+- `docs/evidence/MASTER-51/Q7_ATTEMPT_1_FAIL.md`
+- `docs/evidence/MASTER-51/Q7_ATTEMPT_2_ENV_BLOCKED.md`
+- `docs/evidence/MASTER-51/Q7_FINAL_PASS.md`
+- `docs/evidence/MASTER-51/Q8_ATTEMPT_1_OWNER_DRIFT.md`
+- `docs/evidence/MASTER-51/Q7_ATTEMPT_3_TYPECHECK_FAIL.md`
+- `docs/evidence/MASTER-51/Q7_RERUN_PASS.md`
+- `docs/evidence/MASTER-51/Q8_REVIEW.md`
+- `docs/evidence/MASTER-51/Q9_CLOSURE.md`
 
-## Current Q7 authority
-
-The operator reported the full detached-SHA Q7 rerun **green** on exact frozen SHA:
-
-`e8f568834752ce92796c9cddec5745b373b07d69`
-
-Evidence: `docs/evidence/MASTER-51/Q7_RERUN_PASS.md`.
-
-No test counts, timings, warning counts or native-device details are reconstructed beyond the operator report.
-
-## Q8 independent restart — PASS
-
-Q8 restarted from scratch after the current Q7 PASS and independently re-read:
-
-- current PR metadata and changed files;
-- current diff/patch;
-- canonical Capability release owner and CapabilityDefinition delegation;
-- Capability supply lookup/conflict semantics;
-- hosted binding serialization and one-shot hosted execution;
-- Application federation exact lookup;
-- AI-host integrity verification + exact compatibility;
-- cross-surface proof and hardening tests;
-- RC orchestrator and root verification scripts;
-- lint-policy remediation;
-- package-boundary executable graph and ownership docs;
-- current reviews, review threads and PR comments;
-- current-head hosted Actions;
-- frozen SHA → current-head drift.
-
-Result: **PASS**.
-
-Key findings:
-
-- `capability-contract` is the sole Capability release identity owner;
-- `capability-supply` contains no local release-semver parser;
-- exact Application Capability `id@version` flows unchanged into supply lookup and execution evidence;
-- exact provider miss is empty success; no latest/fallback/substitution/ranking;
-- capability mismatch and action-kind paths fail before adapter invocation;
-- hosted provider invocation remains one-shot;
-- no auth/trust/commercial/deployment/cloud authority is invented;
-- reviews/threads/comments are empty;
-- reviewed hosted CI failure is 0-step (`steps: null`) infrastructure non-signal;
-- frozen SHA → reviewed head executable/package/test/boundary/config drift is zero; only docs/evidence changed.
-
-Evidence: `docs/evidence/MASTER-51/Q8_REVIEW.md`.
-
-## Q9 ready
-
-Q9 may now:
-
-1. compare frozen executable SHA to the final closure head and require docs/evidence-only drift;
-2. refresh PR metadata and discussion state;
-3. mark PR #212 ready for review;
-4. read the exact fresh closure head;
-5. squash merge only with `expected_head_sha=<exact current head>`;
-6. independently verify authoritative `main` equals the returned merge SHA;
-7. close the Application Network roadmap only after that independent verification.
-
-Any executable/package/test/boundary/config drift discovered before merge invalidates the freeze/Q7 and blocks merge.
+The planned Application Network roadmap MASTER-26 through MASTER-51 is now closed. Future work must start as a new roadmap/program from authoritative `main` `7999e9d1b3b497851017c1b720c6c3e14a69333d` or a later verified `main`; it must not silently continue the closed MASTER-51 branch.
