@@ -1,6 +1,6 @@
 # MASTER-48 — Independent External Publisher Proof
 
-**Status:** Q0–Q6 PASS / Q7 PENDING  
+**Status:** Q0–Q7 PASS / Q8 ACTIVE  
 **Base SHA:** `6b79864e55209b52e5b984e671beaf69afdbfc84`  
 **Frozen executable/test/boundary SHA:** `5f1c29773dd13d5328428e5933ec546259cb7b02`  
 **Branch:** `master/48-external-publisher-proof`  
@@ -69,8 +69,12 @@ Static security/architecture review: PASS. See `docs/evidence/MASTER-48/Q5_Q6_RE
 
 ## Q7
 
-Operator local execution is pending on exact freeze `5f1c29773dd13d5328428e5933ec546259cb7b02`. No runtime counts or timings are recorded until the operator reports them.
+Operator-reported local PASS on exact freeze `5f1c29773dd13d5328428e5933ec546259cb7b02`. Evidence: `docs/evidence/MASTER-48/Q7_LOCAL_PASS.md`. No test counts or timings are reconstructed.
 
-## Q8–Q9
+## Q8
 
-Pending after Q7 PASS: independent PR reverse engineering, executable-drift check, external reviews/threads/comments, hosted CI signal classification, then exact-head ready/merge gate.
+ACTIVE. Independent PR reverse engineering must re-read current PR metadata/diff, executable files, public import boundaries, release-owner delegation, focused proof tests, reviews/threads/comments and hosted CI. Frozen-to-current executable drift must remain zero.
+
+## Q9
+
+Pending Q8 PASS: documentation-only closure compare, ready transition, exact-head squash merge and independent `main` verification.
