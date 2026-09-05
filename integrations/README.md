@@ -1,3 +1,7 @@
 # Production integrations root
 
-PROD-01 reserves this root for later infrastructure adapters. It intentionally contains no database, identity, provider or domain adapter yet. Semantic ownership remains in the canonical packages named by the production owner matrix; integrations implement ports and never become semantic authorities.
+Infrastructure adapters live here and consume canonical package contracts without becoming semantic owners.
+
+- `postgres/` — PROD-02 migration authority, tenant-scoped transaction primitives, and PostgreSQL verification foundation.
+
+Database shape is persistence detail. Application, runtime, transaction, ledger, governance, enterprise scope, commercial, and provider semantics remain in their canonical package owners.
