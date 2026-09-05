@@ -39,13 +39,15 @@ Bu düzeltmelerden sonra hedef şemanın hiçbir kutusu sahipsiz kalmaz. Product
 | Açık PR | Taslak `#214`, `master/52-machine-commerce-semantics-freeze` | `PROD-00` içinde uzlaştırılmalı; paralel roadmap bırakılmamalı |
 | Branch protection | `main` korumasız | Production başlangıç engeli |
 | CI kurulumu | `pnpm install --no-frozen-lockfile` | Kilit dosyası + frozen install zorunlu |
-| Hosted CI | Job'lar adım çalıştırmadan ödeme/harcama limiti yüzünden kırılıyor | Kod hatası sayılmaz; ancak merge kanıtı da sayılamaz |
-| Son görülen başarılı hosted main CI | `7a1203a` (2026-09-03) | Güncel `main` için hosted yeşil kanıt yok |
+| Hosted CI erişimi | Önceki koşular ödeme/harcama limiti yüzünden stepsizdi; `8a6b4da` koşusunda runner erişimi geri geldi | Stepsiz geçmiş failure code sinyali değildir; yeni gerçek sonuçlar esas alınır |
+| Root verify | Run `33977915410`, exact `main@8a6b4da`: PASS | JS/TS, browser ve portable native kapıları güncel main'de çalışıyor |
+| iOS native CI | FAIL: workflow `ViraIOS` scheme isterken `xcodebuild -list` yalnız `ViraNative` gösteriyor | Workflow/scheme drift; PROD-00 blocker |
+| Android native CI | FAIL: `extractDebugAnnotations`, `generatePackagedMainSources` çıktısını declared dependency olmadan kullanıyor | Gradle task-graph drift; PROD-00 blocker |
 | Üretim uygulamaları | `apps/`, `integrations/`, `ops/` yok | Gerçek servis ve adaptör katmanı kurulmalı |
 | Deploy config | Vercel/Railway üretim tanımı yok | `PROD-01` sahibi |
 | Kalıcı veri | PostgreSQL migration otoritesi yok | `PROD-02` sahibi |
 
-Hosted CI'nin mevcut kırmızısı semantik veya test hatası değildir; GitHub annotation açıkça ödeme/harcama limiti nedeniyle runner'ın başlamadığını bildirir. Kök neden düzeltilmeden “CI PASS” ilan edilemez.
+Hosted CI artık gerçek adımları çalıştırmaktadır. Güncel kırmızı durum dokümantasyon değişikliğinden değil iki önceden var olan native build tanımı kusurundan kaynaklanır: iOS scheme adı yanlış, Android generated-source task dependency'si eksiktir. Bu görevde kod/config değiştirilmediği için kusurlar yalnız planın `PROD-00` blocker listesine alınmıştır. Root `verify` ise aynı exact main SHA üzerinde PASS'tir. Üç job birlikte yeşil olmadan “full CI PASS” ilan edilemez.
 
 ## 1.2 Mevcut güçlü temel
 
@@ -361,7 +363,8 @@ Teslimatlar:
 - Veri sınıflandırma, retention, deletion, DPA/compliance kapsamı.
 - SLO, RPO/RTO, incident severity ve support ownership.
 - API versioning, migration, rollback ve feature-flag politikası.
-- GitHub Actions ödeme/limit kök nedeninin giderilmesi, `main` protection, required checks.
+- iOS `ViraNative` scheme/workflow uyumu ve Android generated-source task dependency kusurunun giderilmesi.
+- Sağlıklı runner erişiminin korunması, `main` protection ve required checks.
 - Committed `pnpm-lock.yaml`; CI'da `pnpm install --frozen-lockfile`.
 
 **Faza özgü kalite:** `verify:plan-coherence`, plan↔owner↔boundary parity, branch protection API kontrolü, hosted CI'nin gerçekten step çalıştırdığına dair kanıt.
@@ -1189,7 +1192,7 @@ verify:full-platform-rc
 | Wait sonrası double resume | webhook/task duplicate | PROD-08 revision + idempotency |
 | Flow version drift | waiting run latest release'e geçer | exact release/resolution pinning |
 | Billing duplication | telemetry doğrudan usage olur | PROD-14 trusted ingestion |
-| Hosted CI non-signal | runner steps boş | PROD-00 billing + required healthy checks |
+| Hosted CI güvenilmezliği | stepsiz billing failure veya gerçek native build drift | PROD-00 runner health + üç required job |
 | UI büyümesi | renderer CSS kontrolsüz | 56KB / `57_344`-byte owned-module gate |
 | Provider lock-in | semantic type provider şemasından türetilir | Connector draft → canonical review |
 | Public Network trust confusion | sourceId auth sayılır | PROD-19 source trust |
