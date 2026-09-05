@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-05  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-46:** `88a05193c189ce02a214bf0acb74743144981cc5`
+**Authoritative main entering MASTER-47:** `a7083edbb3bafc9326546fbba10286e696f86a06`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -33,8 +33,8 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Commercial Usage Metering + Rating | MASTER-43 | MERGED / PR #204 |
 | Application Network — Hosted Capability Runtime Foundation | MASTER-44 | MERGED / PR #205 |
 | Application Network — Commercial Pricing + Rate Card | MASTER-45 | MERGED / PR #206 |
-| Application Network — Capability Supply Catalog + Exact Discovery | MASTER-46 | ACTIVE |
-| Application Network — Remaining Commercial / Capability Cloud | MASTER-47 | PLANNED |
+| Application Network — Capability Supply Catalog + Exact Discovery | MASTER-46 | MERGED / PR #207 |
+| Application Network — Commercial Settlement Allocation + Publisher Economics | MASTER-47 | ACTIVE |
 | Application Network — External Proofs / Network RC | MASTER-48..51 | PLANNED |
 
 ## Active execution order
@@ -42,11 +42,9 @@ This file is the engineering execution authority. Long-range product strategy li
 ```text
 Enterprise GenUI RC1 ✅
   ↓
-MASTER-26..45 ✅
+MASTER-26..46 ✅
   ↓
-MASTER-46 Capability Supply Catalog + Exact Discovery
-  ↓
-MASTER-47 remaining commercial / capability cloud
+MASTER-47 Commercial Settlement Allocation + Publisher Economics
   ↓
 MASTER-48 → 51 external proofs + Application Network RC
 ```
@@ -56,6 +54,7 @@ MASTER-48 → 51 external proofs + Application Network RC
 - Every phase starts from latest authoritative `main`, never from a stacked future branch.
 - One semantic concept has one canonical owner; extend the nearest owner before creating another.
 - Experience, Pack, Studio publication, Action Boundary, governance and runtime authorities are referenced, not duplicated.
+- Application exact-reference syntax remains owned by `application-package`; downstream packages consume its owner-local parse/serialize surface.
 - Application distribution wraps canonical `ViraApplicationPackage` and does not duplicate Application metadata or authority.
 - Distribution integrity declaration is distinct from integrity verification, authorization, entitlement, deployment and execution permission.
 - Protocol projection fidelity is adapter-reported interoperability state, not generic proof of protocol equivalence.
@@ -75,27 +74,30 @@ MASTER-48 → 51 external proofs + Application Network RC
 - Commercial metering owns non-monetary rating truth and canonical rating evidence parsing; pricing must consume it rather than recompute usage.
 - Commercial pricing uses integer currency nanos, exact plan/meter references and deterministic rate-card arithmetic; no floating-point money.
 - Pricing quote evidence is not entitlement, invoice, payment, subscription, tax, FX, settlement, payout, authorization, governance or runtime permission.
-- Future invoice/payment/settlement layers must consume canonical pricing quote evidence rather than duplicate rate-card arithmetic.
-- Usage/rating/quote evidence parsing validates semantics but does not authenticate external provenance by itself.
+- Commercial settlement consumes canonical pricing quote evidence rather than duplicating quote/rate-card semantics.
+- Settlement rules use exact refs and exact Application/publisher/plan linkage; there is no default/latest/fallback settlement policy.
+- Publisher/platform allocation uses safe integer basis points with deterministic floor-to-publisher rounding; no floating-point money or unsafe gross-by-share multiplication.
+- Settlement allocation evidence is not invoice/payment/payout/funds movement/subscription/tax/FX/accounting truth and cannot acquire runtime/security authority.
+- Usage/rating/quote/settlement evidence parsing validates semantics but does not authenticate external provenance or policy selection by itself.
 - Hosted Capability execution consumes canonical CapabilityDefinition, WorkContext and enterprise scope; it must not redefine them.
 - Hosted Capability provider/binding/location identities are routing/provenance evidence, not authentication, attestation, authorization or commercial entitlement.
 - Hosted query execution cannot directly execute a Capability declared as `action`; protected effects remain behind `action-boundary`.
 - Hosted Capability core does not own provider endpoints, credentials, durable jobs, container/VM/Kubernetes/serverless orchestration, autoscaling, failover/ranking or generic cloud compute.
 - A successful hosted query result is execution evidence only and cannot override independent authentication, authorization, governance, entitlement or deployment requirements.
-- Capability supply composes canonical CapabilityDefinition + HostedCapabilityBinding artifacts; it does not redefine either owner.
+- Capability supply composes canonical CapabilityDefinition + HostedCapabilityBinding artifacts and canonical owner serialization; it does not redefine either owner.
 - Capability supply accepts hosted `query` Capabilities only; `action` Capabilities remain behind `action-boundary`.
-- The same exact Capability `id@version` cannot diverge semantically across supply sources, and the same exact `bindingRef` cannot map to divergent capability/provider/location bindings.
+- The same exact Capability `id@version` cannot diverge semantically across supply sources, and the same exact `bindingRef` cannot map to divergent canonical bindings.
 - Capability supply source repetition is provenance only, not authentication, attestation, confidence, health or ranking.
 - Capability supply lookup is exact and deterministic; no implicit latest, source priority, majority winner, ranking, substitute provider or fallback.
 - Capability supply owns no endpoints, credentials, provider health/SLA, commercial entitlement/pricing, deployment scheduling or generic cloud-compute semantics.
-- Core does not become a generic agent framework, workflow engine, policy language, provider-integration empire, MCP/A2UI replacement, IDE/design clone, cloud-compute platform or foundation model.
+- Core does not become a generic agent framework, workflow engine, policy language, provider-integration empire, payment processor, banking/ledger system, MCP/A2UI replacement, IDE/design clone, cloud-compute platform or foundation model.
 - PR creation is not phase completion. Merge requires contract review, security/architecture review, verification, independent reverse engineering and exact-head evidence appropriate to the diff.
 
 ## Active records
 
-- `docs/pr-plans/MASTER-46.md`
+- `docs/pr-plans/MASTER-47.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-46/Q5_Q6_REVIEW.md`
+- `docs/evidence/MASTER-47/Q5_Q6_REVIEW.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`

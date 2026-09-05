@@ -38,6 +38,7 @@ An Application can reference Experiences, Capabilities, Context and Actions, but
 | Entitlement/commercial access | `commercial-entitlement` | be treated as authorization/governance/runtime permission |
 | Commercial usage metering/rating | `commercial-metering` | become monetary billing or execution authority |
 | Commercial plan/rate-card + quote evidence | `commercial-pricing` | become invoice/payment/subscription/settlement or security authority |
+| Publisher/platform settlement allocation evidence | `commercial-settlement` | become payment/payout/funds movement/accounting or security authority |
 
 ## Application authority
 
@@ -50,6 +51,8 @@ The Application owners may canonically own only application-level semantics such
 - integrity/provenance binding for the Application release.
 
 They do not own the internals of an Experience, Capability provider, Context implementation, Action execution, policy decision or deployment plane.
+
+`application-package` also owns exact Application reference syntax. Public exact-reference parse/serialize APIs are an owner-local interoperability surface; downstream packages must consume them rather than create another exact-reference authority.
 
 ## Canvas authority
 
@@ -144,7 +147,45 @@ A quote is **not**:
 
 An exact `planRef` can be quoted without proving the requesting principal is entitled to that plan. Entitlement remains an independent upstream commercial decision. Likewise, quote validity cannot convert a governance/runtime denial into execution success.
 
-Pricing consumes canonical metering ratings and may not reconstruct or rewrite usage truth. Quote parsing/serialization belongs to the pricing owner so future invoice/settlement layers consume one canonical quote shape rather than define another pricing schema.
+Pricing consumes canonical metering ratings and may not reconstruct or rewrite usage truth. Quote parsing/serialization belongs to the pricing owner so downstream settlement/payment layers consume one canonical quote shape rather than define another pricing schema.
+
+## Commercial settlement authority
+
+`commercial-settlement` may deterministically allocate one canonical pricing quote's gross nanos between the canonical Application publisher and the platform according to one explicitly selected exact settlement rule.
+
+Settlement may own only evidence such as:
+
+```text
+exact settlementRef
+exact Application id/version
+canonical publisherId
+publisherShareBps
+canonical pricing quote
+publisherAmountNanos
+platformAmountNanos
+```
+
+Rules are selected by exact `settlementRef`; there is no implicit latest/default/fallback settlement policy. Rule Application identity/publisher namespace and exact `planRef` must match the canonical Application/quote inputs used for evaluation.
+
+Publisher share is integer basis points `0..10000`. Allocation uses safe-integer quotient/remainder arithmetic, not floating-point ratios or unsafe direct gross-by-bps multiplication. Fractional nano remainder deterministically remains with platform.
+
+Settlement allocation evidence is **not**:
+
+- entitlement proof;
+- an invoice;
+- a payment intent/capture;
+- funds movement;
+- a publisher payout;
+- bank/processor settlement;
+- subscription/refund state;
+- tax/VAT calculation;
+- FX conversion;
+- accounting or revenue-recognition truth;
+- authorization, governance approval or runtime permission.
+
+The allocation parser independently reparses the embedded canonical quote and verifies split arithmetic. That validates internal evidence semantics only; it does not authenticate who selected the settlement schedule/rule or prove external policy provenance.
+
+A valid allocation cannot convert a failed entitlement, authorization, governance, deployment or runtime decision into success. Monetary allocation validity is never execution permission or proof that money moved.
 
 ## Hosted Capability runtime authority
 
@@ -190,7 +231,7 @@ It does **not** mean:
 - execution success;
 - protected Action permission.
 
-The same exact Capability `id@version` may appear across sources only when canonical Capability serialization is identical. The same exact `bindingRef` may appear across sources only when it resolves to the same canonical capability/provider/location binding. Divergence fails closed; there is no source priority, majority vote, implicit latest or silent fallback winner.
+The same exact Capability `id@version` may appear across sources only when canonical Capability serialization is identical. The same exact `bindingRef` may appear across sources only when canonical Hosted binding serialization is identical. Divergence fails closed; there is no source priority, majority vote, implicit latest or silent fallback winner.
 
 Identical supply repeated across sources aggregates `sourceId` provenance only. Repetition never becomes trust/confidence/priority evidence.
 
@@ -217,7 +258,7 @@ Application / Capability discovery where needed
       ↓
 canonical registry/resolver/deployment authorities
       ↓
-commercial entitlement / metering / pricing evidence where commercially required
+commercial entitlement / metering / pricing / settlement evidence where commercially required
       ↓
 enterprise scope + governance / authorization where required
       ↓
@@ -226,8 +267,8 @@ exact hosted Capability binding + hosted query runtime OR Experience runtime / h
 Action Boundary for protected effects
 ```
 
-Discovery can surface exact candidate supply, but it cannot select around a later denial or convert provenance into security/runtime authority. An upstream composition, commercial layer or hosted provider binding cannot overrule a downstream security/execution authority. Hosted query execution is not an alternate path around protected Action execution. Monetary validity is never execution permission.
+Commercial settlement allocation may occur downstream of pricing as economic evidence, but it neither proves payment nor changes the security order above. Discovery can surface exact candidate supply, but it cannot select around a later denial or convert provenance into security/runtime authority. An upstream composition, commercial layer or hosted provider binding cannot overrule a downstream security/execution authority. Hosted query execution is not an alternate path around protected Action execution. Monetary validity is never execution permission.
 
 ## Failure rule
 
-Ambiguous, missing, stale, conflicting, unapproved, incompatible or untrusted authority resolution fails closed. A higher-level Application declaration, discovered Capability supply, entitlement, commercial usage rating, pricing quote or hosted binding cannot convert an underlying denial/failure into success.
+Ambiguous, missing, stale, conflicting, unapproved, incompatible or untrusted authority resolution fails closed. A higher-level Application declaration, discovered Capability supply, entitlement, commercial usage rating, pricing quote, settlement allocation or hosted binding cannot convert an underlying denial/failure into success.
