@@ -6,7 +6,7 @@
 **Frozen executable SHA:** `5ed6832fa9f233b0b7eb44a8fc5f10f143d00905`  
 **Previous:** MASTER-49 merged via PR #210  
 **Branch:** `master/50-external-provider-proof`  
-**PR:** pending  
+**PR:** #211 (draft)  
 **Next:** MASTER-51 after MASTER-50 merge from new authoritative `main`
 
 MASTER-50 proves that an independently named provider can compose Vira's public Capability contract, exact supply discovery and hosted query execution boundary without private imports, hidden trust semantics or generic cloud/runtime authority.
