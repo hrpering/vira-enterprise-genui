@@ -31,3 +31,12 @@ export type {
   ViraCapabilityExactReferenceParseResult,
   ViraCapabilityExactReferenceSerializationResult,
 } from "./reference.js";
+export {
+  parseViraCapabilityReleaseReference,
+  serializeViraCapabilityReleaseReference,
+} from "./release-reference.js";
+export type {
+  ViraCapabilityReleaseReference,
+  ViraCapabilityReleaseReferenceParseResult,
+  ViraCapabilityReleaseReferenceSerializationResult,
+} from "./release-reference.js";
