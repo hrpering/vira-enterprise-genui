@@ -1,6 +1,6 @@
 # MASTER-50 — Independent External Provider Proof
 
-**Status:** Q0–Q6 PASS / Q7 PENDING  
+**Status:** Q0–Q7 PASS / Q8 ACTIVE  
 **Base SHA:** `46f4d8ec163790765d162d13747dd4f64bf0e8ea`  
 **Frozen executable/test SHA:** `5ed6832fa9f233b0b7eb44a8fc5f10f143d00905`  
 **Branch:** `master/50-external-provider-proof`  
@@ -82,8 +82,26 @@ Static security/architecture review PASS: `docs/evidence/MASTER-50/Q5_Q6_REVIEW.
 
 ## Q7
 
-Pending operator local execution on exact freeze `5ed6832fa9f233b0b7eb44a8fc5f10f143d00905`. No runtime counts/timings are recorded until reported.
+Operator-reported PASS on exact freeze `5ed6832fa9f233b0b7eb44a8fc5f10f143d00905` using the commanded local gate. Evidence: `docs/evidence/MASTER-50/Q7_LOCAL_PASS.md`. No test counts, timings, warning counts or output details are reconstructed.
 
-## Q8–Q9
+## Q8
 
-Pending Q7 PASS: fresh independent PR reverse engineering, reviews/threads/comments, hosted CI classification, frozen-to-current executable drift, then exact-head closure/merge gate.
+ACTIVE. Independent review must start from the current PR surface and re-check:
+
+- current PR head/base/draft/mergeability and changed filenames;
+- public-root import discipline;
+- exact-reference owner delegation and nested error-path preservation;
+- supply discovery exactness/no-provider-invocation/no fallback/ranking/substitution;
+- binding capabilityRef exact match;
+- Action Boundary before adapter invocation;
+- one-shot adapter/no retry/failover;
+- exact typed output and authority-smuggling rejection;
+- provider/source/binding/location IDs as routing/provenance only;
+- no new endpoint/credential/health/commercial/deployment/cloud authority;
+- reviews, threads and PR comments;
+- current-head hosted Actions classification;
+- frozen executable SHA → current PR head executable/package/test/boundary drift.
+
+## Q9
+
+Pending independent Q8 PASS and a final frozen-to-closure docs-only drift gate.
