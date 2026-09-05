@@ -1,14 +1,14 @@
 # Active Phase
 
 **Phase:** MASTER-47 — Commercial Settlement Allocation + Publisher Economics  
-**Status:** Q0–Q7 PASS / Q8 FINAL RESTART ACTIVE  
+**Status:** Q0–Q8 PASS / Q9 READY  
 **Base SHA:** `a7083edbb3bafc9326546fbba10286e696f86a06`  
 **Frozen executable SHA:** `95c9a0674742c702cc5265b8e1fb35f82dea04ad`  
 **Previous frozen SHA:** `b42ae481700094f118328f111f8011ab44136877` — invalidated by Q8 Application-release owner finding  
 **Earlier frozen SHA:** `25ee1c25223863f3ceeb53210142acd1da331405` — invalidated by Q8 exact-reference owner finding  
 **Previous:** MASTER-46 merged via PR #207  
 **Branch:** `master/47-commercial-settlement`  
-**PR:** #208 (draft)  
+**PR:** #208  
 **Next:** MASTER-48 after MASTER-47 merge from new authoritative `main`
 
 MASTER-47 adds deterministic publisher/platform allocation evidence downstream of canonical commercial pricing without becoming invoice/payment/payout/accounting or security/runtime authority.
@@ -27,7 +27,7 @@ Executable dependency boundary:
 commercial-settlement → application-package, commercial-pricing, protocol
 ```
 
-Current invariants:
+Final invariants:
 
 - exact Application reference parsing/serialization has one canonical implementation in `application-package`;
 - exact Application release id/version parsing/serialization has one canonical implementation in `application-package`;
@@ -50,8 +50,10 @@ Q8 attempt 1 found duplicate exact-reference parser implementations. Evidence: `
 
 Q8 attempt 2 found duplicated Application release id/version semantics inside settlement. Evidence: `docs/evidence/MASTER-47/Q8_ATTEMPT_2.md`.
 
-Both owner findings are remediated in frozen executable/test/boundary SHA `95c9a0674742c702cc5265b8e1fb35f82dea04ad`. Q5/Q6 static re-review PASS on that exact freeze.
+Both findings are remediated in frozen executable/test/boundary SHA `95c9a0674742c702cc5265b8e1fb35f82dea04ad`.
 
-The repository operator reran the complete final local Q7 gate detached at exact freeze `95c9a0674742c702cc5265b8e1fb35f82dea04ad` and reported it green. Evidence: `docs/evidence/MASTER-47/Q7_FINAL_RERUN_PASS.md`. No counts or timings are reconstructed.
+Final local Q7 on that exact freeze is operator-reported PASS. Evidence: `docs/evidence/MASTER-47/Q7_FINAL_RERUN_PASS.md`.
 
-Final independent Q8 restart is active. Merge remains blocked until Q8 PASS plus final frozen-to-closure executable drift zero.
+Final independent Q8 PASS. Evidence: `docs/evidence/MASTER-47/Q8_FINAL_REVIEW_PASS.md`.
+
+Q9 is ready subject only to a final frozen-to-closure compare proving executable/package/test/boundary drift zero and exact-head squash merge locking.
