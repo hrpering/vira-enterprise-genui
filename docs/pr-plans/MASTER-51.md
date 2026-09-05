@@ -1,12 +1,12 @@
 # MASTER-51 — Cross-Surface Exact Semantics + Application Network RC
 
-**Status:** Q0–Q7 PASS / Q8 ACTIVE  
+**Status:** Q0–Q8 PASS / Q9 READY  
 **Base SHA:** `6f02e4437210c0cd662f1852759c88fca328462c`  
 **Frozen executable/test/config SHA:** `e8f568834752ce92796c9cddec5745b373b07d69`  
 **Invalidated previous freeze:** `a3ba23a68f68aee894f818823ba1003511024f19`  
 **Earlier invalidated freezes:** `952e3445d46d0b3770a499522abc1ad77315a228`, `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`  
 **Branch:** `master/51-network-rc`  
-**PR:** #212 (draft)
+**PR:** #212
 
 ## Goal
 
@@ -47,69 +47,48 @@ verify:application-network-rc
 
 The RC orchestrator owns no semantic truth and fails immediately when a child gate fails.
 
-## Core implementation and coverage
+## History and remediation
 
-MASTER-51 integration/release surfaces include the independent cross-surface proof workspace, the fail-closed Network RC orchestrator, and root verification scripts. Coverage proves exact Application discovery, explicit Distribution integrity verification, exact protocol compatibility, direct Application Capability `id@version` → Capability supply lookup, no provider fallback/substitution, one-shot hosted execution, exact execution evidence identity, binding mismatch rejection, Action Boundary rejection, floating Application Capability rejection before digest generation, and absence of invented auth/trust/commercial/deployment authority.
+### Initial freeze `0c491393...`
 
-## Q7 / Q8 history
-
-### Initial executable freeze `0c491393...`
-
-Q7 exposed a MASTER-51 TS7006 callback type issue plus inherited Enterprise RC lint failures. Those executable/config remediations invalidated the freeze.
+Q7 exposed one MASTER-51 TS7006 issue plus inherited Enterprise RC lint failures. Required executable/config remediation invalidated that freeze.
 
 Evidence: `docs/evidence/MASTER-51/Q7_ATTEMPT_1_FAIL.md`.
 
 ### Freeze `952e3445...`
 
-Q7 code/repository gates passed, then native RC was blocked because local `xcrun` used standalone Command Line Tools. After full Xcode environment repair the operator later reported the final RC green on the same exact freeze.
+Q7 code/repository gates passed, then native RC was blocked by standalone Command Line Tools. After full Xcode remediation the operator reported final RC green on the same freeze. That pass later became historical because Q8 found executable owner drift.
 
 Evidence:
 
 - `docs/evidence/MASTER-51/Q7_ATTEMPT_2_ENV_BLOCKED.md`;
 - `docs/evidence/MASTER-51/Q7_FINAL_PASS.md`.
 
-That final green became historical when independent Q8 found an executable owner issue.
-
 ### Q8 attempt 1 — Capability release owner drift
 
-Independent Q8 found duplicate Capability release identity validation: `capability-contract` validated CapabilityDefinition `id/version`, while `capability-supply` separately carried a local `RELEASE_VERSION` validator for query `capabilityId/capabilityVersion`.
+Independent Q8 found duplicate Capability release `id + version` validation between `capability-contract` and `capability-supply`.
 
 Remediation:
 
-- `capability-contract` now publicly owns `parse/serializeViraCapabilityReleaseReference()`;
-- CapabilityDefinition delegates root `id/version` to it;
-- Capability supply query delegates to it and maps only issue paths into `$query.*`;
-- local supply release-semver validation is removed;
-- parity/accessor hardening is covered by `tests/contract/capability-release-reference-owner.test.ts` and included in the cross-surface gate.
+- canonical `parseViraCapabilityReleaseReference()` and `serializeViraCapabilityReleaseReference()` live in `capability-contract`;
+- CapabilityDefinition delegates root `id/version` to that owner;
+- Capability supply query delegates `capabilityId/capabilityVersion` to that owner and maps only issue paths;
+- local supply release-semver parser is removed;
+- owner parity/accessor hardening is included in the Network cross-surface gate.
 
 Evidence: `docs/evidence/MASTER-51/Q8_ATTEMPT_1_OWNER_DRIFT.md`.
 
-### Q7 attempt 3 — internal contract-test import resolution
+### Q7 attempt 3 — internal contract-test resolution
 
-The operator ran exact freeze `a3ba23a68f68aee894f818823ba1003511024f19`.
+The operator ran exact freeze `a3ba23a68f68aee894f818823ba1003511024f19` and reported workspace install/boundaries/lint PASS, then typecheck failed with two TS2307 errors because the new internal contract test used bare workspace package imports. `set -e` prevented later gates from running.
 
-Reported:
-
-- workspace install PASS;
-- boundaries PASS;
-- lint PASS;
-- typecheck FAIL with two TS2307 errors because the new `tests/contract/capability-release-reference-owner.test.ts` used bare workspace package imports;
-- `set -e` stopped the run, so focused parity, cross-surface and final RC gates did not run.
-
-Root cause: internal `tests/contract` suites use the established relative package source-entrypoint pattern. External `@acme` proof workspaces use bare public package-root imports; the new internal parity test had mixed those two conventions.
-
-Remediation changes only the two internal test imports to:
-
-- `../../packages/capability-contract/src/index.js`;
-- `../../packages/capability-supply/src/index.js`.
-
-No production source or semantic behavior changed in this remediation.
+The remediation changed only those internal test imports to the repository-standard relative source entrypoints. External independent `@acme` proof workspaces continue to use public package roots.
 
 Evidence: `docs/evidence/MASTER-51/Q7_ATTEMPT_3_TYPECHECK_FAIL.md`.
 
-## Q5–Q6 after latest remediation
+## Current static review authority
 
-Static security/architecture review repeated and PASS on:
+Q5/Q6 security/architecture review is PASS on current frozen executable/test/config SHA:
 
 `e8f568834752ce92796c9cddec5745b373b07d69`
 
@@ -117,26 +96,60 @@ Evidence: `docs/evidence/MASTER-51/Q5_Q6_REVIEW.md`.
 
 ## Current Q7 authority
 
-The operator reported the full detached-SHA Q7 rerun **green** on exact frozen executable/test/config SHA:
+The operator reported the full detached-SHA Q7 rerun **green** on exact frozen SHA:
 
 `e8f568834752ce92796c9cddec5745b373b07d69`
 
 Evidence: `docs/evidence/MASTER-51/Q7_RERUN_PASS.md`.
 
-No test counts, timings, warning counts or native-device result details are reconstructed beyond the operator report. Earlier Q7 results remain historical only.
+No test counts, timings, warning counts or native-device details are reconstructed beyond the operator report.
 
-## Q8 active
+## Q8 independent restart — PASS
 
-Independent Q8 restarts from scratch after the current Q7 PASS and must:
+Q8 restarted from scratch after the current Q7 PASS and independently re-read:
 
-- inspect current PR metadata, changed files and current diff;
-- re-read canonical adjacent owners rather than trusting Q8 attempt 1;
-- verify `capability-contract` is the sole Capability release owner and `capability-supply` only delegates/maps query errors;
-- verify the internal parity test import convention is isolated from external public-root proof consumers;
-- verify exact Application Capability `id@version` survives discovery → compatibility → supply → execution unchanged;
-- verify no latest/fallback/substitution/ranking, no invented auth/trust/commercial/deployment authority, and no Action Boundary bypass;
-- inspect current reviews, review threads and PR comments;
-- classify current-head hosted Actions by actual job steps;
-- prove frozen SHA `e8f568...` → closure head executable/package/test/boundary/config drift is zero.
+- current PR metadata and changed files;
+- current diff/patch;
+- canonical Capability release owner and CapabilityDefinition delegation;
+- Capability supply lookup/conflict semantics;
+- hosted binding serialization and one-shot hosted execution;
+- Application federation exact lookup;
+- AI-host integrity verification + exact compatibility;
+- cross-surface proof and hardening tests;
+- RC orchestrator and root verification scripts;
+- lint-policy remediation;
+- package-boundary executable graph and ownership docs;
+- current reviews, review threads and PR comments;
+- current-head hosted Actions;
+- frozen SHA → current-head drift.
 
-If Q8 finds executable drift or another semantic issue, the freeze and this Q7 authority are invalidated and Q7 must run again. If Q8 passes, only docs/evidence closure may follow before Q9 exact-head merge discipline.
+Result: **PASS**.
+
+Key findings:
+
+- `capability-contract` is the sole Capability release identity owner;
+- `capability-supply` contains no local release-semver parser;
+- exact Application Capability `id@version` flows unchanged into supply lookup and execution evidence;
+- exact provider miss is empty success; no latest/fallback/substitution/ranking;
+- capability mismatch and action-kind paths fail before adapter invocation;
+- hosted provider invocation remains one-shot;
+- no auth/trust/commercial/deployment/cloud authority is invented;
+- reviews/threads/comments are empty;
+- reviewed hosted CI failure is 0-step (`steps: null`) infrastructure non-signal;
+- frozen SHA → reviewed head executable/package/test/boundary/config drift is zero; only docs/evidence changed.
+
+Evidence: `docs/evidence/MASTER-51/Q8_REVIEW.md`.
+
+## Q9 ready
+
+Q9 may now:
+
+1. compare frozen executable SHA to the final closure head and require docs/evidence-only drift;
+2. refresh PR metadata and discussion state;
+3. mark PR #212 ready for review;
+4. read the exact fresh closure head;
+5. squash merge only with `expected_head_sha=<exact current head>`;
+6. independently verify authoritative `main` equals the returned merge SHA;
+7. close the Application Network roadmap only after that independent verification.
+
+Any executable/package/test/boundary/config drift discovered before merge invalidates the freeze/Q7 and blocks merge.
