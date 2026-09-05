@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-48 — Independent External Publisher Proof  
-**Status:** Q0–Q6 PASS / Q7 PENDING  
+**Status:** Q0–Q7 PASS / Q8 ACTIVE  
 **Base SHA:** `6b79864e55209b52e5b984e671beaf69afdbfc84`  
 **Frozen executable SHA:** `5f1c29773dd13d5328428e5933ec546259cb7b02`  
 **Previous:** MASTER-47 merged via PR #208  
@@ -46,4 +46,6 @@ Final invariants:
 
 Q5/Q6 static review PASS: `docs/evidence/MASTER-48/Q5_Q6_REVIEW.md`.
 
-Q7 local execution remains pending on exact freeze `5f1c29773dd13d5328428e5933ec546259cb7b02`.
+Q7 local execution is operator-reported PASS on exact freeze `5f1c29773dd13d5328428e5933ec546259cb7b02`. Evidence: `docs/evidence/MASTER-48/Q7_LOCAL_PASS.md`.
+
+Q8 is now active and must independently re-review PR #209, current-head drift, external review surface and hosted CI signal before Q9 readiness.
