@@ -38,7 +38,7 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Independent External Publisher Proof | MASTER-48 | MERGED / PR #209 |
 | Application Network — Independent AI Host Proof | MASTER-49 | MERGED / PR #210 |
 | Application Network — Independent Provider Proof | MASTER-50 | MERGED / PR #211 |
-| Application Network — Cross-Surface Exact Semantics + Network RC | MASTER-51 | ACTIVE — Q7 RERUN PENDING / Q8 BLOCKED |
+| Application Network — Cross-Surface Exact Semantics + Network RC | MASTER-51 | ACTIVE — Q0–Q8 PASS / Q9 READY |
 
 ## Active execution order
 
@@ -113,6 +113,8 @@ MASTER-51 Cross-Surface Exact Semantics + Application Network RC
 - `docs/evidence/MASTER-51/Q7_FINAL_PASS.md`
 - `docs/evidence/MASTER-51/Q8_ATTEMPT_1_OWNER_DRIFT.md`
 - `docs/evidence/MASTER-51/Q7_ATTEMPT_3_TYPECHECK_FAIL.md`
+- `docs/evidence/MASTER-51/Q7_RERUN_PASS.md`
+- `docs/evidence/MASTER-51/Q8_REVIEW.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
