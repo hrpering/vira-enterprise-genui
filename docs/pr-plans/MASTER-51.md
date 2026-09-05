@@ -4,7 +4,7 @@
 **Base SHA:** `6f02e4437210c0cd662f1852759c88fca328462c`  
 **Frozen executable/test SHA:** `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`  
 **Branch:** `master/51-network-rc`  
-**PR:** pending
+**PR:** #212 (draft)
 
 ## Goal
 
@@ -123,7 +123,7 @@ No runtime counts, timings, warning counts or output details are recorded until 
 
 After Q7 PASS:
 
-- independently re-read the current PR from scratch;
+- independently re-read PR #212 from scratch;
 - inspect executable diff and canonical adjacent owners;
 - inspect reviews/threads/comments;
 - classify current-head hosted Actions;
