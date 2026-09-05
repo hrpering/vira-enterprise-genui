@@ -337,7 +337,7 @@ function parseAdapterResult(
 
   if (root.outcome === "error") {
     const unexpected = shape(root, ["outcome", "failure"]);
-    if (unexpected) return fail("INVALID_ADAPTER_RESULT", `$.failure.${unexpected}`, "error adapter result shape is invalid");
+    if (unexpected) return fail("INVALID_ADAPTER_RESULT", `$.${unexpected}`, "error adapter result shape is invalid");
     const failure = parseProviderFailure(root.failure);
     if (!failure.ok) return failure;
     return { ok: true, value: Object.freeze({ outcome: "error" as const, failure: failure.value }) };
