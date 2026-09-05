@@ -2,8 +2,8 @@
 
 **Date:** 2026-09-05  
 **Base:** `a7083edbb3bafc9326546fbba10286e696f86a06`  
-**Reviewed executable/test/boundary head:** `b42ae481700094f118328f111f8011ab44136877`  
-**Result:** PASS after Q8 remediation
+**Reviewed executable/test/boundary head:** `95c9a0674742c702cc5265b8e1fb35f82dea04ad`  
+**Result:** PASS after Q8 owner remediations
 
 This is static security/architecture evidence only. It does not reconstruct local runtime counts/timings.
 
@@ -15,7 +15,7 @@ PASS.
 
 - settlement schedules, allocation requests and allocation evidence enter through shared safe JSON parsing;
 - exact-object shapes reject unknown fields;
-- accessor/custom-prototype cases cover direct exact-reference parsing, schedules, requests and persisted allocation evidence and fail without getter execution;
+- accessor/custom-prototype cases cover exact references, Application release references, schedules, requests and persisted allocation evidence and fail without getter execution;
 - settlement schedule rules are bounded to `2048`;
 - focused evidence-smuggling coverage rejects invoice/payment/payout/tax/FX/credential/authorization fields across schedule/request/allocation surfaces.
 
@@ -23,16 +23,31 @@ PASS.
 
 `application-package` is the sole exact-reference semantic owner.
 
-The canonical implementation is now:
+Canonical implementation:
 
 ```text
 parseViraApplicationExactReference
 serializeViraApplicationExactReference
 ```
 
-`parseViraApplicationPackage` no longer maintains its own `VERSION_REF`, floating-alias/range or exact-reference parser implementation. Its internal nested-reference wrapper delegates to the canonical parser and only remaps `$`-relative error paths back to the package field path.
+`parseViraApplicationPackage` delegates nested exact references to the canonical parser and only remaps contextual error paths. It no longer keeps a second VERSION_REF/floating parser implementation.
 
-Focused parity coverage checks direct public parsing and package reference validation remain aligned while preserving contextual package error paths.
+### Application release ownership — remediated
+
+`application-package` also canonically owns exact Application release identity/version semantics through:
+
+```text
+parseViraApplicationReleaseReference
+serializeViraApplicationReleaseReference
+```
+
+The owner API enforces namespaced Application id, exact release semver, bounded version length, safe exact-object parsing, frozen canonical output and deterministic serialization.
+
+`parseViraApplicationPackage` delegates its root Application id/version validation to this owner API.
+
+`commercial-settlement` schedule and persisted allocation-evidence parsing also delegate Application id/version validation to this owner API. Their local RELEASE_VERSION/application-release validation implementation was removed.
+
+Focused parity coverage checks direct owner parsing, Application package parsing and settlement schedule parsing accept/reject the same Application release identities while preserving package-specific nested error paths.
 
 ### Canonical Application and quote delegation
 
@@ -40,7 +55,8 @@ Focused parity coverage checks direct public parsing and package reference valid
 - pricing quote input is reparsed through `parseViraCommercialPriceQuote`;
 - allocation evidence embeds the canonical quote rather than copying quote fields;
 - allocation serialization delegates quote serialization to `commercial-pricing`;
-- settlementRef/planRef parse/serialize delegates to the Application exact-reference owner.
+- settlementRef/planRef parse/serialize delegates to the Application exact-reference owner;
+- Application release id/version validation delegates to the Application release-reference owner.
 
 ### Exact linkage
 
@@ -48,7 +64,7 @@ Settlement rules are selected by exact `settlementRef` only.
 
 Rules fail closed unless:
 
-- Application id is namespaced and release version exact semver;
+- canonical Application release reference parses exactly;
 - publisherId matches the Application identity namespace;
 - planRef is exact/non-floating;
 - publisher share is integer `0..10000` basis points.
@@ -57,7 +73,7 @@ Evaluation requires exact Application id/version match and exact rule-plan/quote
 
 ### Monetary arithmetic
 
-Settlement never uses floating-point ratios or unsafe direct `gross × basisPoints` multiplication.
+Settlement never uses floating-point monetary ratios or unsafe direct `gross × basisPoints` multiplication.
 
 ```text
 q = floor(gross / 10000)
@@ -70,7 +86,7 @@ All accepted operations remain safe-integer bounded, including `Number.MAX_SAFE_
 
 ### Allocation evidence
 
-The allocation parser reparses the embedded canonical quote and recomputes publisher/platform amounts. Forged split arithmetic fails `ALLOCATION_MISMATCH`; forged quote arithmetic fails through the pricing owner.
+The allocation parser reparses canonical Application release identity and embedded canonical pricing quote, then recomputes publisher/platform amounts. Forged split arithmetic fails `ALLOCATION_MISMATCH`; forged quote arithmetic fails through the pricing owner.
 
 Evidence parsing validates internal semantics/arithmetic only. It does not authenticate settlement-policy provenance, prove entitlement, move funds or create payout state.
 
@@ -88,7 +104,7 @@ commercial-pricing     → rate-card + canonical quote evidence
 commercial-settlement  → deterministic publisher/platform allocation evidence
 ```
 
-The Q8 remediation strengthens this chain by making Application exact-reference semantics one implementation inside the canonical owner rather than two parallel owner-local parsers.
+The two Q8 remediations strengthen this chain by ensuring exact-reference and exact Application-release semantics each have one canonical implementation inside `application-package`, with downstream consumers delegating rather than reproducing those rules.
 
 ### Executable dependency boundary
 
@@ -114,7 +130,7 @@ Generic payment-provider integration remains outside Vira core semantics.
 - exact settlementRef selection only;
 - duplicate refs fail closed;
 - no implicit latest/default policy;
-- exact Application release/publisher namespace/plan binding;
+- canonical exact Application release/publisher namespace/plan binding;
 - deterministic integer basis-point rounding;
 - canonical quote embedded and independently reparsed.
 
@@ -122,16 +138,17 @@ Generic payment-provider integration remains outside Vira core semantics.
 
 ```text
 tests/contract/application-exact-reference.test.ts
+tests/contract/application-release-reference.test.ts
 tests/contract/commercial-settlement.test.ts
 tests/contract/commercial-settlement-hardening.test.ts
 ```
 
-Coverage now includes exact-reference parser/package parity, nested package error-path preservation, exact-reference roundtrip/floating rejection, schedule determinism, exact Application/plan linkage, no fallback, 0/100% and fractional rounding, MAX_SAFE arithmetic, canonical quote roundtrip, forged allocation/quote evidence, impossible publisher parity, authority/payment/tax/credential smuggling on persisted evidence, collection bounds and accessor/custom-prototype fail-closed behavior.
+Coverage includes exact-reference parser/package parity, Application-release direct/package/settlement parity, nested package error paths, exact reference/release roundtrips, schedule determinism, exact Application/plan linkage, no fallback, 0/100% and fractional rounding, MAX_SAFE arithmetic, canonical quote roundtrip, forged allocation/quote evidence, impossible publisher parity, authority/payment/tax/credential smuggling on persisted evidence, collection bounds and accessor/custom-prototype fail-closed behavior.
 
 ## Conclusion
 
 Q5 PASS / Q6 PASS on remediated executable/test/boundary head:
 
-`b42ae481700094f118328f111f8011ab44136877`
+`95c9a0674742c702cc5265b8e1fb35f82dea04ad`
 
-This is the new executable freeze candidate. The previous Q7 PASS on `25ee1c25223863f3ceeb53210142acd1da331405` is invalidated for final merge because executable/tests changed afterward. A fresh exact-head local Q7 is required before Q8 restarts.
+This is the current executable freeze candidate. The operator-reported Q7 PASS on `b42ae481700094f118328f111f8011ab44136877` is invalidated for final merge because executable/tests changed afterward. A fresh exact-head local Q7 is required before final Q8 restarts.
