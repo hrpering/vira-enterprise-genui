@@ -3,31 +3,44 @@
 **Date:** 2026-09-05  
 **Phase:** MASTER-51 — Cross-Surface Exact Semantics + Application Network RC  
 **Authoritative base SHA:** `6f02e4437210c0cd662f1852759c88fca328462c`  
-**Current frozen executable/test/config SHA:** `a3ba23a68f68aee894f818823ba1003511024f19`  
-**Invalidated previous freeze:** `952e3445d46d0b3770a499522abc1ad77315a228`
+**Current frozen executable/test/config SHA:** `e8f568834752ce92796c9cddec5745b373b07d69`  
+**Invalidated previous freeze:** `a3ba23a68f68aee894f818823ba1003511024f19`
 
 ## Result
 
-- **Q5 security / fail-closed review:** PASS (static, repeated after Q8 owner-drift remediation)
-- **Q6 architecture / ownership review:** PASS (static, repeated after Q8 owner-drift remediation)
-- **Q7:** rerun required on current freeze
+- **Q5 security / fail-closed review:** PASS (static, repeated after Q7 attempt-3 test-harness remediation)
+- **Q6 architecture / ownership review:** PASS (static, repeated after Q7 attempt-3 test-harness remediation)
+- **Q7:** full rerun required on current freeze
 - **Q8:** blocked until that rerun passes
 
-The operator-reported final Q7 PASS on previous freeze `952e3445...` is historical evidence only because Q8 required executable changes.
+Earlier Q7 results on `952e3445...` and `a3ba23a...` are historical only. The current merge-authorizing executable/test/config candidate is `e8f568834752ce92796c9cddec5745b373b07d69`.
 
-## Remediation reviewed
+## Remediations reviewed
+
+### Q8 owner-drift remediation
 
 Independent Q8 found duplicate Capability release identity validation between `capability-contract` and `capability-supply`.
 
-The remediation is deliberately narrow:
+The canonical remediation remains narrow:
 
-- `capability-contract` exports canonical `parseViraCapabilityReleaseReference()` and `serializeViraCapabilityReleaseReference()`;
+- `capability-contract` exports `parseViraCapabilityReleaseReference()` and `serializeViraCapabilityReleaseReference()`;
 - `parseViraCapabilityDefinition()` delegates root `id/version` release identity to that API;
-- `lookupViraCapabilitySupply()` delegates `capabilityId/capabilityVersion` query identity to that same owner and only maps owner issue paths into `$query.*` paths;
+- `lookupViraCapabilitySupply()` delegates `capabilityId/capabilityVersion` query identity to the same owner and only maps issue paths into `$query.*`;
 - the local Capability-supply `RELEASE_VERSION` parser is removed;
-- a direct parser ↔ CapabilityDefinition ↔ CapabilitySupply query parity test is added and included in the Network cross-surface gate.
+- direct parser ↔ CapabilityDefinition ↔ CapabilitySupply query parity is covered by `capability-release-reference-owner.test.ts` and included in the Network cross-surface gate.
 
-No new domain package or semantic owner was introduced. `capability-contract` was already the canonical Capability owner; this change completes that owner's public release-identity surface.
+No new domain package or semantic owner was introduced. `capability-contract` remains the existing canonical Capability owner.
+
+### Q7 attempt-3 test-harness remediation
+
+Attempt 3 exposed only module resolution in the new internal contract test. The test incorrectly used bare workspace package imports from `tests/contract`, while the established contract-test pattern uses relative package source entrypoints.
+
+The remediation changes only those two imports to:
+
+- `../../packages/capability-contract/src/index.js`;
+- `../../packages/capability-supply/src/index.js`.
+
+The external `@acme` proof workspace continues to use public bare package-root imports. No production source or semantic behavior changed in this remediation.
 
 ## Q5 — security / fail-closed review
 
@@ -51,16 +64,16 @@ capability-supply exact lookup
 hosted-capability-runtime one-shot query adapter
 ```
 
-Application Capability `id@version` is read from the discovered/verified canonical Application and used directly as the Capability supply query identity. Supply now validates that release identity through `capability-contract` rather than through a second semver implementation.
+Application Capability `id@version` is read from the discovered/verified canonical Application and used directly as the Capability supply query identity. Supply validates that release identity through `capability-contract` rather than a second semver implementation.
 
 ### No floating / implicit resolution
 
 PASS.
 
 - Application exact references reject floating aliases/wildcards before publisher digest generation;
-- Application federation lookup uses exact Application release identity through the Application owner API;
+- Application federation lookup uses canonical exact Application release identity;
 - AI-host protocol projection compatibility remains exact id + exact versionRef;
-- Capability release identity is now canonicalized by `capability-contract` for both CapabilityDefinition and supply lookup;
+- Capability release identity is canonicalized by `capability-contract` for CapabilityDefinition and supply lookup;
 - exact supply misses return empty success;
 - no latest, fallback, substitute release/provider, ranking, priority or near-match behavior is introduced.
 
@@ -68,13 +81,13 @@ PASS.
 
 PASS.
 
-Distribution integrity remains explicit before AI-host compatibility succeeds. Integrity declaration is not treated as authentication, authorization, entitlement, deployment or execution permission.
+Distribution integrity remains explicit before AI-host compatibility succeeds. Integrity declaration is not authentication, authorization, entitlement, deployment or execution permission.
 
 ### Capability execution boundary
 
 PASS.
 
-- Capability supply remains discovery/composition only and does not invoke providers;
+- Capability supply remains discovery/composition only and never invokes providers;
 - supply accepts query Capabilities only;
 - hosted binding `capabilityRef` must exactly match CapabilityDefinition id/version;
 - divergent binding identity fails before adapter invocation;
@@ -86,46 +99,29 @@ PASS.
 
 PASS.
 
-The new Capability release owner:
-
-- consumes untrusted input through shared safe JSON parsing;
-- requires an exact two-field `{ id, version }` shape;
-- requires a namespaced semantic Capability id;
-- requires exact release semver;
-- returns frozen canonical output;
-- fails closed on accessor-backed input without invoking getters, covered by the new parity test.
+The Capability release owner consumes untrusted input through shared safe JSON parsing, requires exact `{ id, version }`, namespaced Capability identity and exact release semver, returns frozen canonical output, and fails closed on accessor-backed input without invoking getters.
 
 ### Lint remediation safety
 
 PASS.
 
-The earlier Q7 lint remediation remains unchanged in the new freeze:
+Earlier baseline lint remediation remains narrow and unchanged:
 
-- `no-control-regex` is disabled only for explicit validation files using intentional control-character rejection regexes;
-- `no-useless-escape` is disabled only for the existing design-import validator file;
-- unused-variable enforcement remains enabled with only the exact inherited legacy symbol ignored in commercial entitlement.
-
-No broad lint bypass was introduced by the Q8 remediation.
+- `no-control-regex` disabled only for explicit intentional validation files;
+- `no-useless-escape` disabled only for the existing design-import validator file;
+- unused-variable enforcement retained with only the exact inherited legacy symbol ignored in commercial entitlement.
 
 ### Authority-smuggling review
 
 PASS.
 
-Network source IDs and Capability source/provider/binding/location IDs remain provenance/routing only. Successful discovery/compatibility/execution does not manufacture authentication, attestation, authorization, entitlement, trust, deployment permission, endpoint ownership or credential authority.
+Network source IDs and Capability source/provider/binding/location IDs remain provenance/routing only. Discovery/compatibility/execution cannot manufacture authentication, attestation, authorization, entitlement, trust, deployment permission, endpoint ownership or credential authority.
 
 ### RC orchestration fail-closed behavior
 
 PASS.
 
-`verify:application-network-rc` remains a synchronous fail-fast composition gate:
-
-1. Enterprise RC baseline;
-2. independent external publisher proof;
-3. independent external AI-host proof;
-4. independent external provider proof;
-5. cross-surface Network proof, now also including Capability release-owner parity.
-
-The orchestrator owns no semantic truth and stops on any child non-zero exit.
+`verify:application-network-rc` remains a synchronous fail-fast composition gate over Enterprise RC, independent publisher/AI-host/provider proofs and the cross-surface Network proof. It owns no semantic truth and stops on any child non-zero exit.
 
 ## Q6 — architecture / ownership review
 
@@ -143,40 +139,30 @@ PASS.
 - `hosted-capability-runtime` — one-shot hosted query execution boundary;
 - `action-boundary` — protected effects.
 
-The Q8 remediation reduces duplication; it does not create a second owner.
+The owner remediation reduces duplication; the attempt-3 import fix changes no owner.
 
-### Public-root composition
+### Internal contract test vs external proof boundary
 
 PASS.
 
-The `@acme/vira-application-network-rc-proof` workspace imports only public Vira package roots. The new Capability release owner is also exported from the public `capability-contract` package root.
+`tests/contract/capability-release-reference-owner.test.ts` now follows the repository's established internal contract-test convention and imports relative source entrypoints. This does not weaken the independent external proof invariant: `@acme/vira-application-network-rc-proof` still consumes public Vira package roots only.
 
 ### Dependency graph
 
 PASS.
 
-No new package dependency edge is required: `capability-supply` already depends on `capability-contract`. No commercial, federation, governance, deployment or cloud dependency was added to the Capability release owner path.
+No new package dependency edge is required. `capability-supply` already depends on `capability-contract`; the test import correction creates no runtime dependency.
 
 ### Scope prohibitions
 
-No current MASTER-51 executable code introduces:
-
-- provider authentication/attestation;
-- endpoint/credential catalogs;
-- provider health/SLA/ranking/failover;
-- commercial entitlement/pricing/settlement authority;
-- deployment placement/autoscaling;
-- generic VM/container/Kubernetes/serverless/cloud compute;
-- new Action execution semantics;
-- new protocol semantics;
-- a second Application or Capability release parser.
+No current MASTER-51 executable code introduces provider authentication/attestation, endpoint/credential catalogs, provider health/SLA/ranking/failover, commercial entitlement/pricing/settlement authority, deployment placement/autoscaling, generic cloud compute, new Action execution semantics, new protocol semantics, or a second Application/Capability release parser.
 
 ## Current freeze
 
 Current executable/test/config freeze:
 
-`a3ba23a68f68aee894f818823ba1003511024f19`
+`e8f568834752ce92796c9cddec5745b373b07d69`
 
-The previous operator-reported Q7 final PASS on `952e3445d46d0b3770a499522abc1ad77315a228` is invalid for final merge authority because executable/test content changed after Q8 attempt 1.
+Q7 attempt 3 on `a3ba23a68f68aee894f818823ba1003511024f19` failed at typecheck because of the new contract test's two bare package-root imports. That freeze is invalid for final merge authority.
 
 A full local Q7 rerun on the exact current freeze is required before Q8 may restart.
