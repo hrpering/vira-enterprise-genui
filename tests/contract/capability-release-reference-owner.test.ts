@@ -3,8 +3,8 @@ import {
   parseViraCapabilityDefinition,
   parseViraCapabilityReleaseReference,
   serializeViraCapabilityReleaseReference,
-} from "@vira-enterprise-genui/capability-contract";
-import { lookupViraCapabilitySupply } from "@vira-enterprise-genui/capability-supply";
+} from "../../packages/capability-contract/src/index.js";
+import { lookupViraCapabilitySupply } from "../../packages/capability-supply/src/index.js";
 
 function definition(version = "1.0.0") {
   return {
