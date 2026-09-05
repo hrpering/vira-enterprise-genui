@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-05  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-51:** `6f02e4437210c0cd662f1852759c88fca328462c`
+**Authoritative main after Application Network closure:** `7999e9d1b3b497851017c1b720c6c3e14a69333d`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -38,21 +38,67 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Independent External Publisher Proof | MASTER-48 | MERGED / PR #209 |
 | Application Network — Independent AI Host Proof | MASTER-49 | MERGED / PR #210 |
 | Application Network — Independent Provider Proof | MASTER-50 | MERGED / PR #211 |
-| Application Network — Cross-Surface Exact Semantics + Network RC | MASTER-51 | ACTIVE — Q0–Q8 PASS / Q9 READY |
+| Application Network — Cross-Surface Exact Semantics + Network RC | MASTER-51 | MERGED / PR #212 — ROADMAP CLOSED |
 
-## Active execution order
+## Application Network closure
+
+The planned Application Network execution program MASTER-26 through MASTER-51 is complete.
+
+Final closure authority:
+
+- final frozen executable/test/config SHA: `e8f568834752ce92796c9cddec5745b373b07d69`;
+- operator-reported exact-SHA Q7 rerun PASS;
+- independent Q8 restart PASS;
+- final closure head: `d52363b5015992a9934f2d9bf1fc1513c5a9d28c`;
+- frozen SHA → closure head drift: docs/evidence only;
+- PR #212: exact-head squash merged;
+- merge SHA: `7999e9d1b3b497851017c1b720c6c3e14a69333d`;
+- independent `main` verification returned the same SHA;
+- no Application Network phase remains active.
+
+Final RC composition:
 
 ```text
-Enterprise GenUI RC1 ✅
-  ↓
-MASTER-26..50 ✅
-  ↓
-MASTER-51 Cross-Surface Exact Semantics + Application Network RC
+Enterprise GenUI RC
+        +
+Independent External Publisher Proof
+        +
+Independent AI Host Proof
+        +
+Independent Provider Proof
+        +
+Cross-Surface Exact Semantics
+        ↓
+APPLICATION NETWORK RC
 ```
+
+Canonical cross-surface proof:
+
+```text
+external publisher
+        ↓
+canonical Application Distribution
+        ↓
+public federation exact lookup
+        ↓
+explicit Distribution integrity verification
+        ↓
+AI-host exact compatibility
+        ↓
+canonical Application Capability id@version
+        ↓
+Capability supply exact provider/location lookup
+        ↓
+hosted one-shot query execution
+        ↓
+execution evidence with the same exact Capability id@version
+```
+
+Any future program must start from the latest independently verified authoritative `main`; it must not silently continue MASTER-51 or treat the closed Network RC as a new semantic authority.
 
 ## Constitutional invariants
 
-- Every phase starts from latest authoritative `main`, never from a stacked future branch.
+- Every implementation phase starts from latest authoritative `main`, never from a stacked future branch.
 - One semantic concept has one canonical owner; extend the nearest owner before creating another.
 - Experience, Pack, Studio publication, Action Boundary, governance and runtime authorities are referenced, not duplicated.
 - Application exact-reference syntax remains owned by `application-package`; downstream packages consume its owner-local parse/serialize surface.
@@ -61,10 +107,10 @@ MASTER-51 Cross-Surface Exact Semantics + Application Network RC
 - Distribution integrity declaration is distinct from integrity verification, authorization, entitlement, deployment and execution permission.
 - Protocol projection fidelity is adapter-reported interoperability state, not generic proof of protocol equivalence.
 - Publisher and AI-host SDKs compose canonical owners; neither defines a second wire schema or acquires network/runtime authority.
-- Independent proof consumers must use public package-root exports rather than Vira `src/*` internals.
+- Independent proof consumers use public package-root exports rather than Vira `src/*` internals.
 - AI-host source success requires explicit Distribution integrity verification before compatibility can succeed.
 - AI-host host protocol projection references consume canonical Application exact-reference semantics rather than carrying a second versionRef parser.
-- AI-host compatibility is canonical Vira-version + required-host-capability evaluation only; it is not authorization, entitlement, deployment or execution permission.
+- AI-host compatibility is Vira-version + required-host-capability evaluation only; it is not authorization, entitlement, deployment or execution permission.
 - A successful external AI-host proof verifies interoperability only; it does not authenticate the host or grant runtime/security authority.
 - Federated distribution consumes canonical Distribution envelopes only.
 - Public federation may expose only canonical Application releases declared `visibility: public` and `discoverable: true`.
@@ -76,7 +122,7 @@ MASTER-51 Cross-Surface Exact Semantics + Application Network RC
 - Commercial entitlement remains distinct from authorization/governance/runtime permission.
 - Entitlement limit declarations reference exact metering identities only.
 - Commercial usage records are explicit canonical inputs; telemetry, observability and Action receipts are not automatically billable usage.
-- Commercial metering owns non-monetary rating truth and canonical rating evidence parsing; pricing must consume it rather than recompute usage.
+- Commercial metering owns non-monetary rating truth and canonical rating evidence parsing; pricing consumes it rather than recompute usage.
 - Commercial pricing uses integer currency nanos, exact plan/meter references and deterministic rate-card arithmetic; no floating-point money.
 - Pricing quote evidence is not entitlement, invoice, payment, subscription, tax, FX, settlement, payout, authorization, governance or runtime permission.
 - Commercial settlement consumes canonical pricing quote evidence rather than duplicating quote/rate-card semantics.
@@ -103,7 +149,7 @@ MASTER-51 Cross-Surface Exact Semantics + Application Network RC
 - Core does not become a generic agent framework, workflow engine, policy language, provider-integration empire, payment processor, banking/ledger system, MCP/A2UI replacement, IDE/design clone, cloud-compute platform or foundation model.
 - PR creation is not phase completion. Merge requires contract review, security/architecture review, verification, independent reverse engineering and exact-head evidence appropriate to the diff.
 
-## Active records
+## Closed Application Network records
 
 - `docs/pr-plans/MASTER-51.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
@@ -115,6 +161,7 @@ MASTER-51 Cross-Surface Exact Semantics + Application Network RC
 - `docs/evidence/MASTER-51/Q7_ATTEMPT_3_TYPECHECK_FAIL.md`
 - `docs/evidence/MASTER-51/Q7_RERUN_PASS.md`
 - `docs/evidence/MASTER-51/Q8_REVIEW.md`
+- `docs/evidence/MASTER-51/Q9_CLOSURE.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
