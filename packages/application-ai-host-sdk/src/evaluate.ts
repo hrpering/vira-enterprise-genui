@@ -5,6 +5,7 @@ import {
 } from "@vira-enterprise-genui/application-distribution";
 import {
   VIRA_APPLICATION_PACKAGE_MAX_REFERENCES,
+  parseViraApplicationExactReference,
   type ViraApplicationExactReference,
 } from "@vira-enterprise-genui/application-package";
 import {
@@ -23,10 +24,7 @@ import type {
 
 const ROOT_FIELDS = new Set(["source", "host"]);
 const HOST_FIELDS = new Set(["viraVersion", "capabilities", "protocolProjections"]);
-const REF_FIELDS = new Set(["id", "versionRef"]);
 const RELEASE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
-const VERSION_REF = /^[A-Za-z0-9][A-Za-z0-9._:+-]{0,127}$/;
-const FLOATING_ALIASES = new Set(["latest", "current", "stable", "head", "main", "next"]);
 
 interface Failure {
   readonly ok: false;
@@ -65,14 +63,6 @@ function releaseVersion(value: JsonValue | undefined): value is string {
   return typeof value === "string" && value.length <= 64 && RELEASE_VERSION.test(value);
 }
 
-function exactVersionRef(value: JsonValue | undefined): value is string {
-  if (typeof value !== "string" || !VERSION_REF.test(value)) return false;
-  const normalized = value.toLowerCase();
-  if (FLOATING_ALIASES.has(normalized)) return false;
-  return !/(?:^|[._:+-])[xX](?:$|[._:+-])/.test(value)
-    && !/\d[xX](?:$|[._:+-])/.test(value);
-}
-
 function compareRelease(left: string, right: string): number {
   const a = left.split(".").map((part) => BigInt(part));
   const b = right.split(".").map((part) => BigInt(part));
@@ -89,21 +79,20 @@ function refKey(ref: ViraApplicationExactReference): string {
   return `${ref.id}\u0000${ref.versionRef}`;
 }
 
+function hostReferencePath(ownerPath: string, path: string): string {
+  if (ownerPath === "$" || ownerPath.length === 0) return path;
+  if (ownerPath.startsWith("$.")) return `${path}${ownerPath.slice(1)}`;
+  return path;
+}
+
 function parseHostReference(value: JsonValue, path: string): Parsed<ViraApplicationExactReference> {
-  const object = asObject(value);
-  if (!object) return failure("INVALID_HOST", path, "protocol projection reference must be an exact object");
-  const unknown = firstUnknownField(object, REF_FIELDS);
-  if (unknown) return failure("INVALID_HOST", `${path}.${unknown}`, "protocol projection reference shape is invalid");
-  if (typeof object.id !== "string" || !isSemanticNamespace(object.id)) {
-    return failure("INVALID_HOST", `${path}.id`, "protocol projection id must be a canonical semantic namespace");
-  }
-  if (!exactVersionRef(object.versionRef)) {
-    return failure("INVALID_HOST", `${path}.versionRef`, "protocol projection versionRef must be exact and non-floating");
-  }
-  return {
-    ok: true,
-    value: Object.freeze({ id: object.id, versionRef: object.versionRef }),
-  };
+  const parsed = parseViraApplicationExactReference(value);
+  if (parsed.ok) return parsed;
+  return failure(
+    "INVALID_HOST",
+    hostReferencePath(parsed.issue.path, path),
+    parsed.issue.message,
+  );
 }
 
 function parseHost(value: JsonValue | undefined): Parsed<ViraApplicationAiHostDescriptor> {

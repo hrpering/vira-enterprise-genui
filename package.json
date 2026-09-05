@@ -25,6 +25,7 @@
     "verify:android-emulator": "node tooling/run-android-emulator-gate.mjs",
     "verify:external-brand-proof": "node tooling/verify-external-brand-proof-evidence.mjs",
     "verify:external-publisher-proof": "vitest run examples/external-publisher-proof/external-publisher-proof.test.ts tests/contract/application-federation-release-owner.test.ts",
+    "verify:external-ai-host-proof": "vitest run examples/external-ai-host-proof/external-ai-host-proof.test.ts tests/contract/application-ai-host-exact-reference-owner.test.ts",
     "verify:enterprise-rc": "node tooling/verify-enterprise-rc.mjs",
     "demo:experience-studio": "pnpm --filter @vira-enterprise-genui/experience-studio-demo dev"
   },

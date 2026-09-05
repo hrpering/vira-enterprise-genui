@@ -2,7 +2,7 @@
 
 **Authority date:** 2026-09-05  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main entering MASTER-48:** `6b79864e55209b52e5b984e671beaf69afdbfc84`
+**Authoritative main entering MASTER-49:** `70dfa599b6b7e77bb5a70e53cee56dd22c0a0b05`
 
 This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
 
@@ -35,8 +35,8 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Commercial Pricing + Rate Card | MASTER-45 | MERGED / PR #206 |
 | Application Network — Capability Supply Catalog + Exact Discovery | MASTER-46 | MERGED / PR #207 |
 | Application Network — Commercial Settlement Allocation + Publisher Economics | MASTER-47 | MERGED / PR #208 |
-| Application Network — Independent External Publisher Proof | MASTER-48 | ACTIVE |
-| Application Network — Independent AI Host Proof | MASTER-49 | PLANNED |
+| Application Network — Independent External Publisher Proof | MASTER-48 | MERGED / PR #209 |
+| Application Network — Independent AI Host Proof | MASTER-49 | ACTIVE |
 | Application Network — Independent Provider Proof | MASTER-50 | PLANNED |
 | Application Network — Cross-Surface Exact Semantics + Network RC | MASTER-51 | PLANNED |
 
@@ -45,9 +45,7 @@ This file is the engineering execution authority. Long-range product strategy li
 ```text
 Enterprise GenUI RC1 ✅
   ↓
-MASTER-26..47 ✅
-  ↓
-MASTER-48 Independent External Publisher Proof
+MASTER-26..48 ✅
   ↓
 MASTER-49 Independent AI Host Proof
   ↓
@@ -69,7 +67,9 @@ MASTER-51 Cross-Surface Exact Semantics + Network RC
 - Publisher and AI-host SDKs compose canonical owners; neither defines a second wire schema or acquires network/runtime authority.
 - Independent proof consumers must use public package-root exports rather than Vira `src/*` internals.
 - AI-host source success requires explicit Distribution integrity verification before compatibility can succeed.
+- AI-host host protocol projection references consume canonical Application exact-reference semantics rather than carrying a second versionRef parser.
 - AI-host compatibility is canonical Vira-version + required-host-capability evaluation only; it is not authorization, entitlement, deployment or execution permission.
+- A successful external AI-host proof verifies interoperability only; it does not authenticate the host or grant runtime/security authority.
 - Federated distribution consumes canonical Distribution envelopes only.
 - Public federation may expose only canonical Application releases declared `visibility: public` and `discoverable: true`.
 - Federation source IDs are provenance data, not authentication; federation parsing does not imply integrity verification.
@@ -104,9 +104,9 @@ MASTER-51 Cross-Surface Exact Semantics + Network RC
 
 ## Active records
 
-- `docs/pr-plans/MASTER-48.md`
+- `docs/pr-plans/MASTER-49.md`
 - `docs/pr-plans/ACTIVE_PHASE.md`
-- `docs/evidence/MASTER-48/Q5_Q6_REVIEW.md`
+- `docs/evidence/MASTER-49/Q5_Q6_REVIEW.md`
 - `APPLICATION_MODEL.md`
 - `APPLICATION_AUTHORITY.md`
 - `APPLICATION_LIFECYCLE.md`
