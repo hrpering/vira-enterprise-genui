@@ -1,0 +1,10 @@
+{
+  "name": "@acme/vira-external-publisher-proof",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@vira-enterprise-genui/application-federation": "workspace:*",
+    "@vira-enterprise-genui/application-publisher-sdk": "workspace:*"
+  }
+}
