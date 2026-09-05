@@ -1,55 +1,43 @@
 # Active Phase
 
-**Phase:** MASTER-48 — Independent External Publisher Proof  
-**Status:** Q0–Q8 PASS / Q9 READY  
-**Base SHA:** `6b79864e55209b52e5b984e671beaf69afdbfc84`  
-**Frozen executable SHA:** `5f1c29773dd13d5328428e5933ec546259cb7b02`  
-**Previous:** MASTER-47 merged via PR #208  
-**Branch:** `master/48-external-publisher-proof`  
-**PR:** #209 (draft; ready transition pending exact-head merge)  
-**Next:** MASTER-49 after MASTER-48 merge from new authoritative `main`
+**Phase:** MASTER-49 — Independent External AI Host Proof  
+**Status:** Q0–Q6 PASS / Q7 PENDING  
+**Base SHA:** `70dfa599b6b7e77bb5a70e53cee56dd22c0a0b05`  
+**Frozen executable SHA:** `5bb3497b736095509ba4b13d365d52ddee4b60bc`  
+**Previous:** MASTER-48 merged via PR #209  
+**Branch:** `master/49-external-ai-host-proof`  
+**PR:** pending  
+**Next:** MASTER-50 after MASTER-49 merge from new authoritative `main`
 
-MASTER-48 proves that an independently named publisher consumer can compose Vira's public Publisher SDK and federation APIs without private source imports or hidden authority.
+MASTER-49 proves that an independently named AI host can use only public Vira package roots, explicitly verify a canonical Distribution artifact and evaluate host compatibility without hidden Vira runtime/security authority.
 
-Canonical composition:
+Canonical proof composition:
 
 ```text
-@acme/vira-external-publisher-proof
+@acme/vira-external-ai-host-proof
         ↓
 application-publisher-sdk
+        ↓ canonical Distribution
+external SHA-256 verifier
         ↓
-application-distribution
+application-ai-host-sdk
         ↓
-application-federation
-        ↓
-exact Application release discovery
-```
-
-Executable dependency adjustment:
-
-```text
-application-federation → application-distribution, application-package, protocol
+Vira-version + required capabilities + exact protocol projection intersection
 ```
 
 Final invariants:
 
-- `application-package` remains the sole canonical Application release id/version parser owner;
-- federation delegates release query semantics to `parseViraApplicationReleaseReference()`;
+- `application-package` remains the sole owner of exact Application reference syntax;
+- AI-host protocol projection parsing delegates to `parseViraApplicationExactReference()`;
 - external proof imports only public Vira package roots;
-- publisher assertion must exactly match canonical Application publisher;
-- only public + discoverable releases may enter federation;
-- lookup is exact id+release only, with no latest/default/fallback;
-- divergent exact-release envelopes fail closed;
-- federation source ids are provenance only, not trust/authentication/ranking;
-- Distribution digest declaration is not integrity verification;
-- proof grants no authorization, entitlement, deployment or execution authority.
+- Distribution digest declaration is insufficient without explicit verifier success;
+- tampered digest fails closed;
+- invalid host descriptors fail before verifier invocation;
+- host `viraVersion` remains AI-host compatibility input, not Application release identity;
+- required host capabilities fail closed when absent;
+- protocol projection support is exact id + exact versionRef with no latest/fallback/substitution;
+- compatibility success grants no authorization, entitlement, deployment, execution or host authentication authority.
 
-Q5/Q6 static review PASS: `docs/evidence/MASTER-48/Q5_Q6_REVIEW.md`.
+Q5/Q6 static review PASS: `docs/evidence/MASTER-49/Q5_Q6_REVIEW.md`.
 
-Q7 local execution is operator-reported PASS on exact freeze `5f1c29773dd13d5328428e5933ec546259cb7b02`. Evidence: `docs/evidence/MASTER-48/Q7_LOCAL_PASS.md`.
-
-Independent Q8 PASS: `docs/evidence/MASTER-48/Q8_REVIEW.md`.
-
-Final closure gate PASS: `docs/evidence/MASTER-48/Q9_CLOSURE_GATE.md`. Frozen-to-closure executable/package/test/boundary drift is zero.
-
-Q9 is ready for PR ready transition and exact-head squash merge.
+Q7 local execution remains pending on exact freeze `5bb3497b736095509ba4b13d365d52ddee4b60bc`.
