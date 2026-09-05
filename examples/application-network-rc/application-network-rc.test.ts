@@ -6,7 +6,10 @@ import {
   lookupViraFederatedApplication,
   parseViraApplicationFederationSnapshot,
 } from "@vira-enterprise-genui/application-federation";
-import { prepareViraApplicationDistribution } from "@vira-enterprise-genui/application-publisher-sdk";
+import {
+  prepareViraApplicationDistribution,
+  type ViraApplicationPublisherDigestInput,
+} from "@vira-enterprise-genui/application-publisher-sdk";
 import {
   lookupViraCapabilitySupply,
   parseViraCapabilitySupplySnapshot,
@@ -127,7 +130,7 @@ function request() {
 async function prepare(capabilityVersion = "1.0.0") {
   const prepared = await prepareViraApplicationDistribution(
     { publisherId: "acme", application: application(capabilityVersion) },
-    (input) => sha256(input.canonicalArtifact),
+    (input: ViraApplicationPublisherDigestInput) => sha256(input.canonicalArtifact),
   );
   expect(prepared.ok).toBe(true);
   if (!prepared.ok) throw new Error(prepared.issue.code);
