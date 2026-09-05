@@ -1,56 +1,71 @@
 # Active Phase
 
-**Phase:** None — Application Network roadmap closed  
-**Status:** CLOSED  
-**Authoritative main:** `7999e9d1b3b497851017c1b720c6c3e14a69333d`  
-**Final phase:** MASTER-51 — Cross-Surface Exact Semantics + Application Network RC  
-**Final PR:** #212 — squash merged  
-**Final frozen executable/test/config SHA:** `e8f568834752ce92796c9cddec5745b373b07d69`
+**Phase:** MASTER-52 — Machine Commerce Program + Machine Customer Semantics Freeze  
+**Status:** RE-IN-PROGRESS  
+**Authoritative base main:** `6562d2ee2576fe20c911af41605bffe0c06cdabf`  
+**Branch:** `master/52-machine-commerce-semantics-freeze`  
+**Previous program:** MASTER-26..51 Application Network — CLOSED
 
-The planned Application Network execution program MASTER-26 through MASTER-51 is complete and merged into `main`.
+## Goal
 
-MASTER-51 closed the roadmap by proving the exact cross-surface chain:
+Freeze the first post-Application-Network expansion program around Machine Customers / Machine Commerce without introducing a second Application, Capability, principal, pricing, settlement, governance or execution authority.
 
-```text
-external publisher
-        ↓
-canonical Application Distribution
-        ↓
-public federation exact lookup
-        ↓
-explicit Distribution integrity verification
-        ↓
-AI-host exact compatibility
-        ↓
-canonical Application Capability id@version
-        ↓
-Capability supply exact provider/location lookup
-        ↓
-hosted one-shot query execution
-        ↓
-execution evidence with the same exact Capability id@version
-```
-
-The final Application Network RC composes:
+The key distinction is:
 
 ```text
-verify:application-network-rc
-  ├─ verify:enterprise-rc
-  ├─ verify:external-publisher-proof
-  ├─ verify:external-ai-host-proof
-  ├─ verify:external-provider-proof
-  └─ verify:application-network-cross-surface
+PRE-ENTITLED MACHINE CUSTOMER
+agent/service principal
+→ entitlement
+→ exact Capability consumption
+→ usage/rating/pricing/settlement
+
+DYNAMIC MACHINE ACQUISITION
+machine principal
+→ trusted offer
+→ delegated commercial mandate
+→ acquisition decision
+→ external payment authorization when required
+→ entitlement provisioning boundary
+→ existing consumption path
 ```
 
-Closure authority:
+MASTER-52 is docs/authority only. No payment, funds movement or new runtime execution package is authorized in this phase.
 
-- operator-reported Q7 PASS on exact frozen SHA `e8f568834752ce92796c9cddec5745b373b07d69`;
-- independent Q8 restart PASS;
-- final freeze → closure head drift was docs/evidence only;
-- PR #212 exact closure head `d52363b5015992a9934f2d9bf1fc1513c5a9d28c` was squash merged;
-- merge result `7999e9d1b3b497851017c1b720c6c3e14a69333d` was independently verified as authoritative `main`;
-- no Application Network development phase remains active.
+## Q0/Q1 baseline
 
-Historical evidence remains under `docs/evidence/MASTER-51/` and the phase record remains at `docs/pr-plans/MASTER-51.md`.
+- exact base main observed: `6562d2ee2576fe20c911af41605bffe0c06cdabf`;
+- no open PR observed at phase start;
+- package dependency authority: `tooling/package-boundaries.config.mjs`;
+- `enterprise-context` already owns `user | agent | service` principal kinds;
+- existing commercial owners already cover entitlement, usage/rating, deterministic integer-nanos pricing and publisher/platform allocation;
+- hosted query Capability execution already accepts the canonical enterprise principal;
+- protected effects remain behind `action-boundary`;
+- current federation/supply provider/source IDs are provenance/routing, not authenticated/attested identity;
+- current Application Distribution SHA-256 integrity is artifact integrity, not publisher/provider commercial-offer authentication.
 
-Any future work must begin as a new roadmap/program from the latest authoritative `main`; it must not silently extend the closed MASTER-51 branch or reopen Application Network ownership without a fresh reverse-engineering/owner-gap decision.
+## Planned Machine Commerce sequence
+
+```text
+MASTER-52  semantics / authority freeze
+MASTER-53  pre-entitled Machine Customer proof
+MASTER-54  Network Trust Evidence
+MASTER-55  exact Commercial Offer contract
+MASTER-56  Delegated Commercial Mandate
+MASTER-57  Machine Acquisition Decision
+MASTER-58  external Payment Authorization Adapter
+MASTER-59  dynamic Machine Commerce proof / RC
+```
+
+Agentic EDI follows after MASTER-59 and must reuse the Machine Commerce buyer/trust/mandate/commercial authorities rather than creating parallel ones.
+
+## Current deliverables
+
+- `docs/pr-plans/MASTER-52.md`
+- `MACHINE_COMMERCE_MODEL.md`
+- `MASTER_PLAN.md` alignment
+- `PACKAGE_OWNERSHIP.md` future-owner constraints
+- this active-phase record
+
+## Completion rule
+
+MASTER-52 may merge only after Q5/Q6 architecture/security review, docs/boundary/repository verification appropriate to the exact head, and an independent Q8 reverse-engineering restart confirms that no current owner was duplicated and no payment/security authority was accidentally granted.
