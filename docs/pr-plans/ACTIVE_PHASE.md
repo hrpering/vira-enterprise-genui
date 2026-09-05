@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-49 — Independent External AI Host Proof  
-**Status:** Q0–Q6 PASS / Q7 PENDING  
+**Status:** Q0–Q7 PASS / Q8 ACTIVE  
 **Base SHA:** `70dfa599b6b7e77bb5a70e53cee56dd22c0a0b05`  
 **Frozen executable SHA:** `5bb3497b736095509ba4b13d365d52ddee4b60bc`  
 **Previous:** MASTER-48 merged via PR #209  
@@ -40,4 +40,6 @@ Final invariants:
 
 Q5/Q6 static review PASS: `docs/evidence/MASTER-49/Q5_Q6_REVIEW.md`.
 
-Q7 local execution remains pending on exact freeze `5bb3497b736095509ba4b13d365d52ddee4b60bc`.
+Q7 local execution is operator-reported PASS on exact freeze `5bb3497b736095509ba4b13d365d52ddee4b60bc`. Evidence: `docs/evidence/MASTER-49/Q7_LOCAL_PASS.md`. No counts/timings were reconstructed.
+
+Q8 independent PR reverse engineering is active.
