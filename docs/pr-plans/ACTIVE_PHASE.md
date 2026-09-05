@@ -1,12 +1,12 @@
 # Active Phase
 
 **Phase:** MASTER-49 — Independent External AI Host Proof  
-**Status:** Q0–Q7 PASS / Q8 ACTIVE  
+**Status:** Q0–Q8 PASS / Q9 READY  
 **Base SHA:** `70dfa599b6b7e77bb5a70e53cee56dd22c0a0b05`  
 **Frozen executable SHA:** `5bb3497b736095509ba4b13d365d52ddee4b60bc`  
 **Previous:** MASTER-48 merged via PR #209  
 **Branch:** `master/49-external-ai-host-proof`  
-**PR:** #210 (draft)  
+**PR:** #210 (draft; ready transition pending exact-head merge)  
 **Next:** MASTER-50 after MASTER-49 merge from new authoritative `main`
 
 MASTER-49 proves that an independently named AI host can use only public Vira package roots, explicitly verify a canonical Distribution artifact and evaluate host compatibility without hidden Vira runtime/security authority.
@@ -42,4 +42,6 @@ Q5/Q6 static review PASS: `docs/evidence/MASTER-49/Q5_Q6_REVIEW.md`.
 
 Q7 local execution is operator-reported PASS on exact freeze `5bb3497b736095509ba4b13d365d52ddee4b60bc`. Evidence: `docs/evidence/MASTER-49/Q7_LOCAL_PASS.md`. No counts/timings were reconstructed.
 
-Q8 independent PR reverse engineering is active.
+Independent Q8 PASS: `docs/evidence/MASTER-49/Q8_REVIEW.md`.
+
+Q9 is ready for final frozen-to-closure executable drift verification, PR ready transition and exact-head squash merge.
