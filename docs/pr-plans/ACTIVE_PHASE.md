@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-51 — Cross-Surface Exact Semantics + Application Network RC  
-**Status:** Q0–Q6 PASS / Q7 RERUN PENDING / Q8 BLOCKED  
+**Status:** Q0–Q6 PASS / Q7 CODE GATES PASS / ENVIRONMENT RERUN PENDING / Q8 BLOCKED  
 **Base SHA:** `6f02e4437210c0cd662f1852759c88fca328462c`  
 **Frozen executable/config SHA:** `952e3445d46d0b3770a499522abc1ad77315a228`  
 **Invalidated previous freeze:** `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`  
@@ -62,11 +62,19 @@ Final invariants:
 
 Q7 attempt 1 on `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f` failed and is recorded in `docs/evidence/MASTER-51/Q7_ATTEMPT_1_FAIL.md`.
 
-Attempt-1 findings:
+Attempt-1 findings were remediated without changing semantic/runtime authority. Q5/Q6 static review was repeated and PASS on current freeze `952e3445d46d0b3770a499522abc1ad77315a228`.
 
-- MASTER-51 typecheck failure: untyped publisher digest callback;
-- inherited Enterprise RC baseline lint failures: seven ESLint errors in pre-existing files.
+Q7 attempt 2 on the current freeze is recorded in `docs/evidence/MASTER-51/Q7_ATTEMPT_2_ENV_BLOCKED.md`.
 
-Both blocker classes were remediated without changing Application/Capability/runtime authority. Q5/Q6 static review was repeated and PASS on new executable/config freeze `952e3445d46d0b3770a499522abc1ad77315a228`: `docs/evidence/MASTER-51/Q5_Q6_REVIEW.md`.
+Attempt-2 code/repository results:
 
-The old Q7 attempt is historical only and cannot authorize merge. A full local Q7 rerun on the exact new freeze is required before Q8 can restart.
+- boundaries PASS;
+- lint PASS;
+- typecheck PASS;
+- cross-surface proof PASS — 2 files / 7 tests / 254ms (operator-reported);
+- repository Vitest suite PASS — 232 files / 1311 tests / 7.62s (operator-reported);
+- production builds PASS;
+- browser E2E PASS — 1 test;
+- Swift structural conformance emitted `SWIFT_CONFORMANCE_OK`.
+
+The RC then failed because local `xcrun` resolved the macOS SDK through standalone Command Line Tools and could not resolve `PlatformPath`. This is an environment blocker, not an executable diff blocker. The current freeze remains valid; Q8 remains blocked until the same exact freeze completes `verify:application-network-rc` with full Xcode selected as the active developer directory.
