@@ -1,3 +1,4 @@
+export { createPostgresApplicationDeploymentStateStore } from "./application-deployment.js";
 export { authorizeBrowserSessionFromPostgres } from "./identity-session.js";
 export {
   canonicalizeEnterpriseScope,
