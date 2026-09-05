@@ -2,9 +2,10 @@
 
 **Authority date:** 2026-09-05  
 **Repository:** `hrpering/vira-enterprise-genui`  
-**Authoritative main after Application Network closure:** `7999e9d1b3b497851017c1b720c6c3e14a69333d`
+**Application Network closure main:** `7999e9d1b3b497851017c1b720c6c3e14a69333d`  
+**Production program activation base:** `34eb60b9bcc076aa2be49c9ed9b1b38091135734`
 
-This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. Repository truth overrides older plan snapshots.
+This file is the engineering execution authority. Long-range product strategy lives in `docs/strategy/APPLICATION_NETWORK_THESIS.md`. The active production roadmap is `docs/production/VIRA_UNIFIED_ARCHITECTURE_PRODUCTION_PLAN_FINAL.md`. Repository truth overrides older plan snapshots.
 
 ## Current status
 
@@ -39,8 +40,11 @@ This file is the engineering execution authority. Long-range product strategy li
 | Application Network — Independent AI Host Proof | MASTER-49 | MERGED / PR #210 |
 | Application Network — Independent Provider Proof | MASTER-50 | MERGED / PR #211 |
 | Application Network — Cross-Surface Exact Semantics + Network RC | MASTER-51 | MERGED / PR #212 — ROADMAP CLOSED |
+| Production Platform | PROD-00 | ACTIVE — `prod/00-program-freeze` |
+| Production MVP cut-line | PROD-17 | PLANNED |
+| Full Platform cut-line | PROD-22 | PLANNED |
 
-## Next production roadmap
+## Active production roadmap
 
 The implementation-ready successor roadmap is
 [`docs/production/VIRA_UNIFIED_ARCHITECTURE_PRODUCTION_PLAN_FINAL.md`](docs/production/VIRA_UNIFIED_ARCHITECTURE_PRODUCTION_PLAN_FINAL.md).
@@ -50,10 +54,9 @@ It defines one `PROD-00..PROD-22` dependency graph with two release cut-lines:
 - `PROD-17` — Production MVP RC;
 - `PROD-22` — Full Platform RC.
 
-The roadmap is ready but no `PROD-*` implementation phase is active on `main` yet.
-`PROD-00` must first reconcile any open post-Network planning branch, restore healthy
-hosted CI, protect `main`, and freeze the remaining production vendor/SLO decisions.
-`docs/pr-plans/ACTIVE_PHASE.md` remains the activation authority.
+`PROD-00` is now active from independently observed `main@34eb60b9bcc076aa2be49c9ed9b1b38091135734`. Its activation authority is `docs/pr-plans/ACTIVE_PHASE.md`; its phase plan is `docs/pr-plans/PROD-00.md`.
+
+PROD-00 must reconcile the draft post-Network Machine Commerce roadmap into deferred PROD-20, restore all three hosted CI jobs, freeze production owner/vendor/security/SLO/DR/release decisions, commit a real workspace lockfile, switch CI to frozen install, and establish PR-only protected `main` with required healthy checks. No downstream PROD phase may treat PROD-00 outputs as production dependencies before exact-head Q9 closure.
 
 ## Application Network closure
 
@@ -164,10 +167,23 @@ Any future program must start from the latest independently verified authoritati
 - Core does not become a generic agent framework, workflow engine, policy language, provider-integration empire, payment processor, banking/ledger system, MCP/A2UI replacement, IDE/design clone, cloud-compute platform or foundation model.
 - PR creation is not phase completion. Merge requires contract review, security/architecture review, verification, independent reverse engineering and exact-head evidence appropriate to the diff.
 
+## Production-program invariants
+
+- The single active production graph is PROD-00..22; no parallel MASTER-52..59 roadmap may remain active.
+- PROD-17 is the only Production MVP cut-line and PROD-22 is the Full Platform cut-line.
+- Protected Actions use exact identity/version, governance, immutable plan approval, one-time grant, durable execution, private runner, postcondition verification and Action Ledger; no layer may shortcut that chain.
+- Process memory is never production durable truth.
+- Human Task/Handoff is distinct from Transaction Approval.
+- Provider HTTP success is not verified postcondition success.
+- Application/Capability discovery, provider trust, commercial entitlement, governance authorization and execution authority remain separate.
+- Studio draft/preview/simulation never grants production execution authority.
+- Protocol/import results cannot acquire canonical ownership or security authority.
+- Integrations implement semantic ports and may store bytes/secrets/state, but integrations do not become canonical semantic owners.
+- Each PROD phase must execute Q0..Q9 and freeze on one exact executable/config/test/source SHA before closure.
+
 ## Closed Application Network records
 
 - `docs/pr-plans/MASTER-51.md`
-- `docs/pr-plans/ACTIVE_PHASE.md`
 - `docs/evidence/MASTER-51/Q5_Q6_REVIEW.md`
 - `docs/evidence/MASTER-51/Q7_ATTEMPT_1_FAIL.md`
 - `docs/evidence/MASTER-51/Q7_ATTEMPT_2_ENV_BLOCKED.md`
@@ -182,3 +198,13 @@ Any future program must start from the latest independently verified authoritati
 - `APPLICATION_LIFECYCLE.md`
 - `APPLICATION_VERSION_MODEL.md`
 - `PACKAGE_OWNERSHIP.md`
+
+## Active production records
+
+- `docs/production/VIRA_UNIFIED_ARCHITECTURE_PRODUCTION_PLAN_FINAL.md`
+- `docs/production/PROD_OWNER_MATRIX.md`
+- `docs/pr-plans/PROD-00.md`
+- `docs/pr-plans/PROD-20.md`
+- `docs/pr-plans/ACTIVE_PHASE.md`
+- `docs/evidence/PROD-00/Q0_BASELINE.md`
+- `docs/evidence/PROD-00/Q1_REVERSE_ENGINEERING.md`

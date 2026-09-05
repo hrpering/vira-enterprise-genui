@@ -15,8 +15,6 @@ concurrency:
 
 jobs:
   verify:
-    # MASTER-02 native interop conformance relies on the pinned Ubuntu 24.04
-    # hosted image rather than the moving ubuntu-latest alias.
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -32,11 +30,8 @@ jobs:
         run: npm install --global pnpm@11.24.0
 
       - name: Install dependencies
-        # A frozen install becomes mandatory once the real workspace lockfile is generated and committed.
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
-      # Verify committed generated artifacts before any generator invocation.
-      # CI is a verifier, not a repair step.
       - name: Verify portable artifact drift
         run: pnpm check:studio-interop
 
@@ -50,10 +45,6 @@ jobs:
         run: pnpm verify:all
 
   ios-native:
-    # Ubuntu validates generated Swift interoperability and the platform-neutral
-    # Swift runtime tests. This job additionally forces the UIKit-gated sources
-    # through a real Apple SDK compiler so `#if canImport(UIKit)` cannot hide
-    # iOS-only build failures.
     runs-on: macos-26
     steps:
       - name: Checkout
@@ -69,14 +60,11 @@ jobs:
         run: >-
           xcodebuild
           build
-          -scheme ViraIOS
+          -scheme ViraNative
           -destination 'generic/platform=iOS Simulator'
           CODE_SIGNING_ALLOWED=NO
 
   android-native:
-    # Generated Kotlin JVM conformance remains in `verify`. This job proves the
-    # handwritten MASTER-07C SDK and the generated Kotlin wire model compile and
-    # test inside a real Android library toolchain.
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout

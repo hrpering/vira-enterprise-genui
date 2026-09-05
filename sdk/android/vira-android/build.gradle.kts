@@ -1,54 +1,78 @@
+import com.android.build.api.variant.HostTest
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
+
 plugins {
   id("com.android.library")
 }
 
-val viraPublicPackage = "xyz.tryvira.android"
-val generatedMainDir = layout.buildDirectory.dir("generated/vira-kotlin/main")
-val generatedTestDir = layout.buildDirectory.dir("generated/vira-kotlin/test")
-val portableWireFile = layout.projectDirectory.file("../../../interop/studio-experience/v1/kotlin/StudioExperienceModels.kt")
+abstract class GeneratePackagedKotlinSources : DefaultTask() {
+  @get:InputDirectory
+  @get:PathSensitive(PathSensitivity.RELATIVE)
+  abstract val sourceRoot: DirectoryProperty
 
-val generatePackagedMainSources = tasks.register("generatePackagedMainSources") {
-  inputs.dir(layout.projectDirectory.dir("src/main/kotlin"))
-  inputs.file(portableWireFile)
-  outputs.dir(generatedMainDir)
+  @get:Input
+  abstract val packageName: Property<String>
 
-  doLast {
-    val output = generatedMainDir.get().asFile
+  @get:InputFile
+  @get:Optional
+  @get:PathSensitive(PathSensitivity.RELATIVE)
+  abstract val portableWireSource: RegularFileProperty
+
+  @get:OutputDirectory
+  abstract val outputDirectory: DirectoryProperty
+
+  @TaskAction
+  fun generate() {
+    val sourceRootFile = sourceRoot.get().asFile
+    val output = outputDirectory.get().asFile
     output.deleteRecursively()
     output.mkdirs()
 
     fun writePackaged(source: java.io.File, relativeName: String) {
       val target = output.resolve(relativeName)
       target.parentFile.mkdirs()
-      target.writeText("package $viraPublicPackage\n\n" + source.readText())
+      target.writeText("package ${packageName.get()}\n\n" + source.readText())
     }
 
-    fileTree("src/main/kotlin") {
-      include("**/*.kt")
-    }.files.sortedBy { it.relativeTo(projectDir).path }.forEach { source ->
-      writePackaged(source, source.relativeTo(file("src/main/kotlin")).path)
-    }
+    sourceRootFile
+      .walkTopDown()
+      .filter { file -> file.isFile && file.extension == "kt" }
+      .sortedBy { file -> file.relativeTo(sourceRootFile).invariantSeparatorsPath }
+      .forEach { source ->
+        writePackaged(source, source.relativeTo(sourceRootFile).invariantSeparatorsPath)
+      }
 
-    writePackaged(portableWireFile.asFile, "StudioExperienceModels.kt")
+    if (portableWireSource.isPresent) {
+      writePackaged(portableWireSource.get().asFile, "StudioExperienceModels.kt")
+    }
   }
 }
 
-val generatePackagedTestSources = tasks.register("generatePackagedTestSources") {
-  inputs.dir(layout.projectDirectory.dir("src/test/kotlin"))
-  outputs.dir(generatedTestDir)
+val viraPublicPackage = "xyz.tryvira.android"
+val portableWireFile = layout.projectDirectory.file("../../../interop/studio-experience/v1/kotlin/StudioExperienceModels.kt")
 
-  doLast {
-    val output = generatedTestDir.get().asFile
-    output.deleteRecursively()
-    output.mkdirs()
-    fileTree("src/test/kotlin") {
-      include("**/*.kt")
-    }.files.sortedBy { it.relativeTo(projectDir).path }.forEach { source ->
-      val target = output.resolve(source.relativeTo(file("src/test/kotlin")).path)
-      target.parentFile.mkdirs()
-      target.writeText("package $viraPublicPackage\n\n" + source.readText())
-    }
-  }
+val generatePackagedMainSources = tasks.register<GeneratePackagedKotlinSources>("generatePackagedMainSources") {
+  sourceRoot.set(layout.projectDirectory.dir("src/main/kotlin"))
+  packageName.set(viraPublicPackage)
+  portableWireSource.set(portableWireFile)
+  outputDirectory.set(layout.buildDirectory.dir("generated/vira-kotlin/main"))
+}
+
+val generatePackagedTestSources = tasks.register<GeneratePackagedKotlinSources>("generatePackagedTestSources") {
+  sourceRoot.set(layout.projectDirectory.dir("src/test/kotlin"))
+  packageName.set(viraPublicPackage)
+  outputDirectory.set(layout.buildDirectory.dir("generated/vira-kotlin/test"))
 }
 
 android {
@@ -63,13 +87,12 @@ android {
 
   sourceSets {
     getByName("main") {
+      // The checked-in Kotlin files intentionally omit their public package;
+      // only the generated packaged variant is compiled by Android.
       kotlin.directories.clear()
-      kotlin.directories.add(generatedMainDir.get().asFile.path)
     }
     getByName("test") {
       kotlin.directories.clear()
-      kotlin.directories.add(generatedTestDir.get().asFile.path)
-      java.setSrcDirs(listOf(file("src/test/java")))
     }
   }
 
@@ -78,19 +101,21 @@ android {
   }
 }
 
-tasks.matching { task ->
-  task.name.startsWith("compile") && task.name.contains("Kotlin", ignoreCase = true)
-}.configureEach {
-  if (name.contains("UnitTest", ignoreCase = true)) {
-    dependsOn(generatePackagedTestSources)
+// Generated Kotlin must be owned by the task that creates it. AGP's Variant
+// API carries that producer relationship to every source consumer. The default
+// JVM unit test is a HostTest nested component in AGP 9.4, so avoid the legacy
+// direct unitTest accessor and wire its Sources through nestedComponents.
+androidComponents.onVariants { variant ->
+  variant.sources.kotlin?.addGeneratedSourceDirectory(generatePackagedMainSources) {
+    it.outputDirectory
   }
-  dependsOn(generatePackagedMainSources)
-}
-
-tasks.matching { task ->
-  task.name.startsWith("compile") && task.name.contains("Java", ignoreCase = true)
-}.configureEach {
-  dependsOn(generatePackagedMainSources)
+  variant.nestedComponents
+    .filterIsInstance<HostTest>()
+    .forEach { hostTest ->
+      hostTest.sources.kotlin?.addGeneratedSourceDirectory(generatePackagedTestSources) {
+        it.outputDirectory
+      }
+    }
 }
 
 dependencies {
