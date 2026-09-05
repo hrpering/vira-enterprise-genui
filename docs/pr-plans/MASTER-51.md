@@ -2,9 +2,9 @@
 
 **Status:** Q0–Q6 PASS / Q7 RERUN PENDING / Q8 BLOCKED  
 **Base SHA:** `6f02e4437210c0cd662f1852759c88fca328462c`  
-**Frozen executable/test/config SHA:** `a3ba23a68f68aee894f818823ba1003511024f19`  
-**Invalidated previous freeze:** `952e3445d46d0b3770a499522abc1ad77315a228`  
-**Earlier invalidated freeze:** `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`  
+**Frozen executable/test/config SHA:** `e8f568834752ce92796c9cddec5745b373b07d69`  
+**Invalidated previous freeze:** `a3ba23a68f68aee894f818823ba1003511024f19`  
+**Earlier invalidated freezes:** `952e3445d46d0b3770a499522abc1ad77315a228`, `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`  
 **Branch:** `master/51-network-rc`  
 **PR:** #212 (draft)
 
@@ -49,76 +49,79 @@ The RC orchestrator owns no semantic truth and fails immediately when a child ga
 
 ## Core implementation and coverage
 
-MASTER-51 integration/release surfaces:
+MASTER-51 integration/release surfaces include the independent cross-surface proof workspace, the fail-closed Network RC orchestrator, and root verification scripts. Coverage proves exact Application discovery, explicit Distribution integrity verification, exact protocol compatibility, direct Application Capability `id@version` → Capability supply lookup, no provider fallback/substitution, one-shot hosted execution, exact execution evidence identity, binding mismatch rejection, Action Boundary rejection, floating Application Capability rejection before digest generation, and absence of invented auth/trust/commercial/deployment authority.
 
-- `examples/application-network-rc/package.json`;
-- `examples/application-network-rc/application-network-rc.test.ts`;
-- `examples/application-network-rc/application-network-rc-hardening.test.ts`;
-- `tooling/verify-application-network-rc.mjs`;
-- root `verify:application-network-cross-surface` and `verify:application-network-rc` scripts.
+## Q7 / Q8 history
 
-Coverage proves exact Application discovery, explicit Distribution integrity verification, exact protocol compatibility, direct Application Capability `id@version` → Capability supply lookup, no provider fallback/substitution, one-shot hosted execution, exact execution evidence identity, binding mismatch rejection, Action Boundary rejection, floating Application Capability rejection before digest generation, and absence of invented auth/trust/commercial/deployment authority.
+### Initial executable freeze `0c491393...`
 
-## Q7 history before Q8 attempt 1
+Q7 exposed a MASTER-51 TS7006 callback type issue plus inherited Enterprise RC lint failures. Those executable/config remediations invalidated the freeze.
 
-- `0c491393...`: Q7 attempt 1 exposed MASTER-51 typecheck + inherited lint blockers and required executable/config remediation.
-- `952e3445...`: Q7 attempt 2 passed code/repository gates but was environment-blocked because local `xcrun` used standalone Command Line Tools.
-- same `952e3445...`: after full Xcode environment repair, operator reported final Application Network RC **green**.
+Evidence: `docs/evidence/MASTER-51/Q7_ATTEMPT_1_FAIL.md`.
+
+### Freeze `952e3445...`
+
+Q7 code/repository gates passed, then native RC was blocked because local `xcrun` used standalone Command Line Tools. After full Xcode environment repair the operator later reported the final RC green on the same exact freeze.
 
 Evidence:
 
-- `docs/evidence/MASTER-51/Q7_ATTEMPT_1_FAIL.md`;
 - `docs/evidence/MASTER-51/Q7_ATTEMPT_2_ENV_BLOCKED.md`;
 - `docs/evidence/MASTER-51/Q7_FINAL_PASS.md`.
 
-That final Q7 PASS is now historical only because independent Q8 found an executable owner issue.
+That final green became historical when independent Q8 found an executable owner issue.
 
-## Q8 attempt 1 — FAIL
+### Q8 attempt 1 — Capability release owner drift
 
-Independent Q8 re-read found duplicate Capability release identity validation:
+Independent Q8 found duplicate Capability release identity validation: `capability-contract` validated CapabilityDefinition `id/version`, while `capability-supply` separately carried a local `RELEASE_VERSION` validator for query `capabilityId/capabilityVersion`.
 
-- `capability-contract` validated CapabilityDefinition `id/version` with its own release-semver implementation;
-- `capability-supply` separately validated supply query `capabilityId/capabilityVersion` with another local `RELEASE_VERSION` parser.
+Remediation:
 
-This violated the one-semantic-concept/one-owner invariant.
+- `capability-contract` now publicly owns `parse/serializeViraCapabilityReleaseReference()`;
+- CapabilityDefinition delegates root `id/version` to it;
+- Capability supply query delegates to it and maps only issue paths into `$query.*`;
+- local supply release-semver validation is removed;
+- parity/accessor hardening is covered by `tests/contract/capability-release-reference-owner.test.ts` and included in the cross-surface gate.
 
 Evidence: `docs/evidence/MASTER-51/Q8_ATTEMPT_1_OWNER_DRIFT.md`.
 
-PR #212 was not merged.
+### Q7 attempt 3 — internal contract-test import resolution
 
-## Q8 remediation
+The operator ran exact freeze `a3ba23a68f68aee894f818823ba1003511024f19`.
 
-The existing canonical Capability owner was extended rather than creating a new package:
+Reported:
 
-- added `parseViraCapabilityReleaseReference()`;
-- added `serializeViraCapabilityReleaseReference()`;
-- `parseViraCapabilityDefinition()` now delegates root `id/version` release identity to that API;
-- `lookupViraCapabilitySupply()` removes its local release-semver parser and delegates supply query release identity to the same owner;
-- supply maps only owner issue paths to `$query.capabilityId` / `$query.capabilityVersion`;
-- `tests/contract/capability-release-reference-owner.test.ts` locks direct parser ↔ CapabilityDefinition ↔ supply-query parity and accessor fail-closed behavior;
-- `verify:application-network-cross-surface` now includes that owner-parity suite.
+- workspace install PASS;
+- boundaries PASS;
+- lint PASS;
+- typecheck FAIL with two TS2307 errors because the new `tests/contract/capability-release-reference-owner.test.ts` used bare workspace package imports;
+- `set -e` stopped the run, so focused parity, cross-surface and final RC gates did not run.
 
-No new dependency edge is required because `capability-supply` already depends on `capability-contract`.
+Root cause: internal `tests/contract` suites use the established relative package source-entrypoint pattern. External `@acme` proof workspaces use bare public package-root imports; the new internal parity test had mixed those two conventions.
 
-No provider-selection, Action, authentication, entitlement, deployment or cloud-compute authority is added.
+Remediation changes only the two internal test imports to:
 
-## Q5–Q6 after remediation
+- `../../packages/capability-contract/src/index.js`;
+- `../../packages/capability-supply/src/index.js`.
+
+No production source or semantic behavior changes in this remediation.
+
+Evidence: `docs/evidence/MASTER-51/Q7_ATTEMPT_3_TYPECHECK_FAIL.md`.
+
+## Q5–Q6 after latest remediation
 
 Static security/architecture review repeated and PASS on:
 
-`a3ba23a68f68aee894f818823ba1003511024f19`
+`e8f568834752ce92796c9cddec5745b373b07d69`
 
 Evidence: `docs/evidence/MASTER-51/Q5_Q6_REVIEW.md`.
 
-## Current Q7 requirement
+## Current Q7 authority
 
 A full local Q7 rerun is required on exact detached SHA:
 
-`a3ba23a68f68aee894f818823ba1003511024f19`
+`e8f568834752ce92796c9cddec5745b373b07d69`
 
-The previous final green on `952e3445...` cannot authorize merge because executable/test content changed after Q8 attempt 1.
-
-Q8 remains blocked until the new freeze passes locally.
+All previous Q7 results are historical only because executable/test content changed afterward. Q8 remains blocked until this exact current freeze passes.
 
 ## Q8–Q9 after rerun PASS
 
@@ -126,7 +129,7 @@ Q8 remains blocked until the new freeze passes locally.
 - inspect current PR metadata/diff and canonical adjacent owners;
 - inspect reviews/threads/comments;
 - classify current-head hosted Actions;
-- prove new freeze → closure executable/package/test/boundary/config drift is zero;
+- prove current freeze → closure executable/package/test/boundary/config drift is zero;
 - if Q8 PASS, perform final Q9 docs-only closure compare;
 - mark PR ready and squash merge only with fresh exact `expected_head_sha`;
 - independently verify resulting authoritative `main` and close the Application Network roadmap.
