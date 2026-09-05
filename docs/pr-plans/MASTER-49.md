@@ -1,6 +1,6 @@
 # MASTER-49 — Independent External AI Host Proof
 
-**Status:** Q0–Q6 PASS / Q7 PENDING  
+**Status:** Q0–Q7 PASS / Q8 ACTIVE  
 **Base SHA:** `70dfa599b6b7e77bb5a70e53cee56dd22c0a0b05`  
 **Frozen executable/test SHA:** `5bb3497b736095509ba4b13d365d52ddee4b60bc`  
 **Branch:** `master/49-external-ai-host-proof`  
@@ -70,8 +70,14 @@ Static security/architecture review PASS: `docs/evidence/MASTER-49/Q5_Q6_REVIEW.
 
 ## Q7
 
-Pending operator local execution on exact freeze `5bb3497b736095509ba4b13d365d52ddee4b60bc`. No runtime counts/timings are recorded until reported.
+Operator-reported PASS on exact freeze `5bb3497b736095509ba4b13d365d52ddee4b60bc`. Evidence: `docs/evidence/MASTER-49/Q7_LOCAL_PASS.md`.
 
-## Q8–Q9
+No test counts, warning counts, durations or timings were reconstructed or inferred.
 
-Pending Q7 PASS: independent PR reverse engineering, frozen-to-current executable drift, reviews/threads/comments, hosted CI classification, then exact-head ready/merge gate.
+## Q8
+
+ACTIVE: independent PR reverse engineering from current PR state, including executable files, canonical owner alignment, external proof imports, freeze-to-head drift, reviews/threads/comments and hosted CI classification.
+
+## Q9
+
+Pending Q8 PASS: frozen-to-closure executable drift, ready transition, exact-head squash merge and independent `main` verification.
