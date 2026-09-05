@@ -77,20 +77,20 @@ describe("MASTER-49 independent external AI-host proof", () => {
   it("verifies a canonical external Distribution artifact before producing a frozen compatibility plan", async () => {
     const source = await preparedEnvelope();
     let verifierCalls = 0;
-    let verifiedApplicationId = "";
+    let verifiedCanonicalArtifact = "";
 
     const result = await evaluateViraApplicationForAiHost(
       { source, host: host() },
       (input: ViraApplicationDistributionVerifierInput) => {
         verifierCalls += 1;
-        verifiedApplicationId = input.applicationId;
+        verifiedCanonicalArtifact = input.canonicalArtifact;
         return externalVerifier(input);
       },
     );
 
     expect(result.ok).toBe(true);
     expect(verifierCalls).toBe(1);
-    expect(verifiedApplicationId).toBe("acme.external-ai-host");
+    expect(verifiedCanonicalArtifact).toContain('"id":"acme.external-ai-host"');
     if (!result.ok) return;
     expect(result.value.source.application.identity.id).toBe("acme.external-ai-host");
     expect(result.value.compatibleProtocolProjections).toEqual([
