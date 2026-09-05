@@ -37,3 +37,12 @@ export type {
   ViraApplicationExactReferenceParseResult,
   ViraApplicationExactReferenceSerializationResult,
 } from "./reference.js";
+export {
+  parseViraApplicationReleaseReference,
+  serializeViraApplicationReleaseReference,
+} from "./release-reference.js";
+export type {
+  ViraApplicationReleaseReference,
+  ViraApplicationReleaseReferenceParseResult,
+  ViraApplicationReleaseReferenceSerializationResult,
+} from "./release-reference.js";
