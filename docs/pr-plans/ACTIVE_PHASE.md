@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-51 — Cross-Surface Exact Semantics + Application Network RC  
-**Status:** Q0–Q6 PASS / Q7 RERUN PENDING / Q8 BLOCKED  
+**Status:** Q0–Q7 PASS / Q8 ACTIVE  
 **Base SHA:** `6f02e4437210c0cd662f1852759c88fca328462c`  
 **Frozen executable/test/config SHA:** `e8f568834752ce92796c9cddec5745b373b07d69`  
 **Invalidated previous freeze:** `a3ba23a68f68aee894f818823ba1003511024f19`  
@@ -15,7 +15,9 @@ MASTER-51 is the final planned Application Network closure phase. It creates no 
 
 Q8 attempt 1 found duplicate Capability release identity validation between `capability-contract` and `capability-supply`. The remediation made `capability-contract` the single public owner of Capability `{ id, version }` release syntax and made CapabilityDefinition + supply lookup delegate to that API.
 
-Q7 attempt 3 on `a3ba23a68f68aee894f818823ba1003511024f19` then exposed a contract-test harness error: the new parity test used bare workspace package imports from `tests/contract`, causing two TS2307 failures. The internal test now follows the repository's established relative source-entrypoint import pattern. Production semantics are unchanged.
+Q7 attempt 3 on `a3ba23a68f68aee894f818823ba1003511024f19` exposed only a contract-test harness resolution error: the new parity test used bare workspace package imports from `tests/contract`, causing two TS2307 failures. The internal test was corrected to the repository's established relative source-entrypoint import pattern. Production semantics were unchanged.
+
+The operator then reported the exact full Q7 rerun **green** on frozen SHA `e8f568834752ce92796c9cddec5745b373b07d69`. This is the current final local verification authority. No test counts, timings or warning counts are reconstructed beyond that operator report.
 
 Canonical cross-surface proof:
 
@@ -71,8 +73,9 @@ Evidence history:
 - `docs/evidence/MASTER-51/Q7_ATTEMPT_2_ENV_BLOCKED.md`;
 - `docs/evidence/MASTER-51/Q7_FINAL_PASS.md` — historical after later executable changes;
 - `docs/evidence/MASTER-51/Q8_ATTEMPT_1_OWNER_DRIFT.md`;
-- `docs/evidence/MASTER-51/Q7_ATTEMPT_3_TYPECHECK_FAIL.md`.
+- `docs/evidence/MASTER-51/Q7_ATTEMPT_3_TYPECHECK_FAIL.md`;
+- `docs/evidence/MASTER-51/Q7_RERUN_PASS.md` — current operator-reported Q7 PASS on exact frozen SHA.
 
-Q5/Q6 static review was repeated and PASS on current freeze `e8f568834752ce92796c9cddec5745b373b07d69`.
+Q5/Q6 static review is PASS on current freeze `e8f568834752ce92796c9cddec5745b373b07d69`.
 
-A full local Q7 rerun on this exact freeze is required. Q8 remains blocked until that rerun passes.
+Q8 is now active and must independently re-read the current PR, canonical adjacent owners, reviews/threads/comments, hosted Actions and freeze→closure drift before any ready-for-review or merge action.
