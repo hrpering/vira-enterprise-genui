@@ -1,5 +1,5 @@
 {
-  "name": "@vira-enterprise-genui/deployment-plane",
+  "name": "@vira-enterprise-genui/application-resolution",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,8 +7,7 @@
   "dependencies": {
     "@vira-enterprise-genui/application-distribution": "workspace:*",
     "@vira-enterprise-genui/application-package": "workspace:*",
-    "@vira-enterprise-genui/enterprise-context": "workspace:*",
-    "@vira-enterprise-genui/experience-packs": "workspace:*",
-    "@vira-enterprise-genui/protocol": "workspace:*"
+    "@vira-enterprise-genui/deployment-plane": "workspace:*",
+    "@vira-enterprise-genui/enterprise-context": "workspace:*"
   }
 }
