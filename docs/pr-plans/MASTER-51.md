@@ -13,9 +13,7 @@ Close the Application Network roadmap by proving one exact semantic chain across
 
 MASTER-51 is a closure/integration phase, not a new semantic package or owner.
 
-## Q0–Q2 — frozen contract
-
-Canonical cross-surface chain:
+## Canonical cross-surface chain
 
 ```text
 external publisher
@@ -35,7 +33,7 @@ hosted-capability-runtime one-shot query execution
 execution evidence with the same exact Capability id@version
 ```
 
-Network RC composition:
+## Application Network RC
 
 ```text
 verify:application-network-rc
@@ -48,9 +46,9 @@ verify:application-network-rc
 
 The RC orchestrator owns no semantic truth itself and fails immediately when a child gate fails.
 
-## Q3–Q4 — implementation + focused coverage
+## Implementation and coverage
 
-Added:
+MASTER-51 adds only integration/release surfaces:
 
 - `examples/application-network-rc/package.json`;
 - `examples/application-network-rc/application-network-rc.test.ts`;
@@ -58,23 +56,11 @@ Added:
 - `tooling/verify-application-network-rc.mjs`;
 - root `verify:application-network-cross-surface` and `verify:application-network-rc` scripts.
 
-Coverage proves:
-
-- exact Application discovery from canonical Distribution;
-- explicit Distribution integrity verification at AI-host boundary;
-- exact protocol projection compatibility;
-- canonical Application Capability `id@version` used directly for Capability supply lookup;
-- exact provider/location lookup with no fallback/substitution;
-- one-shot hosted query execution;
-- execution evidence retaining the exact Capability reference;
-- divergent hosted binding identity with zero adapter calls;
-- action Capability supply rejected behind Action Boundary;
-- `latest` and `1.x` Application Capability refs rejected before publisher digest generation;
-- absence of auth/trust/commercial/deployment authority fields.
+Coverage proves exact Application discovery, explicit Distribution integrity verification, exact protocol compatibility, direct Application Capability `id@version` → Capability supply lookup, no provider fallback/substitution, one-shot hosted execution, exact execution evidence identity, binding mismatch rejection, Action Boundary rejection, floating Application Capability rejection before digest generation, and absence of invented auth/trust/commercial/deployment authority.
 
 ## Q5–Q6
 
-Initial static review passed before Q7 attempt 1. After executable/config remediation, Q5/Q6 were repeated and remain PASS on:
+Static security/architecture review was repeated after Q7 attempt-1 remediation and remains PASS on:
 
 `952e3445d46d0b3770a499522abc1ad77315a228`
 
@@ -82,52 +68,52 @@ Evidence: `docs/evidence/MASTER-51/Q5_Q6_REVIEW.md`.
 
 ## Q7 attempt 1 — FAIL
 
-Operator ran the commanded gate on exact previous freeze:
+The operator ran exact previous freeze:
 
 `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`
 
 Evidence: `docs/evidence/MASTER-51/Q7_ATTEMPT_1_FAIL.md`.
 
-Reported results included:
+Reported facts:
 
 - workspace install completed;
 - boundaries PASS;
-- typecheck FAIL: TS7006 implicit `any` in the new publisher digest callback;
+- typecheck FAIL with TS7006 in the new publisher digest callback;
 - cross-surface proof PASS: 2 test files / 7 tests / 220ms as reported by the operator;
-- Application Network RC FAIL inside Enterprise RC baseline because ESLint reported 7 errors in inherited files.
+- Application Network RC FAIL inside Enterprise RC baseline because ESLint reported 7 inherited errors.
 
 The previous freeze is invalid for final merge authority.
 
 ## Remediation
 
-Executable/config remediation is intentionally narrow:
+Executable/config remediation is deliberately narrow:
 
 1. `examples/application-network-rc/application-network-rc.test.ts`
    - imports public `ViraApplicationPublisherDigestInput`;
-   - types the digest callback parameter explicitly.
+   - explicitly types the digest callback parameter.
 
 2. `eslint.config.mjs`
-   - extends the existing intentional `no-control-regex` override only to the exact validator files reported by the Enterprise RC baseline;
-   - scopes `no-useless-escape` override only to the existing design-import regex file;
+   - extends the existing intentional `no-control-regex` override only to the exact validator files reported by the baseline;
+   - scopes `no-useless-escape` override to the existing design-import regex file;
    - keeps `@typescript-eslint/no-unused-vars` enabled while ignoring only exact legacy symbol `ViraCommercialEntitlementSet` in `commercial-entitlement`.
 
-No wire schema, package dependency, runtime behavior, provider selection, Action authority, authentication, entitlement or deployment semantics changed.
+No wire schema, dependency graph, runtime behavior, provider selection, Action authority, authentication, entitlement or deployment semantics changed.
 
 ## New Q7 authority
 
-A full local rerun is required on exact detached SHA:
+A **full** local rerun is required on exact detached SHA:
 
 `952e3445d46d0b3770a499522abc1ad77315a228`
 
-Q8 must not start until that rerun passes.
+The old Q7 PASS/FAIL outputs are historical evidence only. Q8 remains blocked until this exact new freeze passes.
 
-## Q8–Q9 after new Q7 PASS
+## Q8–Q9 after rerun PASS
 
-- independently re-read PR #212 from scratch;
-- inspect current executable diff and canonical adjacent owners;
+- re-read PR #212 independently from scratch;
+- inspect current executable/config diff and adjacent canonical owners;
 - inspect reviews/threads/comments;
 - classify current-head hosted Actions;
-- prove new freeze → current closure executable/package/test/boundary/config drift is zero;
+- prove new freeze → closure executable/package/test/boundary/config drift is zero;
 - if Q8 PASS, run final Q9 docs-only closure compare;
-- mark PR ready and squash merge only with a fresh exact `expected_head_sha`;
+- mark PR ready and squash merge only with fresh exact `expected_head_sha`;
 - independently verify resulting authoritative `main` and close the Application Network roadmap.
