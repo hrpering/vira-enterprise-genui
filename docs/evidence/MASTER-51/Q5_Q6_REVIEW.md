@@ -3,27 +3,31 @@
 **Date:** 2026-09-05  
 **Phase:** MASTER-51 — Cross-Surface Exact Semantics + Application Network RC  
 **Authoritative base SHA:** `6f02e4437210c0cd662f1852759c88fca328462c`  
-**Frozen executable/config SHA:** `952e3445d46d0b3770a499522abc1ad77315a228`
+**Current frozen executable/test/config SHA:** `a3ba23a68f68aee894f818823ba1003511024f19`  
+**Invalidated previous freeze:** `952e3445d46d0b3770a499522abc1ad77315a228`
 
 ## Result
 
-- **Q5 security / fail-closed review:** PASS (static)
-- **Q6 architecture / ownership review:** PASS (static)
-- **Q7 attempt 1:** FAIL on invalidated previous freeze `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`
-- **Q7 attempt 2:** code/repository gates PASS; final RC environment-blocked on current freeze
+- **Q5 security / fail-closed review:** PASS (static, repeated after Q8 owner-drift remediation)
+- **Q6 architecture / ownership review:** PASS (static, repeated after Q8 owner-drift remediation)
+- **Q7:** rerun required on current freeze
+- **Q8:** blocked until that rerun passes
 
-Q7 attempt 2 does not authorize merge because `verify:application-network-rc` did not complete. It also does not invalidate the current freeze because the remaining blocker is local Xcode developer-directory selection and requires no repository change.
+The operator-reported final Q7 PASS on previous freeze `952e3445...` is historical evidence only because Q8 required executable changes.
 
 ## Remediation reviewed
 
-The executable/config remediation after Q7 attempt 1 is deliberately narrow:
+Independent Q8 found duplicate Capability release identity validation between `capability-contract` and `capability-supply`.
 
-- the MASTER-51 publisher digest callback is typed with the public publisher SDK input type;
-- the repo's existing lint policy for intentional control-character validation regexes is extended only to the exact inherited validation files reported by Enterprise RC;
-- the inherited design-import regex lint exception is narrowly scoped;
-- unused-variable enforcement remains enabled and only the exact inherited legacy symbol reported by the gate is handled.
+The remediation is deliberately narrow:
 
-No Application/Capability/runtime wire or authority semantics changed.
+- `capability-contract` exports canonical `parseViraCapabilityReleaseReference()` and `serializeViraCapabilityReleaseReference()`;
+- `parseViraCapabilityDefinition()` delegates root `id/version` release identity to that API;
+- `lookupViraCapabilitySupply()` delegates `capabilityId/capabilityVersion` query identity to that same owner and only maps owner issue paths into `$query.*` paths;
+- the local Capability-supply `RELEASE_VERSION` parser is removed;
+- a direct parser ↔ CapabilityDefinition ↔ CapabilitySupply query parity test is added and included in the Network cross-surface gate.
+
+No new domain package or semantic owner was introduced. `capability-contract` was already the canonical Capability owner; this change completes that owner's public release-identity surface.
 
 ## Q5 — security / fail-closed review
 
@@ -31,7 +35,7 @@ No Application/Capability/runtime wire or authority semantics changed.
 
 PASS.
 
-The proof composes existing public owners rather than creating a new semantic authority:
+Canonical proof remains:
 
 ```text
 external publisher
@@ -47,122 +51,132 @@ capability-supply exact lookup
 hosted-capability-runtime one-shot query adapter
 ```
 
-The Application Capability reference is read from the canonical discovered/verified Application artifact and used directly as the exact `capabilityId + capabilityVersion` lookup key for Capability supply. Successful hosted execution evidence must return the same exact Capability id/version.
+Application Capability `id@version` is read from the discovered/verified canonical Application and used directly as the Capability supply query identity. Supply now validates that release identity through `capability-contract` rather than through a second semver implementation.
 
 ### No floating / implicit resolution
 
 PASS.
 
-- canonical Application exact-reference parsing rejects floating aliases and wildcard references;
-- publisher preparation parses the canonical Application before invoking the digest provider;
-- MASTER-51 hardening explicitly proves `latest` and `1.x` Capability references fail before digest generation;
-- Application federation uses exact Application id + release lookup;
+- Application exact references reject floating aliases/wildcards before publisher digest generation;
+- Application federation lookup uses exact Application release identity through the Application owner API;
 - AI-host protocol projection compatibility remains exact id + exact versionRef;
-- Capability supply exact lookup returns an empty success when the requested exact Capability release is absent;
-- no provider-version substitution, latest, fallback, ranking or near-match behavior is added.
+- Capability release identity is now canonicalized by `capability-contract` for both CapabilityDefinition and supply lookup;
+- exact supply misses return empty success;
+- no latest, fallback, substitute release/provider, ranking, priority or near-match behavior is introduced.
 
 ### Distribution integrity / host boundary
 
 PASS.
 
-The cross-surface proof uses the existing explicit external Distribution verifier before AI-host compatibility succeeds. Integrity declaration alone is not treated as verified trust. AI-host compatibility does not become authorization, entitlement, deployment or execution permission.
+Distribution integrity remains explicit before AI-host compatibility succeeds. Integrity declaration is not treated as authentication, authorization, entitlement, deployment or execution permission.
 
 ### Capability execution boundary
 
 PASS.
 
-- supply remains discovery/composition only and never invokes providers;
-- hosted binding `capabilityRef` must exactly match the canonical CapabilityDefinition id/version;
+- Capability supply remains discovery/composition only and does not invoke providers;
+- supply accepts query Capabilities only;
+- hosted binding `capabilityRef` must exactly match CapabilityDefinition id/version;
 - divergent binding identity fails before adapter invocation;
-- action-kind Capabilities fail `ACTION_BOUNDARY_REQUIRED` and remain behind the canonical Action Boundary;
-- query adapter invocation remains one-shot through the existing hosted runtime owner;
-- no retry/failover or substitute-provider behavior is introduced.
+- action-kind Capabilities remain behind Action Boundary;
+- hosted provider adapter invocation remains one-shot;
+- no retry/failover/substitute-provider behavior is added.
+
+### Canonical release parser hardening
+
+PASS.
+
+The new Capability release owner:
+
+- consumes untrusted input through shared safe JSON parsing;
+- requires an exact two-field `{ id, version }` shape;
+- requires a namespaced semantic Capability id;
+- requires exact release semver;
+- returns frozen canonical output;
+- fails closed on accessor-backed input without invoking getters, covered by the new parity test.
+
+### Lint remediation safety
+
+PASS.
+
+The earlier Q7 lint remediation remains unchanged in the new freeze:
+
+- `no-control-regex` is disabled only for explicit validation files using intentional control-character rejection regexes;
+- `no-useless-escape` is disabled only for the existing design-import validator file;
+- unused-variable enforcement remains enabled with only the exact inherited legacy symbol ignored in commercial entitlement.
+
+No broad lint bypass was introduced by the Q8 remediation.
 
 ### Authority-smuggling review
 
 PASS.
 
-The integration proof checks that discovery/compatibility/execution artifacts do not manufacture fields implying authentication, attestation, authorization, entitlement, trust/priority/fallback selection, endpoint/credential ownership or deployment permission.
-
-Network source IDs and Capability supply source/provider/binding/location IDs remain provenance/routing only.
+Network source IDs and Capability source/provider/binding/location IDs remain provenance/routing only. Successful discovery/compatibility/execution does not manufacture authentication, attestation, authorization, entitlement, trust, deployment permission, endpoint ownership or credential authority.
 
 ### RC orchestration fail-closed behavior
 
 PASS.
 
-`tooling/verify-application-network-rc.mjs` invokes each existing gate synchronously and exits non-zero immediately when a child gate cannot start or returns non-zero. It does not suppress failures or recursively invoke itself.
+`verify:application-network-rc` remains a synchronous fail-fast composition gate:
 
-The Network RC composition remains:
-
-1. existing Enterprise RC baseline;
+1. Enterprise RC baseline;
 2. independent external publisher proof;
 3. independent external AI-host proof;
 4. independent external provider proof;
-5. cross-surface Application Network exact-semantics proof.
+5. cross-surface Network proof, now also including Capability release-owner parity.
 
-Q7 attempt 2 confirms that the orchestrator propagated the native environment failure rather than printing a false PASS.
+The orchestrator owns no semantic truth and stops on any child non-zero exit.
 
 ## Q6 — architecture / ownership review
 
-### No new semantic owner
+### Canonical owner chain
 
 PASS.
 
-MASTER-51 adds an integration proof workspace and a release-gate orchestrator only. It does **not** add a new domain package or canonical noun owner.
-
-Existing owners remain authoritative:
-
-- `application-package` — Application identity/references/package semantics;
+- `application-package` — Application exact/release identity and package semantics;
 - `application-distribution` — Distribution/integrity envelope semantics;
-- `application-publisher-sdk` — publisher-side preparation ergonomics;
-- `application-federation` — public exact Application discovery/conflict semantics;
-- `application-ai-host-sdk` — integrity-gated AI-host compatibility ergonomics;
-- `capability-contract` — CapabilityDefinition + exact Capability reference semantics;
-- `capability-supply` — exact provider-neutral Capability supply discovery/conflicts;
-- `hosted-capability-runtime` — one-shot hosted query Capability execution boundary;
+- `application-publisher-sdk` — publisher preparation ergonomics;
+- `application-federation` — public exact Application discovery/conflicts;
+- `application-ai-host-sdk` — integrity-gated compatibility ergonomics;
+- `capability-contract` — CapabilityDefinition, exact references and Capability release identity;
+- `capability-supply` — exact provider-neutral supply discovery/conflicts only;
+- `hosted-capability-runtime` — one-shot hosted query execution boundary;
 - `action-boundary` — protected effects.
 
-`PACKAGE_OWNERSHIP.md` therefore requires no new owner row for MASTER-51.
+The Q8 remediation reduces duplication; it does not create a second owner.
 
 ### Public-root composition
 
 PASS.
 
-The new `@acme/vira-application-network-rc-proof` workspace depends only on public package roots needed to compose existing owners. It does not import Vira package internals via `src/*`.
+The `@acme/vira-application-network-rc-proof` workspace imports only public Vira package roots. The new Capability release owner is also exported from the public `capability-contract` package root.
 
-### RC composition, not semantic duplication
+### Dependency graph
 
 PASS.
 
-`verify:application-network-rc` does not implement Application, Capability, Distribution, federation, compatibility, provider or runtime semantics. It composes existing executable gates.
-
-The existing Enterprise RC already owns repository/browser/native/device/external-brand verification. MASTER-51 reuses it and adds the Network-specific independent role proofs plus the cross-surface exact-semantics integration proof.
+No new package dependency edge is required: `capability-supply` already depends on `capability-contract`. No commercial, federation, governance, deployment or cloud dependency was added to the Capability release owner path.
 
 ### Scope prohibitions
 
-No MASTER-51 executable code introduces provider authentication/attestation, endpoint/credential catalogs, provider health/SLA/ranking/failover, commercial entitlement/pricing/settlement authority, deployment placement/autoscaling, generic cloud compute, new Action execution semantics, new protocol semantics or another Application/Capability parser.
+No current MASTER-51 executable code introduces:
 
-## Current freeze and runtime evidence
+- provider authentication/attestation;
+- endpoint/credential catalogs;
+- provider health/SLA/ranking/failover;
+- commercial entitlement/pricing/settlement authority;
+- deployment placement/autoscaling;
+- generic VM/container/Kubernetes/serverless/cloud compute;
+- new Action execution semantics;
+- new protocol semantics;
+- a second Application or Capability release parser.
 
-Current executable/config freeze:
+## Current freeze
 
-`952e3445d46d0b3770a499522abc1ad77315a228`
+Current executable/test/config freeze:
 
-Operator-reported Q7 attempt-2 code/repository results on that exact freeze:
+`a3ba23a68f68aee894f818823ba1003511024f19`
 
-- boundaries PASS;
-- lint PASS;
-- typecheck PASS;
-- cross-surface proof PASS — 2 files / 7 tests / 254ms;
-- repository Vitest suite PASS — 232 files / 1311 tests / 7.62s;
-- production builds PASS;
-- browser E2E PASS — 1 test;
-- Swift structural conformance emitted `SWIFT_CONFORMANCE_OK`.
+The previous operator-reported Q7 final PASS on `952e3445d46d0b3770a499522abc1ad77315a228` is invalid for final merge authority because executable/test content changed after Q8 attempt 1.
 
-The remaining RC failure is local Xcode environment resolution through standalone Command Line Tools. No source/config remediation follows from that failure.
-
-## Next gate
-
-Keep exact freeze `952e3445d46d0b3770a499522abc1ad77315a228` detached, restore full Xcode as active developer directory, confirm `xcrun --sdk macosx --show-sdk-platform-path`, then rerun `pnpm verify:application-network-rc`.
-
-Any executable/package/test/boundary/config change after this SHA would invalidate the freeze and require another full Q7 run. Environment-only repair does not.
+A full local Q7 rerun on the exact current freeze is required before Q8 may restart.
