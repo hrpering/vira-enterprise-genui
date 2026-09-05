@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@vira-enterprise-genui/application-distribution": "workspace:*",
+    "@vira-enterprise-genui/application-package": "workspace:*",
     "@vira-enterprise-genui/protocol": "workspace:*"
   }
 }
