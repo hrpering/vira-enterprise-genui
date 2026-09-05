@@ -1,7 +1,7 @@
 # Active Phase
 
 **Phase:** MASTER-50 — Independent External Provider Proof  
-**Status:** Q0–Q6 PASS / Q7 PENDING  
+**Status:** Q0–Q7 PASS / Q8 ACTIVE  
 **Base SHA:** `46f4d8ec163790765d162d13747dd4f64bf0e8ea`  
 **Frozen executable SHA:** `5ed6832fa9f233b0b7eb44a8fc5f10f143d00905`  
 **Previous:** MASTER-49 merged via PR #210  
@@ -43,4 +43,6 @@ Final invariants:
 
 Q5/Q6 static review PASS: `docs/evidence/MASTER-50/Q5_Q6_REVIEW.md`.
 
-Q7 local execution remains pending on exact freeze `5ed6832fa9f233b0b7eb44a8fc5f10f143d00905`.
+Q7 local execution is operator-reported PASS on exact freeze `5ed6832fa9f233b0b7eb44a8fc5f10f143d00905`. Evidence: `docs/evidence/MASTER-50/Q7_LOCAL_PASS.md`. No counts/timings were reconstructed.
+
+Independent Q8 is active and must re-read PR #211 from scratch, including executable diff, canonical owners, reviews/threads/comments, hosted CI and frozen-to-current executable drift.
