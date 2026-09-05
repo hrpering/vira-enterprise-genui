@@ -6,7 +6,7 @@
 **Frozen executable SHA:** `5bb3497b736095509ba4b13d365d52ddee4b60bc`  
 **Previous:** MASTER-48 merged via PR #209  
 **Branch:** `master/49-external-ai-host-proof`  
-**PR:** pending  
+**PR:** #210 (draft)  
 **Next:** MASTER-50 after MASTER-49 merge from new authoritative `main`
 
 MASTER-49 proves that an independently named AI host can use only public Vira package roots, explicitly verify a canonical Distribution artifact and evaluate host compatibility without hidden Vira runtime/security authority.
