@@ -1,10 +1,11 @@
 # Active Phase
 
 **Phase:** MASTER-47 — Commercial Settlement Allocation + Publisher Economics  
-**Status:** Q0–Q7 PASS / Q8 RESTART ACTIVE  
+**Status:** Q0–Q6 PASS / Q7 RERUN PENDING / Q8 BLOCKED  
 **Base SHA:** `a7083edbb3bafc9326546fbba10286e696f86a06`  
-**Frozen executable SHA:** `b42ae481700094f118328f111f8011ab44136877`  
-**Previous frozen SHA:** `25ee1c25223863f3ceeb53210142acd1da331405` — invalidated by Q8 owner-implementation finding  
+**Frozen executable SHA:** `95c9a0674742c702cc5265b8e1fb35f82dea04ad`  
+**Previous frozen SHA:** `b42ae481700094f118328f111f8011ab44136877` — invalidated by Q8 Application-release owner finding  
+**Earlier frozen SHA:** `25ee1c25223863f3ceeb53210142acd1da331405` — invalidated by Q8 exact-reference owner finding  
 **Previous:** MASTER-46 merged via PR #207  
 **Branch:** `master/47-commercial-settlement`  
 **PR:** #208 (draft)  
@@ -15,7 +16,7 @@ MASTER-47 adds deterministic publisher/platform allocation evidence downstream o
 Canonical composition:
 
 ```text
-application-package      → Application release + publisher + one exact-reference parser implementation
+application-package      → canonical Application release + publisher + exact-reference semantics
 commercial-pricing       → canonical quote evidence
 commercial-settlement    → quote-linked publisher/platform allocation evidence
 ```
@@ -26,12 +27,14 @@ Executable dependency boundary:
 commercial-settlement → application-package, commercial-pricing, protocol
 ```
 
-Final invariants:
+Current invariants:
 
 - exact Application reference parsing/serialization has one canonical implementation in `application-package`;
-- Application package validation delegates nested references to that parser and only remaps error paths;
+- exact Application release id/version parsing/serialization has one canonical implementation in `application-package`;
+- Application package validation delegates both nested exact references and root Application release identity/version to those owner APIs;
+- settlement schedule and persisted allocation evidence delegate Application release validation to the same owner API;
 - settlement rules are selected by exact `settlementRef` only;
-- publisherId must match the Application identity namespace;
+- publisherId must match the canonical Application identity namespace;
 - exact rule Application release must match canonical Application input;
 - exact rule planRef must match canonical quote planRef;
 - no default/latest/fallback settlement policy;
@@ -43,10 +46,12 @@ Final invariants:
 - parsing evidence does not authenticate settlement-policy provenance;
 - no entitlement proof, invoice/payment state, payout/funds movement, subscription/refund, tax/FX/accounting or runtime/security authority.
 
-Q7 attempt 1 passed on old freeze `25ee1c25223863f3ceeb53210142acd1da331405`, but independent Q8 found duplicate exact-reference parser implementations inside `application-package`. Evidence: `docs/evidence/MASTER-47/Q8_ATTEMPT_1.md`.
+Q8 attempt 1 found duplicate exact-reference parser implementations. Evidence: `docs/evidence/MASTER-47/Q8_ATTEMPT_1.md`.
 
-The owner-local remediation removed the duplicate parser implementation, added parity coverage and hardened persisted allocation evidence. Q5/Q6 static re-review PASS on new freeze `b42ae481700094f118328f111f8011ab44136877`.
+The operator reran Q7 on remediation freeze `b42ae481700094f118328f111f8011ab44136877` and reported green, but restarted Q8 found a second owner duplication: settlement independently validated Application release id/version instead of consuming the Application owner. Evidence: `docs/evidence/MASTER-47/Q8_ATTEMPT_2.md`.
 
-The repository operator reran the complete local Q7 gate detached at exact final freeze `b42ae481700094f118328f111f8011ab44136877` and reported it green. Evidence: `docs/evidence/MASTER-47/Q7_RERUN_PASS.md`. No counts or timings are reconstructed.
+Second remediation added canonical `parseViraApplicationReleaseReference` / `serializeViraApplicationReleaseReference`, delegated the Application package root and settlement schedule/evidence to that owner, and added direct/package/settlement parity coverage.
 
-Final independent Q8 is now active. Merge remains blocked until Q8 PASS plus final frozen-to-closure executable drift zero.
+Q5/Q6 static re-review PASS on current freeze `95c9a0674742c702cc5265b8e1fb35f82dea04ad`.
+
+All earlier Q7 passes are historical only and invalidated for final merge because executable/tests changed afterward. Full local Q7 must be rerun detached at the current exact freeze before Q8 restarts.
