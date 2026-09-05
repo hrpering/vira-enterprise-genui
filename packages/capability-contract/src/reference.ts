@@ -59,7 +59,7 @@ export function parseViraCapabilityExactReference(
   if (!parsed.ok) return fail("INVALID_REFERENCE", parsed.issue.path, parsed.issue.reason);
   const root = object(parsed.value);
   if (!root) return fail("INVALID_REFERENCE", "$", "reference must be an exact object");
-  const keys = Object.keys(root);
+  const keys = Object.keys(root).sort();
   if (
     keys.length !== 2
     || !Object.hasOwn(root, "id")
