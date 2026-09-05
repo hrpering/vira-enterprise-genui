@@ -1,11 +1,11 @@
 # MASTER-51 — Cross-Surface Exact Semantics + Application Network RC
 
-**Status:** Q0–Q6 PASS / Q7 CODE GATES PASS / ENVIRONMENT RERUN PENDING / Q8 BLOCKED  
+**Status:** Q0–Q7 PASS / Q8 ACTIVE  
 **Base SHA:** `6f02e4437210c0cd662f1852759c88fca328462c`  
 **Frozen executable/config SHA:** `952e3445d46d0b3770a499522abc1ad77315a228`  
 **Invalidated previous freeze:** `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`  
 **Branch:** `master/51-network-rc`  
-**PR:** #212 (draft)
+**PR:** #212 (draft; independent Q8 active)
 
 ## Goal
 
@@ -44,7 +44,7 @@ verify:application-network-rc
   └─ verify:application-network-cross-surface
 ```
 
-The RC orchestrator owns no semantic truth itself and fails immediately when a child gate fails.
+The RC orchestrator owns no semantic truth and fails immediately when a child gate fails.
 
 ## Implementation and coverage
 
@@ -60,83 +60,39 @@ Coverage proves exact Application discovery, explicit Distribution integrity ver
 
 ## Q5–Q6
 
-Static security/architecture review was repeated after Q7 attempt-1 remediation and remains PASS on:
+Static security/architecture review PASS on current freeze:
 
 `952e3445d46d0b3770a499522abc1ad77315a228`
 
 Evidence: `docs/evidence/MASTER-51/Q5_Q6_REVIEW.md`.
 
-## Q7 attempt 1 — executable/lint blockers
+## Q7 history
 
-The operator ran exact previous freeze:
+### Attempt 1 — executable/lint blockers
 
-`0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`
+Previous freeze `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f` exposed MASTER-51 TS7006 and inherited Enterprise RC lint blockers. Executable/config remediation invalidated that freeze. Evidence: `docs/evidence/MASTER-51/Q7_ATTEMPT_1_FAIL.md`.
 
-Evidence: `docs/evidence/MASTER-51/Q7_ATTEMPT_1_FAIL.md`.
+### Attempt 2 — code gates PASS / environment blocked
 
-Attempt 1 exposed:
+Current freeze `952e3445d46d0b3770a499522abc1ad77315a228` passed boundaries, lint, typecheck, cross-surface proof, repository tests, production builds and browser E2E as operator-reported; the remaining RC was blocked because local `xcrun` used standalone Command Line Tools instead of full Xcode. Evidence: `docs/evidence/MASTER-51/Q7_ATTEMPT_2_ENV_BLOCKED.md`.
 
-- MASTER-51 TS7006 in the publisher digest callback;
-- inherited Enterprise RC baseline ESLint blockers.
+### Final Q7 — PASS
 
-Those findings required executable/config remediation, so the previous freeze is invalid for final merge authority.
+After restoring full Xcode and rerunning the final Application Network RC on the same exact current freeze, the operator reported `green`.
 
-## Remediation after attempt 1
+Evidence: `docs/evidence/MASTER-51/Q7_FINAL_PASS.md`.
 
-Executable/config remediation remained narrow:
+No final-rerun counts/timings are reconstructed or invented. This final PASS authorizes independent Q8 only while frozen-to-current executable/package/test/boundary/config drift remains zero.
 
-1. `examples/application-network-rc/application-network-rc.test.ts`
-   - imports public `ViraApplicationPublisherDigestInput`;
-   - explicitly types the digest callback parameter.
+## Q8–Q9
 
-2. `eslint.config.mjs`
-   - extends the existing intentional validation-regex lint policy only to the exact inherited validator files reported by Enterprise RC;
-   - scopes the design-import regex lint exception narrowly;
-   - retains unused-variable enforcement while handling only the exact inherited legacy symbol reported by the gate.
+Q8 is active and must independently:
 
-No wire schema, dependency graph, runtime behavior, provider selection, Action authority, authentication, entitlement or deployment semantics changed.
-
-## Q7 attempt 2 — code gates PASS / environment blocked
-
-The operator reran on exact current freeze:
-
-`952e3445d46d0b3770a499522abc1ad77315a228`
-
-Evidence: `docs/evidence/MASTER-51/Q7_ATTEMPT_2_ENV_BLOCKED.md`.
-
-Operator-reported successful code/repository gates:
-
-- boundaries PASS;
-- lint PASS;
-- typecheck PASS;
-- cross-surface proof PASS — 2 test files / 7 tests / 254ms;
-- repository Vitest suite PASS — 232 test files / 1311 tests / 7.62s;
-- TypeScript production build PASS;
-- Experience Studio production build PASS;
-- browser E2E PASS — 1 test;
-- Swift structural conformance emitted `SWIFT_CONFORMANCE_OK`.
-
-The remaining Application Network RC then failed during portable native conformance because local `xcrun` resolved `/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk` and could not resolve `PlatformPath`.
-
-This attempt does **not** authorize final Q7 PASS, but it does not invalidate the current executable/config freeze: the blocker is the local Xcode developer-directory environment and requires no repository change.
-
-## Remaining Q7 authority
-
-On the same exact detached freeze `952e3445d46d0b3770a499522abc1ad77315a228`:
-
-1. restore full Xcode as the active developer directory;
-2. confirm macOS SDK resolution via `xcrun`;
-3. rerun `pnpm verify:application-network-rc`.
-
-Q8 remains blocked until that exact RC command passes. No new executable freeze is required unless repository executable/config/package/test/boundary content changes.
-
-## Q8–Q9 after final Q7 PASS
-
-- re-read PR #212 independently from scratch;
+- re-read PR #212 from scratch;
 - inspect current executable/config diff and adjacent canonical owners;
 - inspect reviews/threads/comments;
 - classify current-head hosted Actions;
-- prove current freeze → closure executable/package/test/boundary/config drift is zero;
-- if Q8 PASS, run final Q9 docs-only closure compare;
-- mark PR ready and squash merge only with fresh exact `expected_head_sha`;
-- independently verify resulting authoritative `main` and close the Application Network roadmap.
+- prove current freeze → branch executable/package/test/boundary/config drift is zero;
+- re-check exact identity, integrity-before-compatibility, no fallback/substitution, Action Boundary, one-shot provider execution and authority non-expansion.
+
+If Q8 PASS, Q9 will perform the final docs-only closure compare, mark PR ready and squash merge only with a fresh exact `expected_head_sha`, then independently verify resulting authoritative `main` and close the Application Network roadmap.
