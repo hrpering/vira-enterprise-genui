@@ -1,10 +1,10 @@
 # MASTER-49 — Independent External AI Host Proof
 
-**Status:** Q0–Q8 PASS / Q9 READY  
+**Status:** Q0–Q9 PASS / MERGE READY  
 **Base SHA:** `70dfa599b6b7e77bb5a70e53cee56dd22c0a0b05`  
 **Frozen executable/test SHA:** `5bb3497b736095509ba4b13d365d52ddee4b60bc`  
 **Branch:** `master/49-external-ai-host-proof`  
-**PR:** #210 (draft; ready transition pending exact-head merge)
+**PR:** #210
 
 ## Goal
 
@@ -82,4 +82,6 @@ Q8 independently re-read the executable owner chain, public proof consumer, exis
 
 ## Q9
 
-READY: run final frozen-to-closure executable/package/test/boundary drift gate, record closure evidence, mark PR ready, re-read exact PR head and squash merge with `expected_head_sha`, then verify new authoritative `main` independently.
+Closure gate PASS: `docs/evidence/MASTER-49/Q9_CLOSURE_GATE.md`.
+
+Frozen executable/test SHA to reviewed closure state contains documentation/evidence changes only. No executable/package/test/boundary drift occurred after Q7. PR #210 is eligible for draft→ready transition, a fresh exact-head read, and squash merge guarded by `expected_head_sha`.
