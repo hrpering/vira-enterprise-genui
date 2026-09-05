@@ -102,4 +102,24 @@ describe("Capability exact-reference canonical owner parity", () => {
       issue: { code: "FLOATING_REFERENCE", path: "$.bindingRef.versionRef" },
     });
   });
+
+  it("fails closed on unsafe accessor and custom-prototype exact references without invoking getters", () => {
+    let getterCalls = 0;
+    const accessor: Record<string, unknown> = { id: "type.search-query" };
+    Object.defineProperty(accessor, "versionRef", {
+      enumerable: true,
+      get() {
+        getterCalls += 1;
+        throw new Error("must not execute");
+      },
+    });
+    expect(parseViraCapabilityExactReference(accessor).ok).toBe(false);
+    expect(getterCalls).toBe(0);
+
+    const custom = Object.assign(
+      Object.create({ inherited: true }) as Record<string, unknown>,
+      { id: "type.search-query", versionRef: "1" },
+    );
+    expect(parseViraCapabilityExactReference(custom).ok).toBe(false);
+  });
 });
