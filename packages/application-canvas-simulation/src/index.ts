@@ -19,3 +19,16 @@ export {
   replayViraCanvasSimulation,
   simulateViraCanvasScenario,
 } from "./simulate.js";
+
+export { VIRA_CANVAS_SIMULATION_V2_VERSION } from "./v2-types.js";
+export type {
+  ViraCanvasSimulationReplayV2,
+  ViraCanvasSimulationReplayV2Result,
+  ViraCanvasSimulationScenarioV2,
+  ViraCanvasSimulationTraceV2,
+  ViraCanvasSimulationV2Result,
+} from "./v2-types.js";
+export {
+  replayViraCanvasSimulationV2,
+  simulateViraCanvasScenarioV2,
+} from "./v2-simulate.js";

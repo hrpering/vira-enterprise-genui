@@ -18,3 +18,18 @@ export {
   serializeViraApplicationDistributionEnvelope,
   verifyViraApplicationDistributionIntegrity,
 } from "./validate.js";
+
+export { VIRA_APPLICATION_DISTRIBUTION_V2_SCHEMA_VERSION } from "./v2-types.js";
+export type {
+  ViraApplicationDistributionEnvelopeV2,
+  ViraApplicationDistributionV2IntegrityVerifier,
+  ViraApplicationDistributionV2Issue,
+  ViraApplicationDistributionV2Result,
+  ViraApplicationDistributionV2SerializationResult,
+  ViraApplicationDistributionV2ValidationCode,
+} from "./v2-types.js";
+export {
+  parseViraApplicationDistributionEnvelopeV2,
+  serializeViraApplicationDistributionEnvelopeV2,
+  verifyViraApplicationDistributionIntegrityV2,
+} from "./v2-validate.js";
