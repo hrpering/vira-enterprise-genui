@@ -1,6 +1,6 @@
 # MASTER-51 — Cross-Surface Exact Semantics + Application Network RC
 
-**Status:** Q0–Q6 PASS / Q7 RERUN PENDING / Q8 BLOCKED  
+**Status:** Q0–Q6 PASS / Q7 CODE GATES PASS / ENVIRONMENT RERUN PENDING / Q8 BLOCKED  
 **Base SHA:** `6f02e4437210c0cd662f1852759c88fca328462c`  
 **Frozen executable/config SHA:** `952e3445d46d0b3770a499522abc1ad77315a228`  
 **Invalidated previous freeze:** `0c4913931d8fcc19f5e3676be4e3ea9c4a84b67f`  
@@ -66,7 +66,7 @@ Static security/architecture review was repeated after Q7 attempt-1 remediation 
 
 Evidence: `docs/evidence/MASTER-51/Q5_Q6_REVIEW.md`.
 
-## Q7 attempt 1 — FAIL
+## Q7 attempt 1 — executable/lint blockers
 
 The operator ran exact previous freeze:
 
@@ -74,46 +74,69 @@ The operator ran exact previous freeze:
 
 Evidence: `docs/evidence/MASTER-51/Q7_ATTEMPT_1_FAIL.md`.
 
-Reported facts:
+Attempt 1 exposed:
 
-- workspace install completed;
-- boundaries PASS;
-- typecheck FAIL with TS7006 in the new publisher digest callback;
-- cross-surface proof PASS: 2 test files / 7 tests / 220ms as reported by the operator;
-- Application Network RC FAIL inside Enterprise RC baseline because ESLint reported 7 inherited errors.
+- MASTER-51 TS7006 in the publisher digest callback;
+- inherited Enterprise RC baseline ESLint blockers.
 
-The previous freeze is invalid for final merge authority.
+Those findings required executable/config remediation, so the previous freeze is invalid for final merge authority.
 
-## Remediation
+## Remediation after attempt 1
 
-Executable/config remediation is deliberately narrow:
+Executable/config remediation remained narrow:
 
 1. `examples/application-network-rc/application-network-rc.test.ts`
    - imports public `ViraApplicationPublisherDigestInput`;
    - explicitly types the digest callback parameter.
 
 2. `eslint.config.mjs`
-   - extends the existing intentional `no-control-regex` override only to the exact validator files reported by the baseline;
-   - scopes `no-useless-escape` override to the existing design-import regex file;
-   - keeps `@typescript-eslint/no-unused-vars` enabled while ignoring only exact legacy symbol `ViraCommercialEntitlementSet` in `commercial-entitlement`.
+   - extends the existing intentional validation-regex lint policy only to the exact inherited validator files reported by Enterprise RC;
+   - scopes the design-import regex lint exception narrowly;
+   - retains unused-variable enforcement while handling only the exact inherited legacy symbol reported by the gate.
 
 No wire schema, dependency graph, runtime behavior, provider selection, Action authority, authentication, entitlement or deployment semantics changed.
 
-## New Q7 authority
+## Q7 attempt 2 — code gates PASS / environment blocked
 
-A **full** local rerun is required on exact detached SHA:
+The operator reran on exact current freeze:
 
 `952e3445d46d0b3770a499522abc1ad77315a228`
 
-The old Q7 PASS/FAIL outputs are historical evidence only. Q8 remains blocked until this exact new freeze passes.
+Evidence: `docs/evidence/MASTER-51/Q7_ATTEMPT_2_ENV_BLOCKED.md`.
 
-## Q8–Q9 after rerun PASS
+Operator-reported successful code/repository gates:
+
+- boundaries PASS;
+- lint PASS;
+- typecheck PASS;
+- cross-surface proof PASS — 2 test files / 7 tests / 254ms;
+- repository Vitest suite PASS — 232 test files / 1311 tests / 7.62s;
+- TypeScript production build PASS;
+- Experience Studio production build PASS;
+- browser E2E PASS — 1 test;
+- Swift structural conformance emitted `SWIFT_CONFORMANCE_OK`.
+
+The remaining Application Network RC then failed during portable native conformance because local `xcrun` resolved `/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk` and could not resolve `PlatformPath`.
+
+This attempt does **not** authorize final Q7 PASS, but it does not invalidate the current executable/config freeze: the blocker is the local Xcode developer-directory environment and requires no repository change.
+
+## Remaining Q7 authority
+
+On the same exact detached freeze `952e3445d46d0b3770a499522abc1ad77315a228`:
+
+1. restore full Xcode as the active developer directory;
+2. confirm macOS SDK resolution via `xcrun`;
+3. rerun `pnpm verify:application-network-rc`.
+
+Q8 remains blocked until that exact RC command passes. No new executable freeze is required unless repository executable/config/package/test/boundary content changes.
+
+## Q8–Q9 after final Q7 PASS
 
 - re-read PR #212 independently from scratch;
 - inspect current executable/config diff and adjacent canonical owners;
 - inspect reviews/threads/comments;
 - classify current-head hosted Actions;
-- prove new freeze → closure executable/package/test/boundary/config drift is zero;
+- prove current freeze → closure executable/package/test/boundary/config drift is zero;
 - if Q8 PASS, run final Q9 docs-only closure compare;
 - mark PR ready and squash merge only with fresh exact `expected_head_sha`;
 - independently verify resulting authoritative `main` and close the Application Network roadmap.
