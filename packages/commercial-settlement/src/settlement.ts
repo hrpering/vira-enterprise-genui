@@ -1,6 +1,7 @@
 import {
   parseViraApplicationExactReference,
   parseViraApplicationPackage,
+  parseViraApplicationReleaseReference,
   serializeViraApplicationExactReference,
   type ViraApplicationExactReference,
 } from "@vira-enterprise-genui/application-package";
@@ -8,7 +9,6 @@ import {
   parseViraCommercialPriceQuote,
 } from "@vira-enterprise-genui/commercial-pricing";
 import {
-  isSemanticNamespace,
   isSemanticSegment,
   parseJsonValue,
   type JsonObject,
@@ -30,7 +30,6 @@ import {
   type ViraCommercialSettlementSerializationResult,
 } from "./types.js";
 
-const RELEASE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const ROOT_FIELDS = ["schemaVersion", "rules"] as const;
 const RULE_FIELDS = [
   "settlementRef",
@@ -120,24 +119,23 @@ export function parseViraCommercialSettlementSchedule(input: unknown): ViraComme
     if (seen.has(key)) return fail("DUPLICATE_RULE", `${path}.settlementRef`, "duplicate exact settlementRef");
     seen.add(key);
 
-    if (
-      typeof item.applicationId !== "string"
-      || !isSemanticNamespace(item.applicationId)
-      || !item.applicationId.includes(".")
-    ) {
-      return fail("INVALID_APPLICATION_TARGET", `${path}.applicationId`, "applicationId must be a namespaced semantic identity");
+    const release = parseViraApplicationReleaseReference({
+      id: item.applicationId,
+      version: item.applicationVersion,
+    });
+    if (!release.ok) {
+      const releasePath = release.issue.path === "$.id"
+        ? `${path}.applicationId`
+        : release.issue.path === "$.version"
+          ? `${path}.applicationVersion`
+          : path;
+      return fail("INVALID_APPLICATION_TARGET", releasePath, release.issue.message);
     }
-    if (
-      typeof item.applicationVersion !== "string"
-      || item.applicationVersion.length > 64
-      || !RELEASE_VERSION.test(item.applicationVersion)
-    ) {
-      return fail("INVALID_APPLICATION_TARGET", `${path}.applicationVersion`, "applicationVersion must be exact release semver");
-    }
+
     if (typeof item.publisherId !== "string" || !isSemanticSegment(item.publisherId)) {
       return fail("INVALID_PUBLISHER", `${path}.publisherId`, "publisherId must be a canonical semantic segment");
     }
-    if (item.applicationId.split(".")[0] !== item.publisherId) {
+    if (release.value.id.split(".")[0] !== item.publisherId) {
       return fail("INVALID_PUBLISHER", `${path}.publisherId`, "publisherId must match the Application identity namespace");
     }
 
@@ -159,8 +157,8 @@ export function parseViraCommercialSettlementSchedule(input: unknown): ViraComme
 
     rules.push(Object.freeze({
       settlementRef: settlementRef.value,
-      applicationId: item.applicationId,
-      applicationVersion: item.applicationVersion,
+      applicationId: release.value.id,
+      applicationVersion: release.value.version,
       publisherId: item.publisherId,
       planRef: planRef.value,
       publisherShareBps: item.publisherShareBps,
