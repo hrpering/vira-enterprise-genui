@@ -1,0 +1,9 @@
+{
+  "name": "@vira-enterprise-genui/vira-api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node ../../.build/apps/vira-api/src/index.js"
+  }
+}
