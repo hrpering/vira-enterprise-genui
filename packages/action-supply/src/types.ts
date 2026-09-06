@@ -2,6 +2,7 @@ import type { ViraApplicationExactReference } from "@vira-enterprise-genui/appli
 import type { ViraApplicationEnvironmentBinding } from "@vira-enterprise-genui/deployment-plane";
 import type { ViraEnterpriseScope, ViraSecretRef } from "@vira-enterprise-genui/enterprise-context";
 import type { ViraProviderConnection } from "@vira-enterprise-genui/provider-connection";
+import type { ViraProviderTrustEvidence } from "@vira-enterprise-genui/provider-trust";
 
 export const VIRA_ACTION_SUPPLY_VERSION = "1" as const;
 export const VIRA_ACTION_IDEMPOTENCY_STRATEGIES = Object.freeze([
@@ -44,6 +45,7 @@ export interface ViraActionSupplyResolutionInput {
   readonly bindingRef: ViraApplicationExactReference;
   readonly actionRef: ViraApplicationExactReference;
   readonly connection: ViraProviderConnection;
+  readonly trustEvidence: ViraProviderTrustEvidence;
   readonly environmentBinding: ViraApplicationEnvironmentBinding;
   readonly operationId: string;
   readonly runnerRef: string;
@@ -65,6 +67,7 @@ export interface ViraResolvedActionSupply {
   readonly runnerRef: string;
   readonly secretRef: ViraSecretRef;
   readonly trustEvidenceRef: string;
+  readonly trustValidUntilEpochMs: number;
   readonly behavior: ViraActionSupplyBehavior;
 }
 
@@ -74,6 +77,8 @@ export type ViraActionSupplyIssueCode =
   | "INVALID_OPERATION"
   | "INVALID_RUNNER"
   | "INVALID_BEHAVIOR"
+  | "PROVIDER_TRUST_REJECTED"
+  | "TRUST_EVIDENCE_MISMATCH"
   | "CONNECTION_NOT_ACTIVE"
   | "CONNECTION_EXPIRED"
   | "ACTION_NOT_BOUND"
