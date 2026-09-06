@@ -4,7 +4,7 @@ export const allowedDependencies = Object.freeze({
   protocol: [],
   "runtime-core": ["protocol"],
   "action-boundary": ["protocol", "runtime-core"],
-  "action-supply": ["application-package", "deployment-plane", "enterprise-context", "protocol", "provider-connection"],
+  "action-supply": ["application-package", "deployment-plane", "enterprise-context", "protocol", "provider-connection", "provider-trust"],
   "action-transaction": ["action-supply", "application-package", "enterprise-context", "protocol"],
   governance: ["action-boundary", "protocol", "runtime-core"],
   "enterprise-context": ["protocol"],
