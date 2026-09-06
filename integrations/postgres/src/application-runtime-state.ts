@@ -218,7 +218,7 @@ async function classifyMissingOrConflict(
 export function createPostgresApplicationRunStore(pool: PostgresPoolLike): ViraApplicationRunStore {
   validatePool(pool);
   return Object.freeze({
-    async read(scopeInput, id) {
+    async read(scopeInput: ViraEnterpriseScope, id: string) {
       const scope = canonicalizeEnterpriseScope(scopeInput);
       if (typeof id !== "string" || id.length < 1 || id.length > 128) throw new TypeError("ApplicationRun PostgreSQL id is invalid");
       return withTenantTransaction(pool, scope, async (client, transactionScope) => {
@@ -233,7 +233,7 @@ export function createPostgresApplicationRunStore(pool: PostgresPoolLike): ViraA
         return validateApplicationRunRow(result.rows[0]!, transactionScope, id);
       });
     },
-    async create(input) {
+    async create(input: ViraApplicationRun) {
       const run = parseApplicationRun(input);
       return withTenantTransaction(pool, run.scope, async (client, scope): Promise<ViraApplicationRunStoreMutationResult> => {
         const result = await client.query<StateRow>(
@@ -249,7 +249,7 @@ export function createPostgresApplicationRunStore(pool: PostgresPoolLike): ViraA
         return { ok: true, value: validateApplicationRunRow(result.rows[0]!, scope, run.id) };
       });
     },
-    async replace(input, expectedRevision) {
+    async replace(input: ViraApplicationRun, expectedRevision: number) {
       const run = parseApplicationRun(input);
       if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1) throw new TypeError("ApplicationRun PostgreSQL expectedRevision is invalid");
       return withTenantTransaction(pool, run.scope, async (client, scope): Promise<ViraApplicationRunStoreMutationResult> => {
@@ -277,7 +277,7 @@ export function createPostgresApplicationRunStore(pool: PostgresPoolLike): ViraA
 export function createPostgresHumanTaskStore(pool: PostgresPoolLike): ViraHumanTaskStore {
   validatePool(pool);
   return Object.freeze({
-    async read(scopeInput, id) {
+    async read(scopeInput: ViraEnterpriseScope, id: string) {
       const scope = canonicalizeEnterpriseScope(scopeInput);
       if (typeof id !== "string" || id.length < 1 || id.length > 128) throw new TypeError("Human Task PostgreSQL id is invalid");
       return withTenantTransaction(pool, scope, async (client, transactionScope) => {
@@ -292,7 +292,7 @@ export function createPostgresHumanTaskStore(pool: PostgresPoolLike): ViraHumanT
         return validateHumanTaskRow(result.rows[0]!, transactionScope, id);
       });
     },
-    async create(input) {
+    async create(input: ViraHumanTask) {
       const task = parseHumanTask(input);
       return withTenantTransaction(pool, task.scope, async (client, scope): Promise<ViraHumanTaskStoreMutationResult> => {
         const result = await client.query<StateRow>(
@@ -308,7 +308,7 @@ export function createPostgresHumanTaskStore(pool: PostgresPoolLike): ViraHumanT
         return { ok: true, value: validateHumanTaskRow(result.rows[0]!, scope, task.id) };
       });
     },
-    async replace(input, expectedRevision) {
+    async replace(input: ViraHumanTask, expectedRevision: number) {
       const task = parseHumanTask(input);
       if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1) throw new TypeError("Human Task PostgreSQL expectedRevision is invalid");
       return withTenantTransaction(pool, task.scope, async (client, scope): Promise<ViraHumanTaskStoreMutationResult> => {
@@ -336,7 +336,7 @@ export function createPostgresHumanTaskStore(pool: PostgresPoolLike): ViraHumanT
 export function createPostgresTriggerInboxStore(pool: PostgresPoolLike): ViraTriggerInboxStore {
   validatePool(pool);
   return Object.freeze({
-    async read(scopeInput, sourceRef, eventId) {
+    async read(scopeInput: ViraEnterpriseScope, sourceRef: string, eventId: string) {
       const scope = canonicalizeEnterpriseScope(scopeInput);
       if (typeof sourceRef !== "string" || sourceRef.length < 1 || sourceRef.length > 512) throw new TypeError("Trigger inbox PostgreSQL sourceRef is invalid");
       if (typeof eventId !== "string" || eventId.length < 1 || eventId.length > 512) throw new TypeError("Trigger inbox PostgreSQL eventId is invalid");
@@ -352,7 +352,7 @@ export function createPostgresTriggerInboxStore(pool: PostgresPoolLike): ViraTri
         return validateTriggerRow(result.rows[0]!, transactionScope, sourceRef, eventId);
       });
     },
-    async create(input) {
+    async create(input: ViraTriggerInboxRecord) {
       const item = parseTriggerRecord(input);
       return withTenantTransaction(pool, item.scope, async (client, scope): Promise<ViraTriggerInboxStoreMutationResult> => {
         const result = await client.query<StateRow>(
@@ -368,7 +368,7 @@ export function createPostgresTriggerInboxStore(pool: PostgresPoolLike): ViraTri
         return { ok: true, value: validateTriggerRow(result.rows[0]!, scope, item.sourceRef, item.eventId) };
       });
     },
-    async replace(input, expectedRevision) {
+    async replace(input: ViraTriggerInboxRecord, expectedRevision: number) {
       const item = parseTriggerRecord(input);
       if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1) throw new TypeError("Trigger inbox PostgreSQL expectedRevision is invalid");
       return withTenantTransaction(pool, item.scope, async (client, scope): Promise<ViraTriggerInboxStoreMutationResult> => {
