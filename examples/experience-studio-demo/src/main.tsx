@@ -1,96 +1,296 @@
-import { useMemo, useState } from "react";
-import { createRoot } from "react-dom/client";
-import { COMMERCE_BRAND_PACKAGE_INPUT } from "@vira-enterprise-genui/commerce-brand-kit";
+import {
+  COMMERCE_BRAND_PACKAGE_INPUT,
+  commerceAuthoringRenderers,
+} from "@vira-enterprise-genui/commerce-brand-kit";
 import { createStudioBrandPackage } from "@vira-enterprise-genui/studio-brand";
 import { createStudioWorkbenchSession } from "@vira-enterprise-genui/studio-workbench";
+import { StrictMode, useRef, useState } from "react";
+import type { ReactElement } from "react";
+import { createRoot } from "react-dom/client";
+import {
+  createStudioLifecycleService,
+  type StudioLifecycleRecord,
+  type StudioLifecycleRevision,
+  type StudioLifecycleService,
+} from "../../../packages/studio-lifecycle/src/index.js";
+import { ViraStudioWorkbench } from "../../../packages/studio-workbench-react/src/index.js";
+import { MemoryStudioLifecycleStore } from "./lifecycle-store.js";
 import "./studio.css";
 
-function fail(message: string): never {
-  throw new Error(message);
-}
-
 const brandResult = createStudioBrandPackage(COMMERCE_BRAND_PACKAGE_INPUT);
-if (!brandResult.ok) fail(`Brand package rejected: ${brandResult.issue.code}`);
+if (!brandResult.ok) throw new Error(`brand rejected: ${brandResult.issue.code}`);
 const brand = brandResult.value;
-const template = brand.templates[0] ?? fail("Commerce reference brand requires one template");
+const template = brand.templates[0];
+if (!template) throw new Error("commerce brand requires one template");
+
 let nextNodeId = 1;
 const workbenchResult = createStudioWorkbenchSession({
   document: template.document,
   componentCatalog: brand.components,
   bindingSourceCatalog: brand.dataSources,
   actionAdapter: brand.actions,
-  allocateNodeId: () => `generated-${nextNodeId++}`,
+  allocateNodeId: () => `demo-${nextNodeId++}`,
 });
-if (!workbenchResult.ok) fail(`Workbench rejected: ${workbenchResult.issue.code}`);
+if (!workbenchResult.ok) throw new Error(`workbench rejected: ${workbenchResult.issue.code}`);
 const workbench = workbenchResult.value;
 
-function App() {
-  const [status, setStatus] = useState("Ready");
-  const [viewCount, setViewCount] = useState(workbench.listViews().length);
-  const document = useMemo(() => workbench.currentDocument(), [viewCount, status]);
+type DemoDocument = ReturnType<typeof workbench.currentDocument>;
 
-  function preview() {
-    const result = workbench.preview();
-    setStatus(result.ok
-      ? `Preview ready · ${result.value.experienceId} · ${result.value.viewId}`
-      : `Preview rejected · ${result.issue.code}`);
-  }
+const WORKSPACE_ID = "experience-studio-demo";
+const EXPERIENCE_ID = template.document.id;
+const EXPERIENCE_NAME = template.label;
 
-  function publish() {
-    const result = workbench.publish();
-    setStatus(result.ok
-      ? `Publication ready · ${result.value.document.id}`
-      : `Publication rejected · ${result.issue.code}`);
-  }
+function lifecycleIssue(result: { readonly issue: { readonly code: string; readonly message: string } }): string {
+  return `${result.issue.code}: ${result.issue.message}`;
+}
 
-  function addView() {
-    const result = workbench.addView({
-      viewId: "confirmation",
-      root: { id: "confirmation-root", component: "commerce.layout.stack", props: {} },
-    });
+function ProductStudio(props: {
+  readonly lifecycle: StudioLifecycleService;
+  readonly initialRecord: StudioLifecycleRecord;
+  readonly initialHistory: readonly StudioLifecycleRevision[];
+}): ReactElement {
+  const [record, setRecord] = useState(props.initialRecord);
+  const [history, setHistory] = useState(props.initialHistory);
+  const [document, setDocument] = useState<DemoDocument>(workbench.currentDocument());
+  const [status, setStatus] = useState(`Draft saved · r${props.initialRecord.draftRevision}`);
+  const [diffSummary, setDiffSummary] = useState("Select a revision comparison to inspect changes.");
+  const [surfaceRevision, setSurfaceRevision] = useState(0);
+
+  const recordRef = useRef(props.initialRecord);
+  const documentRef = useRef<DemoDocument>(document);
+  const editSequenceRef = useRef(0);
+  const lastSavedSequenceRef = useRef(0);
+  const autosaveTimerRef = useRef<number | undefined>(undefined);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  const applyRecord = (next: StudioLifecycleRecord) => {
+    recordRef.current = next;
+    setRecord(next);
+  };
+
+  const refreshHistory = async () => {
+    const result = await props.lifecycle.history(WORKSPACE_ID, EXPERIENCE_ID);
     if (!result.ok) {
-      setStatus(`Mutation rejected · ${result.issue.code}`);
+      setStatus(`History failed · ${lifecycleIssue(result)}`);
       return;
     }
-    setViewCount(workbench.listViews().length);
-    setStatus("Confirmation view added");
-  }
+    setHistory(result.value);
+  };
+
+  const queueSave = (snapshot: DemoDocument, sequence: number): Promise<void> => {
+    const operation = saveQueueRef.current.then(async () => {
+      const current = recordRef.current;
+      const saved = await props.lifecycle.save({
+        workspaceId: WORKSPACE_ID,
+        id: EXPERIENCE_ID,
+        name: EXPERIENCE_NAME,
+        expectedRecordVersion: current.recordVersion,
+        document: snapshot,
+      });
+      if (!saved.ok) {
+        setStatus(`Autosave failed · ${lifecycleIssue(saved)}`);
+        return;
+      }
+      applyRecord(saved.value);
+      lastSavedSequenceRef.current = Math.max(lastSavedSequenceRef.current, sequence);
+      setStatus(`Draft saved · r${saved.value.draftRevision}`);
+      await refreshHistory();
+    });
+    saveQueueRef.current = operation.catch(() => {
+      setStatus("Autosave failed · unexpected store error");
+    });
+    return operation;
+  };
+
+  const scheduleAutosave = (nextDocument: DemoDocument) => {
+    documentRef.current = nextDocument;
+    setDocument(nextDocument);
+    editSequenceRef.current += 1;
+    const sequence = editSequenceRef.current;
+    if (autosaveTimerRef.current !== undefined) window.clearTimeout(autosaveTimerRef.current);
+    setStatus("Autosave pending…");
+    autosaveTimerRef.current = window.setTimeout(() => {
+      autosaveTimerRef.current = undefined;
+      void queueSave(documentRef.current, sequence);
+    }, 180);
+  };
+
+  const flushDraft = async (): Promise<StudioLifecycleRecord> => {
+    if (autosaveTimerRef.current !== undefined) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = undefined;
+    }
+    await saveQueueRef.current;
+    if (lastSavedSequenceRef.current < editSequenceRef.current) {
+      await queueSave(documentRef.current, editSequenceRef.current);
+    }
+    return recordRef.current;
+  };
+
+  const publish = async () => {
+    const current = await flushDraft();
+    const published = await props.lifecycle.publish({
+      workspaceId: WORKSPACE_ID,
+      id: EXPERIENCE_ID,
+      expectedRecordVersion: current.recordVersion,
+    });
+    if (!published.ok) {
+      setStatus(`Publish failed · ${lifecycleIssue(published)}`);
+      return;
+    }
+    applyRecord(published.value);
+    setStatus(`Published · draft r${published.value.publishedDraftRevision ?? "?"}`);
+    await refreshHistory();
+  };
+
+  const unpublish = async () => {
+    const current = await flushDraft();
+    const unpublished = await props.lifecycle.unpublish({
+      workspaceId: WORKSPACE_ID,
+      id: EXPERIENCE_ID,
+      expectedRecordVersion: current.recordVersion,
+    });
+    if (!unpublished.ok) {
+      setStatus(`Unpublish failed · ${lifecycleIssue(unpublished)}`);
+      return;
+    }
+    applyRecord(unpublished.value);
+    setStatus("Publication removed · draft retained");
+  };
+
+  const restore = async (draftRevision: number) => {
+    if (autosaveTimerRef.current !== undefined) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = undefined;
+    }
+    await saveQueueRef.current;
+    const restored = await props.lifecycle.restore({
+      workspaceId: WORKSPACE_ID,
+      id: EXPERIENCE_ID,
+      expectedRecordVersion: recordRef.current.recordVersion,
+      draftRevision,
+    });
+    if (!restored.ok) {
+      setStatus(`Restore failed · ${lifecycleIssue(restored)}`);
+      return;
+    }
+    const replaced = workbench.replaceDocument(restored.value.document);
+    if (!replaced.ok) {
+      setStatus(`Restore rejected by Workbench · ${replaced.issue.code}`);
+      return;
+    }
+    applyRecord(restored.value);
+    documentRef.current = replaced.value;
+    setDocument(replaced.value);
+    editSequenceRef.current += 1;
+    lastSavedSequenceRef.current = editSequenceRef.current;
+    setSurfaceRevision((value) => value + 1);
+    setStatus(`Restored r${draftRevision} as new draft r${restored.value.draftRevision}`);
+    await refreshHistory();
+  };
+
+  const compareRevision = async (draftRevision: number) => {
+    if (draftRevision <= 1) return;
+    const diff = await props.lifecycle.diff({
+      workspaceId: WORKSPACE_ID,
+      id: EXPERIENCE_ID,
+      fromDraftRevision: draftRevision - 1,
+      toDraftRevision: draftRevision,
+    });
+    if (!diff.ok) {
+      setDiffSummary(`Diff failed · ${lifecycleIssue(diff)}`);
+      return;
+    }
+    const paths = diff.value.changes.slice(0, 4).map((change) => `${change.kind} ${change.path}`).join(" · ");
+    setDiffSummary(`r${draftRevision - 1} → r${draftRevision}: ${diff.value.changes.length} change(s)${paths ? ` · ${paths}` : ""}`);
+  };
 
   return (
-    <main className="shell">
-      <header>
-        <p className="eyebrow">Vira Experience Studio</p>
-        <h1>Generic commerce authoring smoke surface</h1>
-        <p>Canonical Brand Package → Workbench → Preview → Publication</p>
+    <main className="product-shell">
+      <header className="product-header">
+        <div>
+          <div className="eyebrow">PROD-06 · governed authoring</div>
+          <h1>Vira Experience Studio</h1>
+          <p>Create, preview, version and publish an experience without editing code.</p>
+        </div>
+        <div className="identity-grid" aria-label="Studio identity">
+          <span>Brand<strong data-testid="brand-id">{brand.brand.id}</strong></span>
+          <span>Template<strong data-testid="template-id">{template.id}</strong></span>
+          <span>Experience<strong data-testid="experience-id">{document.id}</strong></span>
+          <span>Views<strong data-testid="view-count">{document.views.length}</strong></span>
+        </div>
       </header>
 
-      <section className="panel" aria-label="Brand package">
-        <h2>{brand.brand.displayName}</h2>
-        <dl>
-          <div><dt>Brand</dt><dd data-testid="brand-id">{brand.brand.id}</dd></div>
-          <div><dt>Template</dt><dd data-testid="template-id">{template.id}</dd></div>
-          <div><dt>Experience</dt><dd data-testid="experience-id">{document.id}</dd></div>
-          <div><dt>Views</dt><dd data-testid="view-count">{viewCount}</dd></div>
-        </dl>
-      </section>
-
-      <section className="panel" aria-label="Workbench controls">
-        <h2>Canonical workbench</h2>
-        <div className="actions">
-          <button type="button" onClick={preview}>Preview</button>
-          <button type="button" onClick={publish}>Publish</button>
-          <button type="button" onClick={addView} disabled={viewCount > 1}>Add confirmation view</button>
+      <section className="lifecycle-strip" aria-label="Draft lifecycle">
+        <div className="lifecycle-state">
+          <span className="eyebrow">Lifecycle</span>
+          <strong data-testid="status">{status}</strong>
+          <span data-testid="published-state">
+            {record.publishedDraftRevision === null ? "Not published" : `Published r${record.publishedDraftRevision}`}
+          </span>
+          <button type="button" onClick={() => { void unpublish(); }} disabled={record.publication === null}>Unpublish</button>
         </div>
-        <p role="status" data-testid="status">{status}</p>
+        <div className="history" data-testid="revision-history">
+          <div className="history-heading">
+            <strong>Revision history</strong>
+            <span data-testid="revision-count">{history.length}</span>
+          </div>
+          <div className="revision-list">
+            {history.map((revision) => (
+              <div className="revision-row" key={revision.draftRevision}>
+                <span>r{revision.draftRevision}</span>
+                {revision.draftRevision > 1 ? (
+                  <button type="button" data-testid={`revision-diff-${revision.draftRevision}`} onClick={() => { void compareRevision(revision.draftRevision); }}>Diff</button>
+                ) : null}
+                <button type="button" data-testid={`revision-restore-${revision.draftRevision}`} onClick={() => { void restore(revision.draftRevision); }}>Restore</button>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="diff-card" data-testid="revision-diff-summary">{diffSummary}</div>
       </section>
 
-      <section className="panel" aria-label="Document summary">
-        <h2>Document summary</h2>
-        <p>{document.views[0]?.nodes.length ?? 0} nodes · {document.bindings.length} bindings · {document.interactions.length} interactions</p>
-      </section>
+      <ViraStudioWorkbench
+        key={surfaceRevision}
+        session={workbench}
+        renderers={commerceAuthoringRenderers}
+        title="Commerce · Product card"
+        height="720px"
+        onDocumentChange={scheduleAutosave}
+        onPublish={publish}
+        onError={(issue) => setStatus(`Workbench error · ${issue.code}: ${issue.message}`)}
+      />
     </main>
   );
 }
 
-const root = document.getElementById("root") ?? fail("Missing application root");
-createRoot(root).render(<App />);
+async function bootstrap(): Promise<void> {
+  const store = new MemoryStudioLifecycleStore();
+  let now = Date.UTC(2026, 8, 6, 1, 30, 0, 0);
+  const lifecycle = createStudioLifecycleService({
+    store,
+    componentCatalog: brand.components,
+    bindingSourceCatalog: brand.dataSources,
+    actionAdapter: brand.actions,
+    nowUnixMs: () => now++,
+  });
+  const created = await lifecycle.create({
+    workspaceId: WORKSPACE_ID,
+    id: EXPERIENCE_ID,
+    name: EXPERIENCE_NAME,
+    document: workbench.currentDocument(),
+  });
+  if (!created.ok) throw new Error(`lifecycle create rejected: ${lifecycleIssue(created)}`);
+  const history = await lifecycle.history(WORKSPACE_ID, EXPERIENCE_ID);
+  if (!history.ok) throw new Error(`lifecycle history rejected: ${lifecycleIssue(history)}`);
+
+  const root = document.querySelector<HTMLDivElement>("#root");
+  if (!root) throw new Error("missing root");
+  createRoot(root).render(
+    <StrictMode>
+      <ProductStudio lifecycle={lifecycle} initialRecord={created.value} initialHistory={history.value} />
+    </StrictMode>,
+  );
+}
+
+void bootstrap();
