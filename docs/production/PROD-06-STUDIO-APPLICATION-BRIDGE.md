@@ -36,7 +36,7 @@ The bridge uses public canonical APIs. It does not modify `studio-publish`.
 1. Invalid Studio input cannot produce an Application candidate.
 2. Every Studio `actionEvent` must resolve through the canonical Action Adapter.
 3. Every mapped Action identity used by Studio must be declared by the Application with an exact `id + versionRef`.
-4. Floating Action references are rejected by the canonical Application V2 parser.
+4. Floating Action references and duplicate Action ids are rejected by the canonical Application V2 parser; the bridge does not create a parallel Action-reference validator.
 5. The Studio publication is serialized into a concrete UTF-8 `application/json` artifact with SHA-256 digest and exact byte size.
 6. The Experience Pack contains that exact Studio publication artifact as an entrypoint and is accepted by the canonical Experience Pack parser.
 7. The Application Experience reference points to that exact Pack version and entrypoint.
@@ -64,7 +64,7 @@ Those remain with their existing canonical owners and later production phases.
 - deterministic exact Studio artifact → Pack → Application V2 creation;
 - Studio event alias → canonical Action Adapter → exact Application Action binding;
 - missing exact Action reference fails closed;
-- floating Action version rejection is delegated to `application-package`;
+- floating Action version and duplicate Action id rejection are delegated to `application-package`;
 - Pack namespace/publisher rejection is delegated to `experience-packs`;
 - invalid Studio flow is rejected before bridge output by `studio-publish`.
 
