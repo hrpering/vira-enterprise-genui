@@ -9,6 +9,13 @@ import type { StudioWorkbenchReactIssue, ViraStudioWorkbenchProps } from "./type
 
 const usePuck = createUsePuck();
 type WorkbenchPanel = "components" | "layers" | "views";
+type PreviewViewport = "desktop" | "tablet" | "mobile";
+
+const previewWidths: Readonly<Record<PreviewViewport, string>> = Object.freeze({
+  desktop: "100%",
+  tablet: "768px",
+  mobile: "390px",
+});
 
 function ViraLayersPanel(props: { readonly session: ViraStudioWorkbenchProps["session"] }): ReactElement {
   const selectedPuckId = usePuck((state) => {
@@ -83,9 +90,30 @@ function panelButton(label: string, value: WorkbenchPanel, active: WorkbenchPane
   }, label);
 }
 
+function previewButton(label: string, value: PreviewViewport, active: PreviewViewport, select: (viewport: PreviewViewport) => void): ReactElement {
+  return createElement("button", {
+    key: value,
+    type: "button",
+    "data-testid": `vira-studio-viewport-${value}`,
+    "aria-pressed": active === value,
+    onClick: () => select(value),
+    style: {
+      border: "1px solid #d1d5db",
+      borderRadius: 7,
+      padding: "5px 8px",
+      background: active === value ? "#111827" : "#fff",
+      color: active === value ? "#fff" : "#374151",
+      cursor: "pointer",
+      fontSize: 11,
+      fontWeight: 650,
+    },
+  }, label);
+}
+
 export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactElement {
   const [revision, setRevision] = useState(0);
   const [panel, setPanel] = useState<WorkbenchPanel>("components");
+  const [viewport, setViewport] = useState<PreviewViewport>("desktop");
   const [lastError, setLastError] = useState<StudioWorkbenchReactIssue | undefined>(undefined);
   const reportError = (issue: StudioWorkbenchReactIssue) => { setLastError(issue); props.onError?.(issue); };
   const notifyMutation = (result: ReturnType<typeof props.session.selectView>) => {
@@ -124,13 +152,22 @@ export function ViraStudioWorkbench(props: ViraStudioWorkbenchProps): ReactEleme
   const workspace = createElement("div", { "data-testid": "vira-studio-workbench", style: { height, minHeight: 520, display: "grid", gridTemplateRows: "48px minmax(0, 1fr)", background: "#f4f5f7", color: "#111827", overflow: "hidden", borderTop: "1px solid #e5e7eb" } },
     createElement("header", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "0 14px", background: "#fff", borderBottom: "1px solid #e5e7eb" } },
       createElement("strong", { style: { fontSize: 13 } }, props.title ?? "Vira Experience Studio"),
+      createElement("div", { "aria-label": "Preview viewport", style: { display: "flex", alignItems: "center", gap: 5 } },
+        previewButton("Desktop", "desktop", viewport, setViewport),
+        previewButton("Tablet", "tablet", viewport, setViewport),
+        previewButton("Mobile", "mobile", viewport, setViewport)),
       createElement("button", { type: "button", "data-testid": "vira-studio-publish", onClick: () => { void publish(); }, style: { border: 0, borderRadius: 8, padding: "8px 12px", background: "#111827", color: "#fff", cursor: "pointer", fontWeight: 700 } }, "Publish")),
     createElement("div", { style: { minHeight: 0, display: "grid", gridTemplateColumns: "290px minmax(360px, 1fr) 350px", overflow: "hidden" } },
       createElement("aside", { style: { minHeight: 0, overflow: "auto", background: "#fff", borderRight: "1px solid #e5e7eb" } },
         createElement("div", { style: { position: "sticky", top: 0, zIndex: 2, display: "flex", flexWrap: "wrap", gap: 4, padding: 8, background: "#fff", borderBottom: "1px solid #e5e7eb" } },
           panelButton("Components", "components", panel, setPanel), panelButton("Layers", "layers", panel, setPanel), panelButton("Views", "views", panel, setPanel)),
         renderPanel()),
-      createElement("main", { "data-testid": "vira-studio-preview", style: { minWidth: 0, minHeight: 0, overflow: "auto", padding: 18, background: "#eef0f3" } }, createElement(Puck.Preview)),
+      createElement("main", { "data-testid": "vira-studio-preview", style: { minWidth: 0, minHeight: 0, overflow: "auto", padding: 18, background: "#eef0f3" } },
+        createElement("div", {
+          "data-testid": "vira-studio-preview-viewport",
+          "data-preview-viewport": viewport,
+          style: { width: previewWidths[viewport], maxWidth: "100%", minHeight: "100%", margin: "0 auto", background: "#fff", transition: "width 120ms ease" },
+        }, createElement(Puck.Preview))),
       createElement("aside", { style: { minHeight: 0, overflow: "auto", background: "#fff", borderLeft: "1px solid #e5e7eb" } },
         createElement(ViraStudioInspector, { session: props.session, mutate: notifyMutation, reportError }))));
 
