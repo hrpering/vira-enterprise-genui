@@ -7,6 +7,7 @@
   "dependencies": {
     "@vira-enterprise-genui/application-package": "workspace:*",
     "@vira-enterprise-genui/application-resolution": "workspace:*",
+    "@vira-enterprise-genui/artifact-contract": "workspace:*",
     "@vira-enterprise-genui/enterprise-context": "workspace:*"
   }
 }

@@ -323,6 +323,9 @@ importers:
       '@vira-enterprise-genui/application-resolution':
         specifier: workspace:*
         version: link:../application-resolution
+      '@vira-enterprise-genui/artifact-contract':
+        specifier: workspace:*
+        version: link:../artifact-contract
       '@vira-enterprise-genui/enterprise-context':
         specifier: workspace:*
         version: link:../enterprise-context
