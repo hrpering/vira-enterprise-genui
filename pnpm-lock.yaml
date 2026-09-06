@@ -315,6 +315,30 @@ importers:
         specifier: workspace:*
         version: link:../enterprise-context
 
+  packages/application-runtime:
+    dependencies:
+      '@vira-enterprise-genui/application-package':
+        specifier: workspace:*
+        version: link:../application-package
+      '@vira-enterprise-genui/application-resolution':
+        specifier: workspace:*
+        version: link:../application-resolution
+      '@vira-enterprise-genui/artifact-contract':
+        specifier: workspace:*
+        version: link:../artifact-contract
+      '@vira-enterprise-genui/enterprise-context':
+        specifier: workspace:*
+        version: link:../enterprise-context
+
+  packages/artifact-contract:
+    dependencies:
+      '@vira-enterprise-genui/enterprise-context':
+        specifier: workspace:*
+        version: link:../enterprise-context
+      '@vira-enterprise-genui/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+
   packages/capability-contract:
     dependencies:
       '@vira-enterprise-genui/protocol':
