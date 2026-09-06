@@ -1,0 +1,43 @@
+name: prod10-lockfile
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    if: github.event.pull_request.head.ref == 'prod/10-exact-action-supply-transaction-plan'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout PROD-10 head
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install pnpm
+        run: npm install --global pnpm@11.24.0
+
+      - name: Generate workspace lockfile only
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+
+      - name: Commit generated lockfile when changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "pnpm-lock.yaml already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "chore(prod-10): refresh workspace lockfile"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
