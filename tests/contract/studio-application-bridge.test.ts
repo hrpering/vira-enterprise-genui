@@ -158,6 +158,23 @@ describe("Studio → Canonical Application V2 bridge", () => {
     });
   });
 
+  it("fails closed when a Studio action type resolves to multiple exact Application Action versions", async () => {
+    const result = await prepareStudioApplicationPackageV2(input({
+      actions: [
+        { id: "demo.action.submit", versionRef: "1.0.0" },
+        { id: "demo.action.submit", versionRef: "2.0.0" },
+      ],
+    }));
+    expect(result).toEqual({
+      ok: false,
+      issue: {
+        code: "STUDIO_ACTION_REFERENCE_AMBIGUOUS",
+        path: "$.application.actions",
+        message: "Studio action event submit maps to demo.action.submit, but the Application declares multiple exact Action versions",
+      },
+    });
+  });
+
   it("delegates floating Action rejection to the canonical Application V2 parser", async () => {
     const result = await prepareStudioApplicationPackageV2(input({
       actions: [{ id: "demo.action.submit", versionRef: "latest" }],
