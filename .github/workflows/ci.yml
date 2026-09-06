@@ -69,7 +69,7 @@ jobs:
         run: >-
           xcodebuild
           build
-          -scheme ViraIOS
+          -scheme ViraNative
           -destination 'generic/platform=iOS Simulator'
           CODE_SIGNING_ALLOWED=NO
 
