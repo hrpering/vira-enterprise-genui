@@ -124,6 +124,12 @@ function graphKey(ref: ViraCanvasGraphRefV2): string {
   return `${ref.id}\u0000${ref.version}`;
 }
 
+function proposalSemanticIssuePath(path: string): string {
+  if (path === "$") return "$.semantics";
+  if (path === "$.semantics" || path.startsWith("$.semantics.")) return path;
+  return `$.semantics${path.startsWith("$.") ? path.slice(1) : ""}`;
+}
+
 export function createViraCanvasCollaborationSessionV2(
   input: unknown,
 ): CreateViraCanvasCollaborationSessionV2Result {
@@ -356,7 +362,7 @@ export function createViraCanvasCollaborationSessionV2(
         projection: { activeGraphRef: null, graphViews: [] },
       });
       if (!candidateDraft.ok) {
-        return failure("INVALID_PROPOSAL", `$.semantics${candidateDraft.issue.path === "$" ? "" : candidateDraft.issue.path.slice(1)}`, candidateDraft.issue.message);
+        return failure("INVALID_PROPOSAL", proposalSemanticIssuePath(candidateDraft.issue.path), candidateDraft.issue.message);
       }
       const candidate = candidateDraft.value.semantics;
       if (
