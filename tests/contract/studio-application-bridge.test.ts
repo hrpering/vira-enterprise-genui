@@ -158,7 +158,7 @@ describe("Studio → Canonical Application V2 bridge", () => {
     });
   });
 
-  it("fails closed when a Studio action type resolves to multiple exact Application Action versions", async () => {
+  it("delegates duplicate Action id rejection to the canonical Application V2 parser", async () => {
     const result = await prepareStudioApplicationPackageV2(input({
       actions: [
         { id: "demo.action.submit", versionRef: "1.0.0" },
@@ -168,9 +168,10 @@ describe("Studio → Canonical Application V2 bridge", () => {
     expect(result).toEqual({
       ok: false,
       issue: {
-        code: "STUDIO_ACTION_REFERENCE_AMBIGUOUS",
-        path: "$.application.actions",
-        message: "Studio action event submit maps to demo.action.submit, but the Application declares multiple exact Action versions",
+        code: "APPLICATION_PACKAGE_REJECTED",
+        path: "$.application.actions[1].id",
+        message: "Application V2 may bind only one exact version per Action id",
+        sourceCode: "DUPLICATE_ACTION",
       },
     });
   });
