@@ -1,8 +1,10 @@
+import type { ViraActionBoundaryPreflightSuccess } from "@vira-enterprise-genui/action-boundary";
 import type {
   ViraActionFreshnessStrategy,
   ViraActionIdempotencyStrategy,
   ViraActionRetrySafety,
   ViraActionVerificationStrategy,
+  ViraResolvedActionSupply,
 } from "@vira-enterprise-genui/action-supply";
 import type {
   ViraApplicationExactReference,
@@ -76,6 +78,8 @@ export interface ViraTransactionOperation {
   readonly adapterRef: string;
   readonly runnerRef: string;
   readonly secretRef: ViraSecretRef;
+  readonly trustEvidenceRef: string;
+  readonly trustValidUntilEpochMs: number;
   readonly resourceType: string;
   readonly resourceId: string;
   readonly observedBefore: ViraTransactionObservedBefore;
@@ -112,6 +116,18 @@ export interface ViraTransactionPlan {
   readonly commercial: ViraTransactionCommercialSnapshot;
   readonly createdAtEpochMs: number;
   readonly expiresAtEpochMs: number;
+}
+
+export interface ViraTransactionOperationEvidence {
+  readonly operationId: string;
+  readonly supply: ViraResolvedActionSupply;
+  readonly preflight: ViraActionBoundaryPreflightSuccess;
+}
+
+export interface ViraTransactionPlanFreezeOptions {
+  readonly planRevision: number;
+  readonly digest: ViraTransactionPlanDigestProvider;
+  readonly operationEvidence: readonly ViraTransactionOperationEvidence[];
 }
 
 export interface ViraFrozenTransactionPlan {
@@ -169,6 +185,11 @@ export type ViraTransactionPlanIssueCode =
   | "INVALID_POLICY"
   | "INVALID_COMMERCIAL_SNAPSHOT"
   | "INVALID_TIME_WINDOW"
+  | "INVALID_OPERATION_EVIDENCE"
+  | "MISSING_OPERATION_EVIDENCE"
+  | "SUPPLY_MISMATCH"
+  | "PREFLIGHT_MISMATCH"
+  | "TRUST_WINDOW_TOO_SHORT"
   | "DIGEST_PROVIDER_FAILED"
   | "INVALID_PLAN_DIGEST"
   | "INVALID_PLAN_REVISION";
