@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { COMMERCE_BRAND_PACKAGE_INPUT } from "../../examples/commerce-brand-kit/src/index.js";
-import { createStudioBrandPackage } from "@vira-enterprise-genui/studio-brand";
-import { createStudioWorkbenchSession } from "@vira-enterprise-genui/studio-workbench";
+import { createStudioBrandPackage } from "../../packages/studio-brand/src/index.js";
+import { createStudioWorkbenchSession } from "../../packages/studio-workbench/src/index.js";
 
 function createWorkbench() {
   const brandResult = createStudioBrandPackage(COMMERCE_BRAND_PACKAGE_INPUT);
