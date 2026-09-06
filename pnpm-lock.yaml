@@ -197,6 +197,9 @@ importers:
 
   packages/action-transaction:
     dependencies:
+      '@vira-enterprise-genui/action-boundary':
+        specifier: workspace:*
+        version: link:../action-boundary
       '@vira-enterprise-genui/action-supply':
         specifier: workspace:*
         version: link:../action-supply
