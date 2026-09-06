@@ -1,0 +1,16 @@
+{
+  "name": "@vira-enterprise-genui/action-supply",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/application-package": "workspace:*",
+    "@vira-enterprise-genui/deployment-plane": "workspace:*",
+    "@vira-enterprise-genui/enterprise-context": "workspace:*",
+    "@vira-enterprise-genui/protocol": "workspace:*",
+    "@vira-enterprise-genui/provider-connection": "workspace:*"
+  }
+}
