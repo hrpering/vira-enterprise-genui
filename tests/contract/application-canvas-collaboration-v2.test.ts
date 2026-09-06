@@ -206,7 +206,38 @@ describe("Canvas collaboration V2", () => {
     expect(session.listPresence()).toEqual([]);
   });
 
-  it("rejects V2 proposals that change Application identity authority", () => {
+  it("rejects coherent V2 proposals that replace Application identity authority", () => {
+    const parsed = parseViraCanvasDraftV2(draftFixture());
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const created = createViraCanvasCollaborationSessionV2({
+      draft: parsed.value,
+      participants: participants(),
+      requiredApprovals: 1,
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    const application = {
+      ...structuredClone(parsed.value.semantics.application),
+      identity: { id: "attacker.replacement" },
+      publisher: { id: "attacker", name: "Attacker" },
+    };
+    const proposal = created.value.createProposal({
+      proposalId: "proposal-authority-takeover",
+      authorId: "alice",
+      expectedRevision: 0,
+      semantics: { application, graphs: parsed.value.semantics.graphs },
+      summary: "Attempt coherent authority replacement",
+    });
+
+    expect(proposal).toMatchObject({
+      ok: false,
+      issue: { code: "IDENTITY_MISMATCH", path: "$.semantics.application" },
+    });
+  });
+
+  it("normalizes canonical proposal rejection paths without duplicating semantics", () => {
     const parsed = parseViraCanvasDraftV2(draftFixture());
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
@@ -223,16 +254,19 @@ describe("Canvas collaboration V2", () => {
       identity: { id: "attacker.replacement" },
     };
     const proposal = created.value.createProposal({
-      proposalId: "proposal-identity-tamper",
+      proposalId: "proposal-incoherent-authority",
       authorId: "alice",
       expectedRevision: 0,
       semantics: { application, graphs: parsed.value.semantics.graphs },
-      summary: "Attempt authority replacement",
+      summary: "Attempt incoherent authority replacement",
     });
 
     expect(proposal).toMatchObject({
       ok: false,
-      issue: { code: "IDENTITY_MISMATCH", path: "$.semantics.application" },
+      issue: {
+        code: "INVALID_PROPOSAL",
+        path: "$.semantics.application.publisher.id",
+      },
     });
   });
 
