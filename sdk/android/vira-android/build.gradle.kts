@@ -93,6 +93,15 @@ tasks.matching { task ->
   dependsOn(generatePackagedMainSources)
 }
 
+// AGP annotation extraction reads the generated Kotlin source directory directly.
+// Declare the producer explicitly so Gradle's task graph cannot consume stale or
+// not-yet-generated sources during assembleDebug/assembleRelease.
+tasks.matching { task ->
+  task.name.startsWith("extract") && task.name.endsWith("Annotations")
+}.configureEach {
+  dependsOn(generatePackagedMainSources)
+}
+
 dependencies {
   testImplementation("junit:junit:4.13.2")
 }
