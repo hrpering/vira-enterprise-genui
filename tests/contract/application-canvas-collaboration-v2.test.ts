@@ -237,7 +237,7 @@ describe("Canvas collaboration V2", () => {
     });
   });
 
-  it("rejects publisher takeover for an existing exact ApplicationGraph release", () => {
+  it("rejects exact ApplicationGraph publisher takeover at the canonical owner boundary", () => {
     const parsed = parseViraCanvasDraftV2(draftFixture());
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
@@ -268,8 +268,8 @@ describe("Canvas collaboration V2", () => {
     expect(proposal).toMatchObject({
       ok: false,
       issue: {
-        code: "IDENTITY_MISMATCH",
-        path: "$.semantics.graphs[0].publisher",
+        code: "INVALID_PROPOSAL",
+        path: "$.semantics.graphs[0].publisher.id",
       },
     });
   });
