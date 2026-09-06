@@ -73,8 +73,11 @@ export interface ViraTransactionOperation {
   readonly actionRef: ViraApplicationExactReference;
   readonly actionIntent: JsonObject;
   readonly actionBindingRef: ViraApplicationExactReference;
+  readonly providerId: string;
   readonly providerIdentityRef: string;
   readonly connectionId: string;
+  readonly connectorId: string;
+  readonly providerOperationId: string;
   readonly adapterRef: string;
   readonly runnerRef: string;
   readonly secretRef: ViraSecretRef;
