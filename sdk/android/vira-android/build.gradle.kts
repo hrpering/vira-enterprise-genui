@@ -1,3 +1,4 @@
+import com.android.build.api.variant.HasUnitTest
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
@@ -82,7 +83,6 @@ android {
     }
     getByName("test") {
       kotlin.directories.clear()
-      java.setSrcDirs(listOf(file("src/test/java")))
     }
   }
 
@@ -111,7 +111,7 @@ androidComponents {
       GeneratePackagedKotlinSources::outputDirectory,
     )
 
-    variant.unitTest?.let { unitTest ->
+    (variant as? HasUnitTest)?.unitTest?.let { unitTest ->
       val generateTestSources = tasks.register<GeneratePackagedKotlinSources>(
         "generate${variantName}PackagedTestSources",
       ) {
