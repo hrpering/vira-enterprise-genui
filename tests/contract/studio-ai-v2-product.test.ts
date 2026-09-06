@@ -3,7 +3,10 @@ import {
   COMMERCE_BRAND_PACKAGE_INPUT,
   COMMERCE_COMPONENTS,
 } from "../../examples/commerce-brand-kit/src/index.js";
-import { generateCommerceStudioAiDraft } from "../../examples/experience-studio-demo/src/ai-authoring.js";
+import {
+  COMMERCE_STUDIO_AI_HOST_MANIFESTS,
+  generateCommerceStudioAiDraft,
+} from "../../examples/experience-studio-demo/src/ai-authoring.js";
 
 const baseDocument = COMMERCE_BRAND_PACKAGE_INPUT.templates[0]!.document;
 
@@ -40,5 +43,25 @@ describe("PROD-06 Studio AI v2 product composition", () => {
       path: "$.candidate",
     }));
     expect(baseDocument.id).toBe("commerce.template.product-card");
+  });
+
+  it("fails closed when the three Host manifests no longer share a Brand component", async () => {
+    const hostManifests = COMMERCE_STUDIO_AI_HOST_MANIFESTS.map((manifest) => manifest.platform === "android"
+      ? { ...manifest, implementationIds: [] }
+      : manifest);
+    const result = await generateCommerceStudioAiDraft(
+      baseDocument,
+      "Make the add to cart action clearer.",
+      { hostManifests },
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      issue: {
+        code: "NO_COMMON_COMPONENTS",
+        path: "$.requestedPlatforms",
+        message: "web, ios and android do not share any Brand component supported by every Host",
+      },
+    });
   });
 });
