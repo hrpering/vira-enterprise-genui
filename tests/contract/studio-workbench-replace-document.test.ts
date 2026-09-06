@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COMMERCE_BRAND_PACKAGE_INPUT } from "@vira-enterprise-genui/commerce-brand-kit";
+import { COMMERCE_BRAND_PACKAGE_INPUT } from "../../examples/commerce-brand-kit/src/index.js";
 import { createStudioBrandPackage } from "@vira-enterprise-genui/studio-brand";
 import { createStudioWorkbenchSession } from "@vira-enterprise-genui/studio-workbench";
 
