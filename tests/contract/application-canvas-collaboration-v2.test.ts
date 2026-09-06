@@ -237,6 +237,43 @@ describe("Canvas collaboration V2", () => {
     });
   });
 
+  it("rejects publisher takeover for an existing exact ApplicationGraph release", () => {
+    const parsed = parseViraCanvasDraftV2(draftFixture());
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const created = createViraCanvasCollaborationSessionV2({
+      draft: parsed.value,
+      participants: participants(),
+      requiredApprovals: 1,
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    const graphs = parsed.value.semantics.graphs.map((graph, index) =>
+      index === 0
+        ? { ...structuredClone(graph), publisher: { id: "attacker", name: "Attacker" } }
+        : graph,
+    );
+    const proposal = created.value.createProposal({
+      proposalId: "proposal-graph-publisher-takeover",
+      authorId: "alice",
+      expectedRevision: 0,
+      semantics: {
+        application: parsed.value.semantics.application,
+        graphs,
+      },
+      summary: "Attempt graph publisher takeover",
+    });
+
+    expect(proposal).toMatchObject({
+      ok: false,
+      issue: {
+        code: "IDENTITY_MISMATCH",
+        path: "$.semantics.graphs[0].publisher",
+      },
+    });
+  });
+
   it("normalizes canonical proposal rejection paths without duplicating semantics", () => {
     const parsed = parseViraCanvasDraftV2(draftFixture());
     expect(parsed.ok).toBe(true);
