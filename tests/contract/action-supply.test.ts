@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ViraApplicationEnvironmentBinding } from "../../packages/deployment-plane/src/index.js";
 import type { ViraProviderConnection } from "../../packages/provider-connection/src/index.js";
+import type { ViraProviderTrustEvidence } from "../../packages/provider-trust/src/index.js";
 import { resolveViraActionSupply } from "../../packages/action-supply/src/index.js";
 
 const NOW = 1_900_000_000_000;
@@ -44,6 +45,25 @@ function connection(overrides: Partial<ViraProviderConnection> = {}): ViraProvid
   };
 }
 
+function trustEvidence(overrides: Partial<ViraProviderTrustEvidence> = {}): ViraProviderTrustEvidence {
+  return {
+    version: "1",
+    id: "trust.demo.e001",
+    connectionId: "demo.connection",
+    providerId: "demo",
+    scope,
+    credentialRef: secretRef,
+    health: {
+      status: "healthy",
+      checkedAtEpochMs: NOW - 1_000,
+    },
+    issuedAtEpochMs: NOW - 2_000,
+    expiresAtEpochMs: NOW + 30_000,
+    revokedAtEpochMs: null,
+    ...overrides,
+  };
+}
+
 function environmentBinding(overrides: Partial<ViraApplicationEnvironmentBinding> = {}): ViraApplicationEnvironmentBinding {
   return {
     version: "1",
@@ -65,6 +85,7 @@ function input(overrides: Record<string, unknown> = {}) {
     bindingRef,
     actionRef,
     connection: connection(),
+    trustEvidence: trustEvidence(),
     environmentBinding: environmentBinding(),
     operationId: "document.publish",
     runnerRef: "runner.private",
@@ -81,7 +102,7 @@ function input(overrides: Record<string, unknown> = {}) {
 }
 
 describe("PROD-10 exact Action supply", () => {
-  it("resolves one exact protected Action binding without owning provider credentials", () => {
+  it("resolves one exact protected Action binding only with live canonical provider trust", () => {
     const result = resolveViraActionSupply(input());
     expect(result).toMatchObject({
       ok: true,
@@ -96,6 +117,7 @@ describe("PROD-10 exact Action supply", () => {
         adapterRef: "adapter.demo",
         runnerRef: "runner.private",
         trustEvidenceRef: "trust.demo.e001",
+        trustValidUntilEpochMs: NOW + 30_000,
         behavior: {
           idempotencyStrategy: "provider-native",
           retrySafety: "safe-after-known-no-effect",
@@ -111,11 +133,39 @@ describe("PROD-10 exact Action supply", () => {
     expect(Object.isFrozen(result.value.secretRef)).toBe(true);
   });
 
-  it("rejects inactive and expired provider connections", () => {
+  it("rejects inactive and expired provider connections through the canonical trust evaluator", () => {
     expect(resolveViraActionSupply(input({ connection: connection({ state: "revoked" }) })))
       .toMatchObject({ ok: false, issue: { code: "CONNECTION_NOT_ACTIVE" } });
     expect(resolveViraActionSupply(input({ connection: connection({ expiresAtEpochMs: NOW }) })))
       .toMatchObject({ ok: false, issue: { code: "CONNECTION_EXPIRED" } });
+  });
+
+  it("rejects unhealthy, expired and revoked provider trust evidence", () => {
+    expect(resolveViraActionSupply(input({
+      trustEvidence: trustEvidence({ health: { status: "degraded", checkedAtEpochMs: NOW - 1_000 } }),
+    }))).toMatchObject({ ok: false, issue: { code: "PROVIDER_TRUST_REJECTED" } });
+
+    expect(resolveViraActionSupply(input({
+      trustEvidence: trustEvidence({ expiresAtEpochMs: NOW }),
+    }))).toMatchObject({ ok: false, issue: { code: "PROVIDER_TRUST_REJECTED" } });
+
+    expect(resolveViraActionSupply(input({
+      trustEvidence: trustEvidence({ revokedAtEpochMs: NOW - 500 }),
+    }))).toMatchObject({ ok: false, issue: { code: "PROVIDER_TRUST_REJECTED" } });
+  });
+
+  it("binds the exact trust evidence named by the Application environment binding", () => {
+    expect(resolveViraActionSupply(input({
+      trustEvidence: trustEvidence({ id: "trust.demo.e002" }),
+    }))).toMatchObject({ ok: false, issue: { code: "TRUST_EVIDENCE_MISMATCH" } });
+
+    expect(resolveViraActionSupply(input({
+      trustEvidence: trustEvidence({ providerId: "other-provider" }),
+    }))).toMatchObject({ ok: false, issue: { code: "PROVIDER_TRUST_REJECTED" } });
+
+    expect(resolveViraActionSupply(input({
+      trustEvidence: trustEvidence({ credentialRef: { ...secretRef, key: "providers.other" } }),
+    }))).toMatchObject({ ok: false, issue: { code: "PROVIDER_TRUST_REJECTED" } });
   });
 
   it("rejects floating and mismatched Action references", () => {
@@ -149,6 +199,14 @@ describe("PROD-10 exact Action supply", () => {
     expect(resolveViraActionSupply(input({
       environmentBinding: environmentBinding({ trustStatus: "untrusted" }),
     }))).toMatchObject({ ok: false, issue: { code: "UNTRUSTED_ENVIRONMENT_BINDING" } });
+  });
+
+  it("rejects unknown fields in untrusted connection and outer snapshots", () => {
+    expect(resolveViraActionSupply({ ...input(), unexpected: true }))
+      .toMatchObject({ ok: false, issue: { code: "INVALID_INPUT" } });
+    expect(resolveViraActionSupply(input({
+      connection: { ...connection(), unexpected: true },
+    }))).toMatchObject({ ok: false, issue: { code: "INVALID_INPUT" } });
   });
 
   it("enforces bounded-age freshness semantics deterministically", () => {
