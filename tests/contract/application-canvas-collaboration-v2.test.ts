@@ -138,11 +138,12 @@ describe("Canvas collaboration V2", () => {
     });
     expect(presence).toMatchObject({ ok: true, value: { version: "2", actorId: "alice" } });
 
-    const candidateApplication = structuredClone(parsed.value.semantics.application);
-    const distribution = candidateApplication.distribution;
-    candidateApplication.distribution = {
-      ...distribution,
-      description: "A peer-reviewed governed flight application.",
+    const candidateApplication = {
+      ...structuredClone(parsed.value.semantics.application),
+      distribution: {
+        ...structuredClone(parsed.value.semantics.application.distribution),
+        description: "A peer-reviewed governed flight application.",
+      },
     };
     const proposal = session.createProposal({
       proposalId: "proposal-1",
@@ -217,8 +218,10 @@ describe("Canvas collaboration V2", () => {
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
-    const application = structuredClone(parsed.value.semantics.application);
-    application.identity = { id: "attacker.replacement" };
+    const application = {
+      ...structuredClone(parsed.value.semantics.application),
+      identity: { id: "attacker.replacement" },
+    };
     const proposal = created.value.createProposal({
       proposalId: "proposal-identity-tamper",
       authorId: "alice",
@@ -253,7 +256,7 @@ describe("Canvas collaboration V2", () => {
     expect(v2Entry.ok).toBe(true);
   });
 
-  it("blocks immutable rejection and stale proposal apply", () => {
+  it("blocks immutable rejection", () => {
     const parsed = parseViraCanvasDraftV2(draftFixture());
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
@@ -266,10 +269,12 @@ describe("Canvas collaboration V2", () => {
     if (!created.ok) return;
     const session = created.value;
 
-    const candidateApplication = structuredClone(parsed.value.semantics.application);
-    candidateApplication.distribution = {
-      ...candidateApplication.distribution,
-      description: "Rejected change",
+    const candidateApplication = {
+      ...structuredClone(parsed.value.semantics.application),
+      distribution: {
+        ...structuredClone(parsed.value.semantics.application.distribution),
+        description: "Rejected change",
+      },
     };
     const proposal = session.createProposal({
       proposalId: "proposal-rejected",
