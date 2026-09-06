@@ -681,6 +681,24 @@ importers:
         specifier: workspace:*
         version: link:../tool-bridge
 
+  packages/provider-connection:
+    dependencies:
+      '@vira-enterprise-genui/adapter-sdk':
+        specifier: workspace:*
+        version: link:../adapter-sdk
+      '@vira-enterprise-genui/application-package':
+        specifier: workspace:*
+        version: link:../application-package
+      '@vira-enterprise-genui/capability-contract':
+        specifier: workspace:*
+        version: link:../capability-contract
+      '@vira-enterprise-genui/enterprise-context':
+        specifier: workspace:*
+        version: link:../enterprise-context
+      '@vira-enterprise-genui/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+
   packages/react:
     dependencies:
       '@vira-enterprise-genui/runtime-web':

@@ -13,6 +13,7 @@ export const allowedDependencies = Object.freeze({
   planner: ["protocol"],
   composer: ["protocol", "planner"],
   "adapter-sdk": ["protocol"],
+  "provider-connection": ["adapter-sdk", "application-package", "capability-contract", "enterprise-context", "protocol"],
   "application-package": ["protocol"],
   "application-distribution": ["application-package", "protocol"],
   "application-resolution": ["application-distribution", "application-package", "deployment-plane", "enterprise-context"],

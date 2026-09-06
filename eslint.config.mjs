@@ -19,6 +19,8 @@ export default tseslint.config(
       "packages/adapter-sdk/src/action/validate.ts",
       "packages/adapter-sdk/src/brand/validate.ts",
       "packages/adapter-sdk/src/intent/validate.ts",
+      "packages/adapter-sdk/src/connector/validate.ts",
+      "packages/provider-connection/src/connection.ts",
       "packages/protocol/src/patch/validate.ts",
       "packages/runtime-core/src/errors/create.ts",
       "packages/studio-*/src/**/*.ts",
