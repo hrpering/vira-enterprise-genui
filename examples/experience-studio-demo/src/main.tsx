@@ -17,6 +17,11 @@ import {
 import { ViraStudioWorkbench } from "../../../packages/studio-workbench-react/src/index.js";
 import { generateCommerceStudioAiDraft } from "./ai-authoring.js";
 import { MemoryStudioLifecycleStore } from "./lifecycle-store.js";
+import {
+  deprecateStudioApplicationStaging,
+  publishStudioApplicationToStaging,
+  type StudioStagingDeploymentValue,
+} from "./staging-deployment.js";
 import "./studio.css";
 
 const brandResult = createStudioBrandPackage(COMMERCE_BRAND_PACKAGE_INPUT);
@@ -66,6 +71,7 @@ function ProductStudio(props: {
   const [aiBusy, setAiBusy] = useState(false);
   const [applicationRelease, setApplicationRelease] = useState("Not prepared");
   const [experiencePackRelease, setExperiencePackRelease] = useState("Not prepared");
+  const [stagingState, setStagingState] = useState("Not staged");
 
   const recordRef = useRef(props.initialRecord);
   const documentRef = useRef<DemoDocument>(document);
@@ -73,6 +79,7 @@ function ProductStudio(props: {
   const lastSavedSequenceRef = useRef(0);
   const autosaveTimerRef = useRef<number | undefined>(undefined);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const stagedReleaseRef = useRef<StudioStagingDeploymentValue | null>(null);
 
   const applyRecord = (next: StudioLifecycleRecord) => {
     recordRef.current = next;
@@ -180,44 +187,72 @@ function ProductStudio(props: {
   };
 
   const publish = async () => {
-    const current = await flushDraft();
+    let current = await flushDraft();
     const release = await prepareCanonicalRelease(current);
     if (!release.ok) {
       setStatus(`Publish blocked · ${release.issue.code}: ${release.issue.message}`);
       return;
     }
 
-    const published = await props.lifecycle.publish({
-      workspaceId: WORKSPACE_ID,
-      id: EXPERIENCE_ID,
-      expectedRecordVersion: current.recordVersion,
-    });
-    if (!published.ok) {
-      setStatus(`Publish failed · ${lifecycleIssue(published)}`);
+    if (current.publishedDraftRevision !== current.draftRevision) {
+      const published = await props.lifecycle.publish({
+        workspaceId: WORKSPACE_ID,
+        id: EXPERIENCE_ID,
+        expectedRecordVersion: current.recordVersion,
+      });
+      if (!published.ok) {
+        setStatus(`Publish failed · ${lifecycleIssue(published)}`);
+        return;
+      }
+      applyRecord(published.value);
+      current = published.value;
+      await refreshHistory();
+    }
+
+    const staged = await publishStudioApplicationToStaging(release.value.application);
+    if (!staged.ok) {
+      const active = stagedReleaseRef.current;
+      const suffix = active === null
+        ? "no Application release is active in staging"
+        : `active staging release remains ${active.release.id}@${active.release.version}`;
+      setStatus(`Studio published r${current.draftRevision} · staging failed · ${staged.issue.code}: ${staged.issue.message} · ${suffix}`);
       return;
     }
-    applyRecord(published.value);
-    setApplicationRelease(`${release.value.application.identity.id}@${release.value.application.version}`);
+
+    stagedReleaseRef.current = staged.value;
+    setApplicationRelease(`${staged.value.release.id}@${staged.value.release.version}`);
     setExperiencePackRelease(`${release.value.experiencePack.id}@${release.value.experiencePack.version}`);
-    setStatus(`Published · draft r${published.value.publishedDraftRevision ?? "?"}`);
-    await refreshHistory();
+    setStagingState("Active · staging");
+    setStatus(`Published · draft r${current.publishedDraftRevision ?? current.draftRevision} · Application staged`);
   };
 
   const unpublish = async () => {
     const current = await flushDraft();
+    const staged = stagedReleaseRef.current;
+    if (staged !== null) {
+      const deprecated = await deprecateStudioApplicationStaging(staged);
+      if (!deprecated.ok) {
+        setStatus(`Unpublish blocked · staging deprecation failed · ${deprecated.issue.code}: ${deprecated.issue.message}`);
+        return;
+      }
+      stagedReleaseRef.current = null;
+      setStagingState("Deprecated · staging");
+    }
+
     const unpublished = await props.lifecycle.unpublish({
       workspaceId: WORKSPACE_ID,
       id: EXPERIENCE_ID,
       expectedRecordVersion: current.recordVersion,
     });
     if (!unpublished.ok) {
-      setStatus(`Unpublish failed · ${lifecycleIssue(unpublished)}`);
+      setStatus(`Staging release deprecated · Studio unpublish failed · ${lifecycleIssue(unpublished)}`);
       return;
     }
     applyRecord(unpublished.value);
     setApplicationRelease("Not prepared");
     setExperiencePackRelease("Not prepared");
-    setStatus("Publication removed · draft retained");
+    setStagingState("Not staged");
+    setStatus("Publication removed · staged Application deprecated · draft retained");
   };
 
   const restore = async (draftRevision: number) => {
@@ -348,6 +383,7 @@ function ProductStudio(props: {
           <div className="canonical-release-grid" aria-label="Canonical release artifacts">
             <span>Application<strong data-testid="application-release">{applicationRelease}</strong></span>
             <span>Experience Pack<strong data-testid="experience-pack-release">{experiencePackRelease}</strong></span>
+            <span>Deployment<strong data-testid="staging-state">{stagingState}</strong></span>
           </div>
           <button type="button" onClick={() => { void unpublish(); }} disabled={record.publication === null}>Unpublish</button>
         </div>
