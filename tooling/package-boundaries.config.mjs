@@ -29,6 +29,7 @@ export const allowedDependencies = Object.freeze({
   "hosted-capability-runtime": ["capability-contract", "enterprise-context", "protocol", "work-context"],
   "capability-supply": ["capability-contract", "hosted-capability-runtime", "protocol"],
   "work-context": ["protocol"],
+  "artifact-contract": ["enterprise-context", "protocol"],
   "application-graph": ["protocol"],
   "application-canvas": ["application-graph", "application-package", "protocol"],
   "application-canvas-ai": ["application-canvas", "application-package", "protocol"],
