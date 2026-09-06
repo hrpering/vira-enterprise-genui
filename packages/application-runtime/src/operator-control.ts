@@ -126,6 +126,7 @@ export function createViraApplicationRunOperatorControlService(
 
   const reader = createViraApplicationRunService({ store: config.store, nowUnixMs: config.nowUnixMs });
   if (!reader.ok) return fail("INVALID_SERVICE", "$", reader.issue.message);
+  const runService = reader.value;
   const store = config.store;
   const nowUnixMs = config.nowUnixMs;
   const authorize = config.authorize;
@@ -144,7 +145,7 @@ export function createViraApplicationRunOperatorControlService(
 
     const id = input.id;
     const expectedRevision = input.expectedRevision;
-    const current = await reader.value.read(input.scope, id);
+    const current = await runService.read(input.scope, id);
     if (!current.ok) return current;
 
     const authorizationInput = Object.freeze({
@@ -207,8 +208,8 @@ export function createViraApplicationRunOperatorControlService(
 
   const service: ViraApplicationRunOperatorControlService = Object.freeze({
     version: VIRA_APPLICATION_RUN_OPERATOR_CONTROL_VERSION,
-    pause: (input) => transition("pause", input),
-    resumePaused: (input) => transition("resume", input),
+    pause: (input: ViraApplicationRunOperatorControlInput) => transition("pause", input),
+    resumePaused: (input: ViraApplicationRunOperatorControlInput) => transition("resume", input),
   });
   return { ok: true, value: service };
 }
