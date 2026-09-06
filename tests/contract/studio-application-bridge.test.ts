@@ -190,6 +190,6 @@ describe("Studio → Canonical Application V2 bridge", () => {
     if (result.ok) return;
     expect(result.issue.code).toBe("STUDIO_PUBLICATION_REJECTED");
     expect(result.issue.sourceCode).toBe("INVALID_FLOW");
-    expect(result.issue.path).toContain("$.studio.document.interactions[0].actionEvent");
+    expect(result.issue.path).toBe("$.studio.document.actionAdapter.mappings");
   });
 });
