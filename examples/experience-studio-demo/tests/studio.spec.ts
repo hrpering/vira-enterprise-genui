@@ -12,6 +12,7 @@ test("a non-technical user can create, AI-assist, version, publish, restore and 
   await expect(page.getByTestId("published-state")).toHaveText("Not published");
   await expect(page.getByTestId("application-release")).toHaveText("Not prepared");
   await expect(page.getByTestId("experience-pack-release")).toHaveText("Not prepared");
+  await expect(page.getByTestId("staging-state")).toHaveText("Not staged");
   await expect(page.getByTestId("vira-studio-workbench")).toBeVisible();
 
   await page.getByTestId("vira-studio-viewport-mobile").click();
@@ -40,10 +41,11 @@ test("a non-technical user can create, AI-assist, version, publish, restore and 
   await expect(page.getByTestId("revision-diff-summary")).toContainText("change(s)");
 
   await page.getByTestId("vira-studio-publish").click();
-  await expect(page.getByTestId("status")).toHaveText("Published · draft r3");
+  await expect(page.getByTestId("status")).toHaveText("Published · draft r3 · Application staged", { timeout: 5_000 });
   await expect(page.getByTestId("published-state")).toHaveText("Published r3");
   await expect(page.getByTestId("application-release")).toHaveText("commerce.application.product-card@0.0.3");
   await expect(page.getByTestId("experience-pack-release")).toHaveText("commerce/product-card@0.0.3");
+  await expect(page.getByTestId("staging-state")).toHaveText("Active · staging");
 
   await page.getByTestId("ai-prompt").fill("Change the experience id to commerce.other.experience.");
   await page.getByTestId("ai-apply").click();
@@ -53,6 +55,7 @@ test("a non-technical user can create, AI-assist, version, publish, restore and 
   await expect(page.getByTestId("experience-id")).toHaveText("commerce.template.product-card");
   await expect(page.getByTestId("application-release")).toHaveText("commerce.application.product-card@0.0.3");
   await expect(page.getByTestId("experience-pack-release")).toHaveText("commerce/product-card@0.0.3");
+  await expect(page.getByTestId("staging-state")).toHaveText("Active · staging");
 
   await page.getByTestId("revision-restore-1").click();
   await expect(page.getByTestId("status")).toHaveText("Restored r1 as new draft r4");
@@ -61,10 +64,12 @@ test("a non-technical user can create, AI-assist, version, publish, restore and 
   await expect(page.getByTestId("published-state")).toHaveText("Published r3");
   await expect(page.getByTestId("application-release")).toHaveText("commerce.application.product-card@0.0.3");
   await expect(page.getByTestId("experience-pack-release")).toHaveText("commerce/product-card@0.0.3");
+  await expect(page.getByTestId("staging-state")).toHaveText("Active · staging");
 
   await page.getByTestId("vira-studio-publish").click();
-  await expect(page.getByTestId("status")).toHaveText("Published · draft r4");
+  await expect(page.getByTestId("status")).toHaveText("Published · draft r4 · Application staged", { timeout: 5_000 });
   await expect(page.getByTestId("published-state")).toHaveText("Published r4");
   await expect(page.getByTestId("application-release")).toHaveText("commerce.application.product-card@0.0.4");
   await expect(page.getByTestId("experience-pack-release")).toHaveText("commerce/product-card@0.0.4");
+  await expect(page.getByTestId("staging-state")).toHaveText("Active · staging");
 });
