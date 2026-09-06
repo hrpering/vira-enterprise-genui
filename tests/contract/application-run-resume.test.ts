@@ -182,4 +182,38 @@ describe("PROD-08 durable ApplicationRun resume foundation", () => {
       wait: { id: "wait.bad.event", kind: "event", reference: "event:x", dueAtUnixMs: 2_000_000_000_000 },
     })).toMatchObject({ ok: false, issue: { code: "INVALID_WAIT" } });
   });
+
+  it("fails closed when the durable store returns malformed nested ApplicationRun state", async () => {
+    const runtime = service();
+    const created = await runtime.service.create({
+      id: "run.demo.008",
+      scope,
+      resolution: resolution(),
+      entrypointRef,
+      workContextId: "work.demo.008",
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    const key = `${scope.organizationId}/${scope.projectId}/${scope.environment}/${created.value.id}`;
+    const canonical = created.value;
+    const corruptions: ViraApplicationRun[] = [
+      { ...canonical, resolution: { ...canonical.resolution, distributionDigest: "not-a-digest" } },
+      { ...canonical, entrypointRef: { id: "bad space", versionRef: "1.0.0" } },
+      { ...canonical, workContextId: "bad work context" },
+      {
+        ...canonical,
+        wait: { id: "wait.persisted.001", kind: "event", reference: "event:ready", dueAtUnixMs: 2_000_000_000_000 },
+      },
+      { ...canonical, unexpected: true } as unknown as ViraApplicationRun,
+    ];
+
+    for (const corrupted of corruptions) {
+      runtime.store.records.set(key, corrupted);
+      expect(await runtime.service.read(scope, canonical.id)).toMatchObject({
+        ok: false,
+        issue: { code: "STORE_FAILURE", path: "$.store" },
+      });
+    }
+  });
 });
