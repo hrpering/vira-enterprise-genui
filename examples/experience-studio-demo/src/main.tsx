@@ -14,6 +14,7 @@ import {
   type StudioLifecycleService,
 } from "../../../packages/studio-lifecycle/src/index.js";
 import { ViraStudioWorkbench } from "../../../packages/studio-workbench-react/src/index.js";
+import { generateCommerceStudioAiDraft } from "./ai-authoring.js";
 import { MemoryStudioLifecycleStore } from "./lifecycle-store.js";
 import "./studio.css";
 
@@ -39,6 +40,7 @@ type DemoDocument = ReturnType<typeof workbench.currentDocument>;
 const WORKSPACE_ID = "experience-studio-demo";
 const EXPERIENCE_ID = template.document.id;
 const EXPERIENCE_NAME = template.label;
+const DEFAULT_AI_PROMPT = "Make the add to cart action clearer.";
 
 function lifecycleIssue(result: { readonly issue: { readonly code: string; readonly message: string } }): string {
   return `${result.issue.code}: ${result.issue.message}`;
@@ -55,6 +57,9 @@ function ProductStudio(props: {
   const [status, setStatus] = useState(`Draft saved · r${props.initialRecord.draftRevision}`);
   const [diffSummary, setDiffSummary] = useState("Select a revision comparison to inspect changes.");
   const [surfaceRevision, setSurfaceRevision] = useState(0);
+  const [aiPrompt, setAiPrompt] = useState(DEFAULT_AI_PROMPT);
+  const [aiStatus, setAiStatus] = useState("Ready · canonical Studio AI v2 policy gate");
+  const [aiBusy, setAiBusy] = useState(false);
 
   const recordRef = useRef(props.initialRecord);
   const documentRef = useRef<DemoDocument>(document);
@@ -205,6 +210,62 @@ function ProductStudio(props: {
     setDiffSummary(`r${draftRevision - 1} → r${draftRevision}: ${diff.value.changes.length} change(s)${paths ? ` · ${paths}` : ""}`);
   };
 
+  const applyAiProposal = async () => {
+    if (aiBusy || aiPrompt.trim().length === 0) return;
+    setAiBusy(true);
+    setAiStatus("Generating · deterministic demo provider, canonical validation active");
+    try {
+      await flushDraft();
+      const baselineSequence = editSequenceRef.current;
+      const baseline = documentRef.current;
+      const generated = await generateCommerceStudioAiDraft(baseline, aiPrompt);
+      if (!generated.ok) {
+        setAiStatus(`Rejected · ${generated.issue.code}: ${generated.issue.message}`);
+        return;
+      }
+      if (editSequenceRef.current !== baselineSequence || documentRef.current !== baseline) {
+        setAiStatus("Rejected · draft changed while AI proposal was being generated");
+        return;
+      }
+
+      let preflightNodeId = 1;
+      const preflight = createStudioWorkbenchSession({
+        document: generated.value,
+        componentCatalog: brand.components,
+        bindingSourceCatalog: brand.dataSources,
+        actionAdapter: brand.actions,
+        allocateNodeId: () => `ai-preflight-${preflightNodeId++}`,
+      });
+      if (!preflight.ok) {
+        setAiStatus(`Rejected · Workbench preflight ${preflight.issue.code}`);
+        return;
+      }
+
+      const sequence = baselineSequence + 1;
+      setStatus("AI proposal accepted · saving canonical draft…");
+      await queueSave(generated.value, sequence);
+      if (lastSavedSequenceRef.current < sequence) {
+        setAiStatus("Rejected · lifecycle save failed; editor document was not replaced");
+        return;
+      }
+
+      const replaced = workbench.replaceDocument(generated.value);
+      if (!replaced.ok) {
+        setAiStatus(`Apply failed · Workbench ${replaced.issue.code}`);
+        return;
+      }
+      editSequenceRef.current = sequence;
+      documentRef.current = replaced.value;
+      setDocument(replaced.value);
+      setSurfaceRevision((value) => value + 1);
+      setAiStatus("Applied · canonical Studio AI v2");
+    } catch {
+      setAiStatus("Rejected · unexpected AI authoring error");
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
   return (
     <main className="product-shell">
       <header className="product-header">
@@ -250,16 +311,39 @@ function ProductStudio(props: {
         <div className="diff-card" data-testid="revision-diff-summary">{diffSummary}</div>
       </section>
 
-      <ViraStudioWorkbench
-        key={surfaceRevision}
-        session={workbench}
-        renderers={commerceAuthoringRenderers}
-        title="Commerce · Product card"
-        height="720px"
-        onDocumentChange={scheduleAutosave}
-        onPublish={publish}
-        onError={(issue) => setStatus(`Workbench error · ${issue.code}: ${issue.message}`)}
-      />
+      <section className="ai-strip" aria-label="AI assisted authoring">
+        <div>
+          <span className="eyebrow">AI-assisted authoring</span>
+          <strong>Provider proposes. Canonical Studio AI v2 validates.</strong>
+          <small>Demo generation is deterministic; binding, flow, universal Host support and immutable identity are enforced by the real Studio AI boundary.</small>
+        </div>
+        <label>
+          Prompt
+          <input
+            data-testid="ai-prompt"
+            value={aiPrompt}
+            onChange={(event) => setAiPrompt(event.target.value)}
+            disabled={aiBusy}
+          />
+        </label>
+        <button data-testid="ai-apply" type="button" onClick={() => { void applyAiProposal(); }} disabled={aiBusy || aiPrompt.trim().length === 0}>
+          {aiBusy ? "Validating…" : "Apply AI proposal"}
+        </button>
+        <span className="ai-status" data-testid="ai-status">{aiStatus}</span>
+      </section>
+
+      <div className={aiBusy ? "workbench-lock" : undefined} aria-busy={aiBusy}>
+        <ViraStudioWorkbench
+          key={surfaceRevision}
+          session={workbench}
+          renderers={commerceAuthoringRenderers}
+          title="Commerce · Product card"
+          height="720px"
+          onDocumentChange={scheduleAutosave}
+          onPublish={publish}
+          onError={(issue) => setStatus(`Workbench error · ${issue.code}: ${issue.message}`)}
+        />
+      </div>
     </main>
   );
 }
