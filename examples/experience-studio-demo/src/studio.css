@@ -155,3 +155,72 @@ button:disabled { cursor: not-allowed; opacity: .45; }
   line-height: 1.55;
   overflow-wrap: anywhere;
 }
+
+.ai-strip {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.25fr) minmax(360px, 1.5fr) auto minmax(240px, 1fr);
+  align-items: end;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #dfe3e8;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.ai-strip > div {
+  display: grid;
+  gap: 4px;
+}
+
+.ai-strip strong {
+  font-size: 13px;
+}
+
+.ai-strip small,
+.ai-status {
+  color: #667085;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.ai-strip label {
+  display: grid;
+  gap: 5px;
+  color: #475467;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ai-strip input {
+  min-height: 36px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 7px 9px;
+  color: #111827;
+  background: #fff;
+}
+
+.ai-strip button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 12px;
+  background: #111827;
+  color: #fff;
+  font-weight: 700;
+}
+
+.ai-status {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 7px 9px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.workbench-lock {
+  pointer-events: none;
+  opacity: .72;
+}
