@@ -34,7 +34,7 @@
     "verify:identity-delegation:static": "node tooling/verify-identity-delegation.mjs && pnpm test:identity-delegation && pnpm test:browser-security",
     "verify:identity-delegation": "pnpm verify:identity-delegation:static && node tooling/verify-identity-delegation-live.mjs",
     "verify:browser-security": "pnpm test:browser-security",
-    "verify:studio-authoring": "vitest run packages/studio-lifecycle/tests",
+    "verify:studio-authoring": "vitest run packages/studio-lifecycle/tests tests/contract/studio-workbench-replace-document.test.ts",
     "verify:studio-flow": "vitest run tests/contract/application-canvas-v2-mutation.test.ts tests/contract/application-canvas-collaboration-v2.test.ts",
     "verify:studio-simulation": "vitest run tests/contract/application-canvas-simulation-v2.test.ts",
     "verify:application-v2": "vitest run tests/contract/application-v2.test.ts",
