@@ -80,11 +80,15 @@ function manifest(platform: "web" | "ios" | "android") {
   });
 }
 
-const HOST_MANIFESTS = Object.freeze([
+export const COMMERCE_STUDIO_AI_HOST_MANIFESTS = Object.freeze([
   manifest("web"),
   manifest("ios"),
   manifest("android"),
 ]);
+
+export interface CommerceStudioAiDraftOptions {
+  readonly hostManifests?: readonly unknown[];
+}
 
 const IDENTITY_CHANGE = /\b(change|replace|rewrite)\b[\s\S]*\bexperience\s+id\b/i;
 
@@ -112,6 +116,7 @@ export const commerceDeterministicStudioAiProvider: StudioAiV2Provider = Object.
 export function generateCommerceStudioAiDraft(
   baseDocument: StudioAiDocument,
   prompt: string,
+  options: CommerceStudioAiDraftOptions = {},
 ): Promise<StudioAiV2DraftResult> {
   return generateStudioDraftV2({
     prompt,
@@ -119,7 +124,7 @@ export function generateCommerceStudioAiDraft(
     recipeId: baseDocument.recipeId,
     brand: BRAND_DEFINITION,
     requestedPlatforms: ["web", "ios", "android"],
-    hostManifests: HOST_MANIFESTS,
+    hostManifests: options.hostManifests ?? COMMERCE_STUDIO_AI_HOST_MANIFESTS,
     baseDocument,
   }, commerceDeterministicStudioAiProvider);
 }
