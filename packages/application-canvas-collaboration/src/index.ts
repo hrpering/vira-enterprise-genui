@@ -24,3 +24,17 @@ export type {
   ViraCanvasSemanticReviewDecision,
 } from "./types.js";
 export { createViraCanvasCollaborationSession } from "./session.js";
+
+export { VIRA_CANVAS_COLLABORATION_V2_VERSION } from "./v2-types.js";
+export type {
+  CreateViraCanvasCollaborationSessionV2Result,
+  ViraCanvasApplyProposalV2Result,
+  ViraCanvasCollaborationSessionV2,
+  ViraCanvasPresenceV2,
+  ViraCanvasPresenceV2Result,
+  ViraCanvasProposalV2Result,
+  ViraCanvasReviewV2Result,
+  ViraCanvasSemanticProposalV2,
+  ViraCanvasSemanticReviewV2,
+} from "./v2-types.js";
+export { createViraCanvasCollaborationSessionV2 } from "./v2-session.js";
