@@ -90,7 +90,9 @@ async function createRun(runtime: ReturnType<typeof harness>, id: string) {
   return created.value;
 }
 
-function governanceAuthorizer() {
+type GovernanceMode = "allow" | "deny" | "provider-failure";
+
+function governanceAuthorizer(mode: GovernanceMode = "allow") {
   const pipeline = createViraEnterpriseGovernancePipeline({
     scope,
     principals: [{ version: "1", kind: "user", id: "operator-1", organizationId: scope.organizationId }],
@@ -98,10 +100,13 @@ function governanceAuthorizer() {
       version: "1",
       id: "policy.operator-control",
       evaluate(context) {
+        if (mode === "provider-failure") throw new Error("policy unavailable");
         const operator = context.enterprisePrincipals.some((principal) =>
           principal.kind === "user" && principal.id === "operator-1");
         const operation = context.governance.actionIntent.action.type;
-        const allowed = operator && (operation === "application.run.pause" || operation === "application.run.resume");
+        const allowed = mode === "allow"
+          && operator
+          && (operation === "application.run.pause" || operation === "application.run.resume");
         return {
           version: "1",
           effect: allowed ? "allow" : "deny",
@@ -305,5 +310,19 @@ describe("PROD-08 ApplicationRun operator controls", () => {
     expect(paused).toMatchObject({ ok: true, value: { revision: 2, status: "paused" } });
     const resumed = await runtime.control.resumePaused({ scope, id: created.id, expectedRevision: 2 });
     expect(resumed).toMatchObject({ ok: true, value: { revision: 3, status: "running" } });
+  });
+
+  it("fails closed when canonical enterprise governance denies or provider evaluation fails", async () => {
+    for (const mode of ["deny", "provider-failure"] as const) {
+      const runtime = harness(governanceAuthorizer(mode));
+      const created = await createRun(runtime, `run.operator.governance-${mode}`);
+
+      const result = await runtime.control.pause({ scope, id: created.id, expectedRevision: 1 });
+      expect(result).toMatchObject({ ok: false, issue: { code: "AUTHORIZATION_DENIED" } });
+      expect(await runtime.run.read(scope, created.id)).toMatchObject({
+        ok: true,
+        value: { revision: 1, status: "running", wait: null },
+      });
+    }
   });
 });
