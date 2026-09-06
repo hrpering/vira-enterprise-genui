@@ -23,6 +23,22 @@ export type {
 } from "./types.js";
 export { createViraApplicationRunService } from "./service.js";
 export {
+  VIRA_APPLICATION_RUN_OPERATOR_CONTROL_OPERATIONS,
+  VIRA_APPLICATION_RUN_OPERATOR_CONTROL_VERSION,
+  createViraApplicationRunOperatorControlService,
+} from "./operator-control.js";
+export type {
+  ViraApplicationRunOperatorControlAuthorizationInput,
+  ViraApplicationRunOperatorControlAuthorizer,
+  ViraApplicationRunOperatorControlInput,
+  ViraApplicationRunOperatorControlIssue,
+  ViraApplicationRunOperatorControlIssueCode,
+  ViraApplicationRunOperatorControlOperation,
+  ViraApplicationRunOperatorControlResult,
+  ViraApplicationRunOperatorControlService,
+  ViraApplicationRunOperatorControlServiceConfiguration,
+} from "./operator-control.js";
+export {
   VIRA_HUMAN_TASK_STATUSES,
   VIRA_HUMAN_TASK_VERSION,
   createViraHumanTaskService,
