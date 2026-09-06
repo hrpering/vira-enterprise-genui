@@ -194,6 +194,48 @@ function parseWait(input: unknown): Parsed<ViraApplicationRunWait> {
   };
 }
 
+function parseResolutionPin(input: unknown, scope: ViraEnterpriseScope): Parsed<ViraApplicationRunResolutionPin> {
+  if (!record(input) || !exactKeys(input, [
+    "release",
+    "environment",
+    "deploymentId",
+    "deploymentRevision",
+    "artifactId",
+    "distributionDigest",
+    "resolutionDigest",
+  ])) {
+    return fail("INVALID_RESOLUTION", "$.resolution", "persisted resolution pin must be an exact object");
+  }
+  const release = parseViraApplicationReleaseReference(input.release);
+  if (
+    !release.ok
+    || input.environment !== scope.environment
+    || typeof input.deploymentId !== "string"
+    || !LOGICAL_REF.test(input.deploymentId)
+    || !safePositive(input.deploymentRevision)
+    || typeof input.artifactId !== "string"
+    || !LOGICAL_REF.test(input.artifactId)
+    || typeof input.distributionDigest !== "string"
+    || !SHA256_HEX.test(input.distributionDigest)
+    || typeof input.resolutionDigest !== "string"
+    || !SHA256_HEX.test(input.resolutionDigest)
+  ) {
+    return fail("INVALID_RESOLUTION", "$.resolution", "persisted resolution pin is invalid");
+  }
+  return {
+    ok: true,
+    value: Object.freeze({
+      release: Object.freeze({ ...release.value }),
+      environment: scope.environment,
+      deploymentId: input.deploymentId,
+      deploymentRevision: input.deploymentRevision,
+      artifactId: input.artifactId,
+      distributionDigest: input.distributionDigest,
+      resolutionDigest: input.resolutionDigest,
+    }),
+  };
+}
+
 function nextRevision(current: number): number | undefined {
   if (!Number.isSafeInteger(current) || current < 1 || current >= Number.MAX_SAFE_INTEGER) return undefined;
   return current + 1;
@@ -208,18 +250,53 @@ function mapMutation<T extends ViraApplicationRun>(result: ViraApplicationRunSto
 }
 
 function canonicalStoredRun(value: ViraApplicationRun | undefined, scope: ViraEnterpriseScope, id: string): ViraApplicationRun | undefined {
-  if (value === undefined) return undefined;
   if (
-    value.version !== VIRA_APPLICATION_RUN_VERSION
+    value === undefined
+    || !record(value)
+    || !exactKeys(value, [
+      "version",
+      "id",
+      "scope",
+      "revision",
+      "status",
+      "resolution",
+      "entrypointRef",
+      "workContextId",
+      "wait",
+      "createdAtUnixMs",
+      "updatedAtUnixMs",
+    ])
+    || value.version !== VIRA_APPLICATION_RUN_VERSION
     || value.id !== id
     || !RUN_ID.test(value.id)
-    || !exactScope(value.scope, scope)
     || !safePositive(value.revision)
+    || typeof value.status !== "string"
     || !RUN_STATUSES.has(value.status)
+    || (value.workContextId !== null && (typeof value.workContextId !== "string" || !RUN_ID.test(value.workContextId)))
     || !safeNonNegative(value.createdAtUnixMs)
     || !safeNonNegative(value.updatedAtUnixMs)
   ) return undefined;
-  return value;
+  const storedScope = parseScope(value.scope);
+  if (!storedScope.ok || !exactScope(storedScope.value, scope)) return undefined;
+  const resolution = parseResolutionPin(value.resolution, storedScope.value);
+  if (!resolution.ok) return undefined;
+  const entrypoint = parseViraApplicationExactReference(value.entrypointRef);
+  if (!entrypoint.ok) return undefined;
+  const wait = value.wait === null ? null : parseWait(value.wait);
+  if (wait !== null && !wait.ok) return undefined;
+  return Object.freeze({
+    version: VIRA_APPLICATION_RUN_VERSION,
+    id: value.id,
+    scope: storedScope.value,
+    revision: value.revision,
+    status: value.status,
+    resolution: resolution.value,
+    entrypointRef: Object.freeze({ ...entrypoint.value }),
+    workContextId: value.workContextId,
+    wait: wait === null ? null : wait.value,
+    createdAtUnixMs: value.createdAtUnixMs,
+    updatedAtUnixMs: value.updatedAtUnixMs,
+  });
 }
 
 export function createViraApplicationRunService(
