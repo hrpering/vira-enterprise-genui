@@ -36,8 +36,9 @@ import {
   type ViraTransactionCommercialSnapshot,
   type ViraTransactionObservedBefore,
   type ViraTransactionOperation,
+  type ViraTransactionOperationEvidence,
   type ViraTransactionPlan,
-  type ViraTransactionPlanDigestProvider,
+  type ViraTransactionPlanFreezeOptions,
   type ViraTransactionPlanIssueCode,
   type ViraTransactionPlanResult,
   type ViraTransactionPolicySnapshot,
@@ -73,11 +74,16 @@ const OPERATION_FIELDS = Object.freeze([
   "actionRef",
   "actionIntent",
   "actionBindingRef",
+  "providerId",
   "providerIdentityRef",
   "connectionId",
+  "connectorId",
+  "providerOperationId",
   "adapterRef",
   "runnerRef",
   "secretRef",
+  "trustEvidenceRef",
+  "trustValidUntilEpochMs",
   "resourceType",
   "resourceId",
   "observedBefore",
@@ -145,6 +151,23 @@ function exactPrincipal(left: ViraEnterprisePrincipal, right: ViraEnterprisePrin
     && left.kind === right.kind
     && left.id === right.id
     && left.organizationId === right.organizationId;
+}
+
+function exactSecret(left: ViraSecretRef, right: ViraSecretRef): boolean {
+  return left.version === right.version
+    && left.organizationId === right.organizationId
+    && left.projectId === right.projectId
+    && left.environment === right.environment
+    && left.provider === right.provider
+    && left.key === right.key
+    && left.versionRef === right.versionRef;
+}
+
+function exactReference(
+  left: { readonly id: string; readonly versionRef: string },
+  right: { readonly id: string; readonly versionRef: string },
+): boolean {
+  return left.id === right.id && left.versionRef === right.versionRef;
 }
 
 function canonicalJson(value: JsonValue): string {
@@ -287,14 +310,19 @@ function parseOperation(
   if (!bindingRef.ok) return fail("INVALID_REFERENCE", `${path}.actionBindingRef${bindingRef.issue.path.slice(1)}`, bindingRef.issue.message);
   if (!record(input.actionIntent)) return fail("INVALID_OPERATION", `${path}.actionIntent`, "Action intent must be a bounded JSON object");
   if (
-    !safeToken(input.providerIdentityRef)
+    !safeToken(input.providerId)
+    || !safeToken(input.providerIdentityRef)
     || !safeToken(input.connectionId)
+    || !safeToken(input.connectorId)
+    || !safeToken(input.providerOperationId)
     || !safeToken(input.adapterRef)
     || !safeToken(input.runnerRef)
+    || !safeToken(input.trustEvidenceRef)
+    || !positiveSafeInteger(input.trustValidUntilEpochMs)
     || !safeToken(input.resourceType)
     || !safeToken(input.resourceId)
     || !safeToken(input.idempotencyKey)
-  ) return fail("INVALID_OPERATION", path, "operation provider/resource/idempotency identity is invalid");
+  ) return fail("INVALID_OPERATION", path, "operation provider/trust/resource/idempotency identity is invalid");
   const secret = parseSecret(input.secretRef, scope, `${path}.secretRef`);
   if (!secret.ok) return secret;
   const before = parseBefore(input.observedBefore, `${path}.observedBefore`);
@@ -337,11 +365,16 @@ function parseOperation(
       actionRef: actionRef.value,
       actionIntent: input.actionIntent,
       actionBindingRef: bindingRef.value,
+      providerId: input.providerId,
       providerIdentityRef: input.providerIdentityRef,
       connectionId: input.connectionId,
+      connectorId: input.connectorId,
+      providerOperationId: input.providerOperationId,
       adapterRef: input.adapterRef,
       runnerRef: input.runnerRef,
       secretRef: secret.value,
+      trustEvidenceRef: input.trustEvidenceRef,
+      trustValidUntilEpochMs: input.trustValidUntilEpochMs,
       resourceType: input.resourceType,
       resourceId: input.resourceId,
       observedBefore: before.value,
@@ -513,9 +546,99 @@ function parsePlan(input: unknown): ViraTransactionPlanResult<ViraTransactionPla
   return { ok: true, value: deepFreeze(plan) };
 }
 
+function exactBehavior(operation: ViraTransactionOperation, evidence: ViraTransactionOperationEvidence): boolean {
+  return evidence.supply.behavior.idempotencyStrategy === operation.idempotencyStrategy
+    && evidence.supply.behavior.retrySafety === operation.retrySafety
+    && evidence.supply.behavior.verificationStrategy === operation.verificationStrategy
+    && evidence.supply.behavior.freshnessStrategy === operation.freshnessStrategy
+    && evidence.supply.behavior.freshnessMaxAgeMs === operation.freshnessMaxAgeMs;
+}
+
+function verifyOperationEvidence(
+  plan: ViraTransactionPlan,
+  evidenceInput: readonly ViraTransactionOperationEvidence[] | undefined,
+): ViraTransactionPlanResult<true> {
+  if (!Array.isArray(evidenceInput) || evidenceInput.length !== plan.operations.length) {
+    return fail("MISSING_OPERATION_EVIDENCE", "$.operationEvidence", "every TransactionPlan operation requires exactly one ActionSupply and Stage A preflight evidence record");
+  }
+  const byOperationId = new Map<string, ViraTransactionOperationEvidence>();
+  for (let index = 0; index < evidenceInput.length; index += 1) {
+    const evidence = evidenceInput[index];
+    if (evidence === null || typeof evidence !== "object" || typeof evidence.operationId !== "string" || !SAFE_TOKEN.test(evidence.operationId)) {
+      return fail("INVALID_OPERATION_EVIDENCE", `$.operationEvidence[${index}]`, "operation evidence identity is invalid");
+    }
+    if (byOperationId.has(evidence.operationId)) {
+      return fail("INVALID_OPERATION_EVIDENCE", `$.operationEvidence[${index}].operationId`, "operation evidence is duplicated");
+    }
+    byOperationId.set(evidence.operationId, evidence);
+  }
+
+  for (let index = 0; index < plan.operations.length; index += 1) {
+    const operation = plan.operations[index];
+    const evidence = byOperationId.get(operation.operationId);
+    if (!evidence) return fail("MISSING_OPERATION_EVIDENCE", `$.operations[${index}]`, "TransactionPlan operation has no exact supply/preflight evidence");
+    const supply = evidence.supply;
+    if (
+      supply === null
+      || typeof supply !== "object"
+      || supply.version !== "1"
+      || !exactReference(supply.actionRef, operation.actionRef)
+      || !exactReference(supply.bindingRef, operation.actionBindingRef)
+      || !exactScope(supply.scope, plan.scope)
+      || supply.providerId !== operation.providerId
+      || supply.providerIdentityRef !== operation.providerIdentityRef
+      || supply.connectionId !== operation.connectionId
+      || supply.connectorId !== operation.connectorId
+      || supply.operationId !== operation.providerOperationId
+      || supply.adapterRef !== operation.adapterRef
+      || supply.runnerRef !== operation.runnerRef
+      || !exactSecret(supply.secretRef, operation.secretRef)
+      || supply.trustEvidenceRef !== operation.trustEvidenceRef
+      || supply.trustValidUntilEpochMs !== operation.trustValidUntilEpochMs
+      || !exactBehavior(operation, evidence)
+    ) {
+      return fail("SUPPLY_MISMATCH", `$.operationEvidence[${index}].supply`, "resolved ActionSupply does not exactly match the frozen TransactionPlan operation");
+    }
+    if (operation.trustValidUntilEpochMs < plan.expiresAtEpochMs) {
+      return fail("TRUST_WINDOW_TOO_SHORT", `$.operations[${index}].trustValidUntilEpochMs`, "TransactionPlan cannot outlive the provider trust window used to freeze it");
+    }
+
+    const preflight = evidence.preflight;
+    if (
+      preflight === null
+      || typeof preflight !== "object"
+      || preflight.permission !== "allow" && preflight.permission !== "confirm"
+      || preflight.definition.actionType !== operation.actionRef.id
+      || preflight.intent.action.type !== operation.actionRef.id
+      || preflight.intent.idempotencyKey !== operation.idempotencyKey
+      || preflight.currentRevision !== preflight.intent.expectedStateRevision
+      || canonicalJson(preflight.intent.action.payload) !== canonicalJson(operation.actionIntent)
+    ) {
+      return fail("PREFLIGHT_MISMATCH", `$.operationEvidence[${index}].preflight`, "Stage A preflight does not exactly match the frozen TransactionPlan operation");
+    }
+    if (preflight.permission === "allow" && preflight.challenge !== null) {
+      return fail("PREFLIGHT_MISMATCH", `$.operationEvidence[${index}].preflight.challenge`, "allow preflight must not carry an approval challenge");
+    }
+    if (preflight.permission === "confirm") {
+      const challenge = preflight.challenge;
+      if (
+        challenge === null
+        || challenge.instanceId !== preflight.intent.instanceId
+        || challenge.actionId !== preflight.intent.action.id
+        || challenge.actionType !== preflight.intent.action.type
+        || challenge.expectedStateRevision !== preflight.intent.expectedStateRevision
+        || challenge.idempotencyKey !== preflight.intent.idempotencyKey
+      ) {
+        return fail("PREFLIGHT_MISMATCH", `$.operationEvidence[${index}].preflight.challenge`, "confirm preflight challenge must bind the exact ActionIntent");
+      }
+    }
+  }
+  return { ok: true, value: true };
+}
+
 export async function freezeViraTransactionPlan(
   input: unknown,
-  options: { readonly planRevision: number; readonly digest: ViraTransactionPlanDigestProvider },
+  options: ViraTransactionPlanFreezeOptions,
 ): Promise<ViraTransactionPlanResult> {
   if (
     options === null
@@ -523,9 +646,11 @@ export async function freezeViraTransactionPlan(
     || !Number.isSafeInteger(options.planRevision)
     || options.planRevision < 1
     || typeof options.digest !== "function"
-  ) return fail("INVALID_PLAN_REVISION", "$.planRevision", "TransactionPlan freeze requires positive planRevision and digest provider");
+  ) return fail("INVALID_PLAN_REVISION", "$.planRevision", "TransactionPlan freeze requires positive planRevision, digest provider and operation evidence");
   const plan = parsePlan(input);
   if (!plan.ok) return plan;
+  const evidence = verifyOperationEvidence(plan.value, options.operationEvidence);
+  if (!evidence.ok) return evidence;
   const canonicalPlan = canonicalJson(plan.value as unknown as JsonValue);
   let planDigest: string;
   try {
