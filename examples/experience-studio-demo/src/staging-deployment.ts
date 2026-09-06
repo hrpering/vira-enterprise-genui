@@ -84,6 +84,16 @@ export type StudioStagingDeploymentResult =
       };
     };
 
+export type StudioStagingDeprecationResult =
+  | { readonly ok: true }
+  | {
+      readonly ok: false;
+      readonly issue: {
+        readonly code: string;
+        readonly message: string;
+      };
+    };
+
 export async function publishStudioApplicationToStaging(
   application: ViraApplicationPackageV2,
 ): Promise<StudioStagingDeploymentResult> {
@@ -158,4 +168,21 @@ export async function publishStudioApplicationToStaging(
       staging: staging.value,
     }),
   };
+}
+
+export async function deprecateStudioApplicationStaging(
+  staged: StudioStagingDeploymentValue,
+): Promise<StudioStagingDeprecationResult> {
+  const result = await deploymentPlane.deprecate({
+    scope: staged.staging.binding.scope,
+    release: staged.release,
+    distributionDigest: staged.distributionDigest,
+  });
+  if (!result.ok) {
+    return {
+      ok: false,
+      issue: { code: result.issue.code, message: result.issue.message },
+    };
+  }
+  return { ok: true };
 }
