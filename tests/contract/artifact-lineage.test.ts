@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseViraArtifactMetadata } from "../../packages/artifact-contract/src/index.js";
+import {
+  parseViraArtifactMetadata,
+  parseViraArtifactRevisionReference,
+} from "../../packages/artifact-contract/src/index.js";
 
 const digestA = `sha256:${"a".repeat(64)}`;
 const digestB = `sha256:${"b".repeat(64)}`;
@@ -42,6 +45,25 @@ describe("PROD-08 artifact contract", () => {
     expect(Object.isFrozen(result.value.lineage)).toBe(true);
     expect(Object.isFrozen(result.value.lineage[0])).toBe(true);
     expect(Object.isFrozen(result.value.retention)).toBe(true);
+  });
+
+  it("owns exact standalone revision-reference parsing for downstream durable stores", () => {
+    const parsed = parseViraArtifactRevisionReference({
+      id: "artifact.report.source",
+      revision: 7,
+      digest: digestB,
+    });
+    expect(parsed).toEqual({
+      ok: true,
+      value: { id: "artifact.report.source", revision: 7, digest: digestB },
+    });
+    if (parsed.ok) expect(Object.isFrozen(parsed.value)).toBe(true);
+    expect(parseViraArtifactRevisionReference({ id: "artifact.report.source", revision: 0, digest: digestB }))
+      .toMatchObject({ ok: false, issue: { code: "INVALID_REVISION", path: "$.revision" } });
+    expect(parseViraArtifactRevisionReference({ id: "artifact.report.source", revision: 1, digest: "sha256:latest" }))
+      .toMatchObject({ ok: false, issue: { code: "INVALID_DIGEST", path: "$.digest" } });
+    expect(parseViraArtifactRevisionReference({ id: "artifact.report.source", revision: 1, digest: digestB, url: "https://example.invalid" }))
+      .toMatchObject({ ok: false, issue: { code: "UNKNOWN_FIELD", path: "$.url" } });
   });
 
   it("rejects raw bytes, secret-like extra fields and malformed tenant scope fail-closed", () => {

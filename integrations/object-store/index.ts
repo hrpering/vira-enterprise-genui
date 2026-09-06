@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import {
   parseViraArtifactMetadata,
+  parseViraArtifactRevisionReference,
   type ViraArtifactMetadata,
   type ViraArtifactRevisionReference,
 } from "../../packages/artifact-contract/src/index.js";
@@ -11,9 +12,6 @@ import {
 } from "../../packages/enterprise-context/src/index.js";
 
 export const VIRA_PRIVATE_OBJECT_STORE_VERSION = "1" as const;
-
-const ARTIFACT_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
-const DIGEST = /^sha256:[0-9a-f]{64}$/;
 
 export interface ViraPrivateObjectStoreDriverRecord {
   readonly digest: string;
@@ -124,23 +122,6 @@ function canonicalScope(input: unknown): ViraEnterpriseScope | undefined {
   return scope.value;
 }
 
-function parseReference(input: unknown): ViraArtifactRevisionReference | undefined {
-  if (!record(input)) return undefined;
-  const keys = Object.keys(input);
-  if (
-    keys.length !== 3
-    || !["id", "revision", "digest"].every((key) => Object.hasOwn(input, key))
-    || typeof input.id !== "string"
-    || !ARTIFACT_ID.test(input.id)
-    || typeof input.revision !== "number"
-    || !Number.isSafeInteger(input.revision)
-    || input.revision < 1
-    || typeof input.digest !== "string"
-    || !DIGEST.test(input.digest)
-  ) return undefined;
-  return Object.freeze({ id: input.id, revision: input.revision, digest: input.digest });
-}
-
 function key(scope: ViraEnterpriseScope, artifactId: string, revision: number): string {
   return [
     "vira-artifacts",
@@ -233,8 +214,11 @@ export function createViraPrivateObjectStore(
     async get(input) {
       const scope = canonicalScope(input.scope);
       if (!scope) return fail("INVALID_SCOPE", "$.scope", "private object read scope is invalid");
-      const artifact = parseReference(input.artifact);
-      if (!artifact) return fail("INVALID_REFERENCE", "$.artifact", "artifact reference must pin id, revision and digest");
+      const parsedArtifact = parseViraArtifactRevisionReference(input.artifact);
+      if (!parsedArtifact.ok) {
+        return fail("INVALID_REFERENCE", "$.artifact", "artifact reference must pin id, revision and digest");
+      }
+      const artifact = parsedArtifact.value;
       let value: ViraPrivateObjectStoreDriverRecord | null;
       try {
         value = await driver.get(key(scope, artifact.id, artifact.revision));

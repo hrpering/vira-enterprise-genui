@@ -25,3 +25,5 @@ export {
   parseViraArtifactMetadata,
   serializeViraArtifactMetadata,
 } from "./validate.js";
+export { parseViraArtifactRevisionReference } from "./reference.js";
+export type { ViraArtifactRevisionReferenceResult } from "./reference.js";
