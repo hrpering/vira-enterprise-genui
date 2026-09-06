@@ -9,12 +9,18 @@ import {
 } from "@vira-enterprise-genui/studio-schema";
 import {
   STUDIO_LIFECYCLE_RECORD_VERSION,
+  STUDIO_LIFECYCLE_REVISION_VERSION,
 } from "./types.js";
 import type {
   StudioLifecycleCreateInput,
+  StudioLifecycleDiffChange,
+  StudioLifecycleDiffInput,
   StudioLifecycleIssueCode,
   StudioLifecycleRecord,
+  StudioLifecycleRestoreInput,
   StudioLifecycleResult,
+  StudioLifecycleRevision,
+  StudioLifecycleRevisionDiff,
   StudioLifecycleService,
   StudioLifecycleServiceConfiguration,
   StudioLifecycleStoreMutationCode,
@@ -38,6 +44,15 @@ const lifecycleRecordFields = new Set([
   "createdAt",
   "updatedAt",
   "publishedAt",
+]);
+const lifecycleRevisionFields = new Set([
+  "version",
+  "workspaceId",
+  "id",
+  "draftRevision",
+  "name",
+  "document",
+  "recordedAt",
 ]);
 
 function failure<T>(code: StudioLifecycleIssueCode, path: string, message: string): StudioLifecycleResult<T> {
@@ -81,19 +96,27 @@ function sameData(left: unknown, right: unknown): boolean {
   return true;
 }
 
-function validLifecycleRecordObject(value: unknown): value is StudioLifecycleRecord {
+function validExactObject(value: unknown, fields: ReadonlySet<string>): value is Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
   const prototype = Object.getPrototypeOf(value);
   if (prototype !== Object.prototype && prototype !== null) return false;
   if (Object.getOwnPropertySymbols(value).length > 0) return false;
   const keys = Object.keys(value);
-  if (Object.getOwnPropertyNames(value).length !== keys.length || keys.length !== lifecycleRecordFields.size) return false;
+  if (Object.getOwnPropertyNames(value).length !== keys.length || keys.length !== fields.size) return false;
   for (const key of keys) {
-    if (!lifecycleRecordFields.has(key)) return false;
+    if (!fields.has(key)) return false;
     const descriptor = Object.getOwnPropertyDescriptor(value, key);
     if (!descriptor || !("value" in descriptor)) return false;
   }
   return true;
+}
+
+function validLifecycleRecordObject(value: unknown): value is StudioLifecycleRecord {
+  return validExactObject(value, lifecycleRecordFields);
+}
+
+function validLifecycleRevisionObject(value: unknown): value is StudioLifecycleRevision {
+  return validExactObject(value, lifecycleRevisionFields);
 }
 
 function validWorkspaceId(value: unknown): value is string {
@@ -147,6 +170,13 @@ function validateIdentity(workspaceId: unknown, id?: unknown): StudioLifecycleRe
 function validateExpectedVersion(value: unknown): StudioLifecycleResult<number> {
   if (!validVersion(value)) {
     return failure("INVALID_VERSION", "$.expectedRecordVersion", "expectedRecordVersion must be a positive safe integer");
+  }
+  return { ok: true, value };
+}
+
+function validateDraftRevision(value: unknown, path: string): StudioLifecycleResult<number> {
+  if (!validVersion(value)) {
+    return failure("INVALID_VERSION", path, "draft revision must be a positive safe integer");
   }
   return { ok: true, value };
 }
@@ -241,9 +271,48 @@ function validStoredRecordIdentity(recordInput: unknown, workspaceId: string, id
     && sameData(compiledPublication.value, record.publication);
 }
 
-function validMutationAcknowledgement(record: StudioLifecycleRecord, expected: StudioLifecycleRecord): boolean {
-  return validStoredRecordIdentity(record, expected.workspaceId, expected.id)
-    && sameData(record, expected);
+function validStoredRevisionIdentity(
+  revisionInput: unknown,
+  workspaceId: string,
+  id: string,
+): revisionInput is StudioLifecycleRevision {
+  if (!validLifecycleRevisionObject(revisionInput)) return false;
+  const revision = revisionInput;
+  if (revision.version !== STUDIO_LIFECYCLE_REVISION_VERSION
+    || revision.workspaceId !== workspaceId
+    || revision.id !== id
+    || !validVersion(revision.draftRevision)
+    || !validName(revision.name)
+    || timestampValue(revision.recordedAt) === undefined) return false;
+  const parsedDocument = parseStudioExperienceDocument(revision.document);
+  return parsedDocument.ok
+    && parsedDocument.value.id === id
+    && sameData(parsedDocument.value, revision.document);
+}
+
+function revisionSnapshot(record: StudioLifecycleRecord, recordedAt: string): StudioLifecycleRevision {
+  return snapshot({
+    version: STUDIO_LIFECYCLE_REVISION_VERSION,
+    workspaceId: record.workspaceId,
+    id: record.id,
+    draftRevision: record.draftRevision,
+    name: record.name,
+    document: record.document,
+    recordedAt,
+  });
+}
+
+function validMutationAcknowledgement(
+  record: StudioLifecycleRecord,
+  revision: StudioLifecycleRevision | null,
+  expectedRecord: StudioLifecycleRecord,
+  expectedRevision: StudioLifecycleRevision | null,
+): boolean {
+  if (!validStoredRecordIdentity(record, expectedRecord.workspaceId, expectedRecord.id)
+    || !sameData(record, expectedRecord)) return false;
+  if (expectedRevision === null) return revision === null;
+  return validStoredRevisionIdentity(revision, expectedRecord.workspaceId, expectedRecord.id)
+    && sameData(revision, expectedRevision);
 }
 
 function storeFailure<T>(): StudioLifecycleResult<T> {
@@ -286,6 +355,41 @@ async function readCurrent(
   }
 }
 
+async function readHistory(
+  configuration: StudioLifecycleServiceConfiguration,
+  current: StudioLifecycleRecord,
+): Promise<StudioLifecycleResult<readonly StudioLifecycleRevision[]>> {
+  try {
+    const stored = await configuration.store.listRevisions(current.workspaceId, current.id);
+    if (!Array.isArray(stored) || stored.length !== current.draftRevision) return storeFailure();
+    const revisions = [...stored].sort((left, right) => left.draftRevision - right.draftRevision);
+    let previousRecordedAt = -1;
+    const createdAt = timestampValue(current.createdAt);
+    const updatedAt = timestampValue(current.updatedAt);
+    if (createdAt === undefined || updatedAt === undefined) return storeFailure();
+    for (let index = 0; index < revisions.length; index += 1) {
+      const revision = revisions[index];
+      if (!revision
+        || !validStoredRevisionIdentity(revision, current.workspaceId, current.id)
+        || revision.draftRevision !== index + 1) return storeFailure();
+      const recordedAt = timestampValue(revision.recordedAt);
+      if (recordedAt === undefined
+        || recordedAt < createdAt
+        || recordedAt > updatedAt
+        || recordedAt < previousRecordedAt) return storeFailure();
+      previousRecordedAt = recordedAt;
+    }
+    const latest = revisions.at(-1);
+    if (!latest
+      || latest.draftRevision !== current.draftRevision
+      || latest.name !== current.name
+      || !sameData(latest.document, current.document)) return storeFailure();
+    return { ok: true, value: snapshot(revisions) };
+  } catch {
+    return storeFailure();
+  }
+}
+
 function validateCreateInput(input: StudioLifecycleCreateInput): StudioLifecycleResult<true> {
   const identity = validateIdentity(input.workspaceId, input.id);
   if (!identity.ok) return identity;
@@ -297,6 +401,97 @@ function validateVersionedInput(input: StudioLifecycleVersionedInput): StudioLif
   const identity = validateIdentity(input.workspaceId, input.id);
   if (!identity.ok) return identity;
   return validateExpectedVersion(input.expectedRecordVersion);
+}
+
+function validateDiffInput(input: StudioLifecycleDiffInput): StudioLifecycleResult<true> {
+  const identity = validateIdentity(input.workspaceId, input.id);
+  if (!identity.ok) return identity;
+  const from = validateDraftRevision(input.fromDraftRevision, "$.fromDraftRevision");
+  if (!from.ok) return from;
+  const to = validateDraftRevision(input.toDraftRevision, "$.toDraftRevision");
+  if (!to.ok) return to;
+  return { ok: true, value: true };
+}
+
+function validateRestoreInput(input: StudioLifecycleRestoreInput): StudioLifecycleResult<number> {
+  const version = validateVersionedInput(input);
+  if (!version.ok) return version;
+  const draftRevision = validateDraftRevision(input.draftRevision, "$.draftRevision");
+  if (!draftRevision.ok) return draftRevision;
+  return { ok: true, value: version.value };
+}
+
+function pointerSegment(value: string): string {
+  return value.replace(/~/g, "~0").replace(/\//g, "~1");
+}
+
+function childPath(path: string, segment: string | number): string {
+  return `${path}/${pointerSegment(String(segment))}`;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function collectDiff(
+  before: unknown,
+  after: unknown,
+  path: string,
+  changes: StudioLifecycleDiffChange[],
+): void {
+  if (sameData(before, after)) return;
+  if (Array.isArray(before) && Array.isArray(after)) {
+    const count = Math.max(before.length, after.length);
+    for (let index = 0; index < count; index += 1) {
+      const nextPath = childPath(path, index);
+      if (index >= before.length) {
+        changes.push({ path: nextPath, kind: "ADDED", after: snapshot(after[index]) });
+      } else if (index >= after.length) {
+        changes.push({ path: nextPath, kind: "REMOVED", before: snapshot(before[index]) });
+      } else {
+        collectDiff(before[index], after[index], nextPath, changes);
+      }
+    }
+    return;
+  }
+  if (isObject(before) && isObject(after)) {
+    const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].sort();
+    for (const key of keys) {
+      const hasBefore = Object.prototype.hasOwnProperty.call(before, key);
+      const hasAfter = Object.prototype.hasOwnProperty.call(after, key);
+      const nextPath = childPath(path, key);
+      if (!hasBefore) {
+        changes.push({ path: nextPath, kind: "ADDED", after: snapshot(after[key]) });
+      } else if (!hasAfter) {
+        changes.push({ path: nextPath, kind: "REMOVED", before: snapshot(before[key]) });
+      } else {
+        collectDiff(before[key], after[key], nextPath, changes);
+      }
+    }
+    return;
+  }
+  changes.push({ path: path || "/", kind: "CHANGED", before: snapshot(before), after: snapshot(after) });
+}
+
+function revisionDiff(
+  from: StudioLifecycleRevision,
+  to: StudioLifecycleRevision,
+): StudioLifecycleRevisionDiff {
+  const changes: StudioLifecycleDiffChange[] = [];
+  collectDiff(
+    { name: from.name, document: from.document },
+    { name: to.name, document: to.document },
+    "",
+    changes,
+  );
+  changes.sort((left, right) => left.path.localeCompare(right.path) || left.kind.localeCompare(right.kind));
+  return snapshot({
+    workspaceId: from.workspaceId,
+    id: from.id,
+    fromDraftRevision: from.draftRevision,
+    toDraftRevision: to.draftRevision,
+    changes,
+  });
 }
 
 export function createStudioLifecycleService(configuration: StudioLifecycleServiceConfiguration): StudioLifecycleService {
@@ -327,6 +522,33 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
       return readCurrent(configuration, workspaceId, id);
     },
 
+    async history(workspaceId, id) {
+      const identity = validateIdentity(workspaceId, id);
+      if (!identity.ok) return identity;
+      const current = await readCurrent(configuration, workspaceId, id);
+      if (!current.ok) return current;
+      return readHistory(configuration, current.value);
+    },
+
+    async diff(input) {
+      const valid = validateDiffInput(input);
+      if (!valid.ok) return valid;
+      const current = await readCurrent(configuration, input.workspaceId, input.id);
+      if (!current.ok) return current;
+      if (input.fromDraftRevision > current.value.draftRevision) {
+        return failure("NOT_FOUND", "$.fromDraftRevision", "from draft revision was not found");
+      }
+      if (input.toDraftRevision > current.value.draftRevision) {
+        return failure("NOT_FOUND", "$.toDraftRevision", "to draft revision was not found");
+      }
+      const history = await readHistory(configuration, current.value);
+      if (!history.ok) return history;
+      const from = history.value[input.fromDraftRevision - 1];
+      const to = history.value[input.toDraftRevision - 1];
+      if (!from || !to) return storeFailure();
+      return { ok: true, value: revisionDiff(from, to) };
+    },
+
     async create(input) {
       const valid = validateCreateInput(input);
       if (!valid.ok) return valid;
@@ -348,10 +570,11 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
         updatedAt: now.value,
         publishedAt: null,
       });
+      const revision = revisionSnapshot(record, now.value);
       try {
-        const stored = await configuration.store.create(record);
+        const stored = await configuration.store.create(record, revision);
         if (!stored.ok) return mutationFailure(stored.code);
-        if (!validMutationAcknowledgement(stored.value, record)) return storeFailure();
+        if (!validMutationAcknowledgement(stored.value, stored.revision, record, revision)) return storeFailure();
         return { ok: true, value: snapshot(stored.value) };
       } catch {
         return storeFailure();
@@ -384,10 +607,51 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
         document: document.value,
         updatedAt: now.value,
       });
+      const revision = revisionSnapshot(next, now.value);
       try {
-        const stored = await configuration.store.replace(next, version.value);
+        const stored = await configuration.store.replace(next, version.value, revision);
         if (!stored.ok) return mutationFailure(stored.code);
-        if (!validMutationAcknowledgement(stored.value, next)) return storeFailure();
+        if (!validMutationAcknowledgement(stored.value, stored.revision, next, revision)) return storeFailure();
+        return { ok: true, value: snapshot(stored.value) };
+      } catch {
+        return storeFailure();
+      }
+    },
+
+    async restore(input) {
+      const version = validateRestoreInput(input);
+      if (!version.ok) return version;
+      const current = await readCurrent(configuration, input.workspaceId, input.id);
+      if (!current.ok) return current;
+      if (current.value.recordVersion !== version.value) {
+        return failure("CONFLICT", "$.expectedRecordVersion", "Studio experience changed since it was loaded");
+      }
+      if (input.draftRevision > current.value.draftRevision) {
+        return failure("NOT_FOUND", "$.draftRevision", "draft revision was not found");
+      }
+      const history = await readHistory(configuration, current.value);
+      if (!history.ok) return history;
+      const target = history.value[input.draftRevision - 1];
+      if (!target) return storeFailure();
+      const nextRecordVersion = incrementVersion(current.value.recordVersion, "$.recordVersion");
+      if (!nextRecordVersion.ok) return nextRecordVersion;
+      const nextDraftRevision = incrementVersion(current.value.draftRevision, "$.draftRevision");
+      if (!nextDraftRevision.ok) return nextDraftRevision;
+      const now = timestamp(configuration);
+      if (!now.ok) return now;
+      const next: StudioLifecycleRecord = snapshot({
+        ...current.value,
+        name: target.name,
+        document: target.document,
+        draftRevision: nextDraftRevision.value,
+        recordVersion: nextRecordVersion.value,
+        updatedAt: now.value,
+      });
+      const revision = revisionSnapshot(next, now.value);
+      try {
+        const stored = await configuration.store.replace(next, version.value, revision);
+        if (!stored.ok) return mutationFailure(stored.code);
+        if (!validMutationAcknowledgement(stored.value, stored.revision, next, revision)) return storeFailure();
         return { ok: true, value: snapshot(stored.value) };
       } catch {
         return storeFailure();
@@ -424,9 +688,9 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
         publishedAt: now.value,
       });
       try {
-        const stored = await configuration.store.replace(next, version.value);
+        const stored = await configuration.store.replace(next, version.value, null);
         if (!stored.ok) return mutationFailure(stored.code);
-        if (!validMutationAcknowledgement(stored.value, next)) return storeFailure();
+        if (!validMutationAcknowledgement(stored.value, stored.revision, next, null)) return storeFailure();
         return { ok: true, value: snapshot(stored.value) };
       } catch {
         return storeFailure();
@@ -455,9 +719,9 @@ export function createStudioLifecycleService(configuration: StudioLifecycleServi
         publishedAt: null,
       });
       try {
-        const stored = await configuration.store.replace(next, version.value);
+        const stored = await configuration.store.replace(next, version.value, null);
         if (!stored.ok) return mutationFailure(stored.code);
-        if (!validMutationAcknowledgement(stored.value, next)) return storeFailure();
+        if (!validMutationAcknowledgement(stored.value, stored.revision, next, null)) return storeFailure();
         return { ok: true, value: snapshot(stored.value) };
       } catch {
         return storeFailure();
