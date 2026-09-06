@@ -1,20 +1,45 @@
 import { expect, test } from "@playwright/test";
 
-test("commerce Studio uses canonical Brand and Workbench preview/publish paths", async ({ page }) => {
+test("a non-technical user can create, version, publish, restore and republish an experience", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Generic commerce authoring smoke surface" })).toBeVisible();
+
+  await expect(page.getByRole("heading", { name: "Vira Experience Studio" })).toBeVisible();
   await expect(page.getByTestId("brand-id")).toHaveText("commerce.brand");
   await expect(page.getByTestId("template-id")).toHaveText("product-card");
   await expect(page.getByTestId("experience-id")).toHaveText("commerce.template.product-card");
   await expect(page.getByTestId("view-count")).toHaveText("1");
+  await expect(page.getByTestId("revision-count")).toHaveText("1");
+  await expect(page.getByTestId("published-state")).toHaveText("Not published");
+  await expect(page.getByTestId("vira-studio-workbench")).toBeVisible();
 
-  await page.getByRole("button", { name: "Preview" }).click();
-  await expect(page.getByTestId("status")).toContainText("Preview ready · commerce.template.product-card · main");
+  await page.getByTestId("vira-studio-viewport-mobile").click();
+  await expect(page.getByTestId("vira-studio-preview-viewport")).toHaveAttribute("data-preview-viewport", "mobile");
+  await page.getByTestId("vira-studio-viewport-desktop").click();
+  await expect(page.getByTestId("vira-studio-preview-viewport")).toHaveAttribute("data-preview-viewport", "desktop");
 
-  await page.getByRole("button", { name: "Publish" }).click();
-  await expect(page.getByTestId("status")).toContainText("Publication ready · commerce.template.product-card");
+  await page.getByTestId("vira-studio-panel-views").click();
+  await page.getByPlaceholder("checkout").fill("confirmation");
+  await page.getByRole("button", { name: "Add screen" }).click();
 
-  await page.getByRole("button", { name: "Add confirmation view" }).click();
   await expect(page.getByTestId("view-count")).toHaveText("2");
-  await expect(page.getByTestId("status")).toHaveText("Confirmation view added");
+  await expect(page.getByTestId("status")).toHaveText("Draft saved · r2", { timeout: 5_000 });
+  await expect(page.getByTestId("revision-count")).toHaveText("2");
+
+  await page.getByTestId("revision-diff-2").click();
+  await expect(page.getByTestId("revision-diff-summary")).toContainText("r1 → r2:");
+  await expect(page.getByTestId("revision-diff-summary")).toContainText("change(s)");
+
+  await page.getByTestId("vira-studio-publish").click();
+  await expect(page.getByTestId("status")).toHaveText("Published · draft r2");
+  await expect(page.getByTestId("published-state")).toHaveText("Published r2");
+
+  await page.getByTestId("revision-restore-1").click();
+  await expect(page.getByTestId("status")).toHaveText("Restored r1 as new draft r3");
+  await expect(page.getByTestId("view-count")).toHaveText("1");
+  await expect(page.getByTestId("revision-count")).toHaveText("3");
+  await expect(page.getByTestId("published-state")).toHaveText("Published r2");
+
+  await page.getByTestId("vira-studio-publish").click();
+  await expect(page.getByTestId("status")).toHaveText("Published · draft r3");
+  await expect(page.getByTestId("published-state")).toHaveText("Published r3");
 });
