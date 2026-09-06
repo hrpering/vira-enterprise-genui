@@ -1,216 +1,235 @@
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
+const val VIRA_ANDROID_MAX_REPEAT_ITEMS = 256
+const val VIRA_ANDROID_MAX_EXPANDED_NODES = 4_096
+private const val VIRA_ANDROID_ORDER_STRIDE: Long = 257
 
-const val VIRA_ANDROID_MAX_SAFE_INTEGER: Long = 9_007_199_254_740_991L
-
-sealed interface ViraAndroidHostActionOutcome {
-  data object Succeeded : ViraAndroidHostActionOutcome
-  data object Cancelled : ViraAndroidHostActionOutcome
-  data object Failed : ViraAndroidHostActionOutcome
-
-  val wire: String
-    get() = when (this) {
-      Succeeded -> "succeeded"
-      Cancelled -> "cancelled"
-      Failed -> "failed"
-    }
-}
-
-data class ViraAndroidHostActionRequest(
-  val actionId: String,
-  val payload: Map<String, ViraJson>,
+data class ViraAndroidRuntimeNodeModel(
+  val id: String,
+  val sourceNodeId: String,
+  val component: String,
+  val implementationId: String,
+  val order: Long,
+  val props: Map<String, ViraJson>,
+  val eventPayloads: Map<String, Map<String, ViraJson>>,
+  val parentId: String?,
+  val slot: String?,
 )
 
-data class ViraAndroidHostDataReadRequest(
-  val root: ViraAndroidHostDataRoot,
-  val path: String,
-)
-
-fun interface ViraAndroidHostDataReader {
-  fun read(request: ViraAndroidHostDataReadRequest): Result<ViraJson>
-}
-
-fun interface ViraAndroidHostActionHandler {
-  fun execute(request: ViraAndroidHostActionRequest): Result<ViraAndroidHostActionOutcome>
-}
-
-class ViraAndroidHost(
-  private val dataReader: ViraAndroidHostDataReader,
-  private val actionHandler: ViraAndroidHostActionHandler,
-) {
-  fun read(root: ViraAndroidHostDataRoot, path: String): Result<ViraJson> =
-    dataReader.read(ViraAndroidHostDataReadRequest(root, path))
-
-  fun execute(actionId: String, payload: Map<String, ViraJson>): Result<ViraAndroidHostActionOutcome> =
-    actionHandler.execute(ViraAndroidHostActionRequest(actionId, payload))
-}
-
-data class ViraAndroidRuntimeSnapshot(
+data class ViraAndroidRuntimeViewModel(
+  val experienceId: String,
   val viewId: String,
-  val viewGeneration: Long,
-  val actionPending: Boolean,
+  val nodes: List<ViraAndroidRuntimeNodeModel>,
 )
 
-data class ViraAndroidRuntimeTransition(
-  val actionId: String,
-  val payload: Map<String, ViraJson>,
+data class ViraAndroidHostedDispatchCompletion(
+  val actionType: String,
+  val outcome: ViraAndroidHostActionOutcome,
   val viewId: String,
-  val viewGeneration: Long,
-  val pending: Boolean,
-)
-
-data class ViraAndroidRuntimeCompletion(
-  val viewId: String,
-  val viewGeneration: Long,
   val transitioned: Boolean,
 )
 
-class ViraAndroidRuntime(
-  val experience: StudioExperience,
-  private val host: ViraAndroidHost,
-  permissionPolicy: ViraAndroidPermissionPolicy,
-  private val now: () -> Long = { System.currentTimeMillis() },
+class ViraAndroidRuntimeSession(
+  val envelope: ViraAndroidMountEnvelope,
+  val host: ViraAndroidHostAdapter,
+  runtimeState: ViraAndroidRuntimeCoreState,
+  val permissionPolicy: ViraAndroidPermissionPolicy,
 ) {
-  private val lock = ReentrantLock()
-  private val permissionEvaluator = ViraAndroidPermissionEvaluator(permissionPolicy)
-  private val nodeById = experience.nodes.associateBy { it.id }
-  private val interactionById = experience.interactions.associateBy { it.id }
-  private val viewsById = experience.views.associateBy { it.id }
-  private var currentViewIdValue = experience.initialViewId
+  private val lock = Any()
+  private val components = envelope.brand.components.associateBy { it.ref }
+  private val actionTypes = envelope.brand.actions.associate { it.event to it.actionType }
+  private val runtimeCore = ViraAndroidRuntimeCoreSession(runtimeState)
+  private var currentViewIdValue = envelope.document.entryView
   private var currentViewGenerationValue = 0L
-  private var actionPendingValue = false
   private var pendingRoutes: List<StudioInteractionRoute>? = null
+  private var disposed = false
 
   init {
-    require(viewsById.containsKey(currentViewIdValue)) {
-      issue(ViraAndroidIssueCode.VIEW_NOT_FOUND, "$.initialViewId", "native runtime initial view does not exist")
+    if (host.hostId != envelope.compatibility.hostId) {
+      throw ViraAndroidIssue(
+        ViraAndroidIssueCode.INVALID_HOST,
+        "$.host.id",
+        "native business Host identity does not match the resolved Host Capability identity",
+      )
     }
   }
 
-  fun snapshot(): ViraAndroidRuntimeSnapshot = lock.withLock {
-    ViraAndroidRuntimeSnapshot(
-      viewId = currentViewIdValue,
-      viewGeneration = currentViewGenerationValue,
-      actionPending = actionPendingValue,
-    )
-  }
+  fun currentViewId(): String = synchronized(lock) { currentViewIdValue }
+  fun currentViewGeneration(): Long = synchronized(lock) { currentViewGenerationValue }
+  fun currentRuntimeState(): ViraAndroidRuntimeCoreState = synchronized(lock) { runtimeCore.state() }
+  fun isDisposed(): Boolean = synchronized(lock) { disposed }
 
-  fun render(rendererRegistry: ViraAndroidRendererRegistry): ViraAndroidRenderedNode = lock.withLock {
-    val view = viewsById[currentViewIdValue]
-      ?: throw issue(ViraAndroidIssueCode.VIEW_NOT_FOUND, "$.view", "native runtime current view does not exist")
-    val context = RenderContext(repeatExpansions = 0)
-    renderNode(view.rootNodeId, null, rendererRegistry, context)
-  }
+  fun currentView(): Result<ViraAndroidRuntimeViewModel> = runCatching {
+    val activeViewId = synchronized(lock) {
+      if (disposed) throw issue(ViraAndroidIssueCode.SESSION_DISPOSED, "$", "native Studio runtime session is disposed")
+      currentViewIdValue
+    }
+    val view = envelope.document.views.firstOrNull { it.id == activeViewId }
+      ?: throw issue(ViraAndroidIssueCode.VIEW_NOT_FOUND, "$.viewId", "current native Studio view does not exist")
 
-  fun dispatch(interactionId: String, payload: Map<String, ViraJson>): Result<ViraAndroidRuntimeTransition> = lock.withLock {
-    if (actionPendingValue) {
-      return Result.failure(issue(ViraAndroidIssueCode.ACTION_PENDING, "$.action", "native runtime action is already pending"))
+    val byParent = mutableMapOf<String, MutableList<StudioNode>>()
+    for (node in view.nodes) byParent.getOrPut(node.parentId ?: "\$root") { mutableListOf() } += node
+    for (nodes in byParent.values) nodes.sortWith(compareBy<StudioNode> { it.order }.thenBy { it.id })
+
+    val bindings = envelope.document.bindings
+      .filter { it.viewId == activeViewId }
+      .groupBy { it.nodeId }
+    val interactions = envelope.document.interactions
+      .filter { it.viewId == activeViewId }
+      .groupBy { it.nodeId }
+    val output = mutableListOf<ViraAndroidRuntimeNodeModel>()
+
+    lateinit var expand: (StudioNode, String?, ViraJson?, String) -> Unit
+
+    fun build(
+      node: StudioNode,
+      parentId: String?,
+      scope: ViraJson?,
+      suffix: String,
+      order: Long,
+    ) {
+      if (output.size >= VIRA_ANDROID_MAX_EXPANDED_NODES) {
+        throw issue(ViraAndroidIssueCode.REPEAT_LIMIT_EXCEEDED, "$.view.nodes", "native expanded node limit is $VIRA_ANDROID_MAX_EXPANDED_NODES")
+      }
+      val component = components[node.component]
+        ?: throw issue(ViraAndroidIssueCode.DATA_VALUE_INVALID, "$.document", "published component metadata is unavailable")
+      val props = node.props.toMutableMap()
+      for (binding in bindings[node.id].orEmpty()) {
+        val value = readBindingSource(binding.source, scope).getOrThrow()
+        val definition = component.props.firstOrNull { it.key == binding.prop }
+          ?: throw issue(ViraAndroidIssueCode.DATA_VALUE_INVALID, "$.bindings.${binding.prop}", "native binding target is unavailable")
+        if (!propAccepts(definition, value)) {
+          throw issue(ViraAndroidIssueCode.DATA_VALUE_INVALID, "$.bindings.${binding.prop}", "resolved binding does not match native component prop type")
+        }
+        props[binding.prop] = value
+      }
+
+      val eventPayloads = mutableMapOf<String, Map<String, ViraJson>>()
+      for (interaction in interactions[node.id].orEmpty()) {
+        val payload = mutableMapOf<String, ViraJson>()
+        for (mapping in interaction.payloadBindings.orEmpty()) {
+          payload[mapping.key] = readPayloadSource(mapping.source, scope).getOrThrow()
+        }
+        eventPayloads[interaction.event] = payload
+      }
+
+      val id = runtimeId(node.id, suffix)
+      output += ViraAndroidRuntimeNodeModel(
+        id = id,
+        sourceNodeId = node.id,
+        component = node.component,
+        implementationId = component.implementationId,
+        order = order,
+        props = props.toMap(),
+        eventPayloads = eventPayloads.toMap(),
+        parentId = parentId,
+        slot = if (parentId == null) null else node.slot,
+      )
+      for (child in byParent[node.id].orEmpty()) expand(child, id, scope, suffix)
     }
-    val interaction = interactionById[interactionId]
-      ?: return Result.failure(issue(ViraAndroidIssueCode.INTERACTION_NOT_FOUND, "$.interactionId", "native interaction does not exist"))
-    val component = experience.components[interaction.component]
-      ?: return Result.failure(issue(ViraAndroidIssueCode.INVALID_EVENT_PAYLOAD, "$.component", "native interaction component is missing"))
-    if (!validatePayload(component, interaction.event, payload)) {
-      return Result.failure(issue(ViraAndroidIssueCode.INVALID_EVENT_PAYLOAD, "$.payload", "native interaction payload is invalid"))
-    }
-    val mappedAction = experience.actions.firstOrNull { it.id == interaction.actionId }
-      ?: return Result.failure(issue(ViraAndroidIssueCode.UNMAPPED_ACTION, "$.actionId", "native interaction action is unmapped"))
-    val policy = permissionEvaluator.evaluate(mappedAction.permission)
-    if (!policy.allowed) {
-      val code = if (policy.requiresConfirmation) {
-        ViraAndroidIssueCode.CONFIRMATION_REQUIRED
+
+    expand = { node, parentId, scope, parentSuffix ->
+      if (!node.order.isFinite() || node.order < 0 || node.order % 1.0 != 0.0 || node.order > VIRA_ANDROID_MAX_SAFE_INTEGER.toDouble()) {
+        throw issue(ViraAndroidIssueCode.DATA_VALUE_INVALID, "$.node.order", "native node order is invalid")
+      }
+      val baseOrder = node.order.toLong()
+      val repeat = node.repeat
+      if (repeat == null) {
+        build(node, parentId, scope, parentSuffix, baseOrder * VIRA_ANDROID_ORDER_STRIDE)
       } else {
-        ViraAndroidIssueCode.PERMISSION_DENIED
+        val collection = readRepeatSource(repeat.source).getOrThrow().asArrayOrNull()
+          ?: throw issue(ViraAndroidIssueCode.DATA_VALUE_INVALID, "$.repeat.${node.id}", "native repeat source must resolve to an array")
+        if (collection.size > VIRA_ANDROID_MAX_REPEAT_ITEMS) {
+          throw issue(ViraAndroidIssueCode.REPEAT_LIMIT_EXCEEDED, "$.repeat.${node.id}", "native repeat item limit is $VIRA_ANDROID_MAX_REPEAT_ITEMS")
+        }
+        for ((index, item) in collection.withIndex()) {
+          val segment = "${node.id}-$index"
+          val suffix = if (parentSuffix.isEmpty()) segment else "$parentSuffix.$segment"
+          build(node, parentId, item, suffix, baseOrder * VIRA_ANDROID_ORDER_STRIDE + index)
+        }
       }
-      return Result.failure(issue(code, "$.permission", policy.reason))
     }
 
-    val hostPayload = linkedMapOf<String, ViraJson>()
-    for ((key, source) in interaction.payload) {
-      val value = readPayloadSource(source, null).getOrElse { return Result.failure(it) }
-      hostPayload[key] = value
+    for (root in byParent["\$root"].orEmpty()) expand(root, null, null, "")
+    ViraAndroidRuntimeViewModel(envelope.document.id, activeViewId, output.toList())
+  }
+
+  suspend fun dispatch(
+    runtimeNodeId: String,
+    event: String,
+    externalPayload: Map<String, ViraJson>? = null,
+  ): Result<ViraAndroidHostedDispatchCompletion> = runCatching {
+    synchronized(lock) {
+      if (disposed) throw issue(ViraAndroidIssueCode.SESSION_DISPOSED, "$", "native Studio runtime session is disposed")
+      if (pendingRoutes != null) throw issue(ViraAndroidIssueCode.ACTION_PENDING, "$.event", "one native Studio action is already awaiting a Host outcome")
+      // Reserve action ownership before any materialization/validation can yield a second dispatch.
+      pendingRoutes = emptyList()
     }
-    hostPayload.putAll(payload)
 
-    val hostResult = host.execute(interaction.actionId, hostPayload)
-    val hostOutcome = hostResult.getOrElse { return Result.failure(it) }
-    actionPendingValue = true
-    pendingRoutes = interaction.routes
+    try {
+      val activeViewId = currentViewId()
+      val model = currentView().getOrThrow().nodes.firstOrNull { it.id == runtimeNodeId }
+        ?: throw issue(ViraAndroidIssueCode.INTERACTION_NOT_FOUND, "$.runtimeNodeId", "native runtime node is unavailable")
+      val interaction = envelope.document.interactions.firstOrNull {
+        it.viewId == activeViewId && it.nodeId == model.sourceNodeId && it.event == event
+      } ?: throw issue(ViraAndroidIssueCode.INTERACTION_NOT_FOUND, "$.event", "no published native Studio interaction matches this node event")
+      val actionType = actionTypes[interaction.actionEvent]
+        ?: throw issue(ViraAndroidIssueCode.UNMAPPED_ACTION, "$.action", "published native Studio action is unmapped")
+      val component = components[model.component]
+        ?: throw issue(ViraAndroidIssueCode.DATA_VALUE_INVALID, "$.component", "native component metadata is unavailable")
 
-    Result.success(
-      ViraAndroidRuntimeTransition(
-        actionId = interaction.actionId,
-        payload = hostPayload,
-        viewId = currentViewIdValue,
-        viewGeneration = currentViewGenerationValue,
-        pending = true,
-      ),
-    ).also {
-      complete(hostOutcome)
+      val payload = externalPayload.orEmpty().toMutableMap()
+      for ((key, value) in model.eventPayloads[event].orEmpty()) payload[key] = value
+      if (!isRuntimeCoreBuiltIn(actionType) && !validatePayload(component, event, payload)) {
+        throw issue(ViraAndroidIssueCode.INVALID_EVENT_PAYLOAD, "$.event.payload", "native event payload violates the projected component contract")
+      }
+
+      val permission = permissionPolicy.effect(ViraAndroidPermissionSubject.ACTION, actionType)
+      val hostRequired = synchronized(lock) {
+        if (disposed) throw issue(ViraAndroidIssueCode.DISPOSED, "$", "native Studio runtime is disposed")
+        runtimeCore.process(actionType, payload, permission).getOrThrow()
+      }
+      if (!hostRequired) {
+        val completion = synchronized(lock) {
+          if (disposed) throw issue(ViraAndroidIssueCode.DISPOSED, "$", "native Studio runtime is disposed")
+          completeLocked(interaction.routes, ViraAndroidHostActionOutcome.SUCCESS)
+        }
+        return@runCatching ViraAndroidHostedDispatchCompletion(
+          actionType,
+          ViraAndroidHostActionOutcome.SUCCESS,
+          completion.first,
+          completion.second,
+        )
+      }
+
+      synchronized(lock) {
+        if (disposed) throw issue(ViraAndroidIssueCode.DISPOSED, "$", "native Studio runtime is disposed")
+        pendingRoutes = interaction.routes
+      }
+
+      val hostResult = try {
+        host.dispatch(ViraAndroidHostActionDescriptor(actionType, payload)).getOrThrow()
+      } catch (error: Throwable) {
+        synchronized(lock) {
+          if (!disposed) completeLocked(interaction.routes, ViraAndroidHostActionOutcome.ERROR)
+        }
+        throw error
+      }
+
+      val completion = synchronized(lock) {
+        if (disposed) throw issue(ViraAndroidIssueCode.DISPOSED, "$", "native Studio runtime was disposed during Host dispatch")
+        val routes = pendingRoutes ?: throw issue(ViraAndroidIssueCode.DISPOSED, "$", "native Studio runtime lost pending Host ownership")
+        completeLocked(routes, hostResult.outcome)
+      }
+      ViraAndroidHostedDispatchCompletion(actionType, hostResult.outcome, completion.first, completion.second)
+    } finally {
+      synchronized(lock) { pendingRoutes = null }
     }
   }
 
-  fun complete(outcome: ViraAndroidHostActionOutcome): ViraAndroidRuntimeCompletion = lock.withLock {
-    val routes = pendingRoutes
-      ?: return ViraAndroidRuntimeCompletion(currentViewIdValue, currentViewGenerationValue, false)
-    val before = currentViewIdValue
-    val (after, transitioned) = completeLocked(routes, outcome)
-    actionPendingValue = false
-    pendingRoutes = null
-    return ViraAndroidRuntimeCompletion(
-      viewId = after,
-      viewGeneration = currentViewGenerationValue,
-      transitioned = transitioned && before != after,
-    )
-  }
-
-  private fun renderNode(
-    nodeId: String,
-    scope: ViraJson?,
-    rendererRegistry: ViraAndroidRendererRegistry,
-    context: RenderContext,
-  ): ViraAndroidRenderedNode {
-    val node = nodeById[nodeId]
-      ?: throw issue(ViraAndroidIssueCode.VIEW_NOT_FOUND, "$.node", "native runtime node does not exist")
-    val component = experience.components[node.component]
-      ?: throw issue(ViraAndroidIssueCode.MISSING_RENDERER, "$.component", "native runtime component is missing")
-    val renderer = rendererRegistry.renderer(node.component)
-      ?: throw issue(ViraAndroidIssueCode.MISSING_RENDERER, "$.renderer", "native renderer is missing")
-
-    val props = linkedMapOf<String, ViraJson>()
-    for ((key, value) in node.props) props[key] = value
-    for ((key, bindingId) in node.bindings) {
-      val binding = experience.bindings[bindingId]
-        ?: throw issue(ViraAndroidIssueCode.DATA_VALUE_INVALID, "$.binding", "native binding does not exist")
-      props[key] = readBindingSource(binding.source, scope).getOrElse { throw it }
-    }
-
-    val renderedChildren = mutableListOf<ViraAndroidRenderedNode>()
-    for (childId in node.children) {
-      renderedChildren += renderNode(childId, scope, rendererRegistry, context)
-    }
-
-    node.repeat?.let { repeat ->
-      val array = readRepeatSource(repeat.source).getOrElse { throw it }.asArrayOrNull()
-        ?: throw issue(ViraAndroidIssueCode.DATA_VALUE_INVALID, "$.repeat", "native repeat source is not an array")
-      if (context.repeatExpansions + array.size > experience.limits.maxRepeatExpansions) {
-        throw issue(ViraAndroidIssueCode.REPEAT_LIMIT_EXCEEDED, "$.repeat", "native repeat expansion limit exceeded")
-      }
-      context.repeatExpansions += array.size
-      for (item in array) {
-        renderedChildren += renderNode(repeat.templateNodeId, item, rendererRegistry, context)
-      }
-    }
-
-    return renderer.render(
-      ViraAndroidRendererInput(
-        nodeId = node.id,
-        component = component,
-        props = props,
-        children = renderedChildren,
-      ),
-    ).getOrElse {
-      throw issue(ViraAndroidIssueCode.RENDERER_FAILED, "$.renderer", it.message ?: "native renderer failed")
+  fun dispose() {
+    synchronized(lock) {
+      if (disposed) return
+      disposed = true
+      pendingRoutes = null
     }
   }
 
@@ -259,28 +278,26 @@ class ViraAndroidRuntime(
   ): Boolean {
     val definition = component.events.firstOrNull { it.name == event } ?: return false
     val fields = definition.payload.orEmpty().associateBy { it.key }
-    if (payload.keys.any { it !in fields }) return false
-    for ((key, field) in fields) {
-      val value = payload[key]
-      if (field.required == true && value == null) return false
-      if (value != null && !matchesPayloadType(field.type, value)) return false
-    }
-    return true
+    if (!payload.keys.all { it in fields }) return false
+    if (definition.payload.orEmpty().any { it.required && it.key !in payload }) return false
+    return payload.all { (key, value) -> payloadAccepts(fields[key] ?: return false, value) }
   }
 
-  private fun matchesPayloadType(type: StudioInteractionPayloadType, value: ViraJson): Boolean = when (type) {
-    StudioInteractionPayloadType.STRING -> value is ViraJson.StringValue
-    StudioInteractionPayloadType.NUMBER -> value is ViraJson.NumberValue
-    StudioInteractionPayloadType.BOOLEAN -> value is ViraJson.BooleanValue
-    StudioInteractionPayloadType.OBJECT -> value is ViraJson.ObjectValue
-    StudioInteractionPayloadType.ARRAY -> value is ViraJson.ArrayValue
-    StudioInteractionPayloadType.NULL -> value is ViraJson.NullValue
+  private fun propAccepts(definition: ViraAndroidPropDefinition, value: ViraJson): Boolean = when (definition.type) {
+    ViraAndroidCatalogValueType.STRING -> value is ViraJson.Str
+    ViraAndroidCatalogValueType.NUMBER -> value is ViraJson.Num && value.value.isFinite() && value.value.toRawBits() != (-0.0).toRawBits()
+    ViraAndroidCatalogValueType.BOOLEAN -> value is ViraJson.Bool
+    ViraAndroidCatalogValueType.ENUM -> value is ViraJson.Str && definition.options?.contains(value.value) == true
   }
 
-  private fun issue(code: ViraAndroidIssueCode, path: String, message: String) =
-    ViraAndroidIssue(code, path, message)
+  private fun payloadAccepts(definition: ViraAndroidEventPayloadDefinition, value: ViraJson): Boolean = when (definition.type) {
+    ViraAndroidCatalogValueType.STRING -> value is ViraJson.Str
+    ViraAndroidCatalogValueType.NUMBER -> value is ViraJson.Num && value.value.isFinite() && value.value.toRawBits() != (-0.0).toRawBits()
+    ViraAndroidCatalogValueType.BOOLEAN -> value is ViraJson.Bool
+    ViraAndroidCatalogValueType.ENUM -> value is ViraJson.Str && definition.options?.contains(value.value) == true
+  }
 
-  private data class RenderContext(
-    var repeatExpansions: Int,
-  )
+  private fun runtimeId(sourceId: String, suffix: String): String = if (suffix.isEmpty()) sourceId else "$sourceId~$suffix"
+  private fun isRuntimeCoreBuiltIn(actionType: String) = actionType == "runtime.patch.apply" || actionType == "runtime.lifecycle.transition"
+  private fun issue(code: ViraAndroidIssueCode, path: String, message: String) = ViraAndroidIssue(code, path, message)
 }
