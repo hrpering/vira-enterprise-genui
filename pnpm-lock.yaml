@@ -191,6 +191,9 @@ importers:
       '@vira-enterprise-genui/provider-connection':
         specifier: workspace:*
         version: link:../provider-connection
+      '@vira-enterprise-genui/provider-trust':
+        specifier: workspace:*
+        version: link:../provider-trust
 
   packages/action-transaction:
     dependencies:
