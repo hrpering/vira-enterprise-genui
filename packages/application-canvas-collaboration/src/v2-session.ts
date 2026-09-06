@@ -37,7 +37,6 @@ import {
 } from "./v2-types.js";
 
 const OPAQUE_ID = /^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$/;
-const FORBIDDEN_CONTROL_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
 
 type Failure = { readonly ok: false; readonly issue: ViraCanvasCollaborationIssue };
 type Parsed<T> = { readonly ok: true; readonly value: T } | Failure;
@@ -79,12 +78,28 @@ function boundedId(value: JsonValue | undefined): value is string {
     && OPAQUE_ID.test(value);
 }
 
+function hasForbiddenControl(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (
+      (code >= 0x00 && code <= 0x08)
+      || code === 0x0b
+      || code === 0x0c
+      || (code >= 0x0e && code <= 0x1f)
+      || code === 0x7f
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function safeText(value: JsonValue | undefined, maxLength: number, allowEmpty = false): value is string {
   return typeof value === "string"
     && value.length <= maxLength
     && (allowEmpty || value.length > 0)
     && (allowEmpty || value.trim().length > 0)
-    && !FORBIDDEN_CONTROL_PATTERN.test(value);
+    && !hasForbiddenControl(value);
 }
 
 function parseParticipant(value: JsonValue, path: string): Parsed<ViraCanvasCollaborator> {
