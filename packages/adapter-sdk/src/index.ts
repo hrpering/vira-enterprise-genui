@@ -6,3 +6,4 @@ export * from "./component/index.js";
 export * from "./data/index.js";
 export * from "./action/index.js";
 export * from "./policy/index.js";
+export * from "./connector/index.js";
