@@ -20,12 +20,14 @@ import {
   type ViraActionBoundaryExecutionResult,
   type ViraActionBoundaryIssue,
   type ViraActionBoundaryIssueCode,
+  type ViraActionBoundaryPreflightResult,
   type ViraActionConfirmationChallenge,
   type ViraActionConfirmationGrant,
   type ViraActionDefinition,
   type ViraActionExecutionPermit,
   type ViraActionExecutor,
   type ViraActionIntent,
+  type ViraActionPreflightPermission,
   type ViraActionReceipt,
   type ViraTrustedActionAdapterResult,
 } from "./types.js";
@@ -315,15 +317,57 @@ export function createViraActionBoundary(input: unknown): ViraActionBoundaryCrea
   let lastProviderRevision: number | undefined;
   let disposed = false;
 
-  const readRevision = (): number => {
+  const readRevision = (commitObservation = true): number => {
     const value = revisionProvider();
     if (!validRevision(value)) throw new Error("invalid revision");
     if (lastProviderRevision !== undefined && value < lastProviderRevision) throw new Error("revision regressed");
-    lastProviderRevision = value;
-    for (const reserved of [...reservedEffectRevisions]) {
-      if (reserved < value) reservedEffectRevisions.delete(reserved);
+    if (commitObservation) {
+      lastProviderRevision = value;
+      for (const reserved of [...reservedEffectRevisions]) {
+        if (reserved < value) reservedEffectRevisions.delete(reserved);
+      }
     }
     return value;
+  };
+
+  const evaluatePreflight = (
+    intentInput: ViraActionIntent,
+  ):
+    | {
+        readonly ok: true;
+        readonly value: {
+          readonly intent: ViraActionIntent;
+          readonly definition: ViraActionDefinition;
+          readonly permission: ViraActionPreflightPermission;
+        };
+      }
+    | { readonly ok: false; readonly issue: ViraActionBoundaryIssue } => {
+    if (disposed) return { ok: false, issue: issue("DISPOSED", "$", "action boundary is disposed") };
+    const parsedIntent = parseIntent(intentInput);
+    if (!parsedIntent.ok) return parsedIntent;
+    const intent = parsedIntent.value;
+    if (intent.instanceId !== instanceId) {
+      return { ok: false, issue: issue("INSTANCE_MISMATCH", "$.intent.instanceId", "ActionIntent belongs to a different instance") };
+    }
+    const definition = catalog.value.get(intent.action.type);
+    if (!definition) {
+      return { ok: false, issue: issue("ACTION_NOT_REGISTERED", "$.intent.action.type", "action type is not registered in the protected catalog") };
+    }
+    const decision = evaluateRuntimeActionPermission(policy, intent.action);
+    if (!decision.ok) {
+      return { ok: false, issue: issue("INVALID_INTENT", "$.intent.action", decision.issue.message) };
+    }
+    if (decision.value.effect === "deny") {
+      return { ok: false, issue: issue("PERMISSION_DENIED", "$.intent.action.type", "protected action is denied by canonical permission policy") };
+    }
+    return {
+      ok: true,
+      value: Object.freeze({
+        intent,
+        definition,
+        permission: decision.value.effect as ViraActionPreflightPermission,
+      }),
+    };
   };
 
   const boundary: ViraActionBoundary = {
@@ -335,6 +379,31 @@ export function createViraActionBoundary(input: unknown): ViraActionBoundaryCrea
     currentRevision() {
       return readRevision();
     },
+    preflight(intentInput: ViraActionIntent): ViraActionBoundaryPreflightResult {
+      const evaluated = evaluatePreflight(intentInput);
+      if (!evaluated.ok) return evaluated;
+      let currentRevision: number;
+      try {
+        currentRevision = readRevision(false);
+      } catch {
+        return { ok: false, issue: issue("INVALID_REVISION", "$.revisionProvider", "trusted revision provider returned an invalid or regressed revision") };
+      }
+      if (currentRevision !== evaluated.value.intent.expectedStateRevision) {
+        return { ok: false, issue: issue("STALE_REVISION", "$.intent.expectedStateRevision", "ActionIntent was created from a stale state revision") };
+      }
+      return {
+        ok: true,
+        value: Object.freeze({
+          intent: evaluated.value.intent,
+          definition: evaluated.value.definition,
+          permission: evaluated.value.permission,
+          currentRevision,
+          challenge: evaluated.value.permission === "confirm"
+            ? challenge(evaluated.value.intent, evaluated.value.definition)
+            : null,
+        }),
+      };
+    },
     async execute(
       intentInput: ViraActionIntent,
       executor: ViraActionExecutor,
@@ -345,26 +414,10 @@ export function createViraActionBoundary(input: unknown): ViraActionBoundaryCrea
         return { ok: false, issue: issue("INVALID_BOUNDARY", "$.executor", "trusted action adapter must be callable") };
       }
 
-      const parsedIntent = parseIntent(intentInput);
-      if (!parsedIntent.ok) return parsedIntent;
-      const intent = parsedIntent.value;
-      if (intent.instanceId !== instanceId) {
-        return { ok: false, issue: issue("INSTANCE_MISMATCH", "$.intent.instanceId", "ActionIntent belongs to a different instance") };
-      }
-
-      const definition = catalog.value.get(intent.action.type);
-      if (!definition) {
-        return { ok: false, issue: issue("ACTION_NOT_REGISTERED", "$.intent.action.type", "action type is not registered in the protected catalog") };
-      }
-
-      const decision = evaluateRuntimeActionPermission(policy, intent.action);
-      if (!decision.ok) {
-        return { ok: false, issue: issue("INVALID_INTENT", "$.intent.action", decision.issue.message) };
-      }
-      if (decision.value.effect === "deny") {
-        return { ok: false, issue: issue("PERMISSION_DENIED", "$.intent.action.type", "protected action is denied by canonical permission policy") };
-      }
-      if (decision.value.effect === "confirm") {
+      const evaluated = evaluatePreflight(intentInput);
+      if (!evaluated.ok) return evaluated;
+      const { intent, definition, permission } = evaluated.value;
+      if (permission === "confirm") {
         const expectedChallenge = challenge(intent, definition);
         if (confirmation === undefined) {
           return {
@@ -441,7 +494,7 @@ export function createViraActionBoundary(input: unknown): ViraActionBoundaryCrea
         ok: true,
         value: Object.freeze({
           permit: executionPermit,
-          permission: decision.value.effect,
+          permission,
           receipt: actionReceipt,
         }),
       };
