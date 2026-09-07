@@ -24,6 +24,7 @@ Representative current owners include:
 | Native parity | `cross-platform-conformance`, `native-ux-gate`, `sdk/ios`, `sdk/android` | forked platform semantic schemas |
 | Security/policy support | `security`, `policy-engine`, `policy-simulation` | a new policy language or execution bypass |
 | Production proof composition | `production-mvp` | a replacement semantic owner or release authority |
+| Machine acquisition decision | `machine-commerce` | funds movement, entitlement, or protected-action authority |
 
 This list is descriptive, not an exhaustive allowlist. New/changed edges are accepted only if `pnpm check:boundaries` accepts the executable workspace graph.
 

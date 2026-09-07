@@ -784,6 +784,12 @@ importers:
         specifier: workspace:*
         version: link:../work-context
 
+  packages/machine-commerce:
+    dependencies:
+      '@vira-enterprise-genui/enterprise-context':
+        specifier: workspace:*
+        version: link:../enterprise-context
+
   packages/native-ux-gate: {}
 
   packages/planner:

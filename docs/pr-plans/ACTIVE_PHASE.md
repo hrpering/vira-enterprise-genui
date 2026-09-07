@@ -1,18 +1,18 @@
 # Active Phase
 
-**Phase:** PROD-17 — Production MVP provisional gate
+**Phase:** PROD-20 — Machine Commerce and dynamic acquisition
 **Status:** IMPLEMENTATION / EXACT-HEAD VERIFICATION PENDING
-**Branch:** `prod/17-production-mvp-provisional`
-**Parent:** `main@90ae120819d4f929c23b50eda384afb76de2ad29`
+**Branch:** `prod/20-machine-commerce`
+**Parent:** `main@f1c19bf3c089dafb7d0c1c98c6ac506d465b94ad`
 **Roadmap:** `docs/production/VIRA_UNIFIED_ARCHITECTURE_PRODUCTION_PLAN_FINAL.md`
 
 ## Current checkpoint
 
-- exact GitHub and Google query/write evidence chain: implemented;
-- durable wait/handoff and protected transaction binding: implemented;
-- postcondition, Action Ledger, and billing export evidence binding: implemented;
-- restart, duplicate, TOCTOU, partial, mismatch, uncertain, rollback, and restore simulations: implemented;
-- release authority remains explicitly forbidden;
+- exact Network Trust Evidence and Commercial Offer: implemented;
+- bounded Delegated Commercial Mandate: implemented;
+- deterministic selected/declined/challenge-required acquisition: implemented;
+- external-only payment authorization evidence: implemented;
+- replay, expiry, revocation, overflow, currency, cross-org and action-bypass negatives: implemented;
 - focused and root verification: pending;
 - hosted exact-head CI and independent re-audit: pending.
 

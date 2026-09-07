@@ -1,6 +1,6 @@
 # PROD-20 — Machine Commerce and Dynamic Acquisition
 
-**Status:** DEFERRED / NOT ACTIVE  
+**Status:** IMPLEMENTATION / EXACT-HEAD VERIFICATION PENDING
 **Dependencies:** PROD-14 + PROD-19  
 **Source reconciliation:** draft PR #214 (`MASTER-52..59`) is folded into this single production phase.
 
