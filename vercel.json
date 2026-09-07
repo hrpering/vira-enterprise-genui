@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm --filter @vira-enterprise-genui/vira-web build",
+  "outputDirectory": "apps/vira-web/dist",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "regions": ["fra1"]
+}

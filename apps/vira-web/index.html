@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Vira Production Shell</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell" aria-labelledby="title">
+      <div class="mark" aria-hidden="true">V</div>
+      <p class="eyebrow">Vira Enterprise GenUI</p>
+      <h1 id="title">Production shell is ready.</h1>
+      <p class="lede">Deployment, health and release metadata only. Product behavior is intentionally not mounted in PROD-01.</p>
+      <dl class="metadata" aria-label="Build metadata">
+        <div><dt>Service</dt><dd>vira-web</dd></div>
+        <div><dt>Environment</dt><dd id="environment">loading</dd></div>
+        <div><dt>Build</dt><dd id="build-sha">loading</dd></div>
+        <div><dt>Release</dt><dd id="release-id">loading</dd></div>
+      </dl>
+      <p id="metadata-status" class="status" role="status">Reading immutable build metadata…</p>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
