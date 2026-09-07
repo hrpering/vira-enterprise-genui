@@ -1,0 +1,10 @@
+{
+  "version": "1",
+  "environment": "staging",
+  "buildSha": "0123456789abcdef0123456789abcdef01234567",
+  "releaseId": "release-2026-09-05.1",
+  "webDeploymentId": "dpl_0123456789abcdef",
+  "webDeploymentUrl": "https://vira-preview-012345.vercel.app/",
+  "apiDeploymentId": "11111111-1111-4111-8111-111111111111",
+  "workerDeploymentId": "22222222-2222-4222-8222-222222222222"
+}
