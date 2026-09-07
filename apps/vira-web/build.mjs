@@ -1,6 +1,7 @@
-import { copyFile, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { build } from "vite";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.join(root, "dist");
@@ -23,11 +24,7 @@ if (environment === "production" && buildSha === "local") {
 
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
-await Promise.all([
-  copyFile(path.join(root, "index.html"), path.join(dist, "index.html")),
-  copyFile(path.join(root, "app.js"), path.join(dist, "app.js")),
-  copyFile(path.join(root, "styles.css"), path.join(dist, "styles.css")),
-]);
+await build({ root, logLevel: "warn" });
 await writeFile(
   path.join(dist, "build.json"),
   `${JSON.stringify({ version: "1", service: "vira-web", environment, buildSha, releaseId })}\n`,

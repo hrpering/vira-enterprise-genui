@@ -73,11 +73,21 @@ for (const marker of ["npm ci --prefix .railway --ignore-scripts", "npm --prefix
   requireText(rootPackage.scripts["verify:production-shell"], marker, "production-shell verify chain");
 }
 
-for (const [label, text] of [["vira-web", webPackageText], ["vira-api", apiPackageText], ["vira-worker", workerPackageText]]) {
+for (const [label, text] of [["vira-api", apiPackageText], ["vira-worker", workerPackageText]]) {
   const manifest = JSON.parse(text);
   if (Object.keys(manifest.dependencies ?? {}).length > 0 || Object.keys(manifest.devDependencies ?? {}).length > 0) {
     throw new Error(`${label} shell must not acquire domain/runtime package dependencies in PROD-01`);
   }
+}
+
+const webPackage = JSON.parse(webPackageText);
+for (const dependency of ["react", "react-dom", "@radix-ui/react-dialog", "@radix-ui/react-tabs"]) {
+  if (typeof webPackage.dependencies?.[dependency] !== "string") {
+    throw new Error(`vira-web production UI requires declared ${dependency} ownership`);
+  }
+}
+if (webPackage.devDependencies?.vite !== "8.2.2" || webPackage.devDependencies?.["@vitejs/plugin-react"] !== "6.0.1") {
+  throw new Error("vira-web React/Vite toolchain must remain exact-pinned");
 }
 
 if (apiIndex.includes("@vira-enterprise-genui/") || workerIndex.includes("@vira-enterprise-genui/")) {

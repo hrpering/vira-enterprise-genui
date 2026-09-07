@@ -4,6 +4,26 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node build.mjs"
+    "dev": "vite",
+    "build": "node build.mjs",
+    "typecheck": "tsc6 -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@radix-ui/react-dialog": "1.1.15",
+    "@radix-ui/react-tabs": "1.1.13",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
+    "@playwright/test": "1.62.1",
+    "@vitejs/plugin-react": "6.0.1",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.3",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vite": "8.2.2",
+    "vitest": "4.1.11"
   }
 }
