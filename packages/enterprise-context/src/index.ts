@@ -1,5 +1,9 @@
 export { createViraEnterpriseContext } from "./context.js";
 export {
+  VIRA_EXTERNAL_HOST_AUTHORIZATION_VERSION,
+  authorizeExternalHostContext,
+} from "./external-host.js";
+export {
   VIRA_DELEGATION_MAX_DEPTH,
   VIRA_IDENTITY_DELEGATION_VERSION,
   authorizeIdentityMembership,
@@ -10,6 +14,14 @@ export {
   VIRA_ENTERPRISE_ENVIRONMENTS,
   VIRA_ENTERPRISE_PRINCIPAL_KINDS,
 } from "./types.js";
+export type {
+  ViraExternalHostAuthorization,
+  ViraExternalHostAuthorizationInput,
+  ViraExternalHostAuthorizationIssue,
+  ViraExternalHostAuthorizationIssueCode,
+  ViraExternalHostAuthorizationResult,
+  ViraExternalHostBinding,
+} from "./external-host.js";
 export type {
   ViraAuthorizedMembership,
   ViraDelegationGrant,
