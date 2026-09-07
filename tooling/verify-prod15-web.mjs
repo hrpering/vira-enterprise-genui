@@ -10,7 +10,7 @@ const requireText = (content, marker, label) => {
 
 const [app, api, styles, manifest, browserTests, data] = await Promise.all([
   read("apps/vira-web/src/App.tsx"), read("apps/vira-web/src/api.ts"), read("apps/vira-web/src/styles.css"),
-  read("apps/vira-web/package.json"), read("apps/vira-web/tests/control-center.spec.ts"), read("apps/vira-web/src/data.ts"),
+  read("apps/vira-web/package.json"), read("apps/vira-web/tests/control-center.e2e.ts"), read("apps/vira-web/src/data.ts"),
 ]);
 
 for (const surface of ["Chat", "Applications", "Runs", "Artifacts", "Tasks", "Approvals", "Waiting", "Needs attention", "Audit", "Usage & billing", "Studio", "Flow", "Integrations", "Connections", "Publish & releases", "Health", "Diagnostics", "Recovery"]) requireText(data, surface, "PROD-15 surface registry");
