@@ -1,14 +1,16 @@
 {
-  "name": "@vira-enterprise-genui/private-runner",
+  "name": "@vira-enterprise-genui/action-verification",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./observation": "./src/observation.ts"
+    "./durable": "./src/durable.ts",
+    "./write-outcome": "./src/write-outcome.ts",
+    "./retry-safety": "./src/retry-safety.ts"
   },
   "dependencies": {
-    "@vira-enterprise-genui/durable-execution": "workspace:*",
+    "@vira-enterprise-genui/action-supply": "workspace:*",
     "@vira-enterprise-genui/enterprise-context": "workspace:*",
     "@vira-enterprise-genui/protocol": "workspace:*"
   }
