@@ -36,3 +36,22 @@ export {
   parseViraApplicationFederationSnapshotV2,
   serializeViraApplicationFederationSnapshotV2,
 } from "./v2-federation.js";
+
+export {
+  VIRA_APPLICATION_SOURCE_TRUST_DIGEST_ALGORITHM,
+  VIRA_APPLICATION_SOURCE_TRUST_SIGNATURE_ALGORITHM,
+  VIRA_APPLICATION_SOURCE_TRUST_VERSION,
+  authenticateViraApplicationFederationSourceV2,
+} from "./source-trust.js";
+export type {
+  ViraApplicationSourceAttestation,
+  ViraApplicationSourceDigestInput,
+  ViraApplicationSourceDigestProvider,
+  ViraApplicationSourceSignatureInput,
+  ViraApplicationSourceSignatureVerifier,
+  ViraApplicationSourceTrustIssue,
+  ViraApplicationSourceTrustIssueCode,
+  ViraApplicationSourceTrustRecord,
+  ViraApplicationSourceTrustResult,
+  ViraAuthenticatedApplicationSource,
+} from "./source-trust.js";
