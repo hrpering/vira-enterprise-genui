@@ -5,14 +5,14 @@ import {
 } from "../../packages/capability-supply/src/index.js";
 
 const now = 2_000_000_000_000;
-const capabilityRef = Object.freeze({ id: "capability.search.web", version: "1.2.3" });
-const bindingA = Object.freeze({ id: "binding.search.primary", version: "1.0.0" });
-const bindingB = Object.freeze({ id: "binding.search.failover", version: "1.0.0" });
-const bindingHidden = Object.freeze({ id: "binding.search.hidden", version: "1.0.0" });
+const capabilityRef = Object.freeze({ id: "capability.search.web", versionRef: "1.2.3" });
+const bindingA = Object.freeze({ id: "binding.search.primary", versionRef: "1.0.0" });
+const bindingB = Object.freeze({ id: "binding.search.failover", versionRef: "1.0.0" });
+const bindingHidden = Object.freeze({ id: "binding.search.hidden", versionRef: "1.0.0" });
 
 const lookup = Object.freeze({
   capabilityId: capabilityRef.id,
-  capabilityVersion: capabilityRef.version,
+  capabilityVersion: capabilityRef.versionRef,
   providerId: null,
   locationId: null,
   supplies: Object.freeze([
@@ -24,7 +24,7 @@ const lookup = Object.freeze({
 
 const scope = Object.freeze({ version: "1", organizationId: "org.acme", projectId: "project.search", environment: "production" });
 
-function candidate(bindingRef: { readonly id: string; readonly version: string }, providerId: string, overrides: Record<string, unknown> = {}) {
+function candidate(bindingRef: { readonly id: string; readonly versionRef: string }, providerId: string, overrides: Record<string, unknown> = {}) {
   return {
     bindingRef,
     trust: {
@@ -113,7 +113,7 @@ describe("PROD-19C explicit Capability provider routing and failover", () => {
   });
 
   it("rejects undeclared/duplicate route references and cannot fail over past the explicit end", () => {
-    expect(plan({ policy: { ...policy, orderedBindingRefs: [bindingA, { id: "binding.missing", version: "1.0.0" }] } }))
+    expect(plan({ policy: { ...policy, orderedBindingRefs: [bindingA, { id: "binding.missing", versionRef: "1.0.0" }] } }))
       .toMatchObject({ ok: false, issue: { code: "UNDECLARED_SUPPLY" } });
     expect(plan({ policy: { ...policy, orderedBindingRefs: [bindingA, bindingA] } }))
       .toMatchObject({ ok: false, issue: { code: "INVALID_POLICY" } });

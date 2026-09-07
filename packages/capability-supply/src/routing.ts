@@ -143,11 +143,11 @@ function exactRef(value: unknown): ViraCapabilityExactReference | null {
 }
 
 function sameRef(left: ViraCapabilityExactReference, right: ViraCapabilityExactReference): boolean {
-  return left.id === right.id && left.version === right.version;
+  return left.id === right.id && left.versionRef === right.versionRef;
 }
 
 function refKey(ref: ViraCapabilityExactReference): string {
-  return `${ref.id}\u0000${ref.version}`;
+  return `${ref.id}\u0000${ref.versionRef}`;
 }
 
 function scope(value: unknown): ViraCapabilityRouteScopeEvidence | null {
@@ -294,7 +294,7 @@ export function planViraCapabilitySupplyRoute(input: unknown): ViraCapabilityRou
   }
   const policy = parsePolicy(input.policy);
   if (!policy) return fail("INVALID_POLICY", "$.policy", "route policy is invalid or contains floating/duplicate references");
-  if (input.lookup.capabilityId !== policy.capabilityRef.id || input.lookup.capabilityVersion !== policy.capabilityRef.version) {
+  if (input.lookup.capabilityId !== policy.capabilityRef.id || input.lookup.capabilityVersion !== policy.capabilityRef.versionRef) {
     return fail("CAPABILITY_MISMATCH", "$.lookup", "supply lookup must match the exact routed Capability release");
   }
   if (policy.orderedBindingRefs.length > VIRA_CAPABILITY_ROUTE_MAX_CANDIDATES) {
