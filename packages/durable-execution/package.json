@@ -1,0 +1,18 @@
+{
+  "name": "@vira-enterprise-genui/durable-execution",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./authority": "./src/authority.ts",
+    "./restart": "./src/restart.ts",
+    "./outbox": "./src/outbox.ts",
+    "./outcome": "./src/outcome.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/action-transaction": "workspace:*",
+    "@vira-enterprise-genui/enterprise-context": "workspace:*",
+    "@vira-enterprise-genui/protocol": "workspace:*"
+  }
+}
