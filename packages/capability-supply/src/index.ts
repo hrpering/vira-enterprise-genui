@@ -22,3 +22,25 @@ export {
   parseViraCapabilitySupplySnapshot,
   serializeViraCapabilitySupplySnapshot,
 } from "./supply.js";
+
+export {
+  VIRA_CAPABILITY_ROUTE_FAILOVER_REASONS,
+  VIRA_CAPABILITY_ROUTE_MAX_CANDIDATES,
+  VIRA_CAPABILITY_ROUTE_POLICY_VERSION,
+  advanceViraCapabilitySupplyRoute,
+  planViraCapabilitySupplyRoute,
+} from "./routing.js";
+export type {
+  ViraCapabilityRouteAdvanceResult,
+  ViraCapabilityRouteCandidateEvidence,
+  ViraCapabilityRouteCommercialEvidence,
+  ViraCapabilityRouteFailoverReason,
+  ViraCapabilityRouteIssue,
+  ViraCapabilityRouteIssueCode,
+  ViraCapabilityRoutePlan,
+  ViraCapabilityRoutePlanEntry,
+  ViraCapabilityRoutePlanResult,
+  ViraCapabilityRoutePolicy,
+  ViraCapabilityRouteProviderTrustEvidence,
+  ViraCapabilityRouteScopeEvidence,
+} from "./routing.js";
