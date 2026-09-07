@@ -33,5 +33,5 @@ enum class ViraAndroidIssueCode {
 data class ViraAndroidIssue(
   val code: ViraAndroidIssueCode,
   val path: String,
-  val message: String,
+  override val message: String,
 ) : Exception(message)
