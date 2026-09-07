@@ -51,6 +51,7 @@ function serviceFor(overrides: Partial<Pick<StudioLifecycleStore, "list" | "read
   const store: StudioLifecycleStore = {
     async list() { return []; },
     async read() { return undefined; },
+    async listRevisions() { return []; },
     async create() { throw new Error("unused"); },
     async replace() { throw new Error("unused"); },
     async delete() { throw new Error("unused"); },
