@@ -300,6 +300,21 @@ importers:
         specifier: workspace:*
         version: link:../protocol
 
+  packages/application-resolution:
+    dependencies:
+      '@vira-enterprise-genui/application-distribution':
+        specifier: workspace:*
+        version: link:../application-distribution
+      '@vira-enterprise-genui/application-package':
+        specifier: workspace:*
+        version: link:../application-package
+      '@vira-enterprise-genui/deployment-plane':
+        specifier: workspace:*
+        version: link:../deployment-plane
+      '@vira-enterprise-genui/enterprise-context':
+        specifier: workspace:*
+        version: link:../enterprise-context
+
   packages/capability-contract:
     dependencies:
       '@vira-enterprise-genui/protocol':
@@ -392,6 +407,15 @@ importers:
 
   packages/deployment-plane:
     dependencies:
+      '@vira-enterprise-genui/application-distribution':
+        specifier: workspace:*
+        version: link:../application-distribution
+      '@vira-enterprise-genui/application-package':
+        specifier: workspace:*
+        version: link:../application-package
+      '@vira-enterprise-genui/enterprise-context':
+        specifier: workspace:*
+        version: link:../enterprise-context
       '@vira-enterprise-genui/experience-packs':
         specifier: workspace:*
         version: link:../experience-packs
