@@ -1,5 +1,40 @@
 export { createViraTransactionRecord, freezeViraTransactionPlan } from "./plan.js";
 export {
+  VIRA_TRANSACTION_APPROVAL_VERSION,
+  VIRA_TRANSACTION_EXECUTION_AUDIENCE,
+  VIRA_TRANSACTION_GRANT_MAX_LIFETIME_MS,
+  createViraHumanApprovalEvidence,
+  createViraTransactionComprehension,
+  issueViraTransactionExecutionGrant,
+  verifyViraTransactionExecutionGrant,
+} from "./approval.js";
+export type {
+  ViraApprovalDecision,
+  ViraCreateApprovalInput,
+  ViraIssueExecutionGrantInput,
+  ViraSignedTransactionExecutionGrant,
+  ViraTransactionApprovalEvidence,
+  ViraTransactionApprovalIssue,
+  ViraTransactionApprovalIssueCode,
+  ViraTransactionApprovalResult,
+  ViraTransactionComprehension,
+  ViraTransactionExecutionGrantPayload,
+  ViraTransactionGrantReplayGuard,
+  ViraTransactionGrantSigner,
+  ViraTransactionGrantVerifier,
+  ViraTransactionReviewOperation,
+  ViraVerifyExecutionGrantInput,
+} from "./approval.js";
+export {
+  VIRA_TRANSACTION_APPROVAL_INBOX_KIND,
+  VIRA_TRANSACTION_APPROVAL_INBOX_STATUSES,
+  createViraTransactionApprovalInboxItem,
+} from "./approval-inbox.js";
+export type {
+  ViraTransactionApprovalInboxItem,
+  ViraTransactionApprovalInboxStatus,
+} from "./approval-inbox.js";
+export {
   VIRA_TRANSACTION_MAX_COMMERCIAL_REFS,
   VIRA_TRANSACTION_MAX_DEPENDENCIES_PER_OPERATION,
   VIRA_TRANSACTION_MAX_OPERATIONS,
