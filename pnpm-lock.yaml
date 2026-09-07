@@ -174,6 +174,45 @@ importers:
         specifier: workspace:*
         version: link:../telemetry
 
+  packages/action-supply:
+    dependencies:
+      '@vira-enterprise-genui/application-package':
+        specifier: workspace:*
+        version: link:../application-package
+      '@vira-enterprise-genui/deployment-plane':
+        specifier: workspace:*
+        version: link:../deployment-plane
+      '@vira-enterprise-genui/enterprise-context':
+        specifier: workspace:*
+        version: link:../enterprise-context
+      '@vira-enterprise-genui/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      '@vira-enterprise-genui/provider-connection':
+        specifier: workspace:*
+        version: link:../provider-connection
+      '@vira-enterprise-genui/provider-trust':
+        specifier: workspace:*
+        version: link:../provider-trust
+
+  packages/action-transaction:
+    dependencies:
+      '@vira-enterprise-genui/action-boundary':
+        specifier: workspace:*
+        version: link:../action-boundary
+      '@vira-enterprise-genui/action-supply':
+        specifier: workspace:*
+        version: link:../action-supply
+      '@vira-enterprise-genui/application-package':
+        specifier: workspace:*
+        version: link:../application-package
+      '@vira-enterprise-genui/enterprise-context':
+        specifier: workspace:*
+        version: link:../enterprise-context
+      '@vira-enterprise-genui/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+
   packages/adapter-sdk:
     dependencies:
       '@vira-enterprise-genui/protocol':

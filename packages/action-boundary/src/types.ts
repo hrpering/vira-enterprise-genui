@@ -12,6 +12,7 @@ export const VIRA_ACTION_BOUNDARY_MAX_SAFE_INTEGER = 9_007_199_254_740_991 as co
 export type ViraActionEffect = "read" | "write" | "irreversible";
 export type ViraActionIdempotency = "none" | "action-id";
 export type ViraActionReceiptOutcome = "success" | "empty" | "error";
+export type ViraActionPreflightPermission = Exclude<RuntimePermissionEffect, "deny">;
 
 export interface ViraActionDefinition {
   readonly actionType: string;
@@ -59,6 +60,18 @@ export interface ViraActionConfirmationChallenge {
   readonly expectedStateRevision: number;
   readonly idempotencyKey: string;
 }
+
+export interface ViraActionBoundaryPreflightSuccess {
+  readonly intent: ViraActionIntent;
+  readonly definition: ViraActionDefinition;
+  readonly permission: ViraActionPreflightPermission;
+  readonly currentRevision: number;
+  readonly challenge: ViraActionConfirmationChallenge | null;
+}
+
+export type ViraActionBoundaryPreflightResult =
+  | { readonly ok: true; readonly value: ViraActionBoundaryPreflightSuccess }
+  | { readonly ok: false; readonly issue: ViraActionBoundaryIssue };
 
 export interface ViraTrustedActionAdapterResult {
   readonly outcome: ViraActionReceiptOutcome;
@@ -141,6 +154,7 @@ export interface ViraActionBoundary {
   readonly instanceId: string;
   readonly definition: (actionType: string) => ViraActionDefinition | undefined;
   readonly currentRevision: () => number;
+  readonly preflight: (intent: ViraActionIntent) => ViraActionBoundaryPreflightResult;
   readonly execute: (
     intent: ViraActionIntent,
     executor: ViraActionExecutor,
