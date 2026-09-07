@@ -158,6 +158,9 @@ importers:
       '@vira-enterprise-genui/action-boundary':
         specifier: workspace:*
         version: link:../action-boundary
+      '@vira-enterprise-genui/enterprise-context':
+        specifier: workspace:*
+        version: link:../enterprise-context
       '@vira-enterprise-genui/experience-observability':
         specifier: workspace:*
         version: link:../experience-observability
@@ -206,6 +209,18 @@ importers:
       '@vira-enterprise-genui/application-package':
         specifier: workspace:*
         version: link:../application-package
+      '@vira-enterprise-genui/enterprise-context':
+        specifier: workspace:*
+        version: link:../enterprise-context
+      '@vira-enterprise-genui/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+
+  packages/action-verification:
+    dependencies:
+      '@vira-enterprise-genui/action-supply':
+        specifier: workspace:*
+        version: link:../action-supply
       '@vira-enterprise-genui/enterprise-context':
         specifier: workspace:*
         version: link:../enterprise-context

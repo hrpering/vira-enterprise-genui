@@ -5,6 +5,30 @@ export {
   createPostgresTriggerInboxStore,
 } from "./application-runtime-state.js";
 export {
+  createPostgresActionVerificationObservationRepository,
+  type ViraPostgresActionVerificationObservationRepository,
+} from "./action-verification-observation.js";
+export {
+  createPostgresActionVerificationStore,
+  type ViraPostgresActionVerificationMutationCode,
+  type ViraPostgresActionVerificationMutationResult,
+  type ViraPostgresActionVerificationStore,
+} from "./action-verification.js";
+export {
+  createPostgresActionVerificationWriteOutcomeStore,
+  type ViraPostgresActionVerificationWriteOutcomeStore,
+} from "./action-verification-write-outcome.js";
+export {
+  createPostgresProductionActionLedgerCheckpointRepository,
+  type ViraPostgresProductionActionLedgerCheckpointRepository,
+} from "./production-action-ledger-checkpoint.js";
+export {
+  createPostgresProductionActionLedgerStore,
+  type ViraPostgresProductionActionLedgerMutationCode,
+  type ViraPostgresProductionActionLedgerMutationResult,
+  type ViraPostgresProductionActionLedgerStore,
+} from "./production-action-ledger.js";
+export {
   createPostgresDurableExecutionAuthorityRepository,
   type ViraPostgresDurableExecutionAuthorityRepository,
   type ViraPostgresDurableExecutionEnqueueResult,

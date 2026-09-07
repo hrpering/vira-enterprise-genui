@@ -4,10 +4,13 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./production": "./src/production.ts",
+    "./checkpoint-cadence": "./src/checkpoint-cadence.ts"
   },
   "dependencies": {
     "@vira-enterprise-genui/action-boundary": "workspace:*",
+    "@vira-enterprise-genui/enterprise-context": "workspace:*",
     "@vira-enterprise-genui/experience-observability": "workspace:*",
     "@vira-enterprise-genui/governance": "workspace:*",
     "@vira-enterprise-genui/protocol": "workspace:*",
