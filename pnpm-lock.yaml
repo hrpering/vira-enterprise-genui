@@ -425,12 +425,18 @@ importers:
 
   packages/commercial-metering:
     dependencies:
+      '@vira-enterprise-genui/action-verification':
+        specifier: workspace:*
+        version: link:../action-verification
       '@vira-enterprise-genui/application-package':
         specifier: workspace:*
         version: link:../application-package
       '@vira-enterprise-genui/commercial-entitlement':
         specifier: workspace:*
         version: link:../commercial-entitlement
+      '@vira-enterprise-genui/durable-execution':
+        specifier: workspace:*
+        version: link:../durable-execution
       '@vira-enterprise-genui/enterprise-context':
         specifier: workspace:*
         version: link:../enterprise-context
