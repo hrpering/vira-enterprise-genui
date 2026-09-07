@@ -1,18 +1,18 @@
 # Active Phase
 
-**Phase:** PROD-16 — Security, CI/CD, operations, and DR code infrastructure
+**Phase:** PROD-17 — Production MVP provisional gate
 **Status:** IMPLEMENTATION / EXACT-HEAD VERIFICATION PENDING
-**Branch:** `prod/16-security-cicd-operations-dr`
-**Parent:** `main@5c80bc32381e0c4f586850290dabb048af5504bd`
+**Branch:** `prod/17-production-mvp-provisional`
+**Parent:** `main@90ae120819d4f929c23b50eda384afb76de2ad29`
 **Roadmap:** `docs/production/VIRA_UNIFIED_ARCHITECTURE_PRODUCTION_PLAN_FINAL.md`
 
 ## Current checkpoint
 
-- immutable, canonical release manifest sealing: implemented;
-- SSRF/provider substitution and secret-redaction boundaries: implemented;
-- forward-only transactional migration safety dry-run: implemented;
-- deterministic isolated backup/restore plan: implemented;
-- low-cardinality metrics, alerts, and recovery runbooks: implemented;
+- exact GitHub and Google query/write evidence chain: implemented;
+- durable wait/handoff and protected transaction binding: implemented;
+- postcondition, Action Ledger, and billing export evidence binding: implemented;
+- restart, duplicate, TOCTOU, partial, mismatch, uncertain, rollback, and restore simulations: implemented;
+- release authority remains explicitly forbidden;
 - focused and root verification: pending;
 - hosted exact-head CI and independent re-audit: pending.
 

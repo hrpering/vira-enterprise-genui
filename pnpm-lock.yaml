@@ -816,6 +816,8 @@ importers:
         specifier: workspace:*
         version: link:../protocol
 
+  packages/production-mvp: {}
+
   packages/protocol: {}
 
   packages/protocol-gateway:
