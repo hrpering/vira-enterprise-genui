@@ -1,0 +1,14 @@
+{
+  "name": "@vira-enterprise-genui/private-runner",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@vira-enterprise-genui/durable-execution": "workspace:*",
+    "@vira-enterprise-genui/enterprise-context": "workspace:*",
+    "@vira-enterprise-genui/protocol": "workspace:*"
+  }
+}

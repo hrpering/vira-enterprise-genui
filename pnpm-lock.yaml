@@ -492,6 +492,18 @@ importers:
         specifier: workspace:*
         version: link:../studio-design
 
+  packages/durable-execution:
+    dependencies:
+      '@vira-enterprise-genui/action-transaction':
+        specifier: workspace:*
+        version: link:../action-transaction
+      '@vira-enterprise-genui/enterprise-context':
+        specifier: workspace:*
+        version: link:../enterprise-context
+      '@vira-enterprise-genui/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+
   packages/enterprise-context:
     dependencies:
       '@vira-enterprise-genui/protocol':
@@ -729,6 +741,18 @@ importers:
 
   packages/policy-simulation:
     dependencies:
+      '@vira-enterprise-genui/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+
+  packages/private-runner:
+    dependencies:
+      '@vira-enterprise-genui/durable-execution':
+        specifier: workspace:*
+        version: link:../durable-execution
+      '@vira-enterprise-genui/enterprise-context':
+        specifier: workspace:*
+        version: link:../enterprise-context
       '@vira-enterprise-genui/protocol':
         specifier: workspace:*
         version: link:../protocol
