@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 export type ViraPromotionEnvironment = "staging" | "production";
 
 export interface ViraReleaseManifest {
@@ -9,6 +11,12 @@ export interface ViraReleaseManifest {
   readonly webDeploymentUrl: string;
   readonly apiDeploymentId: string;
   readonly workerDeploymentId: string;
+}
+
+export interface ViraSealedReleaseManifest {
+  readonly version: "1";
+  readonly manifest: ViraReleaseManifest;
+  readonly canonicalSha256: string;
 }
 
 const BUILD_SHA_PATTERN = /^[a-f0-9]{7,64}$/i;
@@ -73,4 +81,37 @@ export function parseViraReleaseManifest(value: unknown): ViraReleaseManifest {
     apiDeploymentId: apiDeploymentId.toLowerCase(),
     workerDeploymentId: workerDeploymentId.toLowerCase(),
   };
+}
+
+function canonicalManifestJson(manifest: ViraReleaseManifest): string {
+  return JSON.stringify({
+    apiDeploymentId: manifest.apiDeploymentId,
+    buildSha: manifest.buildSha,
+    environment: manifest.environment,
+    releaseId: manifest.releaseId,
+    version: manifest.version,
+    webDeploymentId: manifest.webDeploymentId,
+    webDeploymentUrl: manifest.webDeploymentUrl,
+    workerDeploymentId: manifest.workerDeploymentId,
+  });
+}
+
+export function sealViraReleaseManifest(value: unknown): ViraSealedReleaseManifest {
+  const manifest = Object.freeze(parseViraReleaseManifest(value));
+  return Object.freeze({
+    version: "1",
+    manifest,
+    canonicalSha256: createHash("sha256").update(canonicalManifestJson(manifest)).digest("hex"),
+  });
+}
+
+export function verifySealedViraReleaseManifest(value: unknown): ViraSealedReleaseManifest {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) throw new Error("sealed release manifest must be an object");
+  const record = value as Record<string, unknown>;
+  if (record.version !== "1" || typeof record.canonicalSha256 !== "string" || !/^[a-f0-9]{64}$/.test(record.canonicalSha256)) {
+    throw new Error("sealed release manifest metadata is invalid");
+  }
+  const sealed = sealViraReleaseManifest(record.manifest);
+  if (sealed.canonicalSha256 !== record.canonicalSha256) throw new Error("sealed release manifest digest mismatch");
+  return sealed;
 }

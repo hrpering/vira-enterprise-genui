@@ -1,0 +1,10 @@
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+const root = process.cwd();
+const required = ["ops/security/production-boundary.ts", "ops/backup/restore-plan.ts", "ops/observability/production-signals.ts", "ops/runbooks/backup-restore.md", "ops/runbooks/protected-transaction-recovery.md", "docs/production/LIVE_GATE_BLOCKERS.md", "tests/production/prod16-operations-security.test.ts"];
+for (const file of required) if (!existsSync(path.join(root, file))) throw new Error(`PROD-16 required artifact missing: ${file}`);
+const workflow = readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8");
+if (!workflow.includes("pnpm verify:production-operations")) throw new Error("PROD-16 verification is not explicit in hosted CI");
+const blockers = readFileSync(path.join(root, "docs/production/LIVE_GATE_BLOCKERS.md"), "utf8");
+for (const term of ["Vercel", "Railway", "backup", "Protect `main`", "UAT", "SLO"]) if (!blockers.toLowerCase().includes(term.toLowerCase())) throw new Error(`Live gate blocker is not tracked: ${term}`);
+process.stdout.write("PROD16_OPERATIONS_OK\n");

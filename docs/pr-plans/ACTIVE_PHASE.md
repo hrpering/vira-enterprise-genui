@@ -1,19 +1,19 @@
 # Active Phase
 
-**Phase:** PROD-15 — Production web and operational surfaces
-**Status:** IMPLEMENTED / EXACT-HEAD VERIFICATION PENDING
-**Branch:** `prod/15-production-web-operations-surfaces`
-**Parent:** `main@f22efeb4e134ed516b665907295856c515d77e00`
+**Phase:** PROD-16 — Security, CI/CD, operations, and DR code infrastructure
+**Status:** IMPLEMENTATION / EXACT-HEAD VERIFICATION PENDING
+**Branch:** `prod/16-security-cicd-operations-dr`
+**Parent:** `main@5c80bc32381e0c4f586850290dabb048af5504bd`
 **Roadmap:** `docs/production/VIRA_UNIFIED_ARCHITECTURE_PRODUCTION_PLAN_FINAL.md`
 
 ## Current checkpoint
 
-- React + Vite production control center: implemented;
-- role-aware customer, builder and admin navigation: implemented;
-- exact-evidence run/transaction rail: implemented;
-- loading, empty, partial, error, uncertain, degraded, offline and reconnecting states: implemented;
-- responsive Radix drawer, keyboard command search and reduced-motion support: implemented;
-- light/dark and serious/critical axe browser gates: locally passing;
+- immutable, canonical release manifest sealing: implemented;
+- SSRF/provider substitution and secret-redaction boundaries: implemented;
+- forward-only transactional migration safety dry-run: implemented;
+- deterministic isolated backup/restore plan: implemented;
+- low-cardinality metrics, alerts, and recovery runbooks: implemented;
+- focused and root verification: pending;
 - hosted exact-head CI and independent re-audit: pending.
 
 No production release status is implied. Live Vercel/Railway and UAT gates remain tracked in `docs/production/LIVE_GATE_BLOCKERS.md`.

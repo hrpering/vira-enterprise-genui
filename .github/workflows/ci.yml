@@ -65,6 +65,9 @@ jobs:
       - name: Verify native portable conformance
         run: pnpm check:studio-native
 
+      - name: Verify production security and operations dry-runs
+        run: pnpm verify:production-operations
+
       - name: Install Studio browser
         run: pnpm --filter @vira-enterprise-genui/experience-studio-demo exec playwright install --with-deps chromium
 
