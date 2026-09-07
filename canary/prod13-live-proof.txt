@@ -1,0 +1,3 @@
+VIRA PROD-13 live provider canary.
+This file is intentionally mutated and restored by the reversible real-provider closure proof.
+Do not use this branch or file for production data.
