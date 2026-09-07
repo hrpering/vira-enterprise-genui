@@ -48,3 +48,21 @@ export type {
   ViraCanvasSetViewportInput,
   ViraCanvasUpsertGraphViewInput,
 } from "./session.js";
+
+export { VIRA_CANVAS_DRAFT_V2_SCHEMA_VERSION } from "./v2-types.js";
+export type {
+  ViraCanvasDraftV2,
+  ViraCanvasDraftV2Result,
+  ViraCanvasDraftV2SerializationResult,
+  ViraCanvasGraphRefV2,
+  ViraCanvasGraphViewV2,
+  ViraCanvasSemanticsV2,
+  ViraCanvasSemanticsV2Result,
+  ViraCanvasSemanticsV2SerializationResult,
+} from "./v2-types.js";
+export {
+  extractViraCanvasSemanticsV2,
+  parseViraCanvasDraftV2,
+  serializeViraCanvasDraftV2,
+  serializeViraCanvasSemanticsV2,
+} from "./v2-validate.js";

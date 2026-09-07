@@ -22,3 +22,16 @@ export {
   parseViraApplicationProtocolProjection,
   serializeViraApplicationProtocolProjection,
 } from "./validate.js";
+
+export { VIRA_APPLICATION_PROTOCOL_PROJECTION_V2_SCHEMA_VERSION } from "./v2-types.js";
+export type {
+  ViraApplicationProtocolProjectionArtifactV2,
+  ViraApplicationProtocolProjectionRefV2,
+  ViraApplicationProtocolProjectionV2Issue,
+  ViraApplicationProtocolProjectionV2ParseResult,
+  ViraApplicationProtocolProjectionV2SerializationResult,
+} from "./v2-types.js";
+export {
+  parseViraApplicationProtocolProjectionV2,
+  serializeViraApplicationProtocolProjectionV2,
+} from "./v2-validate.js";
