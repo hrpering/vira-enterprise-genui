@@ -7,8 +7,10 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@vira-enterprise-genui/action-verification": "workspace:*",
     "@vira-enterprise-genui/application-package": "workspace:*",
     "@vira-enterprise-genui/commercial-entitlement": "workspace:*",
+    "@vira-enterprise-genui/durable-execution": "workspace:*",
     "@vira-enterprise-genui/enterprise-context": "workspace:*",
     "@vira-enterprise-genui/protocol": "workspace:*"
   }

@@ -37,3 +37,23 @@ export {
   serializeViraCommercialUsageRating,
 } from "./rating-evidence.js";
 export { createViraCommercialUsageLedger } from "./ledger.js";
+export {
+  normalizeViraVerifiedActionUsageSource,
+  VIRA_COMMERCIAL_TRUSTED_USAGE_SOURCE_KINDS,
+  VIRA_COMMERCIAL_TRUSTED_USAGE_SOURCE_VERSION,
+} from "./trusted-source.js";
+export type {
+  ViraCommercialActionVerificationSource,
+  ViraCommercialExecutionAuthoritySource,
+  ViraCommercialTrustedUsageSourceAuthority,
+  ViraCommercialTrustedUsageSourceDependencies,
+  ViraCommercialTrustedUsageSourceDigestProvider,
+  ViraCommercialTrustedUsageSourceEvent,
+  ViraCommercialTrustedUsageSourceIssue,
+  ViraCommercialTrustedUsageSourceIssueCode,
+  ViraCommercialTrustedUsageSourceKind,
+  ViraCommercialTrustedUsageSourceResult,
+  ViraCommercialUsageAttribution,
+  ViraCommercialVerifiedActionBillingBinding,
+  ViraCommercialVerifiedActionBillingBindingSource,
+} from "./trusted-source.js";

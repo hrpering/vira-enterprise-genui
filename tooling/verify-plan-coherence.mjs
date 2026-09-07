@@ -47,9 +47,24 @@ const [
 requireText(masterPlan, "PROD-00", "MASTER_PLAN.md");
 requireText(masterPlan, "PROD-17", "MASTER_PLAN.md");
 requireText(masterPlan, "PROD-22", "MASTER_PLAN.md");
-requireText(activePhase, "PROD-01", "ACTIVE_PHASE.md");
-requireText(activePhase, "prod/01-production-shell", "ACTIVE_PHASE.md");
-requireText(activePhase, "91e8fad8b54fd78c99359d968f75ebec4bcc3562", "ACTIVE_PHASE.md stacked parent");
+requireText(
+  activePhase,
+  "docs/production/VIRA_UNIFIED_ARCHITECTURE_PRODUCTION_PLAN_FINAL.md",
+  "ACTIVE_PHASE.md roadmap",
+);
+
+const activePhaseMatch = activePhase.match(/\*\*Phase:\*\*\s+PROD-(\d{2})\b/);
+const activeBranchMatch = activePhase.match(/\*\*Branch:\*\*\s+`prod\/(\d{2})-[^`]+`/);
+
+if (!activePhaseMatch || !activeBranchMatch) {
+  throw new Error("ACTIVE_PHASE.md must declare a PROD-XX phase and matching prod/XX-* branch");
+}
+
+if (activePhaseMatch[1] !== activeBranchMatch[1]) {
+  throw new Error(
+    `ACTIVE_PHASE.md phase/branch mismatch: PROD-${activePhaseMatch[1]} vs prod/${activeBranchMatch[1]}`,
+  );
+}
 requireText(productionPlan, "## PROD-00 — Program, owner, threat ve operasyon freeze", "production plan");
 requireText(productionPlan, "## PROD-01 — Production workspace ve deploy edilebilir shell", "production plan");
 requireText(productionPlan, "## PROD-20", "production plan");
