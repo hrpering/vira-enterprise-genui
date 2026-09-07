@@ -15,3 +15,19 @@ export type {
   ViraApplicationAiHostV2Result,
 } from "./v2-types.js";
 export { evaluateViraApplicationForAiHostV2 } from "./v2-evaluate.js";
+
+export {
+  VIRA_EXTERNAL_AI_HOST_ADAPTER_VERSION,
+  VIRA_EXTERNAL_AI_HOST_FAMILIES,
+  VIRA_EXTERNAL_AI_HOST_FEATURES,
+  planViraExternalAiHostAdapter,
+} from "./external-adapter.js";
+export type {
+  ViraExternalAiHostAdapterIssue,
+  ViraExternalAiHostAdapterIssueCode,
+  ViraExternalAiHostAdapterPlan,
+  ViraExternalAiHostAdapterProfile,
+  ViraExternalAiHostAdapterResult,
+  ViraExternalAiHostFamily,
+  ViraExternalAiHostFeature,
+} from "./external-adapter.js";
