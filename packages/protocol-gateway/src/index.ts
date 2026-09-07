@@ -22,3 +22,19 @@ export type {
   ProtocolGatewayV2Result,
   ProtocolGatewayV2SemanticRole,
 } from "./v2.js";
+
+export {
+  VIRA_NETWORK_PROTOCOL_CONFORMANCE_VERSION,
+  VIRA_NETWORK_PROTOCOL_FAMILIES,
+  VIRA_NETWORK_PROTOCOL_OPERATIONS,
+  evaluateViraNetworkProtocolConformance,
+} from "./network-conformance.js";
+export type {
+  ViraNetworkProtocolActionAuthority,
+  ViraNetworkProtocolConformanceEvidence,
+  ViraNetworkProtocolConformanceIssue,
+  ViraNetworkProtocolConformanceIssueCode,
+  ViraNetworkProtocolConformanceResult,
+  ViraNetworkProtocolFamily,
+  ViraNetworkProtocolOperation,
+} from "./network-conformance.js";
