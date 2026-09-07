@@ -723,6 +723,18 @@ importers:
         specifier: workspace:*
         version: link:../protocol
 
+  packages/provider-trust:
+    dependencies:
+      '@vira-enterprise-genui/enterprise-context':
+        specifier: workspace:*
+        version: link:../enterprise-context
+      '@vira-enterprise-genui/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      '@vira-enterprise-genui/provider-connection':
+        specifier: workspace:*
+        version: link:../provider-connection
+
   packages/react:
     dependencies:
       '@vira-enterprise-genui/runtime-web':
