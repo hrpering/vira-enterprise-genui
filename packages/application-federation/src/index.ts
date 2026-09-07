@@ -55,3 +55,24 @@ export type {
   ViraApplicationSourceTrustResult,
   ViraAuthenticatedApplicationSource,
 } from "./source-trust.js";
+
+export {
+  VIRA_APPLICATION_FEDERATION_TRANSPORT_MAX_CURSOR_LENGTH,
+  VIRA_APPLICATION_FEDERATION_TRANSPORT_MAX_PAGE_SIZE,
+  VIRA_APPLICATION_FEDERATION_TRANSPORT_VERSION,
+  validateViraApplicationFederationTransport,
+} from "./transport.js";
+export type {
+  ViraApplicationFederationCacheValidator,
+  ViraApplicationFederationTransportDigestProvider,
+  ViraApplicationFederationTransportIssue,
+  ViraApplicationFederationTransportIssueCode,
+  ViraApplicationFederationTransportNotModifiedResponse,
+  ViraApplicationFederationTransportPageResponse,
+  ViraApplicationFederationTransportRequest,
+  ViraApplicationFederationTransportResponse,
+  ViraApplicationFederationTransportResult,
+  ViraValidatedApplicationFederationNotModified,
+  ViraValidatedApplicationFederationTransport,
+  ViraValidatedApplicationFederationTransportPage,
+} from "./transport.js";
