@@ -23,3 +23,21 @@ export {
   parseViraCommercialSettlementAllocation,
   serializeViraCommercialSettlementAllocation,
 } from "./evidence.js";
+export {
+  VIRA_MULTI_PARTY_SETTLEMENT_VERSION,
+  VIRA_SETTLEMENT_BPS_DENOMINATOR,
+  VIRA_SETTLEMENT_MAX_NANOS,
+  allocateViraMultiPartySettlement,
+  createViraPaymentReconciler,
+  signViraFundsEvent,
+} from "./reconciliation.js";
+export type {
+  ViraFundsEventType,
+  ViraMultiPartyAllocationEvidence,
+  ViraMultiPartyShareSchedule,
+  ViraReconciliationRecord,
+  ViraSettlementIssueCode,
+  ViraSettlementParty,
+  ViraSettlementResult,
+  ViraSignedFundsEvent,
+} from "./reconciliation.js";
