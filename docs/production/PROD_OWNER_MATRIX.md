@@ -22,9 +22,9 @@ This file records the production-program ownership map. `PACKAGE_OWNERSHIP.md` r
 | Enterprise scope | `enterprise-context` |
 | Commercial chain | existing entitlement/metering/pricing/settlement owners |
 
-## Planned new thin owners and earliest phase
+## Production-program owners added by PROD-00..22
 
-| Concern | Planned owner | Earliest phase |
+| Concern | Implemented owner | Owning phase |
 |---|---|---:|
 | exact Application resolution | `application-resolution` | PROD-05 |
 | durable Application coordination | `application-runtime` | PROD-08 |
@@ -32,15 +32,19 @@ This file records the production-program ownership map. `PACKAGE_OWNERSHIP.md` r
 | provider trust | `provider-trust` | PROD-09 |
 | exact Action binding discovery | `action-supply` | PROD-10 |
 | transaction meaning | `action-transaction` | PROD-10 |
-| one-time execution grant | `execution-grant` | PROD-11 |
+| one-time execution grant | `action-transaction` | PROD-11 |
 | durable protected execution | `durable-execution` | PROD-12 |
 | private provider execution | `private-runner` | PROD-12 |
 | postcondition semantics | `action-verification` | PROD-13 |
 | artifact identity/lineage | `artifact-contract` | PROD-08 |
 | durable persistence adapters | `integrations/postgres` | PROD-02 onward |
-| artifact bytes | `integrations/object-store` | PROD-08 |
+| artifact bytes port | `artifact-contract`; external object-store integration remains live-environment work | PROD-08 |
 
-No planned owner exists merely because this table names it. Its owning phase must still record nearest-owner analysis, permitted dependency edges, failure semantics, tests and migration/rollback where applicable.
+These owners are present in the provisional repository implementation and remain constrained by their phase evidence, public package boundaries and executable dependency rules. Their presence does not prove a live provider, object store, payment system, deployment or release authority.
+
+## External/live ownership still open
+
+Operational accounts and immutable evidence for Vercel, Railway, PostgreSQL restore, object storage, KMS/secrets, observability delivery, design-partner UAT and device/external-host matrices remain governed by `LIVE_GATE_BLOCKERS.md`. They are integrations and operational evidence owners, not new semantic package owners.
 
 ## Forbidden duplicate owners
 

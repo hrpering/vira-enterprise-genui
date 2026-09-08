@@ -1156,9 +1156,9 @@ verify:billing-export
 verify:production-ui
 verify:operations-e2e
 verify:security-adversarial
-verify:backup-restore
-verify:production-deploy
-verify:load-soak
+verify:backup-restore:live
+verify:production-deploy:live
+verify:load-soak:live
 verify:production-e2e
 verify:production-mvp-rc
 
@@ -1174,6 +1174,8 @@ verify:full-platform-rc
 ```
 
 `verify:production-mvp-rc` ve `verify:full-platform-rc` yalnız orkestratördür; yeni semantik owner olmaz ve ilk child failure'da non-zero çıkar.
+
+`:live` son ekli kapılar gerçek ortam kimliği, immutable deployment/artifact referansı ve yetkili credentials gerektirir. Yerel simulation veya repository fixture'ı bu komutların PASS'i sayılmaz; otomasyonları aktive edilene kadar `LIVE_GATE_BLOCKERS.md` altında açık kalırlar.
 
 ---
 
