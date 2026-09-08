@@ -1,9 +1,9 @@
 # Active Phase
 
 **Phase:** PROD-22 — Full Platform provisional gate
-**Status:** LOCAL ROOT VERIFIED / HOSTED EXACT-HEAD CI PENDING
-**Branch:** `prod/22-full-platform-provisional-gate`
-**Parent:** `main@076df939c6afe4b45b33caf45361074693894ba8`
+**Status:** PROVISIONAL CODE-COMPLETE / LIVE RELEASE GATES OPEN
+**Branch:** `prod/22-provisional-closure`
+**Parent:** `main@73aa595f9aa88353f5040455c67be37fa84c378e`
 **Roadmap:** `docs/production/VIRA_UNIFIED_ARCHITECTURE_PRODUCTION_PLAN_FINAL.md`
 
 ## Current checkpoint
@@ -13,6 +13,8 @@
 - simulated load/soak and DR gates: implemented;
 - provisional-only release authority and live blockers: enforced;
 - focused and root verification: passed (328 files, 1,836 tests; 2 skipped);
-- hosted exact-head CI and independent re-audit: pending.
+- hosted exact-head `verify`, `ios-native` and `android-native`: passed on PR #251 head `7a3daad`;
+- independent phase-only diff re-audit: passed;
+- implementation merged through PR #251 at `main@73aa595`.
 
 No production release status is implied. Live Vercel/Railway and UAT gates remain tracked in `docs/production/LIVE_GATE_BLOCKERS.md`.

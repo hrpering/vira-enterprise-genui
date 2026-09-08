@@ -1,6 +1,6 @@
 # Live Release Gate Blockers
 
-**Program status:** CODE/CI IMPLEMENTATION ACTIVE / LIVE PRODUCTION MUTATIONS OUT OF SCOPE
+**Program status:** PROVISIONAL CODE-COMPLETE / LIVE RELEASE GATES OPEN
 
 These gates are intentionally deferred. Their absence does not block provisional code merges, but it blocks production-authoritative Q9, release tags, `VIRA PRODUCTION MVP RC` and `VIRA FULL PLATFORM RC`.
 
