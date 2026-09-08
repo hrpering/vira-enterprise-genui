@@ -1,6 +1,6 @@
 # PROD-20 — Machine Commerce and Dynamic Acquisition
 
-**Status:** IMPLEMENTATION / EXACT-HEAD VERIFICATION PENDING
+**Status:** PROVISIONAL CODE-COMPLETE / LIVE RELEASE GATES OPEN
 **Dependencies:** PROD-14 + PROD-19  
 **Source reconciliation:** draft PR #214 (`MASTER-52..59`) is folded into this single production phase.
 
@@ -62,3 +62,7 @@ Successful acquisition/payment authorization may feed an explicit trusted contro
 The final proof must preserve the same exact machine/Application/Capability/commercial identities through acquisition → entitlement → execution → usage/rating/pricing/settlement evidence.
 
 No PROD-20 implementation begins before both dependencies close at Q9.
+
+## Closure
+
+PR #249 passed hosted `verify`, `ios-native` and `android-native` on exact head `ae5992f`, then merged at `main@6a25975`. This is code/CI closure only and grants no production release authority.
